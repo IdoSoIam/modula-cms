@@ -11,10 +11,11 @@
   },
   "dependencies": {
     "@nuxt/devtools": "latest",
-    "@nuxtjs/tailwindcss": "latest",
-    "@nuxt/image": "latest",
     "@nuxt/icon": "latest",
-    "daisyui": "latest",
+    "@nuxt/image": "latest",
+    "@nuxtjs/i18n": "^10.0.0-beta.5",
+    "@nuxtjs/tailwindcss": "latest",
+    "daisyui": "^5.0.35",
     "nuxt": "^3.17.3",
     "vue": "^3.5.13",
     "vue-router": "^4.5.1"

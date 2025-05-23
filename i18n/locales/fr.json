@@ -1,0 +1,17 @@
+{
+  "menu": {
+    "home": "Accueil",
+    "news": "Actualités",
+    "shop": "Boutique CBD",
+    "contact": "Contact"
+  },
+  "footer": {
+    "openingHours": "Horaires d'ouverture",
+    "directSale": "Vente directe à la ferme",
+    "schedule": "Tous les samedis",
+    "hours": "de 9h30 à 12h",
+    "contactUs": "Nous contacter",
+    "followUs": "Suivez-nous",
+    "organic": "Agriculture biologique depuis 2023"
+  }
+}

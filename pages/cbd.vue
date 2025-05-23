@@ -10,7 +10,7 @@
               Cultivé avec soin dans notre ferme en agriculture biologique, notre CBD 
               est 100% naturel et respecte les normes les plus strictes de qualité.
             </p>
-            <NuxtLink to="/boutique" class="btn btn-primary btn-lg">
+            <NuxtLink to="/shop" class="btn btn-primary btn-lg">
               Voir nos produits CBD
             </NuxtLink>
           </div>
@@ -104,7 +104,7 @@
         <p class="text-lg mb-8">
           Explorez notre gamme de produits CBD bio et locaux
         </p>
-        <NuxtLink to="/boutique" class="btn btn-primary btn-lg">
+        <NuxtLink to="/shop" class="btn btn-primary btn-lg">
           Voir la boutique
         </NuxtLink>
       </div>

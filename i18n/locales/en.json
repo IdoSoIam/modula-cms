@@ -1,0 +1,17 @@
+{
+  "menu": {
+    "home": "Home",
+    "news": "News",
+    "shop": "CBD Shop",
+    "contact": "Contact"
+  },
+  "footer": {
+    "openingHours": "Opening Hours",
+    "directSale": "Direct farm sale",
+    "schedule": "Every Saturday",
+    "hours": "from 9:30 AM to 12 PM",
+    "contactUs": "Contact Us",
+    "followUs": "Follow Us",
+    "organic": "Organic farming since 2023"
+  }
+}

@@ -1,5 +1,5 @@
-<template>
-  <div class="drawer" data-theme="light">
+<template>  
+  <div :data-theme="theme" class="min-h-screen bg-base-100">
     <input id="drawer-toggle" type="checkbox" class="drawer-toggle" />
     
     <div class="drawer-content flex flex-col">
@@ -12,22 +12,43 @@
               <Icon name="mdi:menu" size="24" />
             </label>
           </div>
-          <NuxtLink to="/" class="btn btn-ghost text-xl">Ferme du Campeyrigoux</NuxtLink>
+          
+          <!-- Logo et nom -->
+          <NuxtLink to="/" class="flex items-center gap-2">
+            <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-12" />
+            <span class="text-xl font-bold hidden sm:inline">Ferme du Campeyrigoux</span>
+          </NuxtLink>
         </div>
         
         <!-- Menu desktop -->
         <div class="navbar-center hidden md:flex">
           <ul class="menu menu-horizontal px-1">
-            <li><NuxtLink to="/" class="btn btn-ghost">Accueil</NuxtLink></li>
-            <li><NuxtLink to="/boutique" class="btn btn-ghost">Boutique CBD</NuxtLink></li>
-            <li><NuxtLink to="/cbd" class="btn btn-ghost">Le CBD</NuxtLink></li>
-            <li><NuxtLink to="/actualites" class="btn btn-ghost">Actualités</NuxtLink></li>
-            <li><NuxtLink to="/contact" class="btn btn-ghost">Contact</NuxtLink></li>
+            <li>
+              <NuxtLink to="/" class="btn btn-ghost" :class="{ 'btn-active': $route.path === '/' }">
+                {{ $t('menu.home') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/news" class="btn btn-ghost" :class="{ 'btn-active': $route.path === '/news' }">
+                {{ $t('menu.news') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/shop" class="btn btn-ghost" :class="{ 'btn-active': $route.path === '/shop' }">
+                {{ $t('menu.shop') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/contact" class="btn btn-ghost" :class="{ 'btn-active': $route.path === '/contact' }">
+                {{ $t('menu.contact') }}
+              </NuxtLink>
+            </li>
           </ul>
         </div>
 
-        <!-- Panier toujours visible -->
         <div class="navbar-end">
+          <ThemeToggle />
+          <LanguageSelector />
           <MiniCart />
         </div>
       </div>
@@ -35,25 +56,42 @@
       <!-- Contenu principal -->
       <main class="flex-grow">
         <slot />
-      </main>
-
-      <!-- Footer -->
-      <footer class="footer p-10 bg-primary text-white">
-        <div>
-          <span class="footer-title">La Ferme du Campeyrigoux</span>
-          <p>Saint Sébastien d'Aigrefeuille</p>
-          <p>Agriculture biologique</p>
+      </main>      <!-- Footer -->
+      <footer class="footer p-10 bg-neutral text-neutral-content">
+        <div class="footer-start">
+          <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-20 mb-2" />
+          <p class="font-bold text-lg">Ferme du Campeyrigoux</p>
+          <p class="opacity-80">{{ $t('footer.organic') }}</p>
         </div>
         <div>
-          <span class="footer-title">Contact</span>
-          <p class="link link-hover">Email: contact@ferme-campeyrigoux.fr</p>
-          <p class="link link-hover">Tél: 06 XX XX XX XX</p>
+          <h4 class="footer-title">Horaires d'ouverture</h4>
+          <div class="opacity-80">
+            <p>Vente directe à la ferme</p>
+            <p>Tous les samedis</p>
+            <p>de 9h30 à 12h</p>
+          </div>
         </div>
         <div>
-          <span class="footer-title">Réseaux sociaux</span>
+          <h4 class="footer-title">Nous contacter</h4>
+          <div class="opacity-80">
+            <p>Campeyrigoux</p>
+            <p>30140 Saint Sébastien d'Aigrefeuille</p>
+            <p class="flex items-center gap-2">
+              <Icon name="mdi:phone" size="18" />
+              07 68 55 06 64
+            </p>
+            <p class="flex items-center gap-2">
+              <Icon name="mdi:email" size="18" />
+              adele.godefroid@gmail.com
+            </p>
+          </div>
+        </div>
+        <div>
+          <h4 class="footer-title">Suivez-nous</h4>
           <div class="grid grid-flow-col gap-4">
-            <a class="btn btn-ghost btn-square"><Icon name="mdi:facebook" size="24" /></a>
-            <a class="btn btn-ghost btn-square"><Icon name="mdi:instagram" size="24" /></a>
+            <a href="https://facebook.com/Ferme-du-Campeyrigoux" target="_blank" class="btn btn-circle btn-outline">
+              <Icon name="mdi:facebook" size="24" />
+            </a>
           </div>
         </div>
       </footer>
@@ -63,12 +101,56 @@
     <div class="drawer-side z-50">
       <label for="drawer-toggle" class="drawer-overlay"></label>
       <ul class="menu p-4 w-80 min-h-full bg-base-100">
-        <li><NuxtLink to="/">Accueil</NuxtLink></li>
-        <li><NuxtLink to="/boutique">Boutique CBD</NuxtLink></li>
-        <li><NuxtLink to="/cbd">Le CBD</NuxtLink></li>
-        <li><NuxtLink to="/actualites">Actualités</NuxtLink></li>
-        <li><NuxtLink to="/contact">Contact</NuxtLink></li>
+        <li class="mb-4">
+          <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-24 mx-auto" />
+        </li>
+        <li>
+          <NuxtLink to="/" :class="{ 'active': $route.path === '/' }">
+            {{ $t('menu.home') }}
+          </NuxtLink>
+        </li>
+        <li>
+          <NuxtLink to="/news" :class="{ 'active': $route.path === '/news' }">
+            {{ $t('menu.news') }}
+          </NuxtLink>
+        </li>
+        <li>
+          <NuxtLink to="/shop" :class="{ 'active': $route.path === '/shop' }">
+            {{ $t('menu.shop') }}
+          </NuxtLink>
+        </li>
+        <li>
+          <NuxtLink to="/contact" :class="{ 'active': $route.path === '/contact' }">
+            {{ $t('menu.contact') }}
+          </NuxtLink>
+        </li>
       </ul>
     </div>
   </div>
 </template>
+
+
+<script setup lang="ts">
+  const { locale } = useI18n()
+  const switchLocalePath = useSwitchLocalePath()
+  const localePath = useLocalePath()
+  const { theme } = useTheme()
+
+  useHead({
+    htmlAttrs: {
+      lang: locale
+    },
+    link: [
+      {
+        rel: 'alternate',
+        hreflang: 'fr',
+        href: switchLocalePath('fr')
+      },
+      {
+        rel: 'alternate',
+        hreflang: 'en',
+        href: switchLocalePath('en')
+      }
+    ]
+  })
+</script>

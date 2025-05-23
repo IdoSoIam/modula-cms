@@ -1,4 +1,12 @@
 <script setup lang="ts">
+    // Déclaration pour éviter l'erreur TS sur window.fbAsyncInit
+    declare global {
+      interface Window {
+        fbAsyncInit?: () => void;
+      }
+    }
+    // Déclaration du SDK Facebook pour TypeScript
+    declare const FB: any;
     // À compléter avec l'ID de la page Facebook
     const FACEBOOK_PAGE_ID = 'VOTRE_ID_PAGE_FACEBOOK';
 
@@ -6,10 +14,10 @@
     // Initialisation du SDK Facebook
     window.fbAsyncInit = function() {
         FB.init({
-        appId: 'VOTRE_APP_ID', // À remplacer par votre App ID Facebook
-        autoLogAppEvents: true,
-        xfbml: true,
-        version: 'v18.0'
+          appId: 'VOTRE_APP_ID', // À remplacer par votre App ID Facebook
+          autoLogAppEvents: true,
+          xfbml: true,
+          version: 'v18.0'
         });
     };
 

@@ -1,101 +1,71 @@
 <template>
-  <div>
+  <div class="min-h-screen">
     <!-- Hero Section -->
-    <section class="hero min-h-[80vh] bg-gradient-to-br from-primary to-secondary">
-      <div class="hero-overlay bg-black/40"></div>
-      <div class="hero-content text-white">
-        <div class="max-w-2xl">
-          <h1 class="text-5xl font-bold mb-4">La Ferme du Campeyrigoux</h1>
-          <p class="text-xl mb-8">
-            Sur la commune de Saint Sébastien d'Aigrefeuille, la Ferme du Campeyrigoux est une
-            exploitation agricole en Bio, gérée par Adèle Godefroid. On y fait du maraichage
-            diversifié, des Endives, du poulet de chair, des œufs et du CBD.
-          </p>
-          <NuxtLink to="/boutique" class="btn btn-primary">
-            Découvrir nos produits
-          </NuxtLink>
+    <div class="hero min-h-[70vh] relative" style="background-image: url('/images/plaquette.jpg');">
+      <div class="hero-overlay bg-opacity-60"></div>
+      <div class="hero-content text-center text-neutral-content">
+        <div class="max-w-md">
+          <h1 class="mb-5 text-5xl font-bold">Ferme du Campeyrigoux</h1>
+          <p class="mb-5">Micro-ferme agroécologique en agriculture biologique</p>
+          <NuxtLink to="/contact" class="btn btn-primary">Nous rencontrer</NuxtLink>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Produits Bio Section -->
-    <section class="py-16 bg-base-100">
+    <!-- Présentation des activités -->
+    <div class="py-12 bg-base-100">
       <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center mb-12">Nos produits bio en vente directe</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <h2 class="text-3xl font-bold text-center mb-8">Nos Activités</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Maraîchage -->
           <div class="card bg-base-100 shadow-xl">
-            <figure class="px-4 pt-4">
-              <ImagePlaceholder alt="Légumes bio" class="rounded-xl h-48 w-full" />
-            </figure>
             <div class="card-body">
-              <h3 class="card-title">Légumes de saison</h3>
-              <p>Des légumes frais et bio, cultivés avec amour dans notre ferme.</p>
+              <h3 class="card-title">Maraîchage Bio</h3>
+              <p>Production de légumes frais et de saison en agriculture biologique.</p>
             </div>
           </div>
 
+          <!-- CBD -->
           <div class="card bg-base-100 shadow-xl">
-            <figure class="px-4 pt-4">
-              <ImagePlaceholder alt="Poulets" class="rounded-xl h-48 w-full" />
-            </figure>
             <div class="card-body">
-              <h3 class="card-title">Poulets de chair</h3>
-              <p>Élevés en plein air et nourris avec des aliments bio.</p>
+              <h3 class="card-title">Culture de CBD</h3>
+              <p>Production de CBD biologique de haute qualité.</p>
+              <div class="card-actions justify-end">
+                <NuxtLink to="/shop" class="btn btn-primary">Boutique CBD</NuxtLink>
+              </div>
             </div>
           </div>
 
+          <!-- Élevage -->
           <div class="card bg-base-100 shadow-xl">
-            <figure class="px-4 pt-4">
-              <ImagePlaceholder alt="Œufs" class="rounded-xl h-48 w-full" />
-            </figure>
             <div class="card-body">
-              <h3 class="card-title">Œufs frais</h3>
-              <p>Des œufs bio de poules élevées en plein air.</p>
+              <h3 class="card-title">Œufs & Volailles</h3>
+              <p>Élevage de poules en plein air et production d'œufs bio.</p>
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- CBD Section -->
-    <section class="py-16 bg-secondary/10">
+    <!-- Section Vente Directe -->
+    <div class="py-12 bg-base-200">
       <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center mb-12">Notre gamme CBD</h2>
         <div class="flex flex-col md:flex-row items-center gap-8">
-          <div class="flex-1">
-            <ImagePlaceholder alt="Produits CBD" class="rounded-lg shadow-xl w-full h-96" />
+          <div class="w-full md:w-1/2">
+            <img src="/images/vente_direct_saint_seb.jpg" alt="Vente directe" class="rounded-lg shadow-xl" />
           </div>
-          <div class="flex-1 space-y-4">
-            <h3 class="text-2xl font-semibold">CBD 100% Bio et Local</h3>
-            <p class="text-lg">
-              Découvrez notre gamme de produits CBD cultivés et transformés avec soin
-              dans notre ferme, dans le respect des normes biologiques.
-            </p>
-            <NuxtLink to="/boutique" class="btn btn-primary">
-              Voir la boutique en ligne
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Actualités Section -->
-    <section class="py-16">
-      <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center mb-12">Nos actualités</h2>
-        <div class="card bg-base-100 shadow-xl max-w-2xl mx-auto">
-          <div class="card-body text-center">
-            <Icon name="mdi:facebook" size="48" class="mx-auto text-primary" />
-            <p class="text-lg">
-              Suivez nos actualités sur notre page Facebook
-            </p>
-            <div class="card-actions justify-center">
-              <a href="#" class="btn btn-primary">
-                Visiter notre page Facebook
-              </a>
+          <div class="w-full md:w-1/2 space-y-4">
+            <h2 class="text-3xl font-bold">Vente Directe</h2>
+            <p class="text-lg">Tous les samedis de 9h30 à 12h</p>
+            <p>Sur la terrasse du SAINT SEB</p>
+            <p>Un système de tarification solidaire permet à tous d'avoir accès à une alimentation de qualité, bio et locale.</p>
+            <div class="pt-4">
+              <NuxtLink to="/contact" class="btn btn-primary">Nous trouver</NuxtLink>
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 </template>
