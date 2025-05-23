@@ -4,7 +4,22 @@ export interface CartItem {
 }
 
 export const useCart = () => {
+  const { user, isAuthenticated } = useAuth();
   const cart = useState<CartItem[]>('cart', () => []);
+  
+  // Fonction pour synchroniser le panier avec le serveur
+  const syncCartWithServer = async () => {
+    // TODO: Implémenter la synchronisation avec le serveur
+    // Exemple : await api.syncCart(cart.value);
+  };
+
+  // Synchroniser le panier avec le serveur quand l'utilisateur se connecte
+  watch(user, async (newUser) => {
+    if (newUser && cart.value.length > 0) {
+      await syncCartWithServer();
+    }
+  });
+
   const total = computed(() => {
     // TODO: Implémenter le calcul du total avec les prix des produits
     return 0;

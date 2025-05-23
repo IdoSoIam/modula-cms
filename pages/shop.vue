@@ -1,42 +1,16 @@
 <script setup lang="ts">
 import ImagePlaceholder from "~/components/ImagePlaceholder.vue";
+import { useProducts } from '~/composables/useProducts';
+import { useCart } from '~/composables/useCart';
+import type { Product } from '~/composables/useProducts';
 
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-  category: string;
-}
+const { products, fetchProducts } = useProducts();
+const { addToCart } = useCart();
+const { $toast } = useNuxtApp();
 
-const products = ref<Product[]>([
-  {
-    id: 1,
-    name: "Huile CBD 10% Bio",
-    description: "Huile CBD full spectrum 10%, extraite de nos plants cultivés en bio.",
-    price: 49.9,
-    image: "",
-    category: "Huiles",
-  },
-  {
-    id: 2,
-    name: "Fleurs CBD Amnesia",
-    description: "Fleurs séchées d'Amnesia Haze CBD, culture bio en plein air.",
-    price: 12.9,
-    image: "",
-    category: "Fleurs",
-  },
-  {
-    id: 3,
-    name: "Infusion CBD Relaxante",
-    description: "Mélange d'herbes bio et de CBD pour une détente naturelle.",
-    price: 14.9,
-    image: "",
-    category: "Infusions",
-  },
-  // Ajoutez d'autres produits ici
-]);
+onMounted(() => {
+  fetchProducts();
+});
 
 const categories = computed(() => {
   return [...new Set(products.value.map((p) => p.category))];
@@ -100,10 +74,17 @@ const filteredProducts = computed(() => {
         </figure>
         <div class="card-body">
           <h2 class="card-title">{{ product.name }}</h2>
-          <p class="text-gray-600">{{ product.description }}</p>
-          <div class="flex justify-between items-center mt-4">
-            <span class="text-xl font-bold">{{ product.price.toFixed(2) }}€</span>
-            <button class="btn btn-primary">Ajouter au panier</button>
+          <p class="text-gray-600">{{ product.description }}</p>          <div class="flex justify-between items-center mt-4">
+            <span class="text-xl font-bold">{{ $formatPrice(product.price) }}</span>
+            <button 
+              class="btn btn-primary"
+              @click="() => {
+                addToCart(product.id);
+                $toast.success(`${product.name} ajouté au panier`);
+              }"
+            >
+              Ajouter au panier
+            </button>
           </div>
         </div>
       </div>

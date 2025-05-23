@@ -42,22 +42,56 @@
               </NuxtLink>
             </li>
           </ul>
-        </div>
-
-        <div class="navbar-end">
+        </div>        <div class="navbar-end">
           <ThemeToggle />
           <LanguageSelector />
+          <!-- Auth Menu -->
+          <div class="dropdown dropdown-end mx-2">
+            <label tabindex="0" class="btn btn-ghost btn-circle">
+              <Icon 
+                :name="isAuthenticated ? 'mdi:account-circle' : 'mdi:account-outline'" 
+                size="24" 
+              />
+            </label>
+            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+              <template v-if="!isAuthenticated">
+                <li><button @click="showAuthModal = true">Se connecter</button></li>
+              </template>
+              <template v-else>
+                <li class="menu-title">{{ user?.firstName }} {{ user?.lastName }}</li>
+                <li><NuxtLink to="/profile">Mon profil</NuxtLink></li>
+                <li><NuxtLink to="/commandes">Mes commandes</NuxtLink></li>
+                <li><button @click="logout" class="text-error">Se déconnecter</button></li>
+              </template>
+            </ul>
+          </div>
           <MiniCart />
         </div>
       </div>
+
+      <!-- Modal d'authentification -->
+      <dialog id="auth_modal" class="modal" :class="{ 'modal-open': showAuthModal }">
+        <div class="modal-box relative">
+          <button 
+            class="btn btn-sm btn-circle absolute right-2 top-2"
+            @click="showAuthModal = false"
+          >
+            ✕
+          </button>
+          <AuthForm @success="showAuthModal = false" />
+        </div>
+        <form method="dialog" class="modal-backdrop">
+          <button @click="showAuthModal = false">close</button>
+        </form>
+      </dialog>      <!-- Conteneur pour les toasts -->
+      <div id="toast" class="toast toast-top toast-end z-50" style="display: none;"></div>
 
       <!-- Contenu principal -->
       <main class="flex-grow">
         <slot />
       </main>      
 
-      
-        <!-- Footer -->
+      <!-- Footer -->
       <footer class="footer footer-center p-10 bg-neutral text-neutral-content w-full">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 w-full max-w-7xl">
           <div class="flex flex-col items-center">
@@ -137,18 +171,21 @@
 
 
 <script setup lang="ts">
-  const { locale } = useI18n()
-  const switchLocalePath = useSwitchLocalePath()
-  const localePath = useLocalePath()
-  const { theme } = useTheme()
+const { locale } = useI18n();
+const switchLocalePath = useSwitchLocalePath();
+const localePath = useLocalePath();
+const { theme } = useTheme();
+const { isAuthenticated, user, logout } = useAuth();
 
-  useHead({
-    htmlAttrs: {
-      lang: locale
-    },
-    link: [
-      {
-        rel: 'alternate',
+const showAuthModal = ref(false);
+
+useHead({
+  htmlAttrs: {
+    lang: locale
+  },
+  link: [
+    {
+      rel: 'alternate',
         hreflang: 'fr',
         href: switchLocalePath('fr')
       },
