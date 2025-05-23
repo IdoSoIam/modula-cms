@@ -1,11 +1,24 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
-  devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@nuxt/image', "@nuxt/icon", '@nuxtjs/i18n'],
+  debug: false,
+  devtools: {
+    enabled: true,
+
+    timeline: {
+      enabled: true
+    }
+  },
+  modules: [
+    '@nuxtjs/tailwindcss', 
+    '@nuxt/image', 
+    "@nuxt/icon", 
+    '@nuxtjs/i18n'
+  ],
   css: [
     '@/assets/css/tailwind.css',
-    '@/assets/css/overrides.css'  // <-- fichier override en dernier
+    '@/assets/css/themes.css',
+    '@/assets/css/main.css',
   ],
   tailwindcss: {
     viewer: false,

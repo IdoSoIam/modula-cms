@@ -1,56 +1,60 @@
 <script setup lang="ts">
-    interface Product {
-    id: number;
-    name: string;
-    description: string;
-    price: number;
-    image: string;
-    category: string;
-    }
+import ImagePlaceholder from "~/components/ImagePlaceholder.vue";
 
-    const products = ref<Product[]>([
-    {
-        id: 1,
-        name: "Huile CBD 10% Bio",
-        description: "Huile CBD full spectrum 10%, extraite de nos plants cultivés en bio.",
-        price: 49.90,
-        image: "/images/products/huile-cbd.jpg",
-        category: "Huiles"
-    },
-    {
-        id: 2,
-        name: "Fleurs CBD Amnesia",
-        description: "Fleurs séchées d'Amnesia Haze CBD, culture bio en plein air.",
-        price: 12.90,
-        image: "/images/products/fleurs-cbd.jpg",
-        category: "Fleurs"
-    },
-    {
-        id: 3,
-        name: "Infusion CBD Relaxante",
-        description: "Mélange d'herbes bio et de CBD pour une détente naturelle.",
-        price: 14.90,
-        image: "/images/products/infusion-cbd.jpg",
-        category: "Infusions"
-    },
-    // Ajoutez d'autres produits ici
-    ]);
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+}
 
-    const categories = computed(() => {
-    return [...new Set(products.value.map(p => p.category))];
-    });
+const products = ref<Product[]>([
+  {
+    id: 1,
+    name: "Huile CBD 10% Bio",
+    description: "Huile CBD full spectrum 10%, extraite de nos plants cultivés en bio.",
+    price: 49.9,
+    image: "",
+    category: "Huiles",
+  },
+  {
+    id: 2,
+    name: "Fleurs CBD Amnesia",
+    description: "Fleurs séchées d'Amnesia Haze CBD, culture bio en plein air.",
+    price: 12.9,
+    image: "",
+    category: "Fleurs",
+  },
+  {
+    id: 3,
+    name: "Infusion CBD Relaxante",
+    description: "Mélange d'herbes bio et de CBD pour une détente naturelle.",
+    price: 14.9,
+    image: "",
+    category: "Infusions",
+  },
+  // Ajoutez d'autres produits ici
+]);
 
-    const selectedCategory = ref('');
-    const searchQuery = ref('');
+const categories = computed(() => {
+  return [...new Set(products.value.map((p) => p.category))];
+});
 
-    const filteredProducts = computed(() => {
-    return products.value.filter(product => {
-        const matchesCategory = !selectedCategory.value || product.category === selectedCategory.value;
-        const matchesSearch = product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                            product.description.toLowerCase().includes(searchQuery.value.toLowerCase());
-        return matchesCategory && matchesSearch;
-    });
-    });
+const selectedCategory = ref("");
+const searchQuery = ref("");
+
+const filteredProducts = computed(() => {
+  return products.value.filter((product) => {
+    const matchesCategory =
+      !selectedCategory.value || product.category === selectedCategory.value;
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchQuery.value.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+});
 </script>
 
 <template>
@@ -60,17 +64,14 @@
     <!-- Filtres -->
     <div class="flex flex-col md:flex-row gap-4 mb-8">
       <div class="form-control flex-1">
-        <input 
+        <input
           v-model="searchQuery"
           type="text"
           placeholder="Rechercher un produit..."
-          class="input input-bordered w-full" 
+          class="input input-bordered w-full"
         />
       </div>
-      <select 
-        v-model="selectedCategory"
-        class="select select-bordered w-full md:w-64"
-      >
+      <select v-model="selectedCategory" class="select select-bordered w-full md:w-64">
         <option value="">Toutes les catégories</option>
         <option v-for="category in categories" :key="category" :value="category">
           {{ category }}
@@ -80,25 +81,29 @@
 
     <!-- Grille de produits -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <div 
-        v-for="product in filteredProducts" 
+      <div
+        v-for="product in filteredProducts"
         :key="product.id"
         class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow"
-      >        <figure class="px-4 pt-4">
-          <ProductImage 
-            :src="product.image" 
-            :alt="product.name"
-            class="rounded-xl h-48 w-full" 
-          />
+      >
+        <figure class="px-4 pt-4">
+          <template v-if="product.image">
+            <ProductImage
+              :src="product.image"
+              :alt="product.name"
+              class="rounded-xl h-48 w-full"
+            />
+          </template>
+          <template v-else>
+            <ImagePlaceholder class="rounded-xl h-48 w-full" />
+          </template>
         </figure>
         <div class="card-body">
           <h2 class="card-title">{{ product.name }}</h2>
           <p class="text-gray-600">{{ product.description }}</p>
           <div class="flex justify-between items-center mt-4">
             <span class="text-xl font-bold">{{ product.price.toFixed(2) }}€</span>
-            <button class="btn btn-primary">
-              Ajouter au panier
-            </button>
+            <button class="btn btn-primary">Ajouter au panier</button>
           </div>
         </div>
       </div>

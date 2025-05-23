@@ -53,6 +53,8 @@
 
 /* Mode sombre */
 [data-theme="dark"] {
+    color-scheme: dark;
+
   --color-base-100: #3a3529;
   --color-base-200: #413c33;
   --color-base-300: #4a4439;
