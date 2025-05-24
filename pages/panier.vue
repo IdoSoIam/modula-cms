@@ -1,23 +1,21 @@
 <template>
-  <div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-8">Mon Panier</h1>
+  <div class="container mx-auto px-4 py-8">    <h1 class="text-3xl font-bold mb-8">{{ $t('pages.cart.title') }}</h1>
 
     <div v-if="!cart" class="text-center py-8">
-      <p class="text-gray-600">Votre panier est vide</p>
-      <NuxtLink to="/shop" class="btn btn-primary mt-4"> Continuer mes achats </NuxtLink>
+      <p class="text-gray-600">{{ $t('pages.cart.empty') }}</p>
+      <NuxtLink to="/shop" class="btn btn-primary mt-4">{{ $t('pages.cart.continueShopping') }}</NuxtLink>
     </div>
 
     <!-- Liste des produits -->
     <div v-else class="flex flex-col gap-8">
       <!-- Table des produits -->
       <div class="overflow-x-auto">
-        <table class="table w-full">
-          <thead>
+        <table class="table w-full">          <thead>
             <tr>
-              <th>Produit</th>
-              <th>Prix unitaire</th>
-              <th>Quantité</th>
-              <th>Total</th>
+              <th>{{ $t('pages.cart.product') }}</th>
+              <th>{{ $t('pages.cart.unitPrice') }}</th>
+              <th>{{ $t('pages.cart.quantity') }}</th>
+              <th>{{ $t('pages.cart.total') }}</th>
               <th></th>
             </tr>
           </thead>
@@ -65,35 +63,32 @@
       </div>
       <!-- Résumé de la commande -->
       <div class="card bg-base-100 shadow-xl max-w-md ml-auto">
-        <div class="card-body">
-          <h2 class="card-title">Résumé de la commande</h2>
-
-          <template v-if="cartItemsWithProducts.length > 0">
-            <div class="py-4" v-if="!isAuthenticated">
+        <div class="card-body flex justify-center items-center ">
+          <h2 class="card-title">{{ $t('pages.cart.orderSummary') }}</h2>          <template v-if="cartItemsWithProducts.length > 0">
+            <div class="py-4" v-if="!authStore.isAuthenticated">
               <div class="alert alert-warning">
                 <Icon name="mdi:alert" size="24" />
-                <span>Connectez-vous pour finaliser votre commande</span>
+                <span>{{ $t('pages.cart.loginRequired') }}</span>
               </div>
               <AuthForm class="mt-4" />
             </div>
 
-            <template v-else>
-              <div class="flex justify-between py-2">
-                <span>Sous-total</span>
+            <template v-else>              <div class="flex justify-between py-2">
+                <span>{{ $t('pages.cart.subtotal') }}</span>
                 <span>{{ subtotal.toFixed(2) }}€</span>
               </div>
               <div class="flex justify-between py-2">
-                <span>Frais de livraison</span>
+                <span>{{ $t('pages.cart.shippingCosts') }}</span>
                 <span>{{ shipping.toFixed(2) }}€</span>
               </div>
               <div class="divider"></div>
               <div class="flex justify-between font-bold">
-                <span>Total</span>
+                <span>{{ $t('pages.cart.total') }}</span>
                 <span>{{ total.toFixed(2) }}€</span>
               </div>
               <div class="card-actions justify-end mt-4">
                 <button class="btn btn-primary" @click="checkout">
-                  Passer la commande
+                  {{ $t('pages.cart.placeOrder') }}
                 </button>
               </div>
             </template>
@@ -105,14 +100,14 @@
 </template>
 
 <script setup lang="ts">
-import { useAuth } from "~/composables/useAuth";
+import { useAuthStore } from "~/stores/auth";
 import { useCart } from "~/composables/useCart";
 import { usePayment } from "~/composables/usePayment";
 import { useProducts } from "~/composables/useProducts";
 import type { Product } from "~/composables/useProducts";
 import AuthForm from "~/components/AuthForm.vue";
 
-const { isAuthenticated, user } = useAuth();
+const authStore = useAuthStore();
 const { cart, removeFromCart, updateQuantity } = useCart();
 const { initiatePayment } = usePayment();
 const { products, fetchProducts } = useProducts();
@@ -163,7 +158,7 @@ const removeItem = (item: CartItemWithProduct) => {
 };
 
 const checkout = async () => {
-  if (!isAuthenticated.value || !user.value) {
+  if (!authStore.isAuthenticated || !authStore.user) {
     return;
   }
 
@@ -177,7 +172,7 @@ const checkout = async () => {
       })),
       shipping: shipping.value,
       total: total.value,
-      shippingAddress: user.value.shippingAddress,
+      shippingAddress: authStore.user.shippingAddress,
     });
 
     if (paymentResult.success) {

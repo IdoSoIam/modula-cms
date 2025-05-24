@@ -33,7 +33,7 @@ const filteredProducts = computed(() => {
 
 <template>
   <div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-center mb-12">Boutique CBD</h1>
+    <h1 class="text-4xl font-bold text-center mb-12">{{ $t('pages.shop.title') }}</h1>
 
     <!-- Filtres -->
     <div class="flex flex-col md:flex-row gap-4 mb-8">
@@ -41,12 +41,12 @@ const filteredProducts = computed(() => {
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Rechercher un produit..."
+          :placeholder="$t('pages.shop.searchPlaceholder')"
           class="input input-bordered w-full"
         />
       </div>
       <select v-model="selectedCategory" class="select select-bordered w-full md:w-64">
-        <option value="">Toutes les catégories</option>
+        <option value="">{{ $t('pages.shop.allCategories') }}</option>
         <option v-for="category in categories" :key="category" :value="category">
           {{ category }}
         </option>
@@ -79,11 +79,9 @@ const filteredProducts = computed(() => {
             <button 
               class="btn btn-primary"
               @click="() => {
-                addToCart(product.id);
-                $toast.success(`${product.name} ajouté au panier`);
-              }"
-            >
-              Ajouter au panier
+                addToCart(product.id);                $toast.success(`${product.name} ${$t('pages.shop.addedToCart')}`);
+              }">
+              {{ $t('pages.shop.addToCart') }}
             </button>
           </div>
         </div>
@@ -92,7 +90,7 @@ const filteredProducts = computed(() => {
 
     <!-- Message si aucun produit trouvé -->
     <div v-if="filteredProducts.length === 0" class="text-center py-8">
-      <p class="text-gray-600">Aucun produit ne correspond à votre recherche.</p>
+      <p class="text-gray-600">{{ $t('pages.shop.noProductsFound') }}</p>
     </div>
   </div>
 </template>

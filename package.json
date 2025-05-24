@@ -4,23 +4,35 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "NODE_OPTIONS='--inspect' npx nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/devtools": "latest",
-    "@nuxt/icon": "latest",
-    "@nuxt/image": "latest",
+    "@nuxt/devtools": "2.4.1",
+    "@nuxt/icon": "^1.13.0",
+    "@nuxt/image": "^1.10.0",
     "@nuxtjs/i18n": "^10.0.0-beta.5",
-    "@nuxtjs/tailwindcss": "latest",
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "@pinia/nuxt": "^0.11.0",
+    "@prisma/client": "^6.8.2",
+    "@tanstack/vue-query": "^5.77.0",
+    "@types/bcrypt": "^5.0.2",
+    "bcrypt": "^6.0.0",
     "daisyui": "^5.0.35",
+    "dotenv": "^16.5.0",
+    "facebook-node-sdk": "^0.2.0",
+    "fb": "^2.0.0",
+    "mysql2": "^3.14.1",
     "nuxt": "^3.17.3",
+    "pinia": "^3.0.2",
+    "prisma": "^6.8.2",
     "vue": "^3.5.13",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
-    "@iconify-json/mdi": "^1.2.3"
+    "@iconify-json/mdi": "^1.2.3",
+    "@types/fb": "^0.0.30"
   }
 }

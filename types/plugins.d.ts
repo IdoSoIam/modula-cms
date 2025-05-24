@@ -3,6 +3,7 @@ import { Plugin } from '@nuxt/types'
 declare module '@nuxt/types' {
   interface NuxtAppOptions {
     $formatPrice: (price: number) => string
+    $formatDate: (date: string) => Date
     $toast: {
       success: (message: string) => void
       error: (message: string) => void
@@ -10,6 +11,7 @@ declare module '@nuxt/types' {
   }
   interface Context {
     $formatPrice: (price: number) => string
+    $formatDate: (date: string) => Date
     $toast: {
       success: (message: string) => void
       error: (message: string) => void
@@ -20,6 +22,7 @@ declare module '@nuxt/types' {
 declare module 'vue/types/vue' {
   interface Vue {
     $formatPrice: (price: number) => string
+    $formatDate: (date: string) => Date
     $toast: {
       success: (message: string) => void
       error: (message: string) => void

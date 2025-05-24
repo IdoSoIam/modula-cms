@@ -1,10 +1,12 @@
+import { useAuthStore } from '~/stores/auth'
+
 export interface CartItem {
   productId: number;
   quantity: number;
 }
 
 export const useCart = () => {
-  const { user, isAuthenticated } = useAuth();
+  const authStore = useAuthStore();
   const cart = useState<CartItem[]>('cart', () => []);
   
   // Fonction pour synchroniser le panier avec le serveur
@@ -12,9 +14,8 @@ export const useCart = () => {
     // TODO: Implémenter la synchronisation avec le serveur
     // Exemple : await api.syncCart(cart.value);
   };
-
   // Synchroniser le panier avec le serveur quand l'utilisateur se connecte
-  watch(user, async (newUser) => {
+  watch(() => authStore.user, async (newUser) => {
     if (newUser && cart.value.length > 0) {
       await syncCartWithServer();
     }
