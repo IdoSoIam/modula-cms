@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client'
 import { H3Event } from 'h3'
 import * as bcrypt from 'bcrypt'
 import { getSessionConfig } from '../../utils/session'
-
-const prisma = new PrismaClient()
+import { prisma } from '../../../prisma/client'
 
 export class AuthService {
   private static SALT_ROUNDS = 10
@@ -25,7 +23,7 @@ export class AuthService {
           lastName,
           birthDate,
           role
-        },        
+        },
         select: {
           id: true,
           email: true,
@@ -48,11 +46,11 @@ export class AuthService {
       throw error
     }
   }
-  async validateUser(email: string, password: string): Promise<{ 
-    id: number; 
-    email: string; 
-    firstName?: string; 
-    lastName?: string; 
+  async validateUser(email: string, password: string): Promise<{
+    id: number;
+    email: string;
+    firstName?: string;
+    lastName?: string;
     role: string;
     shippingAddress?: {
       street: string;
@@ -104,11 +102,11 @@ export class AuthService {
       console.error('Error validating user:', error)
       throw error
     }
-  }async getUserFromSession(event: H3Event): Promise<{ 
-    id: number; 
-    email: string; 
-    firstName?: string; 
-    lastName?: string; 
+  } async getUserFromSession(event: H3Event): Promise<{
+    id: number;
+    email: string;
+    firstName?: string;
+    lastName?: string;
     role: string;
     shippingAddress?: {
       street: string;
@@ -139,7 +137,7 @@ export class AuthService {
           country: true
         }
       })
-      
+
       if (!user) {
         return null
       }
@@ -172,11 +170,11 @@ export class AuthService {
     firstName: string;
     lastName: string;
     email: string;
-  }): Promise<{ 
-    id: number; 
-    email: string; 
-    firstName?: string; 
-    lastName?: string; 
+  }): Promise<{
+    id: number;
+    email: string;
+    firstName?: string;
+    lastName?: string;
     role: string;
     shippingAddress?: {
       street: string;
@@ -231,11 +229,11 @@ export class AuthService {
     city: string;
     postalCode: string;
     country: string;
-  }): Promise<{ 
-    id: number; 
-    email: string; 
-    firstName?: string; 
-    lastName?: string; 
+  }): Promise<{
+    id: number;
+    email: string;
+    firstName?: string;
+    lastName?: string;
     role: string;
     shippingAddress?: {
       street: string;
@@ -245,7 +243,7 @@ export class AuthService {
     }
   }> {
     try {
-      const street = data.addressLine2 
+      const street = data.addressLine2
         ? `${data.addressLine1}, ${data.addressLine2}`
         : data.addressLine1
 
@@ -348,7 +346,7 @@ export class AuthService {
       // 1. Cancel all pending orders
       // 2. Archive user data instead of deleting
       // 3. Send confirmation email
-      
+
       await prisma.user.delete({
         where: { id: userId }
       })

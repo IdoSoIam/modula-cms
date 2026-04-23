@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client'
 import fbModule from 'fb'
 import type { FacebookPagesResponse, FacebookError, FacebookPage } from '~/types/facebook'
+import { prisma } from '../../../prisma/client'
 
 const FB = fbModule
-const prisma = new PrismaClient()
 
 export class FacebookTokenService {
   private static FB_PAGE_ACCESS_TOKEN_KEY = 'fb_page_access_token'
@@ -62,7 +61,7 @@ export class FacebookTokenService {
 
       // Find the page we want
       const page = (response.data as FacebookPage[]).find(p => p.id === process.env.FACEBOOK_PAGE_ID)
-      
+
       if (!page) {
         throw new Error('Page not found in user\'s pages')
       }
@@ -70,7 +69,7 @@ export class FacebookTokenService {
       // Store the page access token
       await this.storePageAccessToken(page.access_token)
 
-      return page.access_token    
+      return page.access_token
     } catch (error) {
       console.error('Error exchanging token:', error)
       if (error && (error as FacebookError).message) {
