@@ -4,7 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   debug: false,
-
+  nitro: {
+    preset: 'cloudflare-pages'
+  },
   devServer: {
     https: {
       cert: './certificates/cert.crt',

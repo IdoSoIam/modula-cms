@@ -59,7 +59,7 @@
             <code v-pre>{{adminNote}}</code>
           </p>
 
-          <div class="tabs tabs-boxed mb-4 w-fit">
+          <div class="tabs tabs-border mb-4 w-fit">
             <a
               class="tab"
               :class="{ 'tab-active': activeTab === 'confirmed' }"
@@ -77,14 +77,14 @@
             <input
               v-model="form.templates[activeTab].subject"
               type="text"
-              class="input input-bordered"
+              class="input input-bordered w-full"
             />
           </div>
           <div class="form-control">
             <label class="label"><span class="label-text">Corps du message</span></label>
             <textarea
               v-model="form.templates[activeTab].body"
-              class="textarea textarea-bordered font-mono text-sm"
+              class="textarea textarea-bordered font-mono text-sm w-full"
               rows="12"
             />
           </div>

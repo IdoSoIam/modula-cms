@@ -41,28 +41,73 @@ const error = ref('')
 const pageAccessToken = ref('')
 const isFBLoaded = ref(false)
 
-// Attendre que le SDK Facebook soit chargé
-onMounted(() => {
-  const checkFBLoaded = setInterval(() => {
-    if (window.FB) {
+// Attendre que le SDK Facebook soit initialisé (FB.init a été appelé)
+const waitForFB = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    // Déjà initialisé ?
+    if (window.FB?.getLoginStatus) {
+      console.log('[FacebookSync] FB déjà initialisé')
       isFBLoaded.value = true
-      clearInterval(checkFBLoaded)
+      resolve()
+      return
     }
-  }, 100)
-})
+
+    console.log('[FacebookSync] Attente de FB...')
+
+    // Écouter l'événement du plugin
+    const handler = () => {
+      console.log('[FacebookSync] Événement facebook:initialized reçu')
+      isFBLoaded.value = true
+      resolve()
+    }
+    window.addEventListener('facebook:initialized', handler, { once: true })
+
+    // Fallback: vérifier toutes les 100ms si FB est prêt
+    const checkInterval = setInterval(() => {
+      if (window.FB?.getLoginStatus) {
+        console.log('[FacebookSync] FB détecté via polling')
+        clearInterval(checkInterval)
+        window.removeEventListener('facebook:initialized', handler)
+        isFBLoaded.value = true
+        resolve()
+      }
+    }, 100)
+
+    // Timeout de sécurité après 10 secondes
+    setTimeout(() => {
+      clearInterval(checkInterval)
+      if (!isFBLoaded.value) {
+        console.error('[FacebookSync] Timeout: FB non initialisé après 10s')
+        reject(new Error('Facebook SDK non initialisé (timeout)'))
+      }
+    }, 10000)
+  })
+}
 
 const handleLogin = async () => {
   try {
     isLoading.value = true
     error.value = ''
 
+    // S'assurer que FB est initialisé
+    await waitForFB()
+
     const FB = window.FB
-    if (!FB || !isFBLoaded.value) {
+    console.log('[FacebookSync] window.FB:', FB)
+    console.log('[FacebookSync] window.FB?.getLoginStatus:', FB?.getLoginStatus)
+
+    if (!FB) {
       throw new Error('Facebook SDK non chargé')
-    }    
-    
+    }
+
+    // Vérifier que FB est bien initialisé
+    if (!FB.getLoginStatus) {
+      throw new Error('Facebook SDK non initialisé - getLoginStatus indisponible')
+    }
+
     // Demander la connexion avec les permissions nécessaires
     const loginResponse = await new Promise<FacebookLoginStatus>((resolve) => {
+      console.log('[FacebookSync] Appel de FB.login...')
       FB.login((response: FacebookLoginStatus) => {
         resolve(response)
       }, {
@@ -100,13 +145,17 @@ const reset = () => {
   error.value = ''
 }
 
-// Vérifier le statut de connexion au chargement
+// Initialisation et vérification du statut au chargement
 onMounted(async () => {
   try {
-    if (!window.FB) return
+    // Attendre que le SDK soit prêt
+    await waitForFB()
+
+    const FB = window.FB
+    if (!FB) return
 
     const status: FacebookLoginStatus = await new Promise((resolve) => {
-      window.FB?.getLoginStatus((response) => {
+      FB.getLoginStatus((response) => {
         resolve(response)
       })
     })

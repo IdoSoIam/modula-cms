@@ -1,7 +1,5 @@
-import type { 
-  FacebookInitParams, 
-  FacebookLoginStatus as FacebookAuthResponse,
-  FacebookSDK
+import type {
+  FacebookLoginStatus as FacebookAuthResponse
 } from '~/types/facebook-sdk';
 
 interface FacebookPage {
@@ -32,34 +30,18 @@ export class FacebookAuthService {
     return new Promise((resolve) => {
       if (typeof window === 'undefined') return;
 
-      if (window.FB) {
+      // Vérifier si FB est déjà initialisé (après FB.init, getLoginStatus existe)
+      if (window.FB?.getLoginStatus) {
         this.initialized = true;
         resolve();
         return;
       }
 
-      window.fbAsyncInit = () => {
-        const FB = window.FB;
-        if (!FB) return;
-        
-        const initParams: FacebookInitParams = {
-          appId: this.config.public.facebookAppId as string,
-          cookie: true,
-          xfbml: true,
-          version: 'v17.0'
-        };
-        FB.init(initParams);
-        
+      // Attendre l'événement du plugin facebook.client.ts
+      window.addEventListener('facebook:initialized', () => {
         this.initialized = true;
         resolve();
-      };
-
-      // Charger le SDK
-      const script = document.createElement('script');
-      script.src = 'https://connect.facebook.net/fr_FR/sdk.js';
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
+      }, { once: true });
     });
   }
 
@@ -76,7 +58,7 @@ export class FacebookAuthService {
         } else {
           reject(new Error('Connexion Facebook échouée'));
         }
-      }, { 
+      }, {
         scope: 'pages_show_list,pages_read_engagement',
         //return_scopes: true
       });
