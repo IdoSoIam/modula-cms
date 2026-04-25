@@ -41,7 +41,7 @@ const error = ref('')
 const pageAccessToken = ref('')
 const isFBLoaded = ref(false)
 
-// Attendre que le SDK Facebook soit initialisé (FB.init a été appelé)
+// Attendre que le SDK Facebook soit initialisé (FB.init a été appelé
 const waitForFB = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     // Déjà initialisé ?
