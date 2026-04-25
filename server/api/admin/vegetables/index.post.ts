@@ -1,0 +1,29 @@
+import { requireAdmin } from '~/server/utils/requireAdmin'
+import { prisma } from '../../../../prisma/client'
+
+export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
+  const body = await readBody<{ name: string; unit: 'KG' | 'PIECE'; price: number; active?: boolean }>(event)
+
+  if (!body.name?.trim()) {
+    throw createError({ statusCode: 400, statusMessage: 'Nom requis' })
+  }
+  if (typeof body.price !== 'number' || body.price < 0) {
+    throw createError({ statusCode: 400, statusMessage: 'Prix invalide' })
+  }
+  if (body.unit !== 'KG' && body.unit !== 'PIECE') {
+    throw createError({ statusCode: 400, statusMessage: 'Unité invalide' })
+  }
+
+  try {
+    const v = await prisma.vegetable.create({
+      data: { name: body.name.trim(), unit: body.unit, price: body.price, active: body.active ?? true }
+    })
+    return { ...v, price: Number(v.price) }
+  } catch (e: any) {
+    if (e.code === 'P2002') {
+      throw createError({ statusCode: 400, statusMessage: 'Un légume avec ce nom existe déjà' })
+    }
+    throw e
+  }
+})

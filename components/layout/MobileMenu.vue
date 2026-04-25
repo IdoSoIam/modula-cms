@@ -23,6 +23,6 @@ const localePath = useLocalePath();
 const menuItems = [
   { path: '/', label: 'menu.home' },
   { path: '/news', label: 'menu.news' },
-  { path: '/shop', label: 'menu.shop' },
+  { path: '/paniers', label: 'menu.baskets' },
   { path: '/contact', label: 'menu.contact' }
 ];</script>

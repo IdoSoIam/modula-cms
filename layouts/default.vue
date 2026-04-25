@@ -1,5 +1,5 @@
 <template>
-  <div :data-theme="theme" class="min-h-screen bg-base-100">
+  <div class="min-h-screen bg-base-100">
     <input id="drawer-toggle" type="checkbox" class="drawer-toggle" />
     
     <div class="drawer-content flex flex-col">      <!-- Navigation -->
@@ -25,7 +25,6 @@
 <script setup lang="ts">
 const { locale } = useI18n();
 const switchLocalePath = useSwitchLocalePath();
-const { theme } = useTheme();
 
 useHead({
   htmlAttrs: {

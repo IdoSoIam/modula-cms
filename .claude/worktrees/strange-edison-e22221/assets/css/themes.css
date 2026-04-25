@@ -1,0 +1,241 @@
+/* ============================================================
+   Thèmes — Ferme du Campeyrigoux
+   Palette inspirée du terroir : beige paille, vert prairie,
+   terre cuite, or moisson, lavande de Provence.
+   ============================================================ */
+
+/* --- Champ ensoleillé (light, défaut) --- */
+[data-theme="ferme"] {
+  color-scheme: light;
+
+  --color-base-100: #fbf6ec;       /* paille claire */
+  --color-base-200: #f3ead4;       /* lin */
+  --color-base-300: #e6d8b4;       /* blé mûr */
+  --color-base-content: #3e3325;   /* terre brûlée */
+
+  --color-primary: #5a7d3a;        /* vert prairie */
+  --color-primary-content: #fbf6ec;
+
+  --color-secondary: #b07a2a;      /* miel / ocre */
+  --color-secondary-content: #fbf6ec;
+
+  --color-accent: #c94f2c;         /* terre cuite */
+  --color-accent-content: #fbf6ec;
+
+  --color-neutral: #6b5a44;        /* bois grange */
+  --color-neutral-content: #f3ead4;
+
+  --color-info: #6b8caf;           /* ciel */
+  --color-info-content: #fbf6ec;
+
+  --color-success: #6f8f3d;        /* feuillage */
+  --color-success-content: #fbf6ec;
+
+  --color-warning: #d99b2c;        /* foin */
+  --color-warning-content: #3e3325;
+
+  --color-error: #b54a2a;          /* brique */
+  --color-error-content: #fbf6ec;
+
+  --radius-selector: 0.425rem;
+  --radius-field: 0.425rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+
+  font-family: Merriweather, serif;
+}
+
+/* --- Nuit à l'étable (dark) --- */
+[data-theme="ferme-dark"] {
+  color-scheme: dark;
+
+  --color-base-100: #221c14;       /* terre nocturne */
+  --color-base-200: #2d251a;
+  --color-base-300: #3a2f22;
+  --color-base-content: #f3ead4;   /* paille */
+
+  --color-primary: #8fae68;        /* vert mousse éclairé */
+  --color-primary-content: #1a160f;
+
+  --color-secondary: #d8a155;      /* lampe à huile */
+  --color-secondary-content: #1a160f;
+
+  --color-accent: #d97447;         /* feu de cheminée */
+  --color-accent-content: #1a160f;
+
+  --color-neutral: #4a3e2c;
+  --color-neutral-content: #d9cba9;
+
+  --color-info: #94b3cf;
+  --color-info-content: #1a160f;
+
+  --color-success: #9bbd66;
+  --color-success-content: #1a160f;
+
+  --color-warning: #e0b15a;
+  --color-warning-content: #1a160f;
+
+  --color-error: #d96a52;
+  --color-error-content: #1a160f;
+
+  --radius-selector: 0.425rem;
+  --radius-field: 0.425rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+
+  font-family: Merriweather, serif;
+}
+
+/* --- Prairie (light, vert dominant) --- */
+[data-theme="prairie"] {
+  color-scheme: light;
+
+  --color-base-100: #f4f7ec;
+  --color-base-200: #e8eed7;
+  --color-base-300: #d6e0bb;
+  --color-base-content: #2e3a1f;
+
+  --color-primary: #4a7a32;
+  --color-primary-content: #f4f7ec;
+
+  --color-secondary: #8fb04a;
+  --color-secondary-content: #2e3a1f;
+
+  --color-accent: #d9b96b;
+  --color-accent-content: #2e3a1f;
+
+  --color-neutral: #5d6b3f;
+  --color-neutral-content: #f4f7ec;
+
+  --color-info: #7fa07a;
+  --color-info-content: #f4f7ec;
+
+  --color-success: #6a994e;
+  --color-success-content: #f4f7ec;
+
+  --color-warning: #c9a94a;
+  --color-warning-content: #2e3a1f;
+
+  --color-error: #b54a2a;
+  --color-error-content: #f4f7ec;
+
+  --radius-selector: 0.425rem;
+  --radius-field: 0.425rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+
+  font-family: Merriweather, serif;
+}
+
+/* --- Récolte (automne / vendanges) --- */
+[data-theme="recolte"] {
+  color-scheme: light;
+
+  --color-base-100: #fbf1e0;
+  --color-base-200: #f4e0c0;
+  --color-base-300: #e8c89a;
+  --color-base-content: #3e2918;
+
+  --color-primary: #b04a1e;        /* citrouille */
+  --color-primary-content: #fbf1e0;
+
+  --color-secondary: #8a5a2b;      /* châtaigne */
+  --color-secondary-content: #fbf1e0;
+
+  --color-accent: #d99423;         /* maïs */
+  --color-accent-content: #3e2918;
+
+  --color-neutral: #6e4a2a;
+  --color-neutral-content: #fbf1e0;
+
+  --color-info: #8a7250;
+  --color-info-content: #fbf1e0;
+
+  --color-success: #7a8a3a;
+  --color-success-content: #fbf1e0;
+
+  --color-warning: #d9a233;
+  --color-warning-content: #3e2918;
+
+  --color-error: #a83817;
+  --color-error-content: #fbf1e0;
+
+  --radius-selector: 0.425rem;
+  --radius-field: 0.425rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+
+  font-family: Merriweather, serif;
+}
+
+/* --- Lavande (Provence) --- */
+[data-theme="lavande"] {
+  color-scheme: light;
+
+  --color-base-100: #f6f2f8;
+  --color-base-200: #ebe2ee;
+  --color-base-300: #d8c8de;
+  --color-base-content: #3a2e44;
+
+  --color-primary: #7a5da8;        /* lavande */
+  --color-primary-content: #f6f2f8;
+
+  --color-secondary: #b3996b;      /* paille de Provence */
+  --color-secondary-content: #f6f2f8;
+
+  --color-accent: #d99b8a;         /* terre rose */
+  --color-accent-content: #3a2e44;
+
+  --color-neutral: #5e4a6e;
+  --color-neutral-content: #f6f2f8;
+
+  --color-info: #8aa3c9;
+  --color-info-content: #f6f2f8;
+
+  --color-success: #7a9a6a;
+  --color-success-content: #f6f2f8;
+
+  --color-warning: #d4a85c;
+  --color-warning-content: #3a2e44;
+
+  --color-error: #b9534a;
+  --color-error-content: #f6f2f8;
+
+  --radius-selector: 0.425rem;
+  --radius-field: 0.425rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+
+  font-family: Merriweather, serif;
+}
+
+/* ============================================================
+   Adaptations Facebook feed
+   ============================================================ */
+:root[data-theme="ferme-dark"] .custom-fb-feed {
+  --fb-bg: #2d251a;
+  --fb-border: #3a2f22;
+  --fb-text: #f3ead4;
+  --fb-link: #8fae68;
+  --fb-hover: #9bbd66;
+}

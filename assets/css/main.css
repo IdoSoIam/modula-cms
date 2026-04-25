@@ -1,16 +1,16 @@
-/* Styles personnalisés pour le feed Facebook */
+/* Styles personnalisés pour le feed Facebook - utilise les variables DaisyUI */
 .custom-fb-feed {
-  --fb-bg: #ffffff;
-  --fb-border: #e5e7eb;
-  --fb-text: #1f2937;
-  --fb-link: #2563eb;
-  --fb-hover: #1d4ed8;
+  --fb-bg: var(--color-base-100);
+  --fb-border: var(--color-base-300);
+  --fb-text: var(--color-base-content);
+  --fb-link: var(--color-primary);
+  --fb-hover: color-mix(in oklab, var(--color-primary) 85%, black);
 
   background-color: var(--fb-bg);
-  border-radius: 1rem;
+  border-radius: var(--rounded-box, 1rem);
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
   overflow: hidden;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: inherit;
 }
 
 /* Style de la grille */
@@ -25,7 +25,7 @@
   .custom-fb-feed.grid[data-columns="2"] {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .custom-fb-feed.grid[data-columns="3"] {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -49,14 +49,7 @@
   width: 100% !important;
 }
 
-/* Mode sombre */
-:root[data-theme="dark"] .custom-fb-feed {
-  --fb-bg: #1f2937;
-  --fb-border: #374151;
-  --fb-text: #f3f4f6;
-  --fb-link: #60a5fa;
-  --fb-hover: #93c5fd;
-}
+/* Note: Les couleurs s'adaptent automatiquement au thème DaisyUI via les variables CSS */
 
 /* Style du header */
 .custom-fb-feed :deep(.fb-page-header) {

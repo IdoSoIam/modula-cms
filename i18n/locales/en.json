@@ -2,7 +2,7 @@
   "menu": {
     "home": "Home",
     "news": "News",
-    "shop": "CBD Shop",
+    "baskets": "Vegetable baskets",
     "contact": "Contact"
   },
   "footer": {
@@ -22,6 +22,9 @@
       "ourActivities": "Our Activities",
       "organicGardening": "Organic Market Gardening",
       "organicGardeningDesc": "Production of fresh, seasonal vegetables in organic farming.",
+      "basketsTitle": "Vegetable baskets",
+      "basketsDesc": "Reserve your weekly basket of fresh, organic, seasonal vegetables harvested at the farm.",
+      "basketsCta": "View baskets",
       "cbdCulture": "CBD Cultivation",
       "cbdCultureDesc": "High-quality organic CBD production.",
       "cbdShop": "CBD Shop",
@@ -233,11 +236,25 @@
     "cannotCancel": "This order can no longer be cancelled"
   },
   "admin": {
+    "title": "Administration",
+    "baskets": "Baskets",
+    "vegetables": "Vegetables",
+    "reservations": "Reservations",
+    "settings": "Settings",
     "facebookSync": "Facebook Synchronization"
   },
   "ui": {
     "lightMode": "Switch to light mode",
     "darkMode": "Switch to dark mode"
+  },
+  "theme": {
+    "title": "Theme",
+    "select": "Choose a theme",
+    "ferme": "Sunny field",
+    "ferme-dark": "Barn at night",
+    "prairie": "Prairie",
+    "recolte": "Harvest",
+    "lavande": "Lavender"
   },
   "toast": {
     "connectionSuccess": "Connection successful",

@@ -5,11 +5,5 @@ const authService = new AuthService()
 
 export default defineEventHandler(async (event: H3Event) => {
   const user = await authService.getUserFromSession(event)
-  if (!user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Not authenticated'
-    })
-  }
-  return { user }
+  return { user: user ?? null }
 })

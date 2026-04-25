@@ -1,18 +1,38 @@
-export const useTheme = () => {
-  const theme = useState('theme', () => 'light')
+export const AVAILABLE_THEMES = [
+  { value: 'ferme',      label: 'Champ ensoleillé', preview: '#fbf6ec' },
+  { value: 'ferme-dark', label: "Nuit à l'étable",  preview: '#221c14' },
+  { value: 'prairie',    label: 'Prairie',          preview: '#f4f7ec' },
+  { value: 'recolte',    label: 'Récolte',          preview: '#fbf1e0' },
+  { value: 'lavande',    label: 'Lavande',          preview: '#f6f2f8' }
+] as const
 
-  const toggleTheme = () => {
-    theme.value = theme.value === 'light' ? 'dark' : 'light'
-    if (theme.value === 'light') {
-      localStorage.removeItem('theme')
+export type ThemeValue = typeof AVAILABLE_THEMES[number]['value']
+
+const DEFAULT_THEME: ThemeValue = 'ferme'
+const STORAGE_KEY = 'theme'
+
+export const useTheme = () => {
+  const theme = useState<ThemeValue>('theme', () => DEFAULT_THEME)
+
+  const setTheme = (value: ThemeValue) => {
+    theme.value = value
+    if (!import.meta.client) return
+    document.documentElement.setAttribute('data-theme', value)
+    if (value === DEFAULT_THEME) {
+      localStorage.removeItem(STORAGE_KEY)
     } else {
-      localStorage.setItem('theme', theme.value)
+      localStorage.setItem(STORAGE_KEY, value)
     }
-    document.documentElement.setAttribute('data-theme', theme.value)
+  }
+
+  const toggleLightDark = () => {
+    setTheme(theme.value === 'ferme-dark' ? 'ferme' : 'ferme-dark')
   }
 
   return {
     theme,
-    toggleTheme
+    availableThemes: AVAILABLE_THEMES,
+    setTheme,
+    toggleLightDark
   }
 }

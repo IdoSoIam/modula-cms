@@ -9,12 +9,15 @@ useHead({
   script: [
     {
       innerHTML: `
-        try {
-          const theme = localStorage.getItem('theme');
-          if (theme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-          }
-        } catch (e) {}
+        (function() {
+          const VALID_THEMES = ['ferme','ferme-dark','prairie','recolte','lavande'];
+          try {
+            const theme = localStorage.getItem('theme');
+            if (theme && VALID_THEMES.includes(theme)) {
+              document.documentElement.setAttribute('data-theme', theme);
+            }
+          } catch (e) {}
+        })();
       `,
       tagPriority: 'critical'
     }

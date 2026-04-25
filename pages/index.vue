@@ -24,13 +24,13 @@
             </div>
           </div>
 
-          <!-- CBD -->
+          <!-- Paniers de légumes -->
           <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
-              <h3 class="card-title">{{ $t('pages.home.cbdCulture') }}</h3>
-              <p>{{ $t('pages.home.cbdCultureDesc') }}</p>
+              <h3 class="card-title">{{ $t('pages.home.basketsTitle') }}</h3>
+              <p>{{ $t('pages.home.basketsDesc') }}</p>
               <div class="card-actions justify-end">
-                <NuxtLink to="/shop" class="btn btn-primary">{{ $t('pages.home.cbdShop') }}</NuxtLink>
+                <NuxtLink to="/paniers" class="btn btn-primary">{{ $t('pages.home.basketsCta') }}</NuxtLink>
               </div>
             </div>
           </div>

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/Works/ferme-campeyrigoux/**)",
+      "Bash(mkdir -p pages/_legacy server/api/_legacy)",
+      "Bash(mv pages/cbd.vue pages/shop.vue pages/panier.vue pages/orders.vue pages/_legacy/)",
+      "Bash(mv server/api/orders server/api/payment server/api/products server/api/products.get.ts server/api/_legacy/)",
+      "Bash(cp -r D:/Works/ferme-campeyrigoux/server/api/orders D:/Works/ferme-campeyrigoux/server/api/_legacy/orders)",
+      "Bash(rm -rf D:/Works/ferme-campeyrigoux/server/api/orders)",
+      "Bash(mkdir -p .legacy/pages .legacy/server/api .legacy/composables)",
+      "Bash(mv pages/_legacy/* .legacy/pages/)",
+      "Bash(rmdir pages/_legacy)",
+      "Bash(cp -r server/api/_legacy/* .legacy/server/api/)",
+      "Bash(rm -rf server/api/_legacy)"
+    ]
+  }
+}

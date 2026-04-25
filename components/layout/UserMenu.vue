@@ -15,13 +15,39 @@
       </template>      <template v-else>
         <li class="menu-title">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</li>
         <li><NuxtLink to="/profile">{{ $t('auth.profile') }}</NuxtLink></li>
-        <li><NuxtLink to="/orders">{{ $t('auth.orders') }}</NuxtLink></li>
-        <li v-if="authStore.user?.role === 'admin'">
-          <NuxtLink to="/facebook-sync" class="text-primary">
-            <Icon name="mdi:shield-account" size="16" class="mr-1" />
-            {{ $t('admin.facebookSync') }}
-          </NuxtLink>
-        </li>
+        <template v-if="authStore.user?.role === 'admin'">
+          <li class="menu-title mt-2">{{ $t('admin.title') }}</li>
+          <li>
+            <NuxtLink to="/admin/paniers" class="text-primary">
+              <Icon name="mdi:basket-outline" size="16" class="mr-1" />
+              {{ $t('admin.baskets') }}
+            </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/admin/legumes" class="text-primary">
+              <Icon name="mdi:carrot" size="16" class="mr-1" />
+              {{ $t('admin.vegetables') }}
+            </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/admin/reservations" class="text-primary">
+              <Icon name="mdi:calendar-check" size="16" class="mr-1" />
+              {{ $t('admin.reservations') }}
+            </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/admin/parametres" class="text-primary">
+              <Icon name="mdi:cog-outline" size="16" class="mr-1" />
+              {{ $t('admin.settings') }}
+            </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/facebook-sync" class="text-primary">
+              <Icon name="mdi:facebook" size="16" class="mr-1" />
+              {{ $t('admin.facebookSync') }}
+            </NuxtLink>
+          </li>
+        </template>
         <li>
           <button @click="handleLogout" class="text-error">{{ $t('auth.logout') }}</button>
         </li>

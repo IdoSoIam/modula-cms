@@ -1,6 +1,7 @@
 import { AuthService } from '../../services/auth/authService'
 import { H3Event } from 'h3'
 import { getSessionConfig } from '../../utils/session'
+import { prisma } from '../../../prisma/client'
 
 const authService = new AuthService()
 
@@ -17,8 +18,12 @@ export default defineEventHandler(async (event: H3Event) => {
 
     // Convert birthDate string to Date object if provided
     const birthDateObj = birthDate ? new Date(birthDate) : undefined;
-    
-    const user = await authService.createUser(email, password, firstName, lastName, birthDateObj)
+
+    // First registered user becomes admin (bootstrap)
+    const userCount = await prisma.user.count()
+    const role = userCount === 0 ? 'admin' : 'user'
+
+    const user = await authService.createUser(email, password, firstName, lastName, birthDateObj, role)
     const session = await useSession(event, getSessionConfig())
     await session.update({
       userId: user.id

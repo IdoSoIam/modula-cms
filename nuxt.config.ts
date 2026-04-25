@@ -1,15 +1,17 @@
+import tailwindcss from '@tailwindcss/vite'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   debug: false,
-  
+
   devServer: {
     https: {
       cert: './certificates/cert.crt',
       key: './certificates/cert.key'
     }
   },
-  
+
   devtools: {
     enabled: true,
 
@@ -18,21 +20,18 @@ export default defineNuxtConfig({
     }
   },
   modules: [
-    '@nuxtjs/tailwindcss', 
-    '@nuxt/image', 
+    '@nuxt/image',
     "@nuxt/icon",
     '@nuxtjs/i18n',
     '@pinia/nuxt'
   ],
+  vite: {
+    plugins: [tailwindcss()],
+  },
   css: [
     '@/assets/css/tailwind.css',
-    '@/assets/css/themes.css',
     '@/assets/css/main.css',
   ],
-  tailwindcss: {
-    viewer: false,
-    exposeConfig: true,
-  },
   i18n: {
     strategy: 'prefix_except_default',
     defaultLocale: 'fr',

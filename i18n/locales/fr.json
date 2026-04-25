@@ -2,7 +2,7 @@
   "menu": {
     "home": "Accueil",
     "news": "Actualités",
-    "shop": "Boutique CBD",
+    "baskets": "Paniers de légumes",
     "contact": "Contact"
   },
   "footer": {
@@ -22,6 +22,9 @@
       "ourActivities": "Nos Activités",
       "organicGardening": "Maraîchage Bio",
       "organicGardeningDesc": "Production de légumes frais et de saison en agriculture biologique.",
+      "basketsTitle": "Paniers de légumes",
+      "basketsDesc": "Réservez votre panier hebdomadaire de légumes frais, bio et de saison, récoltés à la ferme.",
+      "basketsCta": "Voir les paniers",
       "cbdCulture": "Culture de CBD",
       "cbdCultureDesc": "Production de CBD biologique de haute qualité.",
       "cbdShop": "Boutique CBD",
@@ -233,11 +236,25 @@
     "cannotCancel": "Cette commande ne peut plus être annulée"
   },
   "admin": {
+    "title": "Administration",
+    "baskets": "Paniers",
+    "vegetables": "Légumes",
+    "reservations": "Réservations",
+    "settings": "Paramètres",
     "facebookSync": "Synchronisation Facebook"
   },
   "ui": {
     "lightMode": "Passer en mode clair",
     "darkMode": "Passer en mode sombre"
+  },
+  "theme": {
+    "title": "Thème",
+    "select": "Choisir un thème",
+    "ferme": "Champ ensoleillé",
+    "ferme-dark": "Nuit à l'étable",
+    "prairie": "Prairie",
+    "recolte": "Récolte",
+    "lavande": "Lavande"
   },
   "toast": {
     "connectionSuccess": "Connexion réussie",

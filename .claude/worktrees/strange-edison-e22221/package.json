@@ -1,0 +1,39 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "npx nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxt/devtools": "3.2.4",
+    "@nuxt/icon": "^2.2.1",
+    "@nuxt/image": "^2.0.0",
+    "@nuxtjs/i18n": "^10.2.4",
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "@pinia/nuxt": "^0.11.3",
+    "@prisma/adapter-mariadb": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@tanstack/vue-query": "^5.100.1",
+    "@types/bcrypt": "^6.0.0",
+    "bcrypt": "^6.0.0",
+    "daisyui": "^5.5.19",
+    "dotenv": "^17.4.2",
+    "facebook-node-sdk": "^0.2.0",
+    "fb": "^2.0.0",
+    "mysql2": "^3.22.2",
+    "nuxt": "^4.4.2",
+    "pinia": "^3.0.4",
+    "prisma": "^7.8.0",
+    "vue": "^3.5.33",
+    "vue-router": "^5.0.6"
+  },
+  "devDependencies": {
+    "@iconify-json/mdi": "^1.2.3",
+    "@types/fb": "^0.0.30"
+  }
+}
