@@ -30,6 +30,8 @@ model User {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   reservations Reservation[]
+  articles     Article[]
+  uploads      Image[]
 }
 
 enum VegetableUnit {
@@ -42,6 +44,7 @@ model Vegetable {
   name      String        @unique
   unit      VegetableUnit @default(KG)
   price     Decimal       @db.Decimal(10, 2)
+  imageUrl  String?
   active    Boolean       @default(true)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -84,23 +87,114 @@ enum ReservationStatus {
   CANCELLED
 }
 
+enum DeliveryType {
+  PICKUP
+  TOUR
+}
+
 model Reservation {
-  id           Int               @id @default(autoincrement())
-  basketId     Int
-  userId       Int?
-  customerName String
-  email        String
-  phone        String?
-  message      String?           @db.Text
-  status       ReservationStatus @default(PENDING)
-  adminNote    String?           @db.Text
-  confirmedAt  DateTime?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  basket       Basket            @relation(fields: [basketId], references: [id], onDelete: Restrict)
-  user         User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id                  Int               @id @default(autoincrement())
+  basketId            Int
+  userId              Int?
+  customerName        String
+  email               String
+  phone               String?
+  message             String?           @db.Text
+  status              ReservationStatus @default(PENDING)
+  adminNote           String?           @db.Text
+  confirmedAt         DateTime?
+  deliveryType        DeliveryType?
+  pickupPointId       Int?
+  deliveryTourId      Int?
+  deliveryAddress     String?           @db.Text
+  deliveryCity        String?
+  deliveryPostalCode  String?
+  monthlySubscription Boolean           @default(false)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  basket              Basket            @relation(fields: [basketId], references: [id], onDelete: Restrict)
+  user                User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  pickupPoint         PickupPoint?      @relation(fields: [pickupPointId], references: [id], onDelete: SetNull)
+  deliveryTour        DeliveryTour?     @relation(fields: [deliveryTourId], references: [id], onDelete: SetNull)
 
   @@index([basketId])
   @@index([userId])
   @@index([status])
+  @@index([pickupPointId])
+  @@index([deliveryTourId])
+}
+
+model PickupPoint {
+  id              Int           @id @default(autoincrement())
+  name            String
+  address         String?       @db.Text
+  details         String?       @db.Text
+  delayDays       Int           @default(0)
+  deliveryDay     Int?
+  pickupStartTime String?
+  openingHours    String?       @db.Text
+  websiteUrl      String?
+  active          Boolean       @default(true)
+  position        Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  reservations    Reservation[]
+}
+
+model DeliveryTour {
+  id           Int           @id @default(autoincrement())
+  name         String
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  monthlyPrice Decimal?      @db.Decimal(10, 2)
+  notes        String?       @db.Text
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  cities       TourCity[]
+  reservations Reservation[]
+}
+
+model TourCity {
+  id          Int          @id @default(autoincrement())
+  tourId      Int
+  city        String
+  postalCodes String?
+  createdAt   DateTime     @default(now())
+  tour        DeliveryTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@index([tourId])
+}
+
+model Article {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String    @unique
+  excerpt     String?   @db.Text
+  content     String    @db.LongText
+  coverUrl    String?
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  authorId    Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([published, publishedAt])
+}
+
+model Image {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  url          String
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+  uploadedById Int?
+  createdAt    DateTime @default(now())
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
 }

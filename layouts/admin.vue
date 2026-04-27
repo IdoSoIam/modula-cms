@@ -31,6 +31,24 @@
               </NuxtLink>
             </li>
             <li>
+              <NuxtLink to="/admin/articles">
+                <Icon name="mdi:newspaper-variant-outline" size="18" />
+                {{ $t('admin.articles') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/admin/livraison">
+                <Icon name="mdi:truck-outline" size="18" />
+                {{ $t('admin.delivery') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/admin/images">
+                <Icon name="mdi:image-multiple-outline" size="18" />
+                {{ $t('admin.images') }}
+              </NuxtLink>
+            </li>
+            <li>
               <NuxtLink to="/admin/parametres">
                 <Icon name="mdi:cog-outline" size="18" />
                 {{ $t('admin.settings') }}

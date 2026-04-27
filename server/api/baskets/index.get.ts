@@ -29,7 +29,7 @@ export default defineEventHandler(async () => {
       available: b.available,
       items: s.items?.map(it => ({
         quantity: it.quantity,
-        vegetable: { name: it.vegetable.name, unit: it.vegetable.unit }
+        vegetable: { name: it.vegetable.name, unit: it.vegetable.unit, imageUrl: it.vegetable.imageUrl ?? null }
       }))
     }
   })

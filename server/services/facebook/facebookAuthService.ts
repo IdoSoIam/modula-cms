@@ -59,8 +59,7 @@ export class FacebookAuthService {
           reject(new Error('Connexion Facebook échouée'));
         }
       }, {
-        scope: 'pages_show_list,pages_read_engagement',
-        //return_scopes: true
+        scope: 'pages_show_list,pages_read_engagement'
       });
     });
   }

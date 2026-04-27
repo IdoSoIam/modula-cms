@@ -74,8 +74,8 @@
             <input v-model="editing.name" class="input input-bordered" placeholder="Petit panier" />
           </div>
           <div class="form-control">
-            <label class="label"><span class="label-text">Image (URL)</span></label>
-            <input v-model="editing.imageUrl" class="input input-bordered" placeholder="/images/panier.jpg" />
+            <label class="label"><span class="label-text">Image</span></label>
+            <ImageInput v-model="editing.imageUrl" />
           </div>
           <div class="form-control">
             <label class="label"><span class="label-text">Description</span></label>

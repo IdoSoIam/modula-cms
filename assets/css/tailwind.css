@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-  themes: ferme --default, ferme-dark --prefersdark, prairie, recolte, lavande;
+  themes: ferme --default, ferme-dark, prairie, recolte, lavande;
 }
 
 /* ============================================================

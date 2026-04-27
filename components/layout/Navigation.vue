@@ -16,7 +16,7 @@
 
     <!-- Menu desktop -->
     <div class="navbar-center hidden md:flex">
-      <ul class="menu menu-horizontal px-1">
+      <ul class="menu menu-horizontal px-1 gap-2">
         <li v-for="item in menuItems" :key="item.path">
           <NuxtLink
             :to="localePath(item.path)"

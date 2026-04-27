@@ -93,7 +93,14 @@ watch(locale, () => {
 
 onMounted(async () => {
   try {
-    await facebookService.loadFacebookSDK()
+    // Wait for Facebook SDK to be initialized via the plugin
+    await new Promise<void>((resolve) => {
+      if (window.FB?.getLoginStatus) {
+        resolve()
+        return
+      }
+      window.addEventListener('facebook:initialized', () => resolve(), { once: true })
+    })
     await refreshFeed()
   } catch (err) {
     error.value = 'Une erreur est survenue lors du chargement du flux Facebook.'

@@ -13,6 +13,7 @@
       <table class="table">
         <thead>
           <tr>
+            <th class="w-16"></th>
             <th>Nom</th>
             <th>Unité</th>
             <th class="text-right">Prix</th>
@@ -22,6 +23,12 @@
         </thead>
         <tbody>
           <tr v-for="v in vegetables" :key="v.id">
+            <td>
+              <img v-if="v.imageUrl" :src="v.imageUrl" :alt="v.name" class="w-12 h-12 object-cover rounded" />
+              <div v-else class="w-12 h-12 bg-base-300 rounded flex items-center justify-center">
+                <Icon name="mdi:image-off-outline" size="18" class="opacity-40" />
+              </div>
+            </td>
             <td class="font-medium">{{ v.name }}</td>
             <td>{{ v.unit === 'KG' ? '€/kg' : '€/pièce' }}</td>
             <td class="text-right">{{ $formatPrice(v.price) }}</td>
@@ -40,7 +47,7 @@
             </td>
           </tr>
           <tr v-if="!vegetables?.length">
-            <td colspan="5" class="text-center opacity-60 py-8">
+            <td colspan="6" class="text-center opacity-60 py-8">
               Aucun légume. Ajoutez-en un pour composer vos paniers.
             </td>
           </tr>
@@ -71,6 +78,10 @@
             <input v-model.number="editing.price" type="number" step="0.01" min="0" class="input input-bordered" />
           </div>
           <div class="form-control">
+            <label class="label"><span class="label-text">Image</span></label>
+            <ImageInput v-model="editing.imageUrl" />
+          </div>
+          <div class="form-control">
             <label class="label cursor-pointer">
               <span class="label-text">Actif</span>
               <input v-model="editing.active" type="checkbox" class="checkbox" />
@@ -94,7 +105,7 @@
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 interface Vegetable {
-  id: number; name: string; unit: 'KG' | 'PIECE'; price: number; active: boolean
+  id: number; name: string; unit: 'KG' | 'PIECE'; price: number; active: boolean; imageUrl?: string | null
 }
 
 const { data: vegetables, pending, refresh } = await useFetch<Vegetable[]>('/api/admin/vegetables')
@@ -102,12 +113,12 @@ const { data: vegetables, pending, refresh } = await useFetch<Vegetable[]>('/api
 const dlg = ref<HTMLDialogElement>()
 const saving = ref(false)
 const editing = reactive<Partial<Vegetable>>({
-  id: undefined, name: '', unit: 'KG', price: 0, active: true
+  id: undefined, name: '', unit: 'KG', price: 0, active: true, imageUrl: ''
 })
 const { $toast, $formatPrice } = useNuxtApp() as any
 
 const openNew = () => {
-  Object.assign(editing, { id: undefined, name: '', unit: 'KG', price: 0, active: true })
+  Object.assign(editing, { id: undefined, name: '', unit: 'KG', price: 0, active: true, imageUrl: '' })
   dlg.value?.showModal()
 }
 const openEdit = (v: Vegetable) => {

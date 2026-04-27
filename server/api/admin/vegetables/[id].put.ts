@@ -6,12 +6,13 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
 
-  const body = await readBody<{ name?: string; unit?: 'KG' | 'PIECE'; price?: number; active?: boolean }>(event)
+  const body = await readBody<{ name?: string; unit?: 'KG' | 'PIECE'; price?: number; active?: boolean; imageUrl?: string | null }>(event)
   const data: any = {}
   if (body.name !== undefined) data.name = body.name.trim()
   if (body.unit !== undefined) data.unit = body.unit
   if (body.price !== undefined) data.price = body.price
   if (body.active !== undefined) data.active = body.active
+  if (body.imageUrl !== undefined) data.imageUrl = body.imageUrl || null
 
   try {
     const v = await prisma.vegetable.update({ where: { id }, data })

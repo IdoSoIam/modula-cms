@@ -3,7 +3,7 @@ import { prisma } from '../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
-  const body = await readBody<{ name: string; unit: 'KG' | 'PIECE'; price: number; active?: boolean }>(event)
+  const body = await readBody<{ name: string; unit: 'KG' | 'PIECE'; price: number; active?: boolean; imageUrl?: string | null }>(event)
 
   if (!body.name?.trim()) {
     throw createError({ statusCode: 400, statusMessage: 'Nom requis' })
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const v = await prisma.vegetable.create({
-      data: { name: body.name.trim(), unit: body.unit, price: body.price, active: body.active ?? true }
+      data: { name: body.name.trim(), unit: body.unit, price: body.price, active: body.active ?? true, imageUrl: body.imageUrl || null }
     })
     return { ...v, price: Number(v.price) }
   } catch (e: any) {

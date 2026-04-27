@@ -18,10 +18,49 @@
             <input
               v-model="form.adminEmail"
               type="email"
-              class="input input-bordered"
+              class="input input-bordered w-full"
               placeholder="adele.godefroid@gmail.com"
             />
           </div>
+        </div>
+      </section>
+
+      <!-- Période de commandes -->
+      <section class="card bg-base-200 shadow">
+        <div class="card-body">
+          <h2 class="card-title">{{ $t('admin.ordersWindow.section') }}</h2>
+          <p class="text-sm opacity-70">{{ $t('admin.ordersWindow.help') }}</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+            <div class="form-control">
+              <label class="label"><span class="label-text">{{ $t('admin.ordersWindow.from') }}</span></label>
+              <input v-model="form.ordersOpenFrom" type="date" class="input input-bordered w-full" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">{{ $t('admin.ordersWindow.to') }}</span></label>
+              <input v-model="form.ordersOpenTo" type="date" class="input input-bordered w-full" />
+            </div>
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">{{ $t('admin.ordersWindow.message') }}</span></label>
+            <textarea
+              v-model="form.ordersClosedMessage"
+              class="textarea textarea-bordered w-full"
+              rows="2"
+              :placeholder="$t('admin.ordersWindow.messagePlaceholder')"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- Flux Facebook -->
+      <section class="card bg-base-200 shadow">
+        <div class="card-body">
+          <h2 class="card-title">{{ $t('admin.settingsPage.facebookSection') }}</h2>
+          <p class="text-sm opacity-70">{{ $t('admin.settingsPage.facebookHelp') }}</p>
+          <label class="label cursor-pointer justify-start gap-2 mt-2">
+            <input v-model="form.facebookFluxDeactivated" type="checkbox" class="toggle toggle-primary" />
+            <span class="label-text">{{ $t('admin.settingsPage.facebookDeactivatedLabel') }}</span>
+          </label>
         </div>
       </section>
 
@@ -108,6 +147,10 @@ interface Template { subject: string; body: string }
 interface Settings {
   adminEmail: string
   gmailConnectedEmail: string | null
+  facebookFluxDeactivated: boolean
+  ordersOpenFrom: string
+  ordersOpenTo: string
+  ordersClosedMessage: string
   templates: { confirmed: Template; rejected: Template }
 }
 
@@ -115,6 +158,10 @@ const { data, pending, refresh } = await useFetch<Settings>('/api/admin/settings
 
 const form = reactive({
   adminEmail: '',
+  facebookFluxDeactivated: false,
+  ordersOpenFrom: '',
+  ordersOpenTo: '',
+  ordersClosedMessage: '',
   templates: {
     confirmed: { subject: '', body: '' },
     rejected: { subject: '', body: '' }
@@ -127,6 +174,10 @@ const saving = ref(false)
 watchEffect(() => {
   if (data.value) {
     form.adminEmail = data.value.adminEmail
+    form.facebookFluxDeactivated = data.value.facebookFluxDeactivated
+    form.ordersOpenFrom = data.value.ordersOpenFrom
+    form.ordersOpenTo = data.value.ordersOpenTo
+    form.ordersClosedMessage = data.value.ordersClosedMessage
     form.templates.confirmed = { ...data.value.templates.confirmed }
     form.templates.rejected = { ...data.value.templates.rejected }
   }
@@ -139,6 +190,10 @@ const save = async () => {
       method: 'PUT',
       body: {
         adminEmail: form.adminEmail,
+        facebookFluxDeactivated: form.facebookFluxDeactivated,
+        ordersOpenFrom: form.ordersOpenFrom,
+        ordersOpenTo: form.ordersOpenTo,
+        ordersClosedMessage: form.ordersClosedMessage,
         templates: form.templates
       }
     })

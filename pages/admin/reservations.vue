@@ -25,6 +25,42 @@
                 <span v-if="r.phone"> · <a :href="`tel:${r.phone}`" class="link">{{ r.phone }}</a></span>
               </p>
               <p v-if="r.message" class="mt-2 text-sm italic opacity-80">« {{ r.message }} »</p>
+
+              <!-- Delivery details -->
+              <div v-if="r.deliveryType" class="mt-2 p-2 rounded bg-base-300 text-sm space-y-1">
+                <div class="font-medium flex items-center gap-1">
+                  <Icon :name="r.deliveryType === 'TOUR' ? 'mdi:truck-delivery-outline' : 'mdi:store-marker-outline'" size="16" />
+                  {{ r.deliveryType === 'TOUR' ? 'Livraison (tournée)' : 'Retrait en point relais' }}
+                </div>
+
+                <template v-if="r.deliveryType === 'PICKUP' && r.pickupPoint">
+                  <div class="flex items-center gap-1 opacity-80">
+                    <Icon name="mdi:map-marker-outline" size="14" />
+                    {{ r.pickupPoint.name }}
+                    <span v-if="r.pickupPoint.address">— {{ r.pickupPoint.address }}</span>
+                  </div>
+                </template>
+
+                <template v-if="r.deliveryType === 'TOUR'">
+                  <div v-if="r.deliveryTour" class="flex items-center gap-1 opacity-80">
+                    <Icon name="mdi:bus" size="14" />
+                    {{ r.deliveryTour.name }} — {{ r.deliveryTour.startTime }}–{{ r.deliveryTour.endTime }}
+                  </div>
+                  <div v-if="r.deliveryAddress" class="flex items-center gap-1 opacity-80">
+                    <Icon name="mdi:home-map-marker" size="14" />
+                    {{ r.deliveryAddress }}
+                  </div>
+                  <div v-if="r.deliveryCity" class="flex items-center gap-1 opacity-80">
+                    <Icon name="mdi:map-marker" size="14" />
+                    {{ r.deliveryCity }}<span v-if="r.deliveryPostalCode"> {{ r.deliveryPostalCode }}</span>
+                  </div>
+                  <div v-if="r.monthlySubscription" class="flex items-center gap-1 text-success">
+                    <Icon name="mdi:autorenew" size="14" />
+                    Abonnement mensuel
+                    <span v-if="r.deliveryTour?.monthlyPrice">— {{ $formatPrice(r.deliveryTour.monthlyPrice) }}/mois</span>
+                  </div>
+                </template>
+              </div>
             </div>
             <div class="flex gap-2">
               <template v-if="r.status === 'PENDING'">
@@ -104,6 +140,13 @@ interface Reservation {
   message: string | null; status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
   adminNote: string | null; createdAt: string; confirmedAt: string | null
   basket: { id: number; name: string; finalPrice: number }
+  deliveryType: string | null
+  deliveryAddress: string | null
+  deliveryCity: string | null
+  deliveryPostalCode: string | null
+  monthlySubscription: boolean
+  pickupPoint: { id: number; name: string; address: string | null } | null
+  deliveryTour: { id: number; name: string; dayOfWeek: number; startTime: string; endTime: string; monthlyPrice: number | null; cities: string[] } | null
 }
 
 const { data: reservations, pending, refresh } = await useFetch<Reservation[]>('/api/admin/reservations')

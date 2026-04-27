@@ -11,6 +11,10 @@ interface FacebookLoginParams {
   scope: string
 }
 
+interface FacebookXFBML {
+  parse(element?: HTMLElement): void
+}
+
 interface FacebookSDKBase {
   init(params: FacebookInitParams): void
   login(callback: (response: FacebookLoginStatus) => void, params: FacebookLoginParams): void
@@ -22,6 +26,7 @@ interface FacebookSDKBase {
     appSecret?: string
     version?: string
   }): void
+  XFBML?: FacebookXFBML
 }
 
 declare global {

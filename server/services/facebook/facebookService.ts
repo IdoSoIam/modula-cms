@@ -60,12 +60,12 @@ export class FacebookService {
 
     url.search = params.toString();
     const response = await fetch(url.toString());
-    
+
     if (!response.ok) {
       throw new Error('Failed to fetch Facebook posts');
     }
 
-    const data = await response.json();
+    const data = await response.json() as { data: FacebookPost[] };
     return data.data;
   }
 
@@ -146,5 +146,47 @@ export class FacebookService {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  /**
+   * Génère le HTML pour le plugin Page Facebook
+   */
+  getPagePluginHtml(options: {
+    layout: 'timeline' | 'grid'
+    showHeader: boolean
+    showLikes: boolean
+    showComments: boolean
+    postsToShow: number
+    columns: number
+    width: number
+    locale: string
+  }): string {
+    const tabs = [];
+    if (options.showLikes) tabs.push('timeline');
+    if (options.showComments) tabs.push('messages');
+
+    const tabsStr = tabs.length > 0 ? tabs.join(',') : 'timeline';
+
+    return `
+      <div class="fb-page"
+        data-href="https://www.facebook.com/${this.pageId}"
+        data-tabs="${tabsStr}"
+        data-width="${options.width}"
+        data-height=""
+        data-small-header="${!options.showHeader}"
+        data-adapt-container-width="true"
+        data-hide-cover="false"
+        data-show-facepile="true">
+      </div>
+    `;
+  }
+
+  /**
+   * Parse les plugins Facebook dans un conteneur
+   */
+  parseFacebookPlugins(container: HTMLElement): void {
+    if (window.FB?.XFBML?.parse) {
+      window.FB.XFBML.parse(container);
+    }
   }
 }
