@@ -1,7 +1,21 @@
 import type { FacebookInitParams } from '~/types/facebook-sdk'
 
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin(async () => {
   const config = useRuntimeConfig()
+
+  // Fetch site config to check if Facebook is deactivated
+  let facebookDeactivated = false
+  try {
+    const siteConfig = await $fetch<{ facebookFluxDeactivated: boolean }>('/api/site-config')
+    facebookDeactivated = siteConfig.facebookFluxDeactivated === true
+  } catch (e) {
+    console.log('[Facebook Plugin] Failed to fetch site config, assuming enabled')
+  }
+
+  if (facebookDeactivated) {
+    console.log('[Facebook Plugin] Facebook is deactivated, skipping SDK load')
+    return
+  }
 
   // Load Facebook SDK
   const loadFacebookSDK = (): Promise<void> => {

@@ -93,18 +93,28 @@ watch(locale, () => {
 
 onMounted(async () => {
   try {
-    // Wait for Facebook SDK to be initialized via the plugin
-    await new Promise<void>((resolve) => {
+    // Wait for Facebook SDK to be initialized via the plugin (with timeout)
+    await new Promise<void>((resolve, reject) => {
+      // If SDK is already ready
       if (window.FB?.getLoginStatus) {
         resolve()
         return
       }
-      window.addEventListener('facebook:initialized', () => resolve(), { once: true })
+
+      // Listen for SDK initialization
+      const timeout = setTimeout(() => {
+        reject(new Error('Facebook SDK not loaded - likely deactivated'))
+      }, 5000)
+
+      window.addEventListener('facebook:initialized', () => {
+        clearTimeout(timeout)
+        resolve()
+      }, { once: true })
     })
     await refreshFeed()
   } catch (err) {
-    error.value = 'Une erreur est survenue lors du chargement du flux Facebook.'
-    console.error('Error loading Facebook feed:', err)
+    error.value = 'Le flux Facebook n\'est pas disponible.'
+    console.log('Facebook feed not available:', err)
   } finally {
     loading.value = false
   }

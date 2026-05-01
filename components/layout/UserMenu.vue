@@ -1,76 +1,89 @@
 <template>
   <div class="dropdown dropdown-end mx-2">
     <label tabindex="0" class="btn btn-ghost btn-circle">
-      <Icon
-        :name="authStore.isAuthenticated ? 'mdi:account-circle' : 'mdi:account-outline'"
-        size="24"
-      />
+      <ClientOnly>
+        <Icon
+          :name="authStore.isAuthenticated ? 'mdi:account-circle' : 'mdi:account-outline'"
+          size="24"
+        />
+        <template #fallback>
+          <Icon name="mdi:account-outline" size="24" />
+        </template>
+      </ClientOnly>
     </label>
-    <ul
-      tabindex="0"
-      class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-    >
-      <template v-if="!authStore.isAuthenticated">
-        <li><button @click="showAuthModal = true">{{ $t('auth.login') }}</button></li>
-      </template>      <template v-else>
-        <li class="menu-title">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</li>
-        <li><NuxtLink to="/profile">{{ $t('auth.profile') }}</NuxtLink></li>
-        <template v-if="authStore.user?.role === 'admin'">
-          <li class="menu-title mt-2">{{ $t('admin.title') }}</li>
+    <ClientOnly>
+      <ul
+        tabindex="0"
+        class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+      >
+        <template v-if="!authStore.isAuthenticated">
+          <li><button @click="showAuthModal = true">{{ $t('auth.login') }}</button></li>
+        </template>
+        <template v-else>
+          <li class="menu-title">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</li>
+          <li><NuxtLink to="/profile">{{ $t('auth.profile') }}</NuxtLink></li>
+          <template v-if="authStore.user?.role === 'admin'">
+            <li class="menu-title mt-2">{{ $t('admin.title') }}</li>
+            <li>
+              <NuxtLink to="/admin/paniers" class="text-primary">
+                <Icon name="mdi:basket-outline" size="16" class="mr-1" />
+                {{ $t('admin.baskets') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/admin/legumes" class="text-primary">
+                <Icon name="mdi:carrot" size="16" class="mr-1" />
+                {{ $t('admin.vegetables') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/admin/reservations" class="text-primary">
+                <Icon name="mdi:calendar-check" size="16" class="mr-1" />
+                {{ $t('admin.reservations') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/admin/articles">
+                <Icon name="mdi:newspaper-variant-outline" size="18" />
+                {{ $t('admin.articles') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/admin/livraison">
+                <Icon name="mdi:truck-outline" size="18" />
+                {{ $t('admin.delivery') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/admin/images">
+                <Icon name="mdi:image-multiple-outline" size="18" />
+                {{ $t('admin.images') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/admin/parametres" class="text-primary">
+                <Icon name="mdi:cog-outline" size="16" class="mr-1" />
+                {{ $t('admin.settings') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/facebook-sync" class="text-primary">
+                <Icon name="mdi:facebook" size="16" class="mr-1" />
+                {{ $t('admin.facebookSync') }}
+              </NuxtLink>
+            </li>
+          </template>
           <li>
-            <NuxtLink to="/admin/paniers" class="text-primary">
-              <Icon name="mdi:basket-outline" size="16" class="mr-1" />
-              {{ $t('admin.baskets') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink to="/admin/legumes" class="text-primary">
-              <Icon name="mdi:carrot" size="16" class="mr-1" />
-              {{ $t('admin.vegetables') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink to="/admin/reservations" class="text-primary">
-              <Icon name="mdi:calendar-check" size="16" class="mr-1" />
-              {{ $t('admin.reservations') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink to="/admin/articles">
-              <Icon name="mdi:newspaper-variant-outline" size="18" />
-              {{ $t('admin.articles') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink to="/admin/livraison">
-              <Icon name="mdi:truck-outline" size="18" />
-              {{ $t('admin.delivery') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink to="/admin/images">
-              <Icon name="mdi:image-multiple-outline" size="18" />
-              {{ $t('admin.images') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink to="/admin/parametres" class="text-primary">
-              <Icon name="mdi:cog-outline" size="16" class="mr-1" />
-              {{ $t('admin.settings') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink to="/facebook-sync" class="text-primary">
-              <Icon name="mdi:facebook" size="16" class="mr-1" />
-              {{ $t('admin.facebookSync') }}
-            </NuxtLink>
+            <button @click="handleLogout" class="text-error">{{ $t('auth.logout') }}</button>
           </li>
         </template>
-        <li>
-          <button @click="handleLogout" class="text-error">{{ $t('auth.logout') }}</button>
-        </li>
+      </ul>
+      <template #fallback>
+        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+          <li><button @click="showAuthModal = true">{{ $t('auth.login') }}</button></li>
+        </ul>
       </template>
-    </ul>
+    </ClientOnly>
   </div>
 
   <!-- Modal d'authentification -->
