@@ -1,4 +1,5 @@
 import { prisma } from '../../../../prisma/client'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 
 function toPositiveInt(value: unknown, fallback: number, max = 50) {
   const parsed = Number(value)
@@ -19,12 +20,14 @@ export default defineEventHandler(async (event) => {
     where: { publicActionToken: token },
     include: {
       basket: { select: { id: true, name: true, finalPrice: true } },
-      occurrences: {
-        where: { status: 'SCHEDULED' },
-        orderBy: { occurrenceDate: 'asc' },
-        skip: (occurrencePage - 1) * occurrenceLimit,
-        take: occurrenceLimit
-      }
+      occurrences: SUBSCRIPTIONS_ENABLED
+        ? {
+            where: { status: 'SCHEDULED' },
+            orderBy: { occurrenceDate: 'asc' },
+            skip: (occurrencePage - 1) * occurrenceLimit,
+            take: occurrenceLimit
+          }
+        : false
     }
   })
 
@@ -32,21 +35,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
   }
 
-  const occurrenceTotal = await prisma.reservationOccurrence.count({
-    where: { reservationId: reservation.id, status: 'SCHEDULED' }
-  })
+  const occurrenceTotal = SUBSCRIPTIONS_ENABLED
+    ? await prisma.reservationOccurrence.count({
+        where: { reservationId: reservation.id, status: 'SCHEDULED' }
+      })
+    : 0
 
   return {
     id: reservation.id,
     customerName: reservation.customerName,
     email: reservation.email,
     status: reservation.status,
-    monthlySubscription: reservation.monthlySubscription,
-    subscriptionActive: reservation.subscriptionActive,
+    monthlySubscription: SUBSCRIPTIONS_ENABLED ? reservation.monthlySubscription : false,
+    subscriptionActive: SUBSCRIPTIONS_ENABLED ? reservation.subscriptionActive : false,
     fulfillmentDate: reservation.fulfillmentDate,
     fulfillmentTime: reservation.fulfillmentTime,
     fulfillmentLocation: reservation.fulfillmentLocation,
-    occurrences: reservation.occurrences.map((occurrence) => ({
+    occurrences: (reservation.occurrences ?? []).map((occurrence) => ({
       id: occurrence.id,
       occurrenceDate: occurrence.occurrenceDate,
       occurrenceTime: occurrence.occurrenceTime,

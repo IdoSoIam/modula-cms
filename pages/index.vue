@@ -164,7 +164,7 @@
               </div>
               <div class="font-semibold">Livraison tournee</div>
               <p class="mt-2 text-sm opacity-75">
-                Pour certaines villes, une tournee de livraison peut etre proposee, avec option d'abonnement.
+                Pour certaines villes, une tournee de livraison peut etre proposee.
               </p>
             </div>
           </div>

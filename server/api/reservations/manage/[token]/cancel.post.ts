@@ -4,6 +4,7 @@ import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
 import { getSetting, SETTING_KEYS } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 
 export default defineEventHandler(async (event) => {
   const token = String(getRouterParam(event, 'token') ?? '')
@@ -32,10 +33,10 @@ export default defineEventHandler(async (event) => {
     where: { id: reservation.id },
     data: {
       status: 'CANCELLED',
-      subscriptionActive: false,
-      subscriptionCancelledAt: reservation.monthlySubscription ? new Date() : reservation.subscriptionCancelledAt,
+      subscriptionActive: SUBSCRIPTIONS_ENABLED ? false : reservation.subscriptionActive,
+      subscriptionCancelledAt: SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription ? new Date() : reservation.subscriptionCancelledAt,
       cancelledByCustomerAt: new Date(),
-      adminNote: reservation.monthlySubscription
+      adminNote: SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription
         ? 'Abonnement arrete par le client'
         : 'Reservation annulee par le client'
     },
@@ -55,16 +56,16 @@ export default defineEventHandler(async (event) => {
     data: {
       status: 'CANCELLED',
       cancelledAt: new Date(),
-      cancellationReason: reservation.monthlySubscription
+      cancellationReason: SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription
         ? 'Abonnement arrete par le client'
         : 'Reservation annulee par le client'
     }
   })
 
-  const customerSubject = updated.monthlySubscription
+  const customerSubject = SUBSCRIPTIONS_ENABLED && updated.monthlySubscription
     ? 'Votre abonnement a ete arrete - Ferme du Campeyrigoux'
     : 'Votre reservation a ete annulee - Ferme du Campeyrigoux'
-  const customerBody = updated.monthlySubscription
+  const customerBody = SUBSCRIPTIONS_ENABLED && updated.monthlySubscription
     ? `Bonjour ${updated.customerName},
 
 Votre abonnement a bien ete arrete.
@@ -94,7 +95,7 @@ Si besoin, vous pouvez nous recontacter pour refaire une demande ulterieurement.
 
   await logReservationNotification({
     reservationId: updated.id,
-    kind: updated.monthlySubscription ? 'CUSTOMER_STOPPED_SUBSCRIPTION' : 'CUSTOMER_CANCELLED',
+    kind: SUBSCRIPTIONS_ENABLED && updated.monthlySubscription ? 'CUSTOMER_STOPPED_SUBSCRIPTION' : 'CUSTOMER_CANCELLED',
     recipientEmail: updated.email,
     subject: customerSubject,
     summary: customerBody
@@ -102,10 +103,10 @@ Si besoin, vous pouvez nous recontacter pour refaire une demande ulterieurement.
 
   const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
   if (adminEmail) {
-    const subject = updated.monthlySubscription
+    const subject = SUBSCRIPTIONS_ENABLED && updated.monthlySubscription
       ? `Abonnement arrete par le client - ${updated.basket.name}`
       : `Reservation annulee par le client - ${updated.basket.name}`
-    const body = `${updated.monthlySubscription ? 'Le client a arrete son abonnement.' : 'Le client a annule sa reservation.'}
+    const body = `${SUBSCRIPTIONS_ENABLED && updated.monthlySubscription ? 'Le client a arrete son abonnement.' : 'Le client a annule sa reservation.'}
 
 - Panier : ${updated.basket.name}
 - Client : ${updated.customerName}
@@ -124,7 +125,7 @@ Si besoin, vous pouvez nous recontacter pour refaire une demande ulterieurement.
 
     await logReservationNotification({
       reservationId: updated.id,
-      kind: updated.monthlySubscription ? 'ADMIN_NOTIFIED_CUSTOMER_STOP' : 'ADMIN_NOTIFIED_CUSTOMER_CANCEL',
+      kind: SUBSCRIPTIONS_ENABLED && updated.monthlySubscription ? 'ADMIN_NOTIFIED_CUSTOMER_STOP' : 'ADMIN_NOTIFIED_CUSTOMER_CANCEL',
       recipientEmail: adminEmail,
       subject,
       summary: body

@@ -1,4 +1,5 @@
 import type { Reservation, ReservationOccurrence } from '@prisma/client'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 import { prisma } from '../../prisma/client'
 
 const DEFAULT_WEEKS_AHEAD = 52
@@ -24,7 +25,7 @@ export async function ensureReservationOccurrences(
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const desiredDates = reservation.monthlySubscription && reservation.subscriptionActive
+  const desiredDates = SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription && reservation.subscriptionActive
     ? (() => {
         const dates: Date[] = []
         let cursor = new Date(reservation.fulfillmentDate!)
@@ -86,7 +87,7 @@ export async function ensureReservationOccurrences(
     created.push(occurrence)
   }
 
-  if (!reservation.monthlySubscription || !reservation.subscriptionActive) {
+  if (!SUBSCRIPTIONS_ENABLED || !reservation.monthlySubscription || !reservation.subscriptionActive) {
     await prisma.reservationOccurrence.updateMany({
       where: {
         reservationId: reservation.id,

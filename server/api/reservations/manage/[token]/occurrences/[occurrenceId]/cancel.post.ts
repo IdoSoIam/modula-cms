@@ -4,6 +4,7 @@ import { buildGenericEmail, buildReservationOccurrenceEmail } from '~/server/uti
 import { cancelReservationOccurrenceInGoogleCalendar } from '~/server/utils/googleCalendarSync'
 import { getSetting, SETTING_KEYS } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 
 function formatOccurrenceDate(value: Date) {
   return value.toLocaleDateString('fr-FR', {
@@ -14,6 +15,10 @@ function formatOccurrenceDate(value: Date) {
 }
 
 export default defineEventHandler(async (event) => {
+  if (!SUBSCRIPTIONS_ENABLED) {
+    throw createError({ statusCode: 410, statusMessage: 'Les abonnements ne sont pas actifs pour le moment.' })
+  }
+
   const token = String(getRouterParam(event, 'token') ?? '')
   const occurrenceId = Number(getRouterParam(event, 'occurrenceId'))
   if (!token || !occurrenceId) {

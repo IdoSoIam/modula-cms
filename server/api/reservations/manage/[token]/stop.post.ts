@@ -3,9 +3,14 @@ import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils
 import { removeReservationFromGoogleCalendar } from '~/server/utils/googleCalendarSync'
 import { getSetting, SETTING_KEYS } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 import { prisma } from '../../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {
+  if (!SUBSCRIPTIONS_ENABLED) {
+    throw createError({ statusCode: 410, statusMessage: 'Les abonnements ne sont pas actifs pour le moment.' })
+  }
+
   const token = String(getRouterParam(event, 'token') ?? '')
   if (!token) throw createError({ statusCode: 400, statusMessage: 'Lien invalide' })
 

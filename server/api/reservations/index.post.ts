@@ -2,6 +2,7 @@ import { getSetting, SETTING_KEYS, getOrdersWindow } from '~/server/utils/settin
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail } from '~/server/utils/reservationEmails'
 import { getReservationFulfillment } from '~/server/utils/reservationFulfillment'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 import { prisma } from '../../../prisma/client'
 import { AuthService } from '../../services/auth/authService'
 import { randomBytes } from 'node:crypto'
@@ -126,7 +127,7 @@ export default defineEventHandler(async (event) => {
       fulfillmentDate: fulfillment.fulfillmentDate,
       fulfillmentTime: fulfillment.fulfillmentTime,
       fulfillmentLocation: fulfillment.fulfillmentLocation,
-      monthlySubscription: body.monthlySubscription ?? false,
+      monthlySubscription: SUBSCRIPTIONS_ENABLED ? (body.monthlySubscription ?? false) : false,
       publicActionToken: randomBytes(24).toString('hex')
     }
   })

@@ -3,6 +3,7 @@ import { buildReservationIcs } from './calendarInvite'
 import { buildEmailHtml } from './emailTemplates'
 import { getSetting, SETTING_KEYS } from './settings'
 import { getSiteOrigin, type GmailCalendarInvite } from './gmail'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 
 type ReservationWithRelations = Reservation & {
   basket: Basket
@@ -43,7 +44,7 @@ export async function buildReservationDecisionEmail(options: {
   const actionHelp = options.action === 'CONFIRMED' && manageUrl
     ? `${options.body}
 
-${options.reservation.monthlySubscription ? 'Arreter mon abonnement :' : 'Annuler ma reservation :'}
+${SUBSCRIPTIONS_ENABLED && options.reservation.monthlySubscription ? 'Arreter mon abonnement :' : 'Annuler ma reservation :'}
 ${manageUrl}`
     : options.body
   const htmlBody = buildEmailHtml({

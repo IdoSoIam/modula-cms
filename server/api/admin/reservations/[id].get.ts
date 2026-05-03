@@ -1,5 +1,6 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { ensureReservationOccurrences } from '~/server/utils/reservationOccurrences'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 import { prisma } from '../../../../prisma/client'
 
 function toPositiveInt(value: unknown, fallback: number, max = 100) {
@@ -31,26 +32,30 @@ export default defineEventHandler(async (event) => {
   })
   if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
 
-  if (reservation.status === 'CONFIRMED' && reservation.fulfillmentDate) {
+  if (SUBSCRIPTIONS_ENABLED && reservation.status === 'CONFIRMED' && reservation.fulfillmentDate) {
     await ensureReservationOccurrences(reservation)
   }
 
   const [occurrenceTotal, occurrences, notificationTotal, notifications] = await Promise.all([
-    prisma.reservationOccurrence.count({
-      where: {
-        reservationId: id,
-        occurrenceDate: { gte: today }
-      }
-    }),
-    prisma.reservationOccurrence.findMany({
-      where: {
-        reservationId: id,
-        occurrenceDate: { gte: today }
-      },
-      orderBy: { occurrenceDate: 'asc' },
-      skip: (occurrencePage - 1) * occurrenceLimit,
-      take: occurrenceLimit
-    }),
+    SUBSCRIPTIONS_ENABLED
+      ? prisma.reservationOccurrence.count({
+          where: {
+            reservationId: id,
+            occurrenceDate: { gte: today }
+          }
+        })
+      : Promise.resolve(0),
+    SUBSCRIPTIONS_ENABLED
+      ? prisma.reservationOccurrence.findMany({
+          where: {
+            reservationId: id,
+            occurrenceDate: { gte: today }
+          },
+          orderBy: { occurrenceDate: 'asc' },
+          skip: (occurrencePage - 1) * occurrenceLimit,
+          take: occurrenceLimit
+        })
+      : Promise.resolve([]),
     prisma.reservationNotification.count({ where: { reservationId: id } }),
     prisma.reservationNotification.findMany({
       where: { reservationId: id },
@@ -78,8 +83,8 @@ export default defineEventHandler(async (event) => {
     fulfillmentDate: reservation.fulfillmentDate,
     fulfillmentTime: reservation.fulfillmentTime,
     fulfillmentLocation: reservation.fulfillmentLocation,
-    monthlySubscription: reservation.monthlySubscription,
-    subscriptionActive: reservation.subscriptionActive,
+    monthlySubscription: SUBSCRIPTIONS_ENABLED ? reservation.monthlySubscription : false,
+    subscriptionActive: SUBSCRIPTIONS_ENABLED ? reservation.subscriptionActive : false,
     subscriptionCancelledAt: reservation.subscriptionCancelledAt,
     googleCalendarEventId: reservation.googleCalendarEventId,
     googleCalendarSyncedAt: reservation.googleCalendarSyncedAt,

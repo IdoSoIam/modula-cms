@@ -4,7 +4,7 @@
       <div>
         <h1 class="text-3xl font-bold">Reservations</h1>
         <p class="text-sm opacity-70">
-          Basculer entre la liste detaillee et la vue calendrier des reservations.
+          Les reservations passees ne sont plus affichees ici, mais restent comptabilisees dans le tableau de bord.
         </p>
       </div>
 
@@ -20,135 +20,56 @@
       </div>
     </div>
 
+    <div class="mb-4 flex flex-wrap gap-2">
+      <button
+        v-for="filter in statusFilters"
+        :key="filter.value"
+        class="btn btn-sm"
+        :class="selectedStatuses.includes(filter.value) ? filter.activeClass : 'btn-ghost'"
+        @click="toggleStatusFilter(filter.value)"
+      >
+        {{ filter.label }}
+      </button>
+    </div>
+
     <div v-if="pending" class="loading loading-spinner" />
 
     <template v-else>
-      <div v-if="viewMode === 'list'" class="space-y-3">
-        <div
-          v-for="r in paginatedReservations"
-          :key="r.id"
-          class="card bg-base-200 shadow-sm"
-        >
-          <div class="card-body p-4">
-            <ReservationSummary
-              :reservation="r"
-              :badge-class="badgeClass"
-              :status-label="statusLabel"
-              :format-date-input="formatDateOnlyLabel"
-              :format-price="$formatPrice"
-              :format-date="$formatDate"
-              @confirm="openAction(r, 'confirmed')"
-              @reject="openAction(r, 'rejected')"
-              @cancel="openAction(r, 'cancelled')"
-              @archive="archiveReservation(r)"
-              @select="openDetails(r)"
-            />
-          </div>
-        </div>
+      <ReservationsList
+        v-if="viewMode === 'list'"
+        :reservations="paginatedReservations"
+        :page="reservationPage"
+        :total-pages="reservationTotalPages"
+        :status-label="statusLabel"
+        :badge-class="badgeClass"
+        :format-price="$formatPrice"
+        :format-date="$formatDate"
+        :format-date-only="formatDateOnlyLabel"
+        @confirm="openAction($event, 'confirmed')"
+        @reject="openAction($event, 'rejected')"
+        @cancel="openAction($event, 'cancelled')"
+        @archive="archiveReservation"
+        @select="openDetails"
+        @update:page="reservationPage = $event"
+      />
 
-        <div v-if="reservationTotalPages > 1" class="join flex justify-center">
-          <button class="btn join-item btn-sm" :disabled="reservationPage === 1" @click="reservationPage--">
-            <Icon name="mdi:chevron-left" size="18" />
-          </button>
-          <button class="btn join-item btn-sm no-animation">
-            Page {{ reservationPage }} / {{ reservationTotalPages }}
-          </button>
-          <button class="btn join-item btn-sm" :disabled="reservationPage === reservationTotalPages" @click="reservationPage++">
-            <Icon name="mdi:chevron-right" size="18" />
-          </button>
-        </div>
-
-        <div v-if="!reservations?.length" class="py-12 text-center opacity-60">
-          Aucune reservation pour le moment.
-        </div>
-      </div>
-
-      <div v-else class="card bg-base-200 shadow-sm">
-        <div class="card-body p-4">
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-              <button class="btn btn-sm btn-ghost" @click="changeMonth(-1)">
-                <Icon name="mdi:chevron-left" size="18" />
-              </button>
-
-              <div class="relative">
-                <button class="btn btn-sm btn-ghost text-base font-semibold normal-case" @click="toggleMonthPicker">
-                  {{ monthLabel }}
-                  <Icon name="mdi:chevron-down" size="16" />
-                </button>
-
-                <div
-                  v-if="showMonthPicker"
-                  class="absolute left-0 top-full z-10 mt-2 rounded-xl border border-base-300 bg-base-100 p-3 shadow-xl"
-                >
-                  <label class="mb-2 block text-xs font-semibold uppercase opacity-60">Choisir un mois</label>
-                  <input v-model="monthInput" type="month" class="input input-bordered input-sm" @change="applyMonthInput" />
-                </div>
-              </div>
-
-              <button class="btn btn-sm btn-ghost" @click="changeMonth(1)">
-                <Icon name="mdi:chevron-right" size="18" />
-              </button>
-            </div>
-
-            <button class="btn btn-sm btn-outline" @click="goToCurrentMonth">Aujourd'hui</button>
-          </div>
-
-          <div class="mb-2 grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase opacity-60">
-            <div v-for="day in dayNames" :key="day">{{ day }}</div>
-          </div>
-
-          <div class="grid grid-cols-7 gap-2">
-            <button
-              v-for="day in calendarDays"
-              :key="day.iso"
-              class="min-h-36 rounded-xl border p-2 text-left transition hover:border-primary/60"
-              :class="[
-                day.inCurrentMonth ? 'border-base-300 bg-base-100' : 'border-base-300/60 bg-base-300/50 opacity-70',
-                day.isToday ? 'ring-2 ring-primary/40' : ''
-              ]"
-              @click="selectDay(day)"
-            >
-              <div class="mb-2 flex items-center justify-between">
-                <span class="text-sm font-semibold">{{ day.dayNumber }}</span>
-                <span v-if="day.total" class="badge badge-sm">
-                  {{ calendarDayPage(day) }}/{{ calendarDayTotalPages(day) }}
-                </span>
-              </div>
-
-              <div class="space-y-1">
-                <div
-                  v-for="item in paginatedCalendarItems(day)"
-                  :key="item.id"
-                  class="cursor-pointer rounded-lg px-2 py-1 text-xs text-white"
-                  :class="calendarEventClass(item.status)"
-                  @click.stop="openDetails(item)"
-                >
-                  <div class="truncate font-medium">{{ item.customerName }}</div>
-                  <div class="truncate opacity-90">{{ item.basket.name }}</div>
-                </div>
-
-                <div v-if="calendarDayTotalPages(day) > 1" class="join mt-1 w-full">
-                  <button
-                    class="btn join-item btn-xs flex-1"
-                    :disabled="calendarDayPage(day) === 1"
-                    @click.stop="setCalendarDayPage(day, calendarDayPage(day) - 1)"
-                  >
-                    <Icon name="mdi:chevron-left" size="14" />
-                  </button>
-                  <button
-                    class="btn join-item btn-xs flex-1"
-                    :disabled="calendarDayPage(day) === calendarDayTotalPages(day)"
-                    @click.stop="setCalendarDayPage(day, calendarDayPage(day) + 1)"
-                  >
-                    <Icon name="mdi:chevron-right" size="14" />
-                  </button>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
+      <ReservationsCalendar
+        v-else
+        :days="calendarDays"
+        :month-label="monthLabel"
+        :month-input="monthInput"
+        :show-month-picker="showMonthPicker"
+        :day-names="dayNames"
+        :event-class="calendarEventClass"
+        @change-month="changeMonth"
+        @toggle-month-picker="toggleMonthPicker"
+        @apply-month-input="applyMonthInput"
+        @go-current-month="goToCurrentMonth"
+        @select-day="selectDay"
+        @select-item="openDetailsFromCalendar"
+        @change-day-page="setCalendarDayPage"
+        @update:month-input="updateMonthInput"
+      />
     </template>
 
     <dialog ref="detailsDlg" class="modal">
@@ -187,7 +108,7 @@
               <div v-if="detailsReservation.fulfillmentLocation"><strong>Lieu :</strong> {{ detailsReservation.fulfillmentLocation }}</div>
             </div>
 
-            <div v-if="detailsReservation.monthlySubscription" class="rounded-xl bg-base-200 p-3">
+            <div v-if="SUBSCRIPTIONS_ENABLED && detailsReservation.monthlySubscription" class="rounded-xl bg-base-200 p-3">
               <div class="mb-3 font-semibold">Occurrences a venir</div>
               <div v-if="detailsReservation.occurrences?.length" class="space-y-2">
                 <div
@@ -442,6 +363,9 @@
 <script setup lang="ts">
 import { defineComponent, h } from 'vue'
 import type { PropType } from 'vue'
+import ReservationsCalendar from '~/components/admin/ReservationsCalendar.vue'
+import ReservationsList from '~/components/admin/ReservationsList.vue'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
@@ -455,6 +379,7 @@ interface Reservation {
   adminNote: string | null
   createdAt: string
   confirmedAt: string | null
+  archivedAt?: string | null
   basket: { id: number; name: string; finalPrice: number }
   deliveryType: string | null
   deliveryAddress: string | null
@@ -468,6 +393,16 @@ interface Reservation {
   subscriptionCancelledAt: string | null
   googleCalendarEventId: string | null
   googleCalendarSyncedAt: string | null
+  displayDate?: string | null
+  displayTime?: string | null
+  displayLocation?: string | null
+  nextOccurrence?: {
+    id: number
+    occurrenceDate: string
+    occurrenceTime: string | null
+    occurrenceLocation: string | null
+    status: 'SCHEDULED' | 'CANCELLED'
+  } | null
   occurrences: Array<{
     id: number
     occurrenceDate: string
@@ -510,7 +445,17 @@ interface CalendarDay {
   perPage: number
   total: number
   totalPages: number
-  items: Reservation[]
+  items: Array<{
+    id: string
+    reservationId: number
+    occurrenceId: number | null
+    customerName: string
+    status: string
+    basket: { id: number; name: string; finalPrice: number }
+    date: string
+    time: string | null
+    location: string | null
+  }>
 }
 
 type ReservationDetails = Reservation & {
@@ -548,6 +493,14 @@ const calendarDayPages = reactive<Record<string, number>>({})
 const calendarItemsPerPage = 3
 const calendarPageVersion = ref(0)
 const calendarMonth = ref(startOfMonth(new Date()))
+const selectedStatuses = ref(['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED'])
+const statusFilters = [
+  { value: 'PENDING', label: 'En attente', activeClass: 'btn-warning' },
+  { value: 'CONFIRMED', label: 'Confirmees', activeClass: 'btn-success' },
+  { value: 'CANCELLED', label: 'Annulees', activeClass: 'btn-warning' },
+  { value: 'REJECTED', label: 'Refusees', activeClass: 'btn-error' },
+  { value: 'ARCHIVED', label: 'Archivees', activeClass: 'btn-neutral' }
+]
 
 const calendarMonthParam = computed(() => {
   const year = calendarMonth.value.getFullYear()
@@ -569,7 +522,8 @@ const reservationsQuery = computed(() => {
   return {
     mode: 'list',
     page: reservationPage.value,
-    limit: reservationsPerPage
+    limit: reservationsPerPage,
+    statuses: selectedStatuses.value.join(',')
   }
 })
 
@@ -689,17 +643,11 @@ const paginatedDetailsNotifications = computed(() =>
   detailsReservation.value?.notifications ?? []
 )
 
-const calendarDayPage = (day: { page?: number; iso: string }) => day.page ?? calendarDayPages[day.iso] ?? 1
-
-const calendarDayTotalPages = (day: { totalPages?: number }) => day.totalPages ?? 1
-
 const setCalendarDayPage = (day: { iso: string; totalPages?: number }, page: number) => {
-  const total = calendarDayTotalPages(day)
+  const total = day.totalPages ?? 1
   calendarDayPages[day.iso] = Math.min(Math.max(page, 1), total)
   calendarPageVersion.value++
 }
-
-const paginatedCalendarItems = (day: { items: Reservation[] }) => day.items
 
 const reservationCalendarDate = (reservation: Reservation) => {
   const source = reservation.fulfillmentDate ?? reservation.createdAt
@@ -835,6 +783,13 @@ const openDetails = async (reservation: Reservation) => {
   detailsDlg.value?.showModal()
 }
 
+const openDetailsById = async (reservationId: number) => {
+  detailsOccurrencePage.value = 1
+  detailsNotificationPage.value = 1
+  await loadDetails(reservationId)
+  detailsDlg.value?.showModal()
+}
+
 const openOccurrenceEditor = (reservation: Reservation, occurrence: Reservation['occurrences'][number]) => {
   currentOccurrence.value = occurrence
   occurrenceForm.date = formatDateInput(occurrence.occurrenceDate)
@@ -881,11 +836,28 @@ const applyMonthInput = () => {
   showMonthPicker.value = false
 }
 
+const updateMonthInput = (value: string) => {
+  monthInput.value = value
+}
+
 const selectDay = (day: CalendarDay) => {
   showMonthPicker.value = false
   if (day.items[0]) {
-    openDetails(day.items[0])
+    openDetailsById(day.items[0].reservationId)
   }
+}
+
+const openDetailsFromCalendar = (item: CalendarDay['items'][number]) => {
+  openDetailsById(item.reservationId)
+}
+
+const toggleStatusFilter = (status: string) => {
+  const next = selectedStatuses.value.includes(status)
+    ? selectedStatuses.value.filter((value) => value !== status)
+    : [...selectedStatuses.value, status]
+
+  selectedStatuses.value = next.length ? next : ['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED']
+  reservationPage.value = 1
 }
 
 watch(

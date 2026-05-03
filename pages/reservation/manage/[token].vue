@@ -10,7 +10,7 @@
 
         <template v-else-if="reservation">
           <p class="opacity-75">
-            {{ reservation.monthlySubscription ? 'Vous pouvez annuler seulement une semaine ou arreter completement votre abonnement.' : 'Vous pouvez annuler votre reservation.' }}
+            {{ SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription ? 'Vous pouvez annuler seulement une semaine ou arreter completement votre abonnement.' : 'Vous pouvez annuler votre reservation.' }}
           </p>
 
           <div class="mt-6 rounded-2xl bg-base-200 p-5 text-sm">
@@ -23,16 +23,16 @@
           </div>
 
           <div v-if="reservation.status === 'CANCELLED'" class="alert alert-info mt-6">
-            {{ reservation.monthlySubscription ? 'Cet abonnement est deja arrete.' : 'Cette reservation est deja annulee.' }}
+            {{ SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription ? 'Cet abonnement est deja arrete.' : 'Cette reservation est deja annulee.' }}
           </div>
 
-          <div v-else-if="reservation.monthlySubscription && !reservation.subscriptionActive" class="alert alert-info mt-6">
+          <div v-else-if="SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription && !reservation.subscriptionActive" class="alert alert-info mt-6">
             Cet abonnement n'est plus actif.
           </div>
 
           <div v-else class="mt-6 flex flex-wrap gap-3">
             <button
-              v-if="!reservation.monthlySubscription"
+              v-if="!SUBSCRIPTIONS_ENABLED || !reservation.monthlySubscription"
               class="btn btn-warning"
               :disabled="submitting"
               @click="cancelReservation"
@@ -41,7 +41,7 @@
               Annuler ma reservation
             </button>
             <button
-              v-if="reservation.monthlySubscription"
+              v-if="SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription"
               class="btn btn-error"
               :disabled="submitting"
               @click="stopSubscription"
@@ -52,7 +52,7 @@
             <NuxtLink to="/" class="btn btn-ghost">Retour a l'accueil</NuxtLink>
           </div>
 
-          <div v-if="reservation.monthlySubscription && reservation.occurrences?.length" class="mt-8">
+          <div v-if="SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription && reservation.occurrences?.length" class="mt-8">
             <h2 class="text-xl font-semibold">Semaines a venir</h2>
             <div class="mt-4 space-y-3">
               <div
@@ -95,6 +95,8 @@
 </template>
 
 <script setup lang="ts">
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
+
 interface ManagedReservation {
   id: number
   customerName: string

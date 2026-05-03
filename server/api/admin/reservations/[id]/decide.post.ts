@@ -4,6 +4,7 @@ import { removeReservationFromGoogleCalendar, syncReservationToGoogleCalendar } 
 import { buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { ensureReservationOccurrences, updateFutureOccurrencesFromReservation } from '~/server/utils/reservationOccurrences'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 import { prisma } from '../../../../../prisma/client'
 
 interface Body {
@@ -53,16 +54,20 @@ export default defineEventHandler(async (event) => {
         ? (body.fulfillmentLocation?.trim() || reservation.fulfillmentLocation)
         : reservation.fulfillmentLocation,
       confirmedAt: body.decision === 'CONFIRMED' ? new Date() : reservation.confirmedAt,
-      subscriptionActive: body.decision === 'CONFIRMED'
-        ? reservation.monthlySubscription
-        : body.decision === 'CANCELLED' && reservation.monthlySubscription
-          ? false
-          : reservation.subscriptionActive,
-      subscriptionCancelledAt: body.decision === 'CONFIRMED'
-        ? reservation.monthlySubscription ? null : reservation.subscriptionCancelledAt
-        : body.decision === 'CANCELLED' && reservation.monthlySubscription
-          ? new Date()
-          : reservation.subscriptionCancelledAt
+      subscriptionActive: !SUBSCRIPTIONS_ENABLED
+        ? false
+        : body.decision === 'CONFIRMED'
+          ? reservation.monthlySubscription
+          : body.decision === 'CANCELLED' && reservation.monthlySubscription
+            ? false
+            : reservation.subscriptionActive,
+      subscriptionCancelledAt: !SUBSCRIPTIONS_ENABLED
+        ? reservation.subscriptionCancelledAt
+        : body.decision === 'CONFIRMED'
+          ? reservation.monthlySubscription ? null : reservation.subscriptionCancelledAt
+          : body.decision === 'CANCELLED' && reservation.monthlySubscription
+            ? new Date()
+            : reservation.subscriptionCancelledAt
     },
     include: {
       basket: true,
@@ -77,7 +82,9 @@ export default defineEventHandler(async (event) => {
 
   if (body.decision === 'CONFIRMED') {
     await ensureReservationOccurrences(updated)
-    await updateFutureOccurrencesFromReservation(updated)
+    if (SUBSCRIPTIONS_ENABLED) {
+      await updateFutureOccurrencesFromReservation(updated)
+    }
     try {
       const result = await syncReservationToGoogleCalendar(updated)
       calendarSynced = result.synced

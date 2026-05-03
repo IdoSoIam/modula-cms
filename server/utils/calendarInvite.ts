@@ -1,4 +1,5 @@
 import type { DeliveryTour, PickupPoint, Reservation, Basket } from '@prisma/client'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 
 type ReservationWithRelations = Reservation & {
   basket: Basket
@@ -108,7 +109,7 @@ export function buildReservationIcs(options: {
     fulfillmentDate: options.occurrenceDate ?? options.reservation.fulfillmentDate,
     fulfillmentTime: options.occurrenceTime ?? options.reservation.fulfillmentTime,
     fulfillmentLocation: options.occurrenceLocation ?? options.reservation.fulfillmentLocation,
-    monthlySubscription: options.singleOccurrence ? false : options.reservation.monthlySubscription
+    monthlySubscription: options.singleOccurrence ? false : (SUBSCRIPTIONS_ENABLED ? options.reservation.monthlySubscription : false)
   }
 
   const resolved = resolveStartEnd(occurrenceReservation)
@@ -169,7 +170,7 @@ export function buildReservationIcs(options: {
     'CLASS:PUBLIC',
     `TRANSP:${options.method === 'CANCEL' ? 'TRANSPARENT' : 'OPAQUE'}`,
     `SEQUENCE:${sequence}`,
-    ...(options.reservation.monthlySubscription && !options.singleOccurrence ? ['RRULE:FREQ=WEEKLY;INTERVAL=1'] : []),
+    ...(SUBSCRIPTIONS_ENABLED && options.reservation.monthlySubscription && !options.singleOccurrence ? ['RRULE:FREQ=WEEKLY;INTERVAL=1'] : []),
     ...(options.manageUrl ? [`URL:${escapeIcs(options.manageUrl)}`] : []),
     `ORGANIZER;CN=${escapeIcs(options.organizerName ?? 'Ferme du Campeyrigoux')}:mailto:${options.organizerEmail}`,
     `ATTENDEE;CN=${escapeIcs(options.reservation.customerName)};CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${options.reservation.email}`,

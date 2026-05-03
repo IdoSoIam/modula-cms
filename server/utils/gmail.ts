@@ -1,3 +1,4 @@
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 import { deleteSettings, getSetting, setSetting, SETTING_KEYS } from './settings'
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -408,7 +409,7 @@ export function buildGoogleCalendarEventPayload(input: GoogleCalendarReservation
     `Telephone : ${input.phone ?? '-'}`,
     `Panier : ${input.basketName} (${input.basketPrice.toFixed(2)} EUR)`,
     `Mode : ${input.deliveryType === 'TOUR' ? 'Livraison' : input.deliveryType === 'PICKUP' ? 'Retrait' : input.deliveryType === 'FARM' ? 'Retrait à la ferme' : '-'}`,
-    `Abonnement mensuel : ${input.monthlySubscription ? 'Oui' : 'Non'}`,
+    `Abonnement mensuel : ${SUBSCRIPTIONS_ENABLED && input.monthlySubscription ? 'Oui' : 'Non'}`,
     `Lieu : ${input.fulfillmentLocation ?? input.pickupPoint?.address ?? input.deliveryAddress ?? '-'}`,
     `Message client : ${input.message ?? '-'}`
   ]
@@ -441,7 +442,7 @@ export function buildGoogleCalendarEventPayload(input: GoogleCalendarReservation
     summary: `${input.basketName} - ${input.customerName}`,
     description: lines.join('\n'),
     location,
-    ...(input.monthlySubscription ? { recurrence: ['RRULE:FREQ=WEEKLY'] } : {}),
+    ...(SUBSCRIPTIONS_ENABLED && input.monthlySubscription ? { recurrence: ['RRULE:FREQ=WEEKLY'] } : {}),
     start: {
       dateTime: start.toISOString(),
       timeZone: 'Europe/Paris'

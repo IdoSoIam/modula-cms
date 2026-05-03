@@ -257,7 +257,7 @@
               <Icon name="mdi:calendar-check" size="14" class="inline mr-1" />
               {{ formatNextDate(selectedTour.nextDate) }}
             </div>
-            <div v-if="selectedTour.monthlyPrice" class="text-success">
+            <div v-if="SUBSCRIPTIONS_ENABLED && selectedTour.monthlyPrice" class="text-success">
               <Icon name="mdi:cash-check" size="14" class="inline mr-1" />
               {{ $t('pages.baskets.monthlySubscriptionPrice', { price: $formatPrice(selectedTour.monthlyPrice) }) }}
             </div>
@@ -265,7 +265,7 @@
           </div>
         </div>
 
-        <div v-if="form.deliveryType" class="rounded-xl border border-base-300 bg-base-200 p-4 text-sm mb-3">
+        <div v-if="SUBSCRIPTIONS_ENABLED && form.deliveryType" class="rounded-xl border border-base-300 bg-base-200 p-4 text-sm mb-3">
           <label class="label cursor-pointer justify-start gap-3 p-0">
             <input v-model="form.monthlySubscription" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
             <span class="label-text font-medium">{{ $t('pages.baskets.subscribeMonthly') }}</span>
@@ -315,6 +315,8 @@
 </template>
 
 <script setup lang="ts">
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
+
 interface PublicBasket {
   id: number; name: string; description: string | null; imageUrl: string | null
   finalPrice: number; remaining: number; available: number
@@ -555,7 +557,7 @@ const submit = async () => {
         deliveryAddress: form.deliveryAddress,
         deliveryCity: form.deliveryCity,
         deliveryPostalCode: form.deliveryPostalCode,
-        monthlySubscription: form.monthlySubscription
+        monthlySubscription: SUBSCRIPTIONS_ENABLED ? form.monthlySubscription : false
       }
     })
     $toast.success(t('pages.baskets.reservationSent'))

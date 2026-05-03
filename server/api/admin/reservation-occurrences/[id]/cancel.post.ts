@@ -4,12 +4,17 @@ import { buildReservationOccurrenceEmail } from '~/server/utils/reservationEmail
 import { sendGmail } from '~/server/utils/gmail'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { cancelReservationOccurrenceInGoogleCalendar } from '~/server/utils/googleCalendarSync'
+import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 
 interface Body {
   email: { subject: string; body: string }
 }
 
 export default defineEventHandler(async (event) => {
+  if (!SUBSCRIPTIONS_ENABLED) {
+    throw createError({ statusCode: 410, statusMessage: 'Les abonnements ne sont pas actifs pour le moment.' })
+  }
+
   await requireAdmin(event)
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
