@@ -1,16 +1,5 @@
 import { prisma } from '../../prisma/client'
-
-function getNextDateForDayOfWeek(dayOfWeek: number, fromDate = new Date()): Date {
-  const base = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate())
-  const diff = (dayOfWeek - base.getDay() + 7) % 7
-  const result = new Date(base)
-  result.setDate(base.getDate() + diff)
-  // If the day already passed this week, go to next week
-  if (result < fromDate) {
-    result.setDate(result.getDate() + 7)
-  }
-  return result
-}
+import { getNextDateForDayOfWeek } from '~/server/utils/reservationFulfillment'
 
 export default defineEventHandler(async () => {
   const now = new Date()
@@ -58,5 +47,13 @@ export default defineEventHandler(async () => {
   // Get unique list of all served cities for client-side filtering
   const allServedCities = [...new Set(tours.flatMap(t => t.cities.map(c => c.city.toLowerCase())))]
 
-  return { pickupPoints, tours: formattedTours, servedCities: allServedCities }
+  return {
+    farmPickup: {
+      label: 'Retrait a la ferme',
+      location: 'Ferme du Campeyrigoux'
+    },
+    pickupPoints,
+    tours: formattedTours,
+    servedCities: allServedCities
+  }
 })

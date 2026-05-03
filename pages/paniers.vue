@@ -40,14 +40,36 @@
           <p v-if="b.description" class="opacity-80">{{ b.description }}</p>
 
           <div class="mt-2">
-            <details class="collapse collapse-arrow bg-base-300">
+            <details class="collapse collapse-arrow bg-base-300 overflow-visible">
               <summary class="collapse-title text-sm font-medium">
                 {{ $t('pages.baskets.composition', { count: b.items.length }) }}
               </summary>
               <div class="collapse-content text-sm">
                 <ul class="list-disc list-inside">
-                  <li v-for="(it, idx) in b.items" :key="idx" class="flex items-center gap-2">
-                    <img v-if="it.vegetable.imageUrl" :src="it.vegetable.imageUrl" :alt="it.vegetable.name" class="w-6 h-6 rounded object-cover" />
+                  <li
+                    v-for="(it, idx) in b.items"
+                    :key="idx"
+                    class="basket-composition-item relative flex items-center gap-2"
+                    @mouseenter="setHoveredVegetable(`${b.id}-${idx}`)"
+                    @mouseleave="setHoveredVegetable(null)"
+                  >
+                    <button
+                      v-if="it.vegetable.imageUrl"
+                      type="button"
+                      class="link link-hover inline-flex items-center gap-1 text-left"
+                      @click="openVegetablePreview(it.vegetable.imageUrl, it.vegetable.name)"
+                    >
+                      <Icon name="mdi:image-search-outline" size="16" class="opacity-70" />
+                      <span>{{ it.vegetable.name }}</span>
+                    </button>
+                    <span v-else>{{ it.vegetable.name }}</span>
+                    <span> - {{ it.quantity }}{{ it.vegetable.unit === 'KG' ? ' kg' : ' x' }}</span>
+                    <div
+                      v-if="it.vegetable.imageUrl && hoveredVegetableKey === `${b.id}-${idx}`"
+                      class="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden rounded-box border border-base-300 bg-base-100 p-2 shadow-xl md:block"
+                    >
+                      <img :src="it.vegetable.imageUrl" :alt="it.vegetable.name" class="h-40 w-40 rounded object-cover" />
+                    </div>
                     <span>{{ it.vegetable.name }} — {{ it.quantity }}{{ it.vegetable.unit === 'KG' ? ' kg' : ' x' }}</span>
                   </li>
                 </ul>
@@ -144,7 +166,19 @@
         <!-- Delivery choice -->
         <div class="divider">{{ $t('pages.baskets.deliveryChoice') }}</div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+        <div class="grid grid-cols-1 gap-2 mb-3 sm:grid-cols-3">
+          <label
+            class="card bg-base-200 p-3 cursor-pointer border-2"
+            :class="form.deliveryType === 'FARM' ? 'border-primary' : 'border-transparent'"
+          >
+            <div class="flex items-center gap-2">
+              <input v-model="form.deliveryType" type="radio" value="FARM" class="radio radio-primary radio-sm" />
+              <span class="font-medium">Retrait a la ferme</span>
+            </div>
+            <div class="mt-2 text-xs opacity-70">
+              {{ deliveryOptions?.farmPickup.location ?? 'Ferme du Campeyrigoux' }}
+            </div>
+          </label>
           <label
             class="card bg-base-200 p-3 cursor-pointer border-2"
             :class="form.deliveryType === 'PICKUP' ? 'border-primary' : 'border-transparent'"
@@ -164,6 +198,11 @@
               <span class="font-medium">{{ $t('pages.baskets.deliveryTour') }}</span>
             </div>
           </label>
+        </div>
+
+        <div v-if="form.deliveryType === 'FARM'" class="alert alert-info text-sm mb-3">
+          <Icon name="mdi:information-outline" size="18" />
+          <span>Nous confirmerons par email le creneau exact de retrait a la ferme.</span>
         </div>
 
         <div v-if="!canDeliverToCity && form.deliveryCity" class="alert alert-info text-sm mb-3">
@@ -222,12 +261,21 @@
               <Icon name="mdi:cash-check" size="14" class="inline mr-1" />
               {{ $t('pages.baskets.monthlySubscriptionPrice', { price: $formatPrice(selectedTour.monthlyPrice) }) }}
             </div>
-            <label class="label cursor-pointer justify-start gap-2 mt-2">
-              <input v-model="form.monthlySubscription" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-              <span class="label-text text-sm">{{ $t('pages.baskets.subscribeMonthly') }}</span>
-            </label>
             <div v-if="selectedTour.notes" class="opacity-70">{{ selectedTour.notes }}</div>
           </div>
+        </div>
+
+        <div v-if="form.deliveryType" class="rounded-xl border border-base-300 bg-base-200 p-4 text-sm mb-3">
+          <label class="label cursor-pointer justify-start gap-3 p-0">
+            <input v-model="form.monthlySubscription" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
+            <span class="label-text font-medium">{{ $t('pages.baskets.subscribeMonthly') }}</span>
+          </label>
+          <p class="mt-2 opacity-70">
+            Vous recevrez une reservation recurrente chaque semaine pour ce mode de retrait ou livraison. Vous pourrez ensuite arreter l'abonnement ou annuler seulement une semaine depuis l'email de confirmation.
+          </p>
+          <p v-if="form.deliveryType === 'TOUR' && selectedTour?.monthlyPrice" class="mt-2 text-success">
+            Tarif abonnement indicatif : {{ $formatPrice(selectedTour.monthlyPrice) }}/mois
+          </p>
         </div>
 
         <div class="w-full">
@@ -243,6 +291,22 @@
             <span v-if="submitting" class="loading loading-spinner loading-sm" />
             {{ $t('pages.baskets.send') }}
           </button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
+
+    <dialog ref="vegetablePreviewDialog" class="modal">
+      <div class="modal-box max-w-md">
+        <h3 class="mb-3 text-lg font-bold">{{ vegetablePreview.name }}</h3>
+        <img
+          v-if="vegetablePreview.url"
+          :src="vegetablePreview.url"
+          :alt="vegetablePreview.name"
+          class="max-h-[70vh] w-full rounded-box object-contain"
+        />
+        <div class="modal-action">
+          <button class="btn" @click="closeVegetablePreview">Fermer</button>
         </div>
       </div>
       <form method="dialog" class="modal-backdrop"><button>close</button></form>
@@ -289,6 +353,7 @@ interface DeliveryTour {
 interface OrdersWindow { from: string | null; to: string | null; message: string; isOpen: boolean }
 interface SiteConfig { facebookFluxDeactivated: boolean; ordersWindow: OrdersWindow }
 interface DeliveryOptions {
+  farmPickup: { label: string; location: string }
   pickupPoints: PickupPoint[]
   tours: DeliveryTour[]
   servedCities: string[]
@@ -320,10 +385,16 @@ const authStore = useAuthStore()
 const { $toast, $formatPrice } = useNuxtApp() as any
 
 const dlg = ref<HTMLDialogElement>()
+const vegetablePreviewDialog = ref<HTMLDialogElement>()
 const selected = ref<PublicBasket | null>(null)
 const submitting = ref(false)
 const citySearch = ref('')
 const showCityDropdown = ref(false)
+const hoveredVegetableKey = ref<string | null>(null)
+const vegetablePreview = reactive({
+  url: '',
+  name: ''
+})
 
 const filteredCities = computed(() => {
   if (!deliveryCities.value) return []
@@ -342,7 +413,7 @@ const form = reactive({
   deliveryAddress: '',
   deliveryCity: '',
   deliveryPostalCode: '',
-  deliveryType: '' as '' | 'PICKUP' | 'TOUR',
+  deliveryType: '' as '' | 'FARM' | 'PICKUP' | 'TOUR',
   pickupPointId: null as number | null,
   deliveryTourId: null as number | null,
   monthlySubscription: false
@@ -416,6 +487,19 @@ const openReservation = (b: PublicBasket) => {
 
 const close = () => dlg.value?.close()
 
+const setHoveredVegetable = (key: string | null) => {
+  hoveredVegetableKey.value = key
+}
+
+const openVegetablePreview = (url: string | null | undefined, name: string) => {
+  if (!url) return
+  vegetablePreview.url = url
+  vegetablePreview.name = name
+  vegetablePreviewDialog.value?.showModal()
+}
+
+const closeVegetablePreview = () => vegetablePreviewDialog.value?.close()
+
 const formatTourLabel = (tr: DeliveryTour) => {
   return `${tr.name} — ${tr.startTime}–${tr.endTime}`
 }
@@ -471,7 +555,7 @@ const submit = async () => {
         deliveryAddress: form.deliveryAddress,
         deliveryCity: form.deliveryCity,
         deliveryPostalCode: form.deliveryPostalCode,
-        monthlySubscription: form.deliveryType === 'TOUR' ? form.monthlySubscription : false
+        monthlySubscription: form.monthlySubscription
       }
     })
     $toast.success(t('pages.baskets.reservationSent'))
@@ -489,3 +573,9 @@ const submit = async () => {
   }
 }
 </script>
+
+<style scoped>
+.basket-composition-item > span:last-of-type {
+  display: none;
+}
+</style>

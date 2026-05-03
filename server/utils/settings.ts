@@ -4,10 +4,13 @@ export const SETTING_KEYS = {
   ADMIN_EMAIL: 'admin_email',
   RESERVATION_TEMPLATE_CONFIRMED: 'reservation_template_confirmed',
   RESERVATION_TEMPLATE_REJECTED: 'reservation_template_rejected',
+  RESERVATION_TEMPLATE_CANCELLED: 'reservation_template_cancelled',
   GMAIL_REFRESH_TOKEN: 'gmail_refresh_token',
   GMAIL_ACCESS_TOKEN: 'gmail_access_token',
   GMAIL_TOKEN_EXPIRY: 'gmail_token_expiry',
   GMAIL_CONNECTED_EMAIL: 'gmail_connected_email',
+  GOOGLE_CALENDAR_ID: 'google_calendar_id',
+  GOOGLE_CALENDAR_NAME: 'google_calendar_name',
   FACEBOOK_FLUX_DEACTIVATED: 'facebook_flux_deactivated',
   ORDERS_OPEN_FROM: 'orders_open_from',
   ORDERS_OPEN_TO: 'orders_open_to',
@@ -32,36 +35,50 @@ export async function getOrdersWindow(): Promise<OrdersWindow> {
   const message = s[SETTING_KEYS.ORDERS_CLOSED_MESSAGE] || ''
   const now = new Date()
   const fromOk = !from || new Date(from) <= now
-  const toOk = !to || new Date(to + 'T23:59:59') >= now
+  const toOk = !to || new Date(`${to}T23:59:59`) >= now
   return { from, to, message, isOpen: fromOk && toOk }
 }
 
 export const DEFAULT_TEMPLATES = {
   confirmed: {
-    subject: 'Votre réservation de panier est confirmée — Ferme du Campeyrigoux',
+    subject: 'Votre reservation de panier est confirmee - Ferme du Campeyrigoux',
     body: `Bonjour {{customerName}},
 
-Votre réservation pour le panier "{{basketName}}" est confirmée !
+Votre reservation pour le panier "{{basketName}}" est confirmee !
 
-Détails de retrait :
-- Date : (à compléter par l'admin)
-- Lieu : (à compléter par l'admin)
+Details de retrait :
+- Mode : {{deliveryMethod}}
+- Date : {{fulfillmentDate}}
+- Heure : {{fulfillmentTime}}
+- Lieu : {{fulfillmentLocation}}
 - Montant : {{basketPrice}}
 
-Si vous avez la moindre question, vous pouvez répondre à cet email.
+Si vous avez la moindre question, vous pouvez repondre a cet email.
 
-À bientôt,
+A bientot,
 La Ferme du Campeyrigoux`
   },
   rejected: {
-    subject: 'Concernant votre réservation de panier — Ferme du Campeyrigoux',
+    subject: 'Concernant votre reservation de panier - Ferme du Campeyrigoux',
     body: `Bonjour {{customerName}},
 
-Nous sommes désolés, votre réservation pour le panier "{{basketName}}" n'a pas pu être confirmée.
+Nous sommes desoles, votre reservation pour le panier "{{basketName}}" n'a pas pu etre confirmee.
 
 Raison : {{adminNote}}
 
-N'hésitez pas à nous recontacter pour une prochaine réservation.
+N'hesitez pas a nous recontacter pour une prochaine reservation.
+
+La Ferme du Campeyrigoux`
+  },
+  cancelled: {
+    subject: 'Votre reservation a ete annulee - Ferme du Campeyrigoux',
+    body: `Bonjour {{customerName}},
+
+Votre reservation pour le panier "{{basketName}}" a ete annulee.
+
+Raison : {{adminNote}}
+
+Si besoin, vous pouvez nous contacter directement pour en discuter.
 
 La Ferme du Campeyrigoux`
   }
@@ -80,7 +97,21 @@ export async function setSetting(key: string, value: string): Promise<void> {
   })
 }
 
+export async function deleteSetting(key: string): Promise<void> {
+  await prisma.siteParams.deleteMany({
+    where: { key }
+  })
+}
+
+export async function deleteSettings(keys: string[]): Promise<void> {
+  if (!keys.length) return
+
+  await prisma.siteParams.deleteMany({
+    where: { key: { in: keys } }
+  })
+}
+
 export async function getSettings(keys: string[]): Promise<Record<string, string>> {
   const rows = await prisma.siteParams.findMany({ where: { key: { in: keys } } })
-  return Object.fromEntries(rows.map(r => [r.key, r.value]))
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]))
 }

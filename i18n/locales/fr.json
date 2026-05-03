@@ -1,4 +1,4 @@
-{
+﻿{
   "menu": {
     "home": "Accueil",
     "news": "Actualités",
@@ -12,7 +12,7 @@
     "time": "de 9h30 à 12h",
     "contact": "Contact",
     "followUs": "Suivez-nous",
-    "organic": "Agriculture biologique depuis 2023"
+    "organic": "Agriculture biologique depuis 2024"
   },
   "pages": {
     "home": {
@@ -34,7 +34,45 @@
       "schedule": "Tous les samedis de 9h30 à 12h",
       "location": "Sur la terrasse du SAINT SEB",
       "solidarityPricing": "Un système de tarification solidaire permet à tous d'avoir accès à une alimentation de qualité, bio et locale.",
-      "findUs": "Nous trouver"
+      "findUs": "Nous trouver",
+      "heroTag": "Production locale, bio et de saison dans les Cevennes",
+      "highlight1Title": "Production bio",
+      "highlight1Text": "Maraîchage et productions fermières conduits dans une logique agricole biologique.",
+      "highlight2Title": "Circuit court",
+      "highlight2Text": "Paniers de légumes, vente directe et relation simple avec la ferme.",
+      "highlight3Title": "Ancrage local",
+      "highlight3Text": "Ferme installée à Saint-Sebastien-d'Aigrefeuille, au cœur des Cévennes.",
+      "activitiesIntro": "Une ferme à taille humaine qui combine production maraîchère, paniers, vente directe et autres ateliers agricoles de manière progressive et cohérente.",
+      "diversificationTitle": "Diversification de la ferme",
+      "diversificationDesc": "La ferme développe aussi d'autres ateliers et cultures pour construire un modèle agricole résilient.",
+      "directSaleBadge": "Le rendez-vous de la semaine",
+      "directSaleIntro": "Un temps de vente simple et régulier pour retrouver les produits de la ferme, poser vos questions et réserver vos paniers.",
+      "scheduleDetail": "Retrouvez-nous chaque semaine pour la vente directe.",
+      "locationTitle": "Lieu de retrait",
+      "qualityTitle": "Qualité et proximité",
+      "qualityText": "Des produits fermiers, de saison et un contact direct avec la ferme.",
+      "scheduleBlockTitle": "Horaires",
+      "pricingBlockTitle": "Tarification solidaire",
+      "howItWorksTitle": "Comment ça marche ?",
+      "step1Title": "Je choisis",
+      "step1Text": "Je consulte les paniers ou je viens directement sur le temps de vente.",
+      "step2Title": "Je reserve",
+      "step2Text": "J'envoie ma demande et je reçois la confirmation par email.",
+      "step3Title": "Je récupère",
+      "step3Text": "Je retire ma commande au lieu et au créneau indiqués par la ferme.",
+      "whereToFindUsTitle": "Où nous trouver",
+      "whereToFindUsText": "La vente directe a lieu à Saint-Sebastien-d'Aigrefeuille, dans un cadre simple et accessible pour les habitants du secteur.",
+      "trustBadge": "Repères utiles",
+      "trustTitle": "Une ferme jeune, concrète et en construction",
+      "trustIntro": "Le projet s'appuie sur une installation agricole locale, une démarche biologique et une volonté de rendre des produits fermiers accessibles dans la durée.",
+      "trustCard1Title": "Agriculture biologique",
+      "trustCard1Text": "La ferme est engagée dans une production centrée sur le vivant et la saisonnalité.",
+      "trustCard2Title": "Projet de territoire",
+      "trustCard2Text": "Le développement de la ferme s'inscrit dans un ancrage local fort autour des Cévennes et de la vente en proximité.",
+      "ctaTitle": "Commander un panier ou prendre contact",
+      "ctaText": "Si vous souhaitez suivre les disponibilités, réserver un panier ou simplement en savoir plus sur la ferme, les prochaines étapes sont ici.",
+      "ctaPrimary": "Réserver un panier",
+      "ctaSecondary": "Nous écrire"
     },
     "cbd": {
       "title": "Découvrez notre CBD Bio",

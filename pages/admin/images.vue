@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="flex items-center justify-between mb-6">
+    <div class="mb-6 flex items-center justify-between">
       <h1 class="text-3xl font-bold">{{ $t('admin.imagesPage.title') }}</h1>
       <label class="btn btn-primary">
         <Icon name="mdi:upload" size="18" />
@@ -10,34 +10,114 @@
       </label>
     </div>
 
-    <div v-if="pending" class="text-center py-12">
+    <div v-if="pending" class="py-12 text-center">
       <span class="loading loading-spinner loading-lg" />
     </div>
-    <div v-else-if="!images?.length" class="text-center py-12 opacity-60">
+    <div v-else-if="!images?.length" class="py-12 text-center opacity-60">
       {{ $t('admin.imagesPage.empty') }}
     </div>
-    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-      <div v-for="img in images" :key="img.id" class="relative group rounded-box overflow-hidden border border-base-300">
-        <img :src="img.url" :alt="img.filename" class="w-full aspect-square object-cover" loading="lazy" />
-        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <button class="btn btn-sm btn-error" @click="remove(img)">
-            <Icon name="mdi:delete" size="16" />
+    <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+      <button
+        v-for="img in images"
+        :key="img.id"
+        type="button"
+        class="group overflow-hidden rounded-box border border-base-300 bg-base-100 text-left transition hover:border-primary"
+        @click="openEditor(img)"
+      >
+        <img :src="img.url" :alt="img.filename" class="aspect-square w-full object-cover" loading="lazy" />
+        <div class="space-y-1 p-2 text-[10px]">
+          <div class="truncate font-medium">{{ img.filename }}</div>
+          <div class="opacity-60">
+            {{ totalReferences(img.references) }} association(s)
+          </div>
+        </div>
+      </button>
+    </div>
+
+    <dialog ref="editorDialog" class="modal">
+      <div class="modal-box max-w-xl">
+        <h2 class="mb-4 text-xl font-bold">Modifier l'image</h2>
+
+        <div v-if="editing" class="space-y-4">
+          <div class="overflow-hidden rounded-box border border-base-300">
+            <img :src="editing.url" :alt="editing.filename" class="max-h-80 w-full object-contain bg-base-200" />
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="form-control">
+              <label class="label"><span class="label-text">Nom du fichier</span></label>
+              <input v-model="editForm.filename" class="input input-bordered" />
+              <p class="mt-1 text-xs opacity-60">L'extension sera conservée ou adaptée si tu remplaces le fichier.</p>
+            </div>
+
+            <div class="form-control">
+              <label class="label"><span class="label-text">Remplacer l'image</span></label>
+              <input type="file" accept="image/*" class="file-input file-input-bordered" @change="onReplacementSelected" />
+              <p v-if="replacementFile" class="mt-1 text-xs opacity-60">{{ replacementFile.name }}</p>
+            </div>
+          </div>
+
+          <div class="rounded-box bg-base-200 p-3 text-sm">
+            <div class="font-medium">Associations</div>
+            <div class="mt-2 grid gap-1 sm:grid-cols-2">
+              <div>Legumes : {{ editing.references.vegetables }}</div>
+              <div>Paniers : {{ editing.references.baskets }}</div>
+              <div>Articles couverture : {{ editing.references.articles }}</div>
+              <div>Articles contenu : {{ editing.references.articleContent }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-action">
+          <button class="btn btn-error btn-outline mr-auto" :disabled="saving || deleting" @click="removeCurrent">
+            <span v-if="deleting" class="loading loading-spinner loading-sm" />
+            Supprimer
+          </button>
+          <button class="btn" @click="closeEditor">Fermer</button>
+          <button class="btn btn-primary" :disabled="saving || deleting" @click="saveCurrent">
+            <span v-if="saving" class="loading loading-spinner loading-sm" />
+            Enregistrer
           </button>
         </div>
-        <div class="p-1 text-[10px] truncate bg-base-200">{{ img.filename }}</div>
       </div>
-    </div>
+      <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-interface ImageRow { id: number; url: string; filename: string; mimeType: string; size: number }
+interface ImageReferences {
+  vegetables: number
+  baskets: number
+  articles: number
+  articleContent: number
+}
+
+interface ImageRow {
+  id: number
+  url: string
+  filename: string
+  mimeType: string
+  size: number
+  references: ImageReferences
+}
 
 const { t } = useI18n()
 const { data: images, pending, refresh } = await useFetch<ImageRow[]>('/api/admin/images')
+const { $toast } = useNuxtApp() as any
+
 const uploading = ref(false)
+const saving = ref(false)
+const deleting = ref(false)
+const editorDialog = ref<HTMLDialogElement>()
+const editing = ref<ImageRow | null>(null)
+const replacementFile = ref<File | null>(null)
+const editForm = reactive({ filename: '' })
+
+const totalReferences = (references: ImageReferences) =>
+  references.vegetables + references.baskets + references.articles + references.articleContent
 
 const onFileChange = async (e: Event) => {
   const input = e.target as HTMLInputElement
@@ -52,24 +132,66 @@ const onFileChange = async (e: Event) => {
     }
     input.value = ''
     await refresh()
-    const { $toast } = useNuxtApp() as any
     $toast?.success(t('admin.imagesPage.imported', { count: files.length }))
   } catch (err: any) {
-    const { $toast } = useNuxtApp() as any
     $toast?.error(err.statusMessage || t('common.error'))
   } finally {
     uploading.value = false
   }
 }
 
-const remove = async (img: ImageRow) => {
-  if (!confirm(t('admin.imagesPage.deleteConfirm', { filename: img.filename }))) return
+const openEditor = (img: ImageRow) => {
+  editing.value = img
+  editForm.filename = img.filename.replace(/\.[^.]+$/, '')
+  replacementFile.value = null
+  editorDialog.value?.showModal()
+}
+
+const closeEditor = () => {
+  editorDialog.value?.close()
+}
+
+const onReplacementSelected = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  replacementFile.value = input.files?.[0] ?? null
+}
+
+const saveCurrent = async () => {
+  if (!editing.value) return
+  saving.value = true
   try {
-    await $fetch(`/api/admin/images/${img.id}`, { method: 'DELETE' })
+    const fd = new FormData()
+    fd.append('filename', editForm.filename.trim())
+    if (replacementFile.value) {
+      fd.append('file', replacementFile.value)
+    }
+    await $fetch(`/api/admin/images/${editing.value.id}`, {
+      method: 'PUT',
+      body: fd
+    })
     await refresh()
+    closeEditor()
+    $toast?.success('Image mise à jour')
   } catch (err: any) {
-    const { $toast } = useNuxtApp() as any
     $toast?.error(err.statusMessage || t('common.error'))
+  } finally {
+    saving.value = false
+  }
+}
+
+const removeCurrent = async () => {
+  if (!editing.value) return
+  if (!confirm(t('admin.imagesPage.deleteConfirm', { filename: editing.value.filename }))) return
+  deleting.value = true
+  try {
+    await $fetch(`/api/admin/images/${editing.value.id}`, { method: 'DELETE' })
+    await refresh()
+    closeEditor()
+    $toast?.success('Image supprimée')
+  } catch (err: any) {
+    $toast?.error(err.statusMessage || t('common.error'))
+  } finally {
+    deleting.value = false
   }
 }
 </script>

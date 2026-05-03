@@ -30,7 +30,7 @@
           </p>
           <p class="flex items-center gap-2 justify-center">
             <Icon name="mdi:email" size="18" />
-            adele.godefroid@gmail.com
+            ferme.campeyrigoux@gmail.com
           </p>
         </div>
       </div>
@@ -40,7 +40,7 @@
         <h4 class="footer-title">{{ $t("footer.followUs") }}</h4>
         <div class="flex gap-4">
           <a
-            href="https://facebook.com/Ferme-du-Campeyrigoux"
+            href="https://www.facebook.com/profile.php?id=61571709076079"
             target="_blank"
             class="btn btn-circle btn-outline"
             aria-label="Facebook"

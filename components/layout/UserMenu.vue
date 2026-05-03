@@ -43,19 +43,19 @@
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/admin/articles">
+              <NuxtLink to="/admin/articles" class="text-primary">
                 <Icon name="mdi:newspaper-variant-outline" size="18" />
                 {{ $t('admin.articles') }}
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/admin/livraison">
+              <NuxtLink to="/admin/livraison" class="text-primary">
                 <Icon name="mdi:truck-outline" size="18" />
                 {{ $t('admin.delivery') }}
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/admin/images">
+              <NuxtLink to="/admin/images" class="text-primary">
                 <Icon name="mdi:image-multiple-outline" size="18" />
                 {{ $t('admin.images') }}
               </NuxtLink>
@@ -66,7 +66,7 @@
                 {{ $t('admin.settings') }}
               </NuxtLink>
             </li>
-            <li>
+            <li v-if="!facebookFluxDeactivated">
               <NuxtLink to="/facebook-sync" class="text-primary">
                 <Icon name="mdi:facebook" size="16" class="mr-1" />
                 {{ $t('admin.facebookSync') }}
@@ -108,6 +108,9 @@ import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
 const showAuthModal = ref(false)
+
+const { data: siteConfig } = await useFetch<{ facebookFluxDeactivated: boolean }>('/api/site-config')
+const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated ?? false)
 
 const handleLogout = async () => {
   await authStore.logout()

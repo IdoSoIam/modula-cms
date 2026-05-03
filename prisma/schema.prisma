@@ -87,7 +87,13 @@ enum ReservationStatus {
   CANCELLED
 }
 
+enum ReservationOccurrenceStatus {
+  SCHEDULED
+  CANCELLED
+}
+
 enum DeliveryType {
+  FARM
   PICKUP
   TOUR
 }
@@ -109,7 +115,18 @@ model Reservation {
   deliveryAddress     String?           @db.Text
   deliveryCity        String?
   deliveryPostalCode  String?
+  fulfillmentDate     DateTime?
+  fulfillmentTime     String?
+  fulfillmentLocation String?           @db.Text
   monthlySubscription Boolean           @default(false)
+  googleCalendarEventId String?
+  googleCalendarSyncedAt DateTime?
+  publicActionToken   String?           @unique
+  cancelledByCustomerAt DateTime?
+  subscriptionActive  Boolean           @default(true)
+  subscriptionCancelledAt DateTime?
+  occurrences         ReservationOccurrence[]
+  notifications       ReservationNotification[]
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   basket              Basket            @relation(fields: [basketId], references: [id], onDelete: Restrict)
@@ -122,6 +139,43 @@ model Reservation {
   @@index([status])
   @@index([pickupPointId])
   @@index([deliveryTourId])
+}
+
+model ReservationOccurrence {
+  id                 Int                         @id @default(autoincrement())
+  reservationId      Int
+  occurrenceDate     DateTime
+  occurrenceTime     String?
+  occurrenceLocation String?                     @db.Text
+  status             ReservationOccurrenceStatus @default(SCHEDULED)
+  customSchedule     Boolean                     @default(false)
+  cancelledAt        DateTime?
+  cancellationReason String?                     @db.Text
+  googleCalendarEventId String?
+  lastNotifiedAt     DateTime?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  reservation        Reservation                 @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  notifications      ReservationNotification[]
+
+  @@index([reservationId, occurrenceDate])
+}
+
+model ReservationNotification {
+  id             Int                    @id @default(autoincrement())
+  reservationId  Int
+  occurrenceId   Int?
+  kind           String
+  channel        String                 @default("EMAIL")
+  recipientEmail String
+  subject        String
+  summary        String?                @db.Text
+  createdAt      DateTime               @default(now())
+  reservation    Reservation            @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  occurrence     ReservationOccurrence? @relation(fields: [occurrenceId], references: [id], onDelete: SetNull)
+
+  @@index([reservationId, createdAt])
+  @@index([occurrenceId])
 }
 
 model PickupPoint {
