@@ -50,6 +50,7 @@ Details de retrait :
 - Mode : {{deliveryMethod}}
 - Date : {{fulfillmentDate}}
 - Heure : {{fulfillmentTime}}
+- Fenetre de passage : {{deliveryWindow}}
 - Lieu : {{fulfillmentLocation}}
 - Montant : {{basketPrice}}
 

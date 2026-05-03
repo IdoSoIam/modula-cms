@@ -3,6 +3,7 @@ import { prisma } from '../../../../../prisma/client'
 import { buildReservationOccurrenceEmail } from '~/server/utils/reservationEmails'
 import { sendGmail } from '~/server/utils/gmail'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
+import { syncReservationOccurrenceToGoogleCalendar } from '~/server/utils/googleCalendarSync'
 
 interface Body {
   occurrenceDate: string
@@ -45,6 +46,12 @@ export default defineEventHandler(async (event) => {
       cancellationReason: null
     }
   })
+
+  try {
+    await syncReservationOccurrenceToGoogleCalendar(occurrence.reservation, updatedOccurrence)
+  } catch (error) {
+    console.error('Erreur sync Google Calendar occurrence:', error)
+  }
 
   const emailPayload = await buildReservationOccurrenceEmail({
     reservation: occurrence.reservation,

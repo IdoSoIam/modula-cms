@@ -34,12 +34,13 @@
               :reservation="r"
               :badge-class="badgeClass"
               :status-label="statusLabel"
-              :format-date-input="formatDateLabel"
+              :format-date-input="formatDateOnlyLabel"
               :format-price="$formatPrice"
               :format-date="$formatDate"
               @confirm="openAction(r, 'confirmed')"
               @reject="openAction(r, 'rejected')"
               @cancel="openAction(r, 'cancelled')"
+              @archive="archiveReservation(r)"
               @select="openDetails(r)"
             />
           </div>
@@ -180,8 +181,9 @@
               "{{ detailsReservation.message }}"
             </div>
             <div class="rounded-xl bg-base-200 p-3">
-              <div><strong>Date :</strong> {{ reservationDateLabel(detailsReservation) }}</div>
+              <div><strong>Date :</strong> {{ formatDateOnlyLabel(detailsReservation.fulfillmentDate) }}</div>
               <div v-if="detailsReservation.fulfillmentTime"><strong>Heure :</strong> {{ detailsReservation.fulfillmentTime }}</div>
+              <div v-if="deliveryWindowLabel(detailsReservation)"><strong>Fenetre de tournee :</strong> {{ deliveryWindowLabel(detailsReservation) }}</div>
               <div v-if="detailsReservation.fulfillmentLocation"><strong>Lieu :</strong> {{ detailsReservation.fulfillmentLocation }}</div>
             </div>
 
@@ -194,14 +196,17 @@
                   class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-base-100 p-3"
                 >
                   <div>
-                    <div><strong>{{ formatDateLabel(occurrence.occurrenceDate) }}</strong></div>
+                    <div><strong>{{ formatDateOnlyLabel(occurrence.occurrenceDate) }}</strong></div>
                     <div class="mt-1">
                       <span class="badge badge-xs" :class="occurrenceStatusBadgeClass(occurrence.status)">
                         {{ occurrenceStatusLabel(occurrence.status) }}
                       </span>
                     </div>
-                    <div class="opacity-75">
+                    <div class="mt-1 opacity-75">
                       {{ occurrence.occurrenceTime || detailsReservation.fulfillmentTime || 'Heure a confirmer' }}
+                    </div>
+                    <div v-if="!occurrence.occurrenceTime && !detailsReservation.fulfillmentTime && deliveryWindowLabel(detailsReservation)" class="opacity-75">
+                      Fenetre de tournee : {{ deliveryWindowLabel(detailsReservation) }}
                     </div>
                     <div class="opacity-75">
                       {{ occurrence.occurrenceLocation || detailsReservation.fulfillmentLocation || 'Lieu a confirmer' }}
@@ -302,6 +307,13 @@
                 <span v-if="syncingCalendar" class="loading loading-spinner loading-xs" />
                 Synchroniser Google Calendar
               </button>
+              <button
+                v-if="detailsReservation.status === 'REJECTED' || detailsReservation.status === 'CANCELLED'"
+                class="btn btn-sm btn-neutral btn-outline"
+                @click="archiveReservation(detailsReservation)"
+              >
+                Archiver
+              </button>
             </div>
 
             <button class="btn btn-sm" @click="closeDetails">Fermer</button>
@@ -325,7 +337,13 @@
           </div>
           <div class="form-control md:col-span-2">
             <label class="label"><span class="label-text">Heure precise</span></label>
-            <input v-model="fulfillmentForm.time" class="input input-bordered" placeholder="Ex: 10h15" />
+            <input v-model="fulfillmentForm.time" type="time" step="300" class="input input-bordered" />
+          </div>
+          <div v-if="current?.deliveryType === 'TOUR' && current?.deliveryTour" class="form-control md:col-span-3">
+            <label class="label"><span class="label-text">Fenetre de tournee</span></label>
+            <div class="input input-bordered flex items-center bg-base-200/60">
+              {{ current.deliveryTour.startTime }}-{{ current.deliveryTour.endTime }}
+            </div>
           </div>
           <div class="form-control md:col-span-3">
             <label class="label"><span class="label-text">Lieu</span></label>
@@ -375,18 +393,25 @@
       <div class="modal-box max-w-2xl">
         <h3 class="mb-4 text-lg font-bold">Modifier cette occurrence</h3>
 
-        <div class="grid gap-3 md:grid-cols-3">
-          <div class="form-control">
+        <div v-if="currentOccurrence" class="mb-4 rounded-xl bg-base-200 p-3 text-sm">
+          <div class="font-medium">Occurrence actuelle</div>
+          <div class="mt-1"><strong>Date :</strong> {{ formatDateOnlyLabel(currentOccurrence.occurrenceDate) }}</div>
+          <div><strong>Heure :</strong> {{ currentOccurrence.occurrenceTime || detailsReservation?.fulfillmentTime || 'Heure a confirmer' }}</div>
+          <div><strong>Lieu :</strong> {{ currentOccurrence.occurrenceLocation || detailsReservation?.fulfillmentLocation || 'Lieu a confirmer' }}</div>
+        </div>
+
+        <div class="grid gap-3 md:grid-cols-4">
+          <div class="form-control md:col-span-2">
             <label class="label"><span class="label-text">Date</span></label>
             <input v-model="occurrenceForm.date" type="date" class="input input-bordered" />
           </div>
-          <div class="form-control">
+          <div class="form-control md:col-span-2">
             <label class="label"><span class="label-text">Heure</span></label>
-            <input v-model="occurrenceForm.time" class="input input-bordered" />
+            <input v-model="occurrenceForm.time" type="time" step="300" class="input input-bordered" />
           </div>
-          <div class="form-control">
+          <div class="form-control md:col-span-4">
             <label class="label"><span class="label-text">Lieu</span></label>
-            <input v-model="occurrenceForm.location" class="input input-bordered" />
+            <input v-model="occurrenceForm.location" class="input input-bordered w-full" />
           </div>
         </div>
 
@@ -516,7 +541,7 @@ const occurrenceForm = reactive({ date: '', time: '', location: '' })
 const reservationPage = ref(1)
 const reservationsPerPage = 10
 const detailsOccurrencePage = ref(1)
-const detailsOccurrencesPerPage = 5
+const detailsOccurrencesPerPage = 10
 const detailsNotificationPage = ref(1)
 const detailsNotificationsPerPage = 5
 const calendarDayPages = reactive<Record<string, number>>({})
@@ -631,7 +656,22 @@ const calendarEventClass = (s: string) => ({
 
 const formatDateInput = (value: string | null) => value ? value.slice(0, 10) : ''
 
+const normalizeTimeInput = (value: string | null) => {
+  if (!value) return ''
+  const normalized = value.trim().replace('h', ':')
+  return /^\d{2}:\d{2}$/.test(normalized) ? normalized : value
+}
+
 const formatDateLabel = (value: string | null) => value ? $formatDate(value) : ''
+
+const formatDateOnlyLabel = (value: string | null) => {
+  if (!value) return ''
+  return new Date(value).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+}
 
 const detailsOccurrenceTotalPages = computed(() =>
   (detailsReservation.value as ReservationDetails | null)?.occurrencePagination.totalPages ?? 1
@@ -668,7 +708,19 @@ const reservationCalendarDate = (reservation: Reservation) => {
 
 const reservationDateLabel = (reservation: Reservation) => {
   const source = reservation.fulfillmentDate ?? reservation.createdAt
-  return $formatDate(source)
+  return formatDateOnlyLabel(source)
+}
+
+const deliveryWindowLabel = (reservation: Pick<Reservation, 'deliveryType' | 'deliveryTour' | 'pickupPoint'>) => {
+  if (reservation.deliveryType === 'TOUR' && reservation.deliveryTour) {
+    return `${reservation.deliveryTour.startTime}-${reservation.deliveryTour.endTime}`
+  }
+
+  if (reservation.deliveryType === 'PICKUP' && reservation.pickupPoint) {
+    return ''
+  }
+
+  return ''
 }
 
 const monthLabel = computed(() =>
@@ -688,6 +740,35 @@ const monthInput = computed({
     calendarMonth.value = new Date(year, month - 1, 1)
   }
 })
+
+const buildOccurrenceEmailBody = (
+  reservation: Reservation,
+  occurrence: Reservation['occurrences'][number],
+  date: string,
+  time: string,
+  location: string
+) => {
+  const previousDate = formatDateOnlyLabel(occurrence.occurrenceDate)
+  const previousTime = occurrence.occurrenceTime || reservation.fulfillmentTime || 'heure a confirmer'
+  const previousLocation = occurrence.occurrenceLocation || reservation.fulfillmentLocation || 'lieu a confirmer'
+  const nextDate = formatDateOnlyLabel(date || null)
+  const nextTime = time || reservation.fulfillmentTime || 'heure a confirmer'
+  const nextLocation = location || reservation.fulfillmentLocation || 'lieu a confirmer'
+
+  return `Bonjour ${reservation.customerName},
+
+Votre reservation du panier "${reservation.basket.name}" prevue le ${previousDate} a ${previousTime} a ete modifiee.
+
+Nouveaux details :
+- Date : ${nextDate}
+- Heure : ${nextTime}
+- Lieu : ${nextLocation}
+
+Anciens details :
+- Date : ${previousDate}
+- Heure : ${previousTime}
+- Lieu : ${previousLocation}`
+}
 
 const actionTitle = computed(() => ({
   confirmed: current.value?.status === 'CONFIRMED' ? 'Mettre a jour la reservation' : 'Confirmer la reservation',
@@ -729,7 +810,7 @@ const openAction = async (reservation: Reservation, action: DecisionAction) => {
   decisionAction.value = action
   adminNote.value = reservation.adminNote ?? ''
   fulfillmentForm.date = formatDateInput(reservation.fulfillmentDate)
-  fulfillmentForm.time = reservation.fulfillmentTime ?? ''
+  fulfillmentForm.time = normalizeTimeInput(reservation.fulfillmentTime)
   fulfillmentForm.location = reservation.fulfillmentLocation ?? ''
   await loadPreview()
   actionDlg.value?.showModal()
@@ -757,16 +838,16 @@ const openDetails = async (reservation: Reservation) => {
 const openOccurrenceEditor = (reservation: Reservation, occurrence: Reservation['occurrences'][number]) => {
   currentOccurrence.value = occurrence
   occurrenceForm.date = formatDateInput(occurrence.occurrenceDate)
-  occurrenceForm.time = occurrence.occurrenceTime ?? ''
+  occurrenceForm.time = normalizeTimeInput(occurrence.occurrenceTime)
   occurrenceForm.location = occurrence.occurrenceLocation ?? ''
   occurrenceEmailDraft.subject = `Mise a jour de votre reservation - ${reservation.basket.name}`
-  occurrenceEmailDraft.body = `Bonjour ${reservation.customerName},
-
-Les details de votre reservation ont ete mis a jour pour cette semaine.
-
-- Date : ${formatDateLabel(occurrence.occurrenceDate)}
-- Heure : ${occurrence.occurrenceTime ?? ''}
-- Lieu : ${occurrence.occurrenceLocation ?? reservation.fulfillmentLocation ?? ''}`
+  occurrenceEmailDraft.body = buildOccurrenceEmailBody(
+    reservation,
+    occurrence,
+    occurrenceForm.date,
+    occurrenceForm.time,
+    occurrenceForm.location
+  )
   occurrenceDlg.value?.showModal()
 }
 
@@ -821,6 +902,20 @@ watch(adminNote, () => {
     loadPreview()
   }
 })
+
+watch(
+  () => [occurrenceForm.date, occurrenceForm.time, occurrenceForm.location] as const,
+  () => {
+    if (!detailsReservation.value || !currentOccurrence.value) return
+    occurrenceEmailDraft.body = buildOccurrenceEmailBody(
+      detailsReservation.value,
+      currentOccurrence.value,
+      occurrenceForm.date,
+      occurrenceForm.time,
+      occurrenceForm.location
+    )
+  }
+)
 
 watch([detailsOccurrencePage, detailsNotificationPage], () => {
   if (detailsReservation.value) {
@@ -890,6 +985,24 @@ Cette occurrence de votre reservation a ete annulee pour cette semaine uniquemen
   }
 }
 
+const archiveReservation = async (reservation: Reservation) => {
+  const confirmed = confirm('Archiver cette reservation pour la retirer de la liste ?')
+  if (!confirmed) return
+
+  try {
+    await $fetch(`/api/admin/reservations/${reservation.id}/archive`, { method: 'POST' })
+    $toast.success('Reservation archivee')
+
+    if (detailsReservation.value?.id === reservation.id) {
+      closeDetails()
+    }
+
+    await refresh()
+  } catch (e: any) {
+    $toast.error(e.statusMessage || 'Impossible d archiver cette reservation')
+  }
+}
+
 const submit = async () => {
   if (!current.value) return
   sending.value = true
@@ -947,7 +1060,7 @@ const ReservationSummary = defineComponent({
     formatPrice: { type: Function as PropType<(value: number) => string>, required: true },
     formatDate: { type: Function as PropType<(value: string | null) => string>, required: true }
   },
-  emits: ['confirm', 'reject', 'cancel', 'select'],
+  emits: ['confirm', 'reject', 'cancel', 'archive', 'select'],
   setup(props, { emit }) {
     return () => h('div', { class: 'flex flex-wrap items-start justify-between gap-2' }, [
       h('div', { class: 'cursor-pointer', onClick: () => emit('select') }, [
@@ -989,6 +1102,9 @@ const ReservationSummary = defineComponent({
             ? h('div', { class: 'mt-2 rounded-box bg-base-100 p-2' }, [
                 props.reservation.fulfillmentDate ? h('div', [h('strong', 'Date : '), props.formatDateInput(props.reservation.fulfillmentDate)]) : null,
                 props.reservation.fulfillmentTime ? h('div', [h('strong', 'Heure : '), props.reservation.fulfillmentTime]) : null,
+                props.reservation.deliveryType === 'TOUR' && props.reservation.deliveryTour
+                  ? h('div', [h('strong', 'Fenetre de tournee : '), `${props.reservation.deliveryTour.startTime}-${props.reservation.deliveryTour.endTime}`])
+                  : null,
                 props.reservation.fulfillmentLocation ? h('div', [h('strong', 'Lieu : '), props.reservation.fulfillmentLocation]) : null
               ])
             : null
@@ -1006,6 +1122,9 @@ const ReservationSummary = defineComponent({
           : null,
         props.reservation.status === 'CONFIRMED'
           ? h('button', { class: 'btn btn-sm btn-warning btn-outline', onClick: () => emit('cancel') }, 'Annuler')
+          : null,
+        ['REJECTED', 'CANCELLED'].includes(props.reservation.status)
+          ? h('button', { class: 'btn btn-sm btn-neutral btn-outline', onClick: () => emit('archive') }, 'Archiver')
           : null
       ])
     ])

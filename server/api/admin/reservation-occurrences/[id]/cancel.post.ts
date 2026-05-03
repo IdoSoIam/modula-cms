@@ -3,6 +3,7 @@ import { prisma } from '../../../../../prisma/client'
 import { buildReservationOccurrenceEmail } from '~/server/utils/reservationEmails'
 import { sendGmail } from '~/server/utils/gmail'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
+import { cancelReservationOccurrenceInGoogleCalendar } from '~/server/utils/googleCalendarSync'
 
 interface Body {
   email: { subject: string; body: string }
@@ -36,6 +37,12 @@ export default defineEventHandler(async (event) => {
       cancellationReason: 'Occurrence annulee par l admin'
     }
   })
+
+  try {
+    await cancelReservationOccurrenceInGoogleCalendar(occurrence.reservation, updatedOccurrence)
+  } catch (error) {
+    console.error('Erreur annulation Google Calendar occurrence:', error)
+  }
 
   const emailPayload = await buildReservationOccurrenceEmail({
     reservation: occurrence.reservation,

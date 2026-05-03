@@ -1,6 +1,6 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { getSettings, SETTING_KEYS, DEFAULT_TEMPLATES } from '~/server/utils/settings'
-import { formatFulfillmentDate, getDeliveryMethodLabel, getReservationFulfillment } from '~/server/utils/reservationFulfillment'
+import { formatFulfillmentDate, getDeliveryMethodLabel, getDeliveryWindowLabel, getReservationFulfillment } from '~/server/utils/reservationFulfillment'
 import { prisma } from '../../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {
@@ -67,6 +67,7 @@ export default defineEventHandler(async (event) => {
     .replace(/\{\{basketPrice\}\}/g, new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(Number(r.basket.finalPrice)))
     .replace(/\{\{adminNote\}\}/g, typeof query.adminNote === 'string' ? query.adminNote : (r.adminNote ?? ''))
     .replace(/\{\{deliveryMethod\}\}/g, getDeliveryMethodLabel(r.deliveryType))
+    .replace(/\{\{deliveryWindow\}\}/g, getDeliveryWindowLabel({ deliveryType: r.deliveryType, pickupPoint: r.pickupPoint, deliveryTour: r.deliveryTour }))
     .replace(/\{\{fulfillmentDate\}\}/g, formatFulfillmentDate(fulfillment.fulfillmentDate))
     .replace(/\{\{fulfillmentTime\}\}/g, fulfillment.fulfillmentTime ?? '')
     .replace(/\{\{fulfillmentLocation\}\}/g, fulfillment.fulfillmentLocation ?? '')

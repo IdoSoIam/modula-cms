@@ -53,8 +53,16 @@ export default defineEventHandler(async (event) => {
         ? (body.fulfillmentLocation?.trim() || reservation.fulfillmentLocation)
         : reservation.fulfillmentLocation,
       confirmedAt: body.decision === 'CONFIRMED' ? new Date() : reservation.confirmedAt,
-      subscriptionActive: body.decision === 'CANCELLED' && reservation.monthlySubscription ? false : reservation.subscriptionActive,
-      subscriptionCancelledAt: body.decision === 'CANCELLED' && reservation.monthlySubscription ? new Date() : reservation.subscriptionCancelledAt
+      subscriptionActive: body.decision === 'CONFIRMED'
+        ? reservation.monthlySubscription
+        : body.decision === 'CANCELLED' && reservation.monthlySubscription
+          ? false
+          : reservation.subscriptionActive,
+      subscriptionCancelledAt: body.decision === 'CONFIRMED'
+        ? reservation.monthlySubscription ? null : reservation.subscriptionCancelledAt
+        : body.decision === 'CANCELLED' && reservation.monthlySubscription
+          ? new Date()
+          : reservation.subscriptionCancelledAt
     },
     include: {
       basket: true,

@@ -143,6 +143,24 @@ export interface GmailCalendarInvite {
   content: string
 }
 
+interface GoogleCalendarEventDateTime {
+  date?: string
+  dateTime?: string
+  timeZone?: string
+}
+
+export interface GoogleCalendarEventResource {
+  id: string
+  recurringEventId?: string
+  originalStartTime?: GoogleCalendarEventDateTime
+  start?: GoogleCalendarEventDateTime
+  end?: GoogleCalendarEventDateTime
+  summary?: string
+  description?: string
+  location?: string
+  status?: string
+}
+
 function buildMimeMessage(options: {
   from: string
   to: string
@@ -376,7 +394,7 @@ interface GoogleCalendarReservationInput {
   monthlySubscription: boolean
 }
 
-function buildGoogleCalendarEventPayload(input: GoogleCalendarReservationInput) {
+export function buildGoogleCalendarEventPayload(input: GoogleCalendarReservationInput) {
   if (!input.fulfillmentDate) return null
 
   const calendarTime = normalizeEventTime(input.fulfillmentTime) ?? normalizeEventTime(input.deliveryTour?.startTime)
@@ -435,6 +453,35 @@ function buildGoogleCalendarEventPayload(input: GoogleCalendarReservationInput) 
   }
 }
 
+export async function listGoogleCalendarEventInstances(calendarId: string, eventId: string) {
+  const accessToken = await getValidAccessToken()
+  const url = `${CALENDAR_EVENTS_URL}/${encodeCalendarId(calendarId)}/events/${encodeURIComponent(eventId)}/instances`
+  const response = await $fetch<{ items?: GoogleCalendarEventResource[] }>(url, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  })
+  return response.items ?? []
+}
+
+export async function patchGoogleCalendarEvent(
+  calendarId: string,
+  eventId: string,
+  body: Record<string, any>,
+  sendUpdates: 'all' | 'externalOnly' | 'none' = 'none'
+) {
+  const accessToken = await getValidAccessToken()
+  const params = new URLSearchParams({ sendUpdates })
+  const url = `${CALENDAR_EVENTS_URL}/${encodeCalendarId(calendarId)}/events/${encodeURIComponent(eventId)}?${params.toString()}`
+
+  return await $fetch<GoogleCalendarEventResource>(url, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body
+  })
+}
+
 export async function upsertGoogleCalendarEvent(
   calendarId: string,
   input: GoogleCalendarReservationInput,
@@ -466,8 +513,18 @@ export async function deleteGoogleCalendarEvent(calendarId: string, eventId: str
   const accessToken = await getValidAccessToken()
   const url = `${CALENDAR_EVENTS_URL}/${encodeCalendarId(calendarId)}/events/${encodeURIComponent(eventId)}`
 
-  await $fetch(url, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${accessToken}` }
-  })
+  try {
+    await $fetch(url, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+  } catch (error: any) {
+    const statusCode = Number(error?.statusCode ?? error?.status ?? 0)
+    if (statusCode === 404 || statusCode === 410) {
+      return { alreadyDeleted: true as const }
+    }
+    throw error
+  }
+
+  return { alreadyDeleted: false as const }
 }

@@ -50,7 +50,7 @@ function buildDefaultTime(input: FulfillmentInput) {
   }
 
   if (input.deliveryType === 'TOUR' && input.deliveryTour) {
-    return `${input.deliveryTour.startTime}-${input.deliveryTour.endTime}`
+    return null
   }
 
   return null
@@ -95,4 +95,16 @@ export function getDeliveryMethodLabel(deliveryType: Reservation['deliveryType']
   if (deliveryType === 'PICKUP') return 'Retrait en point relais'
   if (deliveryType === 'TOUR') return 'Livraison (tournee)'
   return 'Retrait / livraison'
+}
+
+export function getDeliveryWindowLabel(input: Pick<FulfillmentInput, 'deliveryType' | 'pickupPoint' | 'deliveryTour'>) {
+  if (input.deliveryType === 'PICKUP' && input.pickupPoint?.pickupStartTime) {
+    return input.pickupPoint.pickupStartTime
+  }
+
+  if (input.deliveryType === 'TOUR' && input.deliveryTour) {
+    return `${input.deliveryTour.startTime}-${input.deliveryTour.endTime}`
+  }
+
+  return ''
 }

@@ -117,7 +117,7 @@
             Variables disponibles : <code v-pre>{{customerName}}</code>,
             <code v-pre>{{basketName}}</code>, <code v-pre>{{basketPrice}}</code>,
             <code v-pre>{{adminNote}}</code>, <code v-pre>{{deliveryMethod}}</code>,
-            <code v-pre>{{fulfillmentDate}}</code>, <code v-pre>{{fulfillmentTime}}</code>,
+            <code v-pre>{{deliveryWindow}}</code>, <code v-pre>{{fulfillmentDate}}</code>, <code v-pre>{{fulfillmentTime}}</code>,
             <code v-pre>{{fulfillmentLocation}}</code>
           </p>
 

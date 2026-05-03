@@ -125,6 +125,7 @@ model Reservation {
   cancelledByCustomerAt DateTime?
   subscriptionActive  Boolean           @default(true)
   subscriptionCancelledAt DateTime?
+  archivedAt          DateTime?
   occurrences         ReservationOccurrence[]
   notifications       ReservationNotification[]
   createdAt           DateTime          @default(now())
@@ -137,6 +138,7 @@ model Reservation {
   @@index([basketId])
   @@index([userId])
   @@index([status])
+  @@index([archivedAt])
   @@index([pickupPointId])
   @@index([deliveryTourId])
 }

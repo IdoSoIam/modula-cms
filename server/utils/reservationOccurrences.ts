@@ -1,7 +1,14 @@
 import type { Reservation, ReservationOccurrence } from '@prisma/client'
 import { prisma } from '../../prisma/client'
 
-const DEFAULT_WEEKS_AHEAD = 8
+const DEFAULT_WEEKS_AHEAD = 52
+const REACTIVATABLE_CANCELLATION_REASONS = new Set([
+  'Reservation annulee',
+  'Reservation refusee',
+  'Reservation annulee par le client',
+  'Abonnement arrete par le client',
+  'Occurrence fermee car la reservation n est plus recurrente'
+])
 
 function addWeeks(date: Date, weeks: number) {
   const next = new Date(date)
@@ -14,8 +21,22 @@ export async function ensureReservationOccurrences(
 ) {
   if (reservation.status !== 'CONFIRMED' || !reservation.fulfillmentDate) return []
 
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
   const desiredDates = reservation.monthlySubscription && reservation.subscriptionActive
-    ? Array.from({ length: DEFAULT_WEEKS_AHEAD }, (_, index) => addWeeks(new Date(reservation.fulfillmentDate!), index))
+    ? (() => {
+        const dates: Date[] = []
+        let cursor = new Date(reservation.fulfillmentDate!)
+        while (cursor < today) {
+          cursor = addWeeks(cursor, 1)
+        }
+
+        for (let index = 0; index < DEFAULT_WEEKS_AHEAD; index++) {
+          dates.push(addWeeks(cursor, index))
+        }
+        return dates
+      })()
     : [new Date(reservation.fulfillmentDate)]
 
   const existing = await prisma.reservationOccurrence.findMany({
@@ -23,12 +44,35 @@ export async function ensureReservationOccurrences(
     orderBy: { occurrenceDate: 'asc' }
   })
 
-  const byDate = new Map(existing.map((occurrence) => [occurrence.occurrenceDate.toISOString().slice(0, 10), occurrence]))
+  const byDate = new Map(
+    existing.map((occurrence) => [
+      (occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate).toISOString().slice(0, 10),
+      occurrence
+    ])
+  )
   const created: ReservationOccurrence[] = []
 
   for (const desiredDate of desiredDates) {
     const key = desiredDate.toISOString().slice(0, 10)
-    if (byDate.has(key)) continue
+    const existingOccurrence = byDate.get(key)
+    if (existingOccurrence) {
+      if (
+        existingOccurrence.status === 'CANCELLED' &&
+        REACTIVATABLE_CANCELLATION_REASONS.has(existingOccurrence.cancellationReason ?? '')
+      ) {
+        await prisma.reservationOccurrence.update({
+          where: { id: existingOccurrence.id },
+          data: {
+            status: 'SCHEDULED',
+            cancelledAt: null,
+            cancellationReason: null,
+            occurrenceTime: existingOccurrence.customSchedule ? existingOccurrence.occurrenceTime : reservation.fulfillmentTime,
+            occurrenceLocation: existingOccurrence.customSchedule ? existingOccurrence.occurrenceLocation : reservation.fulfillmentLocation
+          }
+        })
+      }
+      continue
+    }
 
     const occurrence = await prisma.reservationOccurrence.create({
       data: {

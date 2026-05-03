@@ -1,8 +1,17 @@
 import { prisma } from '../../../../../../../prisma/client'
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationOccurrenceEmail } from '~/server/utils/reservationEmails'
+import { cancelReservationOccurrenceInGoogleCalendar } from '~/server/utils/googleCalendarSync'
 import { getSetting, SETTING_KEYS } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
+
+function formatOccurrenceDate(value: Date) {
+  return value.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+}
 
 export default defineEventHandler(async (event) => {
   const token = String(getRouterParam(event, 'token') ?? '')
@@ -34,6 +43,12 @@ export default defineEventHandler(async (event) => {
       cancellationReason: 'Occurrence annulee par le client'
     }
   })
+
+  try {
+    await cancelReservationOccurrenceInGoogleCalendar(reservation, updatedOccurrence)
+  } catch (error) {
+    console.error('Erreur annulation Google Calendar occurrence client:', error)
+  }
 
   const customerSubject = 'Votre livraison de cette semaine a ete annulee - Ferme du Campeyrigoux'
   const customerBody = `Bonjour ${reservation.customerName},
@@ -75,7 +90,10 @@ Votre abonnement reste actif pour les semaines suivantes.`
 
 - Panier : ${reservation.basket.name}
 - Client : ${reservation.customerName}
-- Email : ${reservation.email}`
+- Email : ${reservation.email}
+- Date : ${formatOccurrenceDate(occurrence.occurrenceDate)}
+- Heure : ${occurrence.occurrenceTime ?? reservation.fulfillmentTime ?? 'Heure a confirmer'}
+- Lieu : ${occurrence.occurrenceLocation ?? reservation.fulfillmentLocation ?? 'Lieu a confirmer'}`
 
     await sendGmail({
       to: adminEmail,

@@ -103,6 +103,7 @@ export default defineEventHandler(async (event) => {
 
     const items = await prisma.reservation.findMany({
       where: {
+        archivedAt: null,
         OR: [
           { fulfillmentDate: { gte: gridStart, lte: gridEnd } },
           { fulfillmentDate: null, createdAt: { gte: gridStart, lte: gridEnd } }
@@ -144,8 +145,9 @@ export default defineEventHandler(async (event) => {
   const page = toPositiveInt(query.page, 1)
   const perPage = toPositiveInt(query.limit, 10, 50)
   const [total, items] = await Promise.all([
-    prisma.reservation.count(),
+    prisma.reservation.count({ where: { archivedAt: null } }),
     prisma.reservation.findMany({
+      where: { archivedAt: null },
       skip: (page - 1) * perPage,
       take: perPage,
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
