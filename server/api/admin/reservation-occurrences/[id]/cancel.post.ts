@@ -39,10 +39,11 @@ export default defineEventHandler(async (event) => {
 
   const emailPayload = await buildReservationOccurrenceEmail({
     reservation: occurrence.reservation,
-    occurrence: occurrence,
+    occurrence: updatedOccurrence,
     subject: body.email.subject,
     body: body.email.body,
-    action: 'CANCELLED'
+    action: 'CANCELLED',
+    recurrenceId: occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate
   })
 
   await sendGmail({

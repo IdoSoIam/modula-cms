@@ -92,6 +92,7 @@ export async function buildReservationOccurrenceEmail(options: {
   occurrence: {
     id: number
     occurrenceDate: Date
+    originalOccurrenceDate?: Date | null
     occurrenceTime: string | null
     occurrenceLocation: string | null
     updatedAt?: Date
@@ -117,7 +118,8 @@ export async function buildReservationOccurrenceEmail(options: {
       method: options.action === 'CONFIRMED' ? 'REQUEST' : 'CANCEL',
       organizerEmail,
       organizerName: 'Ferme du Campeyrigoux',
-      recurrenceId: options.recurrenceId ?? options.occurrence.occurrenceDate,
+      recurrenceId: options.recurrenceId ?? options.occurrence.originalOccurrenceDate ?? options.occurrence.occurrenceDate,
+      recurrenceIdTime: options.reservation.fulfillmentTime,
       occurrenceDate: options.occurrence.occurrenceDate,
       occurrenceTime: options.occurrence.occurrenceTime,
       occurrenceLocation: options.occurrence.occurrenceLocation,

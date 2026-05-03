@@ -36,9 +36,13 @@ export default defineEventHandler(async (event) => {
     where: { id },
     data: {
       occurrenceDate: new Date(`${body.occurrenceDate}T12:00:00`),
+      originalOccurrenceDate: occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate,
       occurrenceTime: body.occurrenceTime?.trim() || null,
       occurrenceLocation: body.occurrenceLocation?.trim() || null,
-      customSchedule: true
+      customSchedule: true,
+      status: 'SCHEDULED',
+      cancelledAt: null,
+      cancellationReason: null
     }
   })
 
@@ -48,7 +52,7 @@ export default defineEventHandler(async (event) => {
     subject: body.email.subject,
     body: body.email.body,
     action: 'CONFIRMED',
-    recurrenceId: occurrence.occurrenceDate
+    recurrenceId: occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate
   })
 
   await sendGmail({

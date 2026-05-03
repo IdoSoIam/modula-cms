@@ -34,6 +34,7 @@ export async function ensureReservationOccurrences(
       data: {
         reservationId: reservation.id,
         occurrenceDate: desiredDate,
+        originalOccurrenceDate: desiredDate,
         occurrenceTime: reservation.fulfillmentTime,
         occurrenceLocation: reservation.fulfillmentLocation
       }

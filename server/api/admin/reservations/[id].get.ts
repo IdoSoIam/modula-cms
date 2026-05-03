@@ -1,4 +1,5 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
+import { ensureReservationOccurrences } from '~/server/utils/reservationOccurrences'
 import { prisma } from '../../../../prisma/client'
 
 function toPositiveInt(value: unknown, fallback: number, max = 100) {
@@ -11,6 +12,8 @@ export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
 
   const query = getQuery(event)
   const occurrencePage = toPositiveInt(query.occurrencePage, 1)
@@ -28,10 +31,22 @@ export default defineEventHandler(async (event) => {
   })
   if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
 
+  if (reservation.status === 'CONFIRMED' && reservation.fulfillmentDate) {
+    await ensureReservationOccurrences(reservation)
+  }
+
   const [occurrenceTotal, occurrences, notificationTotal, notifications] = await Promise.all([
-    prisma.reservationOccurrence.count({ where: { reservationId: id } }),
+    prisma.reservationOccurrence.count({
+      where: {
+        reservationId: id,
+        occurrenceDate: { gte: today }
+      }
+    }),
     prisma.reservationOccurrence.findMany({
-      where: { reservationId: id },
+      where: {
+        reservationId: id,
+        occurrenceDate: { gte: today }
+      },
       orderBy: { occurrenceDate: 'asc' },
       skip: (occurrencePage - 1) * occurrenceLimit,
       take: occurrenceLimit
@@ -71,6 +86,7 @@ export default defineEventHandler(async (event) => {
     occurrences: occurrences.map((o) => ({
       id: o.id,
       occurrenceDate: o.occurrenceDate,
+      originalOccurrenceDate: o.originalOccurrenceDate,
       occurrenceTime: o.occurrenceTime,
       occurrenceLocation: o.occurrenceLocation,
       status: o.status,

@@ -96,6 +96,7 @@ export function buildReservationIcs(options: {
   sequence?: number
   manageUrl?: string | null
   recurrenceId?: Date | null
+  recurrenceIdTime?: string | null
   occurrenceDate?: Date | null
   occurrenceTime?: string | null
   occurrenceLocation?: string | null
@@ -112,6 +113,15 @@ export function buildReservationIcs(options: {
 
   const resolved = resolveStartEnd(occurrenceReservation)
   if (!resolved) return null
+
+  const recurrenceReservation = options.recurrenceId
+    ? {
+        ...options.reservation,
+        fulfillmentDate: options.recurrenceId,
+        fulfillmentTime: options.recurrenceIdTime ?? options.reservation.fulfillmentTime
+      }
+    : null
+  const resolvedRecurrence = recurrenceReservation ? resolveStartEnd(recurrenceReservation) : null
 
   const uid = `reservation-${options.reservation.id}@ferme-campeyrigoux`
   const sequence = getIcsSequence(options.updatedAt ?? options.reservation.updatedAt, options.sequence ?? 0)
@@ -131,10 +141,13 @@ export function buildReservationIcs(options: {
   const dtEndLine = isAllDay
     ? `DTEND;VALUE=DATE:${toIcsDate(getExclusiveAllDayEnd(resolved.start))}`
     : `DTEND:${toIcsTimestamp(resolved.end)}`
-  const recurrenceIdLine = options.recurrenceId && options.singleOccurrence
-    ? isAllDay
-      ? `RECURRENCE-ID;VALUE=DATE:${toIcsDate(options.recurrenceId)}`
-      : `RECURRENCE-ID:${toIcsTimestamp(options.recurrenceId)}`
+  const recurrenceIsAllDay = recurrenceReservation
+    ? !parseTime(recurrenceReservation.fulfillmentTime) && !parseTime(recurrenceReservation.deliveryTour?.startTime)
+    : isAllDay
+  const recurrenceIdLine = options.recurrenceId && options.singleOccurrence && resolvedRecurrence
+    ? recurrenceIsAllDay
+      ? `RECURRENCE-ID;VALUE=DATE:${toIcsDate(resolvedRecurrence.start)}`
+      : `RECURRENCE-ID:${toIcsTimestamp(resolvedRecurrence.start)}`
     : null
 
   const lines = [

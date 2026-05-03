@@ -145,6 +145,7 @@ model ReservationOccurrence {
   id                 Int                         @id @default(autoincrement())
   reservationId      Int
   occurrenceDate     DateTime
+  originalOccurrenceDate DateTime?
   occurrenceTime     String?
   occurrenceLocation String?                     @db.Text
   status             ReservationOccurrenceStatus @default(SCHEDULED)

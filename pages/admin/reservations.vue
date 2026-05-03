@@ -185,9 +185,9 @@
               <div v-if="detailsReservation.fulfillmentLocation"><strong>Lieu :</strong> {{ detailsReservation.fulfillmentLocation }}</div>
             </div>
 
-            <div v-if="detailsReservation.monthlySubscription && detailsReservation.occurrences?.length" class="rounded-xl bg-base-200 p-3">
+            <div v-if="detailsReservation.monthlySubscription" class="rounded-xl bg-base-200 p-3">
               <div class="mb-3 font-semibold">Occurrences a venir</div>
-              <div class="space-y-2">
+              <div v-if="detailsReservation.occurrences?.length" class="space-y-2">
                 <div
                   v-for="occurrence in paginatedDetailsOccurrences"
                   :key="occurrence.id"
@@ -209,13 +209,20 @@
                   </div>
                   <div class="flex flex-wrap gap-2">
                     <button class="btn btn-xs btn-outline" @click="openOccurrenceEditor(detailsReservation, occurrence)">
-                      Modifier
+                      {{ occurrence.status === 'CANCELLED' ? 'Reprogrammer' : 'Modifier' }}
                     </button>
-                    <button class="btn btn-xs btn-warning btn-outline" @click="cancelOccurrence(detailsReservation, occurrence)">
+                    <button
+                      v-if="occurrence.status === 'SCHEDULED'"
+                      class="btn btn-xs btn-warning btn-outline"
+                      @click="cancelOccurrence(detailsReservation, occurrence)"
+                    >
                       Annuler cette semaine
                     </button>
                   </div>
                 </div>
+              </div>
+              <div v-else class="rounded-xl bg-base-100 p-3 text-sm opacity-70">
+                Aucune occurrence a venir.
               </div>
               <div v-if="detailsOccurrenceTotalPages > 1" class="join mt-3 flex justify-center">
                 <button class="btn join-item btn-xs" :disabled="detailsOccurrencePage === 1" @click="detailsOccurrencePage--">
@@ -386,11 +393,11 @@
         <div class="mt-4 grid gap-4">
           <div class="form-control">
             <label class="label"><span class="label-text">Sujet</span></label>
-            <input v-model="occurrenceEmailDraft.subject" class="input input-bordered" />
+            <input v-model="occurrenceEmailDraft.subject" class="input input-bordered w-full" />
           </div>
           <div class="form-control">
             <label class="label"><span class="label-text">Message</span></label>
-            <textarea v-model="occurrenceEmailDraft.body" rows="10" class="textarea textarea-bordered font-mono text-sm" />
+            <textarea v-model="occurrenceEmailDraft.body" rows="10" class="textarea textarea-bordered w-full font-mono text-sm" />
           </div>
         </div>
 
@@ -439,6 +446,7 @@ interface Reservation {
   occurrences: Array<{
     id: number
     occurrenceDate: string
+    originalOccurrenceDate?: string | null
     occurrenceTime: string | null
     occurrenceLocation: string | null
     status: 'SCHEDULED' | 'CANCELLED'
