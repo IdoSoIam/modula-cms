@@ -1,5 +1,5 @@
 <template>
-  <div class="navbar bg-base-100 sticky shadow-sm top-0 z-50">
+  <div id="site-header" class="navbar bg-base-100 sticky shadow-sm top-0 z-50">
     <div class="navbar-start">
       <!-- Hamburger pour mobile -->
       <div class="md:hidden">

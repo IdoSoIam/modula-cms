@@ -6,7 +6,11 @@
       <LayoutNavigation />
 
       <!-- Conteneur pour les toasts -->
-      <div id="toast" class="toast toast-top toast-end z-50" style="display: none"></div>
+      <div
+        id="toast"
+        class="fixed right-4 z-[60] hidden w-[min(26rem,calc(100vw-2rem))] max-w-full"
+        style="top: 5rem"
+      ></div>
 
       <!-- Contenu principal -->
       <main class="flex-grow">
