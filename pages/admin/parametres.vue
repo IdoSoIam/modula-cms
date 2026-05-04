@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1 class="mb-6 text-3xl font-bold">Parametres</h1>
+    <h1 class="mb-6 text-3xl font-bold">Paramètres</h1>
 
     <div v-if="pending" class="loading loading-spinner" />
     <div v-else-if="data" class="space-y-8">
@@ -8,7 +8,7 @@
         <div class="card-body">
           <h2 class="card-title">Email admin</h2>
           <p class="mb-2 text-sm opacity-70">
-            Adresse Gmail qui recevra les notifications de nouvelles reservations.
+            Adresse Gmail qui recevra les notifications de nouvelles réservations.
           </p>
           <div class="form-control">
             <label class="label">
@@ -63,7 +63,7 @@
 
       <section class="card bg-base-200 shadow">
         <div class="card-body">
-          <h2 class="card-title">Fonctionnalites</h2>
+          <h2 class="card-title">Fonctionnalités</h2>
           <div class="grid gap-3 md:grid-cols-2">
             <label class="label cursor-pointer justify-start gap-3">
               <input v-model="form.registerEnabled" type="checkbox" class="toggle toggle-primary" />
@@ -79,17 +79,17 @@
 
       <section class="card bg-base-200 shadow">
         <div class="card-body">
-          <h2 class="card-title">Retrait a la ferme</h2>
+          <h2 class="card-title">Retrait à la ferme</h2>
           <p class="text-sm opacity-70">
-            Adresse et horaires d'ouverture de la ferme. Ils servent a la fois pour la vente a la ferme et comme creneau par defaut pour le retrait des paniers.
+            Adresse et horaires d'ouverture de la ferme. Ils servent à la fois pour la vente à la ferme et comme créneau par défaut pour le retrait des paniers.
           </p>
           <div class="grid gap-3 md:grid-cols-2">
             <div class="form-control md:col-span-2">
-              <label class="label"><span class="label-text">Adresse precise</span></label>
+              <label class="label"><span class="label-text">Adresse précise</span></label>
               <textarea v-model="form.farmPickupAddress" class="textarea textarea-bordered w-full" rows="2" />
             </div>
             <div class="form-control">
-              <label class="label"><span class="label-text">Jour par defaut</span></label>
+              <label class="label"><span class="label-text">Jour par défaut</span></label>
               <select v-model.number="form.farmPickupDayOfWeek" class="select select-bordered w-full">
                 <option :value="1">Lundi</option>
                 <option :value="2">Mardi</option>
@@ -101,7 +101,7 @@
               </select>
             </div>
             <div class="form-control">
-              <label class="label"><span class="label-text">Debut d'ouverture</span></label>
+              <label class="label"><span class="label-text">Début d'ouverture</span></label>
               <input v-model="form.farmPickupStartTime" type="time" class="input input-bordered w-full" />
             </div>
             <div class="form-control">
@@ -116,16 +116,16 @@
         <div class="card-body">
           <h2 class="card-title">Connexion Google</h2>
           <p class="text-sm opacity-70">
-            La connexion Google sert a envoyer les emails de confirmation et a synchroniser les reservations confirmees dans Google Calendar.
+            La connexion Google sert à envoyer les emails de confirmation et à synchroniser les réservations confirmées dans Google Calendar.
           </p>
 
           <div v-if="data.gmailConnectedEmail" class="alert alert-success mt-3">
             <Icon name="mdi:check-circle" size="20" />
-            Connecte avec <strong>{{ data.gmailConnectedEmail }}</strong>
+            Connecté avec <strong>{{ data.gmailConnectedEmail }}</strong>
           </div>
           <div v-else class="alert alert-warning mt-3">
             <Icon name="mdi:alert" size="20" />
-            Aucun compte Google connecte. Les emails et la synchro agenda sont desactives.
+            Aucun compte Google connecté. Les emails et la synchro agenda sont désactivés.
           </div>
 
           <div v-if="data.gmailConnectedEmail" class="mt-4 grid gap-3">
@@ -144,7 +144,7 @@
                 </option>
               </select>
               <span class="mt-1 text-xs opacity-60">
-                Les nouvelles reservations confirmees seront ajoutees dans ce calendrier.
+                Les nouvelles réservations confirmées seront ajoutées dans ce calendrier.
               </span>
             </div>
           </div>

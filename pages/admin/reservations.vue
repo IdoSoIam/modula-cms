@@ -2,9 +2,9 @@
   <div>
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 class="text-3xl font-bold">Reservations</h1>
+        <h1 class="text-3xl font-bold">Réservations</h1>
         <p class="text-sm opacity-70">
-          Les reservations passees ne sont plus affichees ici, mais restent comptabilisees dans le tableau de bord.
+          Les réservations passées ne sont plus affichées ici, mais restent comptabilisées dans le tableau de bord.
         </p>
       </div>
 
@@ -83,7 +83,7 @@
                 <span class="badge" :class="badgeClass(detailsReservation.status)">
                   {{ statusLabel(detailsReservation.status) }}
                 </span>
-                <span v-if="detailsReservation.archivedAt" class="badge badge-neutral">Archivee</span>
+                <span v-if="detailsReservation.archivedAt" class="badge badge-neutral">Archivée</span>
               </div>
               <p class="text-sm opacity-70">
                 {{ detailsReservation.basket.name }} - {{ $formatPrice(detailsReservation.basket.finalPrice) }}
@@ -91,7 +91,7 @@
             </div>
 
             <div class="badge badge-outline">
-              {{ detailsReservation.googleCalendarEventId ? 'Google synchronise' : 'Pas synchronise' }}
+              {{ detailsReservation.googleCalendarEventId ? 'Google synchronisé' : 'Pas synchronisé' }}
             </div>
           </div>
 
@@ -106,12 +106,12 @@
             <div class="rounded-xl bg-base-200 p-3">
               <div><strong>Date :</strong> {{ formatDateOnlyLabel(detailsReservation.fulfillmentDate) }}</div>
               <div v-if="detailsReservation.fulfillmentTime"><strong>Heure :</strong> {{ detailsReservation.fulfillmentTime }}</div>
-              <div v-if="deliveryWindowLabel(detailsReservation)"><strong>Fenetre de tournee :</strong> {{ deliveryWindowLabel(detailsReservation) }}</div>
+              <div v-if="deliveryWindowLabel(detailsReservation)"><strong>Fenêtre de tournée :</strong> {{ deliveryWindowLabel(detailsReservation) }}</div>
               <div v-if="detailsReservation.fulfillmentLocation"><strong>Lieu :</strong> {{ detailsReservation.fulfillmentLocation }}</div>
             </div>
 
             <div v-if="subscriptionsEnabled && detailsReservation.monthlySubscription" class="rounded-xl bg-base-200 p-3">
-              <div class="mb-3 font-semibold">Occurrences a venir</div>
+              <div class="mb-3 font-semibold">Occurrences à venir</div>
               <div v-if="detailsReservation.occurrences?.length" class="space-y-2">
                 <div
                   v-for="occurrence in paginatedDetailsOccurrences"
@@ -126,13 +126,13 @@
                       </span>
                     </div>
                     <div class="mt-1 opacity-75">
-                      {{ occurrence.occurrenceTime || detailsReservation.fulfillmentTime || 'Heure a confirmer' }}
+                      {{ occurrence.occurrenceTime || detailsReservation.fulfillmentTime || 'Heure à confirmer' }}
                     </div>
                     <div v-if="!occurrence.occurrenceTime && !detailsReservation.fulfillmentTime && deliveryWindowLabel(detailsReservation)" class="opacity-75">
-                      Fenetre de tournee : {{ deliveryWindowLabel(detailsReservation) }}
+                      Fenêtre de tournée : {{ deliveryWindowLabel(detailsReservation) }}
                     </div>
                     <div class="opacity-75">
-                      {{ occurrence.occurrenceLocation || detailsReservation.fulfillmentLocation || 'Lieu a confirmer' }}
+                      {{ occurrence.occurrenceLocation || detailsReservation.fulfillmentLocation || 'Lieu à confirmer' }}
                     </div>
                   </div>
                   <div class="flex flex-wrap gap-2">
@@ -150,7 +150,7 @@
                 </div>
               </div>
               <div v-else class="rounded-xl bg-base-100 p-3 text-sm opacity-70">
-                Aucune occurrence a venir.
+                Aucune occurrence à venir.
               </div>
               <div v-if="detailsOccurrenceTotalPages > 1" class="join mt-3 flex justify-center">
                 <button class="btn join-item btn-xs" :disabled="detailsOccurrencePage === 1" @click="detailsOccurrencePage--">
@@ -219,7 +219,7 @@
                 class="btn btn-sm btn-warning"
                 @click="openActionFromDetails('cancelled')"
               >
-                Annuler la reservation
+                Annuler la réservation
               </button>
               <button
                 v-if="detailsReservation.status === 'CONFIRMED'"
@@ -250,14 +250,14 @@
       <div class="modal-box max-w-2xl">
         <h3 class="mb-2 text-lg font-bold">{{ actionTitle }}</h3>
         <p class="mb-4 text-sm opacity-70">
-          Email envoye a <strong>{{ current?.email }}</strong> via Google.
+          Email envoyé à <strong>{{ current?.email }}</strong> via Google.
         </p>
 
         <div v-if="decisionAction === 'confirmed'" class="mb-4 grid gap-3 md:grid-cols-3">
           <div v-if="current?.deliveryType === 'FARM'" class="form-control md:col-span-3">
-            <label class="label"><span class="label-text">Action sur le creneau ferme</span></label>
+            <label class="label"><span class="label-text">Action sur le créneau ferme</span></label>
             <select v-model="scheduleMode" class="select select-bordered w-full">
-              <option value="CONFIRM">Confirmer ce creneau</option>
+              <option value="CONFIRM">Confirmer ce créneau</option>
               <option value="PROPOSE">Envoyer une contre-proposition</option>
             </select>
           </div>
@@ -266,11 +266,11 @@
             <input v-model="fulfillmentForm.date" type="date" class="input input-bordered" />
           </div>
           <div class="form-control md:col-span-2">
-            <label class="label"><span class="label-text">Heure precise</span></label>
+            <label class="label"><span class="label-text">Heure précise</span></label>
             <input v-model="fulfillmentForm.time" type="time" step="300" class="input input-bordered" />
           </div>
           <div v-if="current?.deliveryType === 'TOUR' && current?.deliveryTour" class="form-control md:col-span-3">
-            <label class="label"><span class="label-text">Fenetre de tournee</span></label>
+            <label class="label"><span class="label-text">Fenêtre de tournée</span></label>
             <div class="input input-bordered flex items-center bg-base-200/60">
               {{ current.deliveryTour.startTime }}-{{ current.deliveryTour.endTime }}
             </div>
@@ -281,8 +281,8 @@
           </div>
           <p class="md:col-span-3 text-xs opacity-70">
             {{ current?.deliveryType === 'FARM' && scheduleMode === 'PROPOSE'
-              ? 'Le client recevra un email pour accepter ce creneau ou en proposer un autre.'
-              : 'Si un calendrier Google est selectionne dans les parametres et qu une date est renseignee, la reservation confirmee sera ajoutee automatiquement.' }}
+              ? 'Le client recevra un email pour accepter ce créneau ou en proposer un autre.'
+              : 'Si un calendrier Google est sélectionné dans les paramètres et qu\'une date est renseignée, la réservation confirmée sera ajoutée automatiquement.' }}
           </p>
         </div>
 
@@ -299,7 +299,7 @@
           <div class="form-control">
             <label class="label">
               <span class="label-text">Sujet</span>
-              <button type="button" class="label-text-alt link" @click="reloadPreview">Recharger le modele</button>
+              <button type="button" class="label-text-alt link" @click="reloadPreview">Recharger le modèle</button>
             </label>
             <input v-model="emailDraft.subject" class="input input-bordered w-full" />
           </div>
@@ -328,8 +328,8 @@
         <div v-if="currentOccurrence" class="mb-4 rounded-xl bg-base-200 p-3 text-sm">
           <div class="font-medium">Occurrence actuelle</div>
           <div class="mt-1"><strong>Date :</strong> {{ formatDateOnlyLabel(currentOccurrence.occurrenceDate) }}</div>
-          <div><strong>Heure :</strong> {{ currentOccurrence.occurrenceTime || detailsReservation?.fulfillmentTime || 'Heure a confirmer' }}</div>
-          <div><strong>Lieu :</strong> {{ currentOccurrence.occurrenceLocation || detailsReservation?.fulfillmentLocation || 'Lieu a confirmer' }}</div>
+          <div><strong>Heure :</strong> {{ currentOccurrence.occurrenceTime || detailsReservation?.fulfillmentTime || 'Heure à confirmer' }}</div>
+          <div><strong>Lieu :</strong> {{ currentOccurrence.occurrenceLocation || detailsReservation?.fulfillmentLocation || 'Lieu à confirmer' }}</div>
         </div>
 
         <div class="grid gap-3 md:grid-cols-4">

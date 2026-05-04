@@ -11,7 +11,7 @@
             <div class="flex items-center gap-2">
               <h2 class="font-bold">{{ reservation.customerName }}</h2>
               <span class="badge" :class="badgeClass(reservation.status)">{{ statusLabel(reservation.status) }}</span>
-              <span v-if="reservation.archivedAt" class="badge badge-neutral">Archivee</span>
+              <span v-if="reservation.archivedAt" class="badge badge-neutral">Archivée</span>
               <span v-if="reservation.googleCalendarEventId" class="badge badge-info badge-outline">Google</span>
             </div>
 
@@ -27,7 +27,7 @@
 
             <div v-if="reservation.deliveryType" class="mt-2 space-y-1 rounded bg-base-300 p-2 text-sm">
               <div class="font-medium">
-                {{ reservation.deliveryType === 'TOUR' ? 'Livraison (tournee)' : reservation.deliveryType === 'FARM' ? 'Retrait a la ferme' : 'Retrait en point relais' }}
+                {{ reservation.deliveryType === 'TOUR' ? 'Livraison (tournée)' : reservation.deliveryType === 'FARM' ? 'Retrait à la ferme' : 'Retrait en point relais' }}
               </div>
               <div v-if="reservation.deliveryType === 'PICKUP' && reservation.pickupPoint" class="opacity-80">
                 {{ reservation.pickupPoint.name }}<span v-if="reservation.pickupPoint.address"> - {{ reservation.pickupPoint.address }}</span>
@@ -46,7 +46,7 @@
               <div v-if="reservation.displayDate || reservation.displayTime || reservation.displayLocation" class="mt-2 rounded-box bg-base-100 p-2">
                 <div v-if="reservation.displayDate"><strong>{{ subscriptionsEnabled && reservation.monthlySubscription ? 'Prochaine occurrence' : 'Date' }} :</strong> {{ formatDateOnly(reservation.displayDate) }}</div>
                 <div v-if="reservation.displayTime"><strong>Heure :</strong> {{ reservation.displayTime }}</div>
-                <div v-if="reservation.deliveryType === 'TOUR' && reservation.deliveryTour"><strong>Fenetre de tournee :</strong> {{ reservation.deliveryTour.startTime }}-{{ reservation.deliveryTour.endTime }}</div>
+                <div v-if="reservation.deliveryType === 'TOUR' && reservation.deliveryTour"><strong>Fenêtre de tournée :</strong> {{ reservation.deliveryTour.startTime }}-{{ reservation.deliveryTour.endTime }}</div>
                 <div v-if="reservation.displayLocation"><strong>Lieu :</strong> {{ reservation.displayLocation }}</div>
               </div>
             </div>
@@ -83,7 +83,7 @@
       </button>
     </div>
 
-    <div v-if="!reservations.length" class="py-12 text-center opacity-60">Aucune reservation pour le moment.</div>
+    <div v-if="!reservations.length" class="py-12 text-center opacity-60">Aucune réservation pour le moment.</div>
   </div>
 </template>
 
