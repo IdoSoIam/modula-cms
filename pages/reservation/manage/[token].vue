@@ -10,7 +10,7 @@
 
         <template v-else-if="reservation">
           <p class="opacity-75">
-            {{ SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription ? 'Vous pouvez annuler seulement une semaine ou arreter completement votre abonnement.' : 'Vous pouvez annuler votre reservation.' }}
+            {{ subscriptionsEnabled && reservation.monthlySubscription ? 'Vous pouvez annuler seulement une semaine ou arreter completement votre abonnement.' : reservation.deliveryType === 'FARM' ? 'Vous pouvez accepter un creneau propose, en demander un autre ou annuler votre reservation.' : 'Vous pouvez annuler votre reservation.' }}
           </p>
 
           <div class="mt-6 rounded-2xl bg-base-200 p-5 text-sm">
@@ -23,16 +23,44 @@
           </div>
 
           <div v-if="reservation.status === 'CANCELLED'" class="alert alert-info mt-6">
-            {{ SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription ? 'Cet abonnement est deja arrete.' : 'Cette reservation est deja annulee.' }}
+            {{ subscriptionsEnabled && reservation.monthlySubscription ? 'Cet abonnement est deja arrete.' : 'Cette reservation est deja annulee.' }}
           </div>
 
-          <div v-else-if="SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription && !reservation.subscriptionActive" class="alert alert-info mt-6">
+          <div v-else-if="subscriptionsEnabled && reservation.monthlySubscription && !reservation.subscriptionActive" class="alert alert-info mt-6">
             Cet abonnement n'est plus actif.
+          </div>
+
+          <div v-else-if="reservation.deliveryType === 'FARM' && reservation.scheduleProposalPendingBy === 'CUSTOMER'" class="mt-6 space-y-4">
+            <div class="alert alert-info">
+              La ferme vous a propose un creneau. Merci de l'accepter ou de proposer une autre date et heure.
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <button class="btn btn-success" :disabled="submitting" @click="acceptProposal">
+                <span v-if="submitting" class="loading loading-spinner loading-sm" />
+                Accepter ce creneau
+              </button>
+            </div>
+            <div class="rounded-2xl border border-base-300 bg-base-100 p-4">
+              <h2 class="text-lg font-semibold">Proposer un autre creneau</h2>
+              <div class="mt-4 grid gap-3 md:grid-cols-2">
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Date</span></label>
+                  <input v-model="proposalForm.date" type="date" class="input input-bordered" />
+                </div>
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Heure</span></label>
+                  <input v-model="proposalForm.time" type="time" class="input input-bordered" />
+                </div>
+              </div>
+              <div class="mt-4">
+                <button class="btn btn-outline" :disabled="submitting" @click="submitProposal">Envoyer ma contre-proposition</button>
+              </div>
+            </div>
           </div>
 
           <div v-else class="mt-6 flex flex-wrap gap-3">
             <button
-              v-if="!SUBSCRIPTIONS_ENABLED || !reservation.monthlySubscription"
+              v-if="!subscriptionsEnabled || !reservation.monthlySubscription"
               class="btn btn-warning"
               :disabled="submitting"
               @click="cancelReservation"
@@ -41,7 +69,7 @@
               Annuler ma reservation
             </button>
             <button
-              v-if="SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription"
+              v-if="subscriptionsEnabled && reservation.monthlySubscription"
               class="btn btn-error"
               :disabled="submitting"
               @click="stopSubscription"
@@ -52,7 +80,23 @@
             <NuxtLink to="/" class="btn btn-ghost">Retour a l'accueil</NuxtLink>
           </div>
 
-          <div v-if="SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription && reservation.occurrences?.length" class="mt-8">
+          <div v-if="reservation.deliveryType === 'FARM' && reservation.scheduleProposals?.length" class="mt-8">
+            <h2 class="text-xl font-semibold">Historique des propositions</h2>
+            <div class="mt-4 space-y-3">
+              <div
+                v-for="proposal in reservation.scheduleProposals"
+                :key="proposal.id"
+                class="rounded-2xl border border-base-300 bg-base-100 p-4 text-sm"
+              >
+                <div><strong>{{ proposal.proposedBy === 'ADMIN' ? 'Ferme' : 'Vous' }}</strong></div>
+                <div class="mt-1">{{ formatDate(proposal.proposalDate) }} a {{ proposal.proposalTime }}</div>
+                <div v-if="proposal.proposalLocation" class="opacity-70">{{ proposal.proposalLocation }}</div>
+                <div v-if="proposal.acceptedAt" class="mt-2 text-success">Creneau accepte</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="subscriptionsEnabled && reservation.monthlySubscription && reservation.occurrences?.length" class="mt-8">
             <h2 class="text-xl font-semibold">Semaines a venir</h2>
             <div class="mt-4 space-y-3">
               <div
@@ -95,18 +139,28 @@
 </template>
 
 <script setup lang="ts">
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
-
 interface ManagedReservation {
   id: number
   customerName: string
   email: string
   status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
+  deliveryType: 'FARM' | 'PICKUP' | 'TOUR' | null
   monthlySubscription: boolean
   subscriptionActive: boolean
   fulfillmentDate: string | null
   fulfillmentTime: string | null
   fulfillmentLocation: string | null
+  scheduleProposalPendingBy: 'ADMIN' | 'CUSTOMER' | null
+  scheduleProposalAcceptedAt: string | null
+  scheduleProposals: Array<{
+    id: number
+    proposedBy: 'ADMIN' | 'CUSTOMER'
+    proposalDate: string
+    proposalTime: string
+    proposalLocation: string | null
+    acceptedAt: string | null
+    createdAt: string
+  }>
   occurrences: Array<{
     id: number
     occurrenceDate: string
@@ -124,6 +178,7 @@ interface ManagedReservation {
     name: string
     finalPrice: number
   }
+  subscriptionsEnabled: boolean
 }
 
 const route = useRoute()
@@ -131,6 +186,10 @@ const token = String(route.params.token ?? '')
 const { $toast } = useNuxtApp() as any
 const occurrencePage = ref(1)
 const occurrenceLimit = 5
+const proposalForm = reactive({
+  date: '',
+  time: ''
+})
 
 const { data: reservation, pending, refresh } = await useFetch<ManagedReservation>(`/api/reservations/manage/${token}`, {
   query: computed(() => ({
@@ -140,6 +199,7 @@ const { data: reservation, pending, refresh } = await useFetch<ManagedReservatio
   watch: [occurrencePage]
 })
 const submitting = ref(false)
+const subscriptionsEnabled = computed(() => reservation.value?.subscriptionsEnabled ?? false)
 
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
@@ -185,6 +245,40 @@ const cancelOccurrence = async (occurrenceId: number) => {
     await refresh()
   } catch (e: any) {
     $toast.error(e.statusMessage || 'Impossible d annuler cette semaine')
+  } finally {
+    submitting.value = false
+  }
+}
+
+const acceptProposal = async () => {
+  submitting.value = true
+  try {
+    await $fetch(`/api/reservations/manage/${token}/accept-proposal`, { method: 'POST' })
+    $toast.success('Le creneau a bien ete confirme')
+    await refresh()
+  } catch (e: any) {
+    $toast.error(e.statusMessage || 'Impossible de confirmer ce creneau')
+  } finally {
+    submitting.value = false
+  }
+}
+
+const submitProposal = async () => {
+  submitting.value = true
+  try {
+    await $fetch(`/api/reservations/manage/${token}/propose-slot`, {
+      method: 'POST',
+      body: {
+        proposalDate: proposalForm.date,
+        proposalTime: proposalForm.time
+      }
+    })
+    $toast.success('Votre contre-proposition a ete envoyee')
+    proposalForm.date = ''
+    proposalForm.time = ''
+    await refresh()
+  } catch (e: any) {
+    $toast.error(e.statusMessage || 'Impossible d envoyer votre contre-proposition')
   } finally {
     submitting.value = false
   }

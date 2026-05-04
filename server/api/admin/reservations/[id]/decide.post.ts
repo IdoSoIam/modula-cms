@@ -1,14 +1,16 @@
+import { prisma } from '../../../../../prisma/client'
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { sendGmail } from '~/server/utils/gmail'
+import { sendGmail, getSiteOrigin } from '~/server/utils/gmail'
 import { removeReservationFromGoogleCalendar, syncReservationToGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
+import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { ensureReservationOccurrences, updateFutureOccurrencesFromReservation } from '~/server/utils/reservationOccurrences'
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
-import { prisma } from '../../../../../prisma/client'
+import { createReservationScheduleProposal, markReservationProposalAccepted, normalizeProposalDate, normalizeProposalTime } from '~/server/utils/reservationScheduleProposals'
+import { isSubscriptionsEnabled } from '~/server/utils/settings'
 
 interface Body {
   decision: 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
+  scheduleMode?: 'CONFIRM' | 'PROPOSE'
   adminNote?: string
   fulfillmentDate?: string | null
   fulfillmentTime?: string | null
@@ -22,6 +24,7 @@ export default defineEventHandler(async (event) => {
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
 
   const body = await readBody<Body>(event)
+  const subscriptionsEnabled = await isSubscriptionsEnabled()
   if (!['CONFIRMED', 'REJECTED', 'CANCELLED'].includes(body.decision)) {
     throw createError({ statusCode: 400, statusMessage: 'Decision invalide' })
   }
@@ -39,35 +42,99 @@ export default defineEventHandler(async (event) => {
   })
   if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
 
+  const requestedDate = body.fulfillmentDate ? normalizeProposalDate(body.fulfillmentDate) : reservation.fulfillmentDate
+  const requestedTime = normalizeProposalTime(body.fulfillmentTime) ?? reservation.fulfillmentTime
+  const requestedLocation = body.fulfillmentLocation?.trim() || reservation.fulfillmentLocation
+
+  if (body.decision === 'CONFIRMED' && body.scheduleMode === 'PROPOSE') {
+    if (reservation.deliveryType !== 'FARM') {
+      throw createError({ statusCode: 400, statusMessage: 'Les contre-propositions sont reservees au retrait a la ferme' })
+    }
+    if (!requestedDate || !requestedTime) {
+      throw createError({ statusCode: 400, statusMessage: 'Date et heure requises pour une contre-proposition' })
+    }
+
+    await createReservationScheduleProposal({
+      reservationId: reservation.id,
+      proposedBy: 'ADMIN',
+      proposalDate: requestedDate,
+      proposalTime: requestedTime,
+      proposalLocation: requestedLocation
+    })
+
+    const updated = await prisma.reservation.update({
+      where: { id },
+      data: {
+        status: 'PENDING',
+        adminNote: body.adminNote ?? null,
+        fulfillmentDate: requestedDate,
+        fulfillmentTime: requestedTime,
+        fulfillmentLocation: requestedLocation,
+        scheduleProposalPendingBy: 'CUSTOMER',
+        lastScheduleProposalAt: new Date(),
+        scheduleProposalAcceptedAt: null
+      },
+      include: {
+        basket: true,
+        pickupPoint: true,
+        deliveryTour: true
+      }
+    })
+
+    const manageUrl = updated.publicActionToken
+      ? `${getSiteOrigin()}/reservation/manage/${updated.publicActionToken}`
+      : null
+    const textBody = `${body.email.body}
+
+${manageUrl ? `Confirmer ce creneau ou en proposer un autre :\n${manageUrl}` : ''}`
+
+    await sendGmail({
+      to: updated.email,
+      subject: body.email.subject,
+      body: textBody,
+      htmlBody: buildGenericEmail({
+        title: body.email.subject,
+        body: textBody,
+        accent: '#2563eb'
+      })
+    })
+
+    await logReservationNotification({
+      reservationId: updated.id,
+      kind: 'SCHEDULE_COUNTER_PROPOSED',
+      recipientEmail: updated.email,
+      subject: body.email.subject,
+      summary: textBody
+    })
+
+    return { ok: true, status: updated.status, proposalPending: true }
+  }
+
   const updated = await prisma.reservation.update({
     where: { id },
     data: {
       status: body.decision,
       adminNote: body.adminNote ?? null,
-      fulfillmentDate: body.decision === 'CONFIRMED'
-        ? (body.fulfillmentDate ? new Date(`${body.fulfillmentDate}T12:00:00`) : reservation.fulfillmentDate)
-        : reservation.fulfillmentDate,
-      fulfillmentTime: body.decision === 'CONFIRMED'
-        ? (body.fulfillmentTime?.trim() || reservation.fulfillmentTime)
-        : reservation.fulfillmentTime,
-      fulfillmentLocation: body.decision === 'CONFIRMED'
-        ? (body.fulfillmentLocation?.trim() || reservation.fulfillmentLocation)
-        : reservation.fulfillmentLocation,
+      fulfillmentDate: body.decision === 'CONFIRMED' ? requestedDate : reservation.fulfillmentDate,
+      fulfillmentTime: body.decision === 'CONFIRMED' ? requestedTime : reservation.fulfillmentTime,
+      fulfillmentLocation: body.decision === 'CONFIRMED' ? requestedLocation : reservation.fulfillmentLocation,
       confirmedAt: body.decision === 'CONFIRMED' ? new Date() : reservation.confirmedAt,
-      subscriptionActive: !SUBSCRIPTIONS_ENABLED
+      subscriptionActive: !subscriptionsEnabled
         ? false
         : body.decision === 'CONFIRMED'
           ? reservation.monthlySubscription
           : body.decision === 'CANCELLED' && reservation.monthlySubscription
             ? false
             : reservation.subscriptionActive,
-      subscriptionCancelledAt: !SUBSCRIPTIONS_ENABLED
+      subscriptionCancelledAt: !subscriptionsEnabled
         ? reservation.subscriptionCancelledAt
         : body.decision === 'CONFIRMED'
           ? reservation.monthlySubscription ? null : reservation.subscriptionCancelledAt
           : body.decision === 'CANCELLED' && reservation.monthlySubscription
             ? new Date()
-            : reservation.subscriptionCancelledAt
+            : reservation.subscriptionCancelledAt,
+      scheduleProposalPendingBy: body.decision === 'CONFIRMED' ? null : reservation.scheduleProposalPendingBy,
+      scheduleProposalAcceptedAt: body.decision === 'CONFIRMED' ? new Date() : reservation.scheduleProposalAcceptedAt
     },
     include: {
       basket: true,
@@ -81,12 +148,19 @@ export default defineEventHandler(async (event) => {
   let calendarReason: string | null = null
 
   if (body.decision === 'CONFIRMED') {
-    await ensureReservationOccurrences(updated)
-    if (SUBSCRIPTIONS_ENABLED) {
+    if (updated.deliveryType === 'FARM' && updated.fulfillmentDate && updated.fulfillmentTime) {
+      await markReservationProposalAccepted({
+        reservationId: updated.id,
+        proposalDate: updated.fulfillmentDate,
+        proposalTime: updated.fulfillmentTime
+      })
+    }
+    await ensureReservationOccurrences(updated, subscriptionsEnabled)
+    if (subscriptionsEnabled) {
       await updateFutureOccurrencesFromReservation(updated)
     }
     try {
-      const result = await syncReservationToGoogleCalendar(updated)
+      const result = await syncReservationToGoogleCalendar(updated, subscriptionsEnabled)
       calendarSynced = result.synced
       calendarReason = result.reason
     } catch (e: any) {
@@ -116,7 +190,8 @@ export default defineEventHandler(async (event) => {
     reservation: updated,
     subject: body.email.subject,
     body: body.email.body,
-    action: body.decision
+    action: body.decision,
+    subscriptionsEnabled
   })
 
   await sendGmail({

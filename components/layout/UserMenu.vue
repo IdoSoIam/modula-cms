@@ -1,5 +1,5 @@
 <template>
-  <div class="dropdown dropdown-end mx-2">
+  <div v-if="authStore.isAuthenticated || registerEnabled" class="dropdown dropdown-end mx-2">
     <label tabindex="0" class="btn btn-ghost btn-circle">
       <ClientOnly>
         <Icon
@@ -109,8 +109,9 @@ import { useAuthStore } from '~/stores/auth'
 const authStore = useAuthStore()
 const showAuthModal = ref(false)
 
-const { data: siteConfig } = await useFetch<{ facebookFluxDeactivated: boolean }>('/api/site-config')
+const { data: siteConfig } = await useFetch<{ facebookFluxDeactivated: boolean; registerEnabled: boolean }>('/api/site-config')
 const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated ?? false)
+const registerEnabled = computed(() => siteConfig.value?.registerEnabled ?? false)
 
 const handleLogout = async () => {
   await authStore.logout()

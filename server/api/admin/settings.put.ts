@@ -6,6 +6,12 @@ interface Body {
   googleCalendarId?: string
   googleCalendarName?: string
   facebookFluxDeactivated?: boolean
+  registerEnabled?: boolean
+  subscriptionsEnabled?: boolean
+  farmPickupAddress?: string
+  farmPickupDayOfWeek?: number
+  farmPickupStartTime?: string
+  farmPickupEndTime?: string
   ordersOpenFrom?: string
   ordersOpenTo?: string
   ordersClosedMessage?: string
@@ -31,6 +37,24 @@ export default defineEventHandler(async (event) => {
   }
   if (typeof body.facebookFluxDeactivated === 'boolean') {
     await setSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED, body.facebookFluxDeactivated ? 'true' : 'false')
+  }
+  if (typeof body.registerEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.REGISTER_ENABLED, body.registerEnabled ? 'true' : 'false')
+  }
+  if (typeof body.subscriptionsEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.SUBSCRIPTIONS_ENABLED, body.subscriptionsEnabled ? 'true' : 'false')
+  }
+  if (typeof body.farmPickupAddress === 'string') {
+    await setSetting(SETTING_KEYS.FARM_PICKUP_ADDRESS, body.farmPickupAddress.trim())
+  }
+  if (typeof body.farmPickupDayOfWeek === 'number') {
+    await setSetting(SETTING_KEYS.FARM_PICKUP_DAY_OF_WEEK, String(body.farmPickupDayOfWeek))
+  }
+  if (typeof body.farmPickupStartTime === 'string') {
+    await setSetting(SETTING_KEYS.FARM_PICKUP_START_TIME, body.farmPickupStartTime.trim())
+  }
+  if (typeof body.farmPickupEndTime === 'string') {
+    await setSetting(SETTING_KEYS.FARM_PICKUP_END_TIME, body.farmPickupEndTime.trim())
   }
   if (typeof body.ordersOpenFrom === 'string') {
     await setSetting(SETTING_KEYS.ORDERS_OPEN_FROM, body.ordersOpenFrom.trim())

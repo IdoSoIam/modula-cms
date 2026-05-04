@@ -98,42 +98,51 @@ enum DeliveryType {
   TOUR
 }
 
+enum ReservationScheduleProposalSource {
+  CUSTOMER
+  ADMIN
+}
+
 model Reservation {
-  id                  Int               @id @default(autoincrement())
-  basketId            Int
-  userId              Int?
-  customerName        String
-  email               String
-  phone               String?
-  message             String?           @db.Text
-  status              ReservationStatus @default(PENDING)
-  adminNote           String?           @db.Text
-  confirmedAt         DateTime?
-  deliveryType        DeliveryType?
-  pickupPointId       Int?
-  deliveryTourId      Int?
-  deliveryAddress     String?           @db.Text
-  deliveryCity        String?
-  deliveryPostalCode  String?
-  fulfillmentDate     DateTime?
-  fulfillmentTime     String?
-  fulfillmentLocation String?           @db.Text
-  monthlySubscription Boolean           @default(false)
-  googleCalendarEventId String?
-  googleCalendarSyncedAt DateTime?
-  publicActionToken   String?           @unique
-  cancelledByCustomerAt DateTime?
-  subscriptionActive  Boolean           @default(true)
-  subscriptionCancelledAt DateTime?
-  archivedAt          DateTime?
-  occurrences         ReservationOccurrence[]
-  notifications       ReservationNotification[]
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-  basket              Basket            @relation(fields: [basketId], references: [id], onDelete: Restrict)
-  user                User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  pickupPoint         PickupPoint?      @relation(fields: [pickupPointId], references: [id], onDelete: SetNull)
-  deliveryTour        DeliveryTour?     @relation(fields: [deliveryTourId], references: [id], onDelete: SetNull)
+  id                         Int                                @id @default(autoincrement())
+  basketId                   Int
+  userId                     Int?
+  customerName               String
+  email                      String
+  phone                      String?
+  message                    String?                            @db.Text
+  status                     ReservationStatus                  @default(PENDING)
+  adminNote                  String?                            @db.Text
+  confirmedAt                DateTime?
+  deliveryType               DeliveryType?
+  pickupPointId              Int?
+  deliveryTourId             Int?
+  deliveryAddress            String?                            @db.Text
+  deliveryCity               String?
+  deliveryPostalCode         String?
+  fulfillmentDate            DateTime?
+  fulfillmentTime            String?
+  fulfillmentLocation        String?                            @db.Text
+  monthlySubscription        Boolean                            @default(false)
+  googleCalendarEventId      String?
+  googleCalendarSyncedAt     DateTime?
+  publicActionToken          String?                            @unique
+  cancelledByCustomerAt      DateTime?
+  subscriptionActive         Boolean                            @default(true)
+  subscriptionCancelledAt    DateTime?
+  archivedAt                 DateTime?
+  scheduleProposalPendingBy  ReservationScheduleProposalSource?
+  lastScheduleProposalAt     DateTime?
+  scheduleProposalAcceptedAt DateTime?
+  occurrences                ReservationOccurrence[]
+  notifications              ReservationNotification[]
+  scheduleProposals          ReservationScheduleProposal[]
+  createdAt                  DateTime                           @default(now())
+  updatedAt                  DateTime                           @updatedAt
+  basket                     Basket                             @relation(fields: [basketId], references: [id], onDelete: Restrict)
+  user                       User?                              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  pickupPoint                PickupPoint?                       @relation(fields: [pickupPointId], references: [id], onDelete: SetNull)
+  deliveryTour               DeliveryTour?                      @relation(fields: [deliveryTourId], references: [id], onDelete: SetNull)
 
   @@index([basketId])
   @@index([userId])
@@ -143,23 +152,39 @@ model Reservation {
   @@index([deliveryTourId])
 }
 
+model ReservationScheduleProposal {
+  id               Int                               @id @default(autoincrement())
+  reservationId    Int
+  proposedBy       ReservationScheduleProposalSource
+  proposalDate     DateTime
+  proposalTime     String
+  proposalLocation String?                           @db.Text
+  acceptedAt       DateTime?
+  createdAt        DateTime                          @default(now())
+  updatedAt        DateTime                          @updatedAt
+  reservation      Reservation                       @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@unique([reservationId, proposalDate, proposalTime], name: "ScheduleProposal_unique_date_time")
+  @@index([reservationId, createdAt])
+}
+
 model ReservationOccurrence {
-  id                 Int                         @id @default(autoincrement())
-  reservationId      Int
-  occurrenceDate     DateTime
+  id                     Int                         @id @default(autoincrement())
+  reservationId          Int
+  occurrenceDate         DateTime
   originalOccurrenceDate DateTime?
-  occurrenceTime     String?
-  occurrenceLocation String?                     @db.Text
-  status             ReservationOccurrenceStatus @default(SCHEDULED)
-  customSchedule     Boolean                     @default(false)
-  cancelledAt        DateTime?
-  cancellationReason String?                     @db.Text
-  googleCalendarEventId String?
-  lastNotifiedAt     DateTime?
-  createdAt          DateTime                    @default(now())
-  updatedAt          DateTime                    @updatedAt
-  reservation        Reservation                 @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  notifications      ReservationNotification[]
+  occurrenceTime         String?
+  occurrenceLocation     String?                     @db.Text
+  status                 ReservationOccurrenceStatus @default(SCHEDULED)
+  customSchedule         Boolean                     @default(false)
+  cancelledAt            DateTime?
+  cancellationReason     String?                     @db.Text
+  googleCalendarEventId  String?
+  lastNotifiedAt         DateTime?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  reservation            Reservation                 @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  notifications          ReservationNotification[]
 
   @@index([reservationId, occurrenceDate])
 }

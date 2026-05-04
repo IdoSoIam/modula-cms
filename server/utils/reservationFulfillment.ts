@@ -1,9 +1,11 @@
 import type { DeliveryTour, DeliveryType, PickupPoint, Reservation } from '@prisma/client'
+import type { FarmPickupConfig } from './settings'
 
 interface FulfillmentInput {
   deliveryType: DeliveryType | null
   pickupPoint: Pick<PickupPoint, 'name' | 'address' | 'deliveryDay' | 'pickupStartTime'> | null
   deliveryTour: Pick<DeliveryTour, 'name' | 'dayOfWeek' | 'startTime' | 'endTime'> | null
+  farmPickup?: Pick<FarmPickupConfig, 'address' | 'dayOfWeek' | 'startTime'> | null
   deliveryAddress: string | null
   deliveryCity: string | null
   deliveryPostalCode: string | null
@@ -25,7 +27,7 @@ export function getNextDateForDayOfWeek(dayOfWeek: number, fromDate = new Date()
 
 function buildDefaultLocation(input: FulfillmentInput) {
   if (input.deliveryType === 'FARM') {
-    return 'Retrait a la ferme du Campeyrigoux'
+    return input.farmPickup?.address || null
   }
 
   if (input.deliveryType === 'PICKUP') {
@@ -42,7 +44,7 @@ function buildDefaultLocation(input: FulfillmentInput) {
 
 function buildDefaultTime(input: FulfillmentInput) {
   if (input.deliveryType === 'FARM') {
-    return null
+    return input.farmPickup?.startTime || null
   }
 
   if (input.deliveryType === 'PICKUP') {
@@ -58,7 +60,7 @@ function buildDefaultTime(input: FulfillmentInput) {
 
 function buildDefaultDate(input: FulfillmentInput) {
   if (input.deliveryType === 'FARM') {
-    return null
+    return input.farmPickup ? getNextDateForDayOfWeek(input.farmPickup.dayOfWeek) : null
   }
 
   if (input.deliveryType === 'PICKUP' && input.pickupPoint?.deliveryDay !== null && input.pickupPoint?.deliveryDay !== undefined) {

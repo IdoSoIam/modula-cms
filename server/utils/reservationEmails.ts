@@ -3,7 +3,6 @@ import { buildReservationIcs } from './calendarInvite'
 import { buildEmailHtml } from './emailTemplates'
 import { getSetting, SETTING_KEYS } from './settings'
 import { getSiteOrigin, type GmailCalendarInvite } from './gmail'
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 
 type ReservationWithRelations = Reservation & {
   basket: Basket
@@ -18,6 +17,38 @@ function getLogoUrl() {
 function getManageReservationUrl(token: string | null | undefined) {
   if (!token) return null
   return `${getSiteOrigin()}/reservation/manage/${token}`
+}
+
+export function getAdminReservationUrl(reservationId: number) {
+  return `${getSiteOrigin()}/admin/reservations?open=${reservationId}`
+}
+
+export function buildAdminReservationSummary(options: {
+  reservationId: number
+  basketName: string
+  customerName: string
+  customerEmail: string
+  customerPhone?: string | null
+  customerMessage?: string | null
+  deliveryLabel: string
+  fulfillmentDate?: Date | null
+  fulfillmentTime?: string | null
+  fulfillmentLocation?: string | null
+  contextLine?: string
+}) {
+  return `${options.contextLine ? `${options.contextLine}\n\n` : ''}- Reservation : #${options.reservationId}
+- Panier : ${options.basketName}
+- Client : ${options.customerName}
+- Email : ${options.customerEmail}
+- Telephone : ${options.customerPhone ?? '-'}
+- Mode : ${options.deliveryLabel}
+- Date : ${options.fulfillmentDate ? options.fulfillmentDate.toLocaleDateString('fr-FR') : 'a confirmer'}
+- Heure : ${options.fulfillmentTime ?? 'a confirmer'}
+- Lieu : ${options.fulfillmentLocation ?? 'a confirmer'}
+- Message : ${options.customerMessage ?? '-'}
+
+Ouvrir la gestion admin :
+${getAdminReservationUrl(options.reservationId)}`
 }
 
 export function buildGenericEmail(options: {
@@ -38,13 +69,14 @@ export async function buildReservationDecisionEmail(options: {
   subject: string
   body: string
   action: 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
+  subscriptionsEnabled: boolean
 }) {
   const organizerEmail = await getSetting(SETTING_KEYS.GMAIL_CONNECTED_EMAIL)
   const manageUrl = getManageReservationUrl(options.reservation.publicActionToken)
   const actionHelp = options.action === 'CONFIRMED' && manageUrl
     ? `${options.body}
 
-${SUBSCRIPTIONS_ENABLED && options.reservation.monthlySubscription ? 'Arreter mon abonnement :' : 'Annuler ma reservation :'}
+${options.subscriptionsEnabled && options.reservation.monthlySubscription ? 'Arreter mon abonnement :' : 'Annuler ma reservation :'}
 ${manageUrl}`
     : options.body
   const htmlBody = buildEmailHtml({
@@ -62,7 +94,8 @@ ${manageUrl}`
       organizerEmail,
       organizerName: 'Ferme du Campeyrigoux',
       manageUrl,
-      singleOccurrence: false
+      singleOccurrence: false,
+      subscriptionsEnabled: options.subscriptionsEnabled
     })
     if (ics) {
       calendarInvite = ics
@@ -102,6 +135,7 @@ export async function buildReservationOccurrenceEmail(options: {
   body: string
   action: 'CONFIRMED' | 'CANCELLED'
   recurrenceId?: Date | null
+  subscriptionsEnabled?: boolean
 }) {
   const organizerEmail = await getSetting(SETTING_KEYS.GMAIL_CONNECTED_EMAIL)
   const htmlBody = buildEmailHtml({
@@ -125,7 +159,8 @@ export async function buildReservationOccurrenceEmail(options: {
       occurrenceTime: options.occurrence.occurrenceTime,
       occurrenceLocation: options.occurrence.occurrenceLocation,
       singleOccurrence: true,
-      updatedAt: options.occurrence.updatedAt
+      updatedAt: options.occurrence.updatedAt,
+      subscriptionsEnabled: options.subscriptionsEnabled ?? false
     })
     if (ics) {
       calendarInvite = ics

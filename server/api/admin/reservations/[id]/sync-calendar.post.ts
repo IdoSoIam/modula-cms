@@ -1,5 +1,6 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { syncReservationToGoogleCalendar } from '~/server/utils/googleCalendarSync'
+import { isSubscriptionsEnabled } from '~/server/utils/settings'
 import { prisma } from '../../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Seules les reservations confirmees peuvent etre synchronisees' })
   }
 
-  const result = await syncReservationToGoogleCalendar(reservation)
+  const result = await syncReservationToGoogleCalendar(reservation, await isSubscriptionsEnabled())
   if (!result.synced) {
     throw createError({ statusCode: 400, statusMessage: result.reason || 'Synchronisation Google Calendar impossible' })
   }

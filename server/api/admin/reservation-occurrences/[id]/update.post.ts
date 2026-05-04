@@ -4,7 +4,7 @@ import { buildReservationOccurrenceEmail } from '~/server/utils/reservationEmail
 import { sendGmail } from '~/server/utils/gmail'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { syncReservationOccurrenceToGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
+import { isSubscriptionsEnabled } from '~/server/utils/settings'
 
 interface Body {
   occurrenceDate: string
@@ -14,7 +14,8 @@ interface Body {
 }
 
 export default defineEventHandler(async (event) => {
-  if (!SUBSCRIPTIONS_ENABLED) {
+  const subscriptionsEnabled = await isSubscriptionsEnabled()
+  if (!subscriptionsEnabled) {
     throw createError({ statusCode: 410, statusMessage: 'Les abonnements ne sont pas actifs pour le moment.' })
   }
 
@@ -53,7 +54,7 @@ export default defineEventHandler(async (event) => {
   })
 
   try {
-    await syncReservationOccurrenceToGoogleCalendar(occurrence.reservation, updatedOccurrence)
+    await syncReservationOccurrenceToGoogleCalendar(occurrence.reservation, updatedOccurrence, subscriptionsEnabled)
   } catch (error) {
     console.error('Erreur sync Google Calendar occurrence:', error)
   }
@@ -64,7 +65,8 @@ export default defineEventHandler(async (event) => {
     subject: body.email.subject,
     body: body.email.body,
     action: 'CONFIRMED',
-    recurrenceId: occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate
+    recurrenceId: occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate,
+    subscriptionsEnabled
   })
 
   await sendGmail({

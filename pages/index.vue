@@ -49,7 +49,9 @@
           </div>
           <div>
             <div class="font-semibold">{{ $t('pages.home.schedule') }}</div>
-            <div class="text-sm opacity-70">{{ $t('pages.home.scheduleDetail') }}</div>
+            <div class="text-sm opacity-70">
+              {{ farmDayLabel }} - {{ siteConfig?.farmPickup.slotLabel || $t('pages.home.scheduleDetail') }}
+            </div>
           </div>
         </div>
         <div class="flex items-center gap-3">
@@ -58,7 +60,7 @@
           </div>
           <div>
             <div class="font-semibold">{{ $t('pages.home.locationTitle') }}</div>
-            <div class="text-sm opacity-70">{{ $t('pages.home.location') }}</div>
+            <div class="text-sm opacity-70">{{ siteConfig?.farmPickup.address || $t('pages.home.location') }}</div>
           </div>
         </div>
         <div class="flex items-center gap-3">
@@ -186,8 +188,8 @@
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
                 <div class="mb-2 font-semibold">{{ $t('pages.home.scheduleBlockTitle') }}</div>
-                <p class="text-sm opacity-75">{{ $t('pages.home.schedule') }}</p>
-                <p class="mt-1 text-sm opacity-75">{{ $t('pages.home.scheduleDetail') }}</p>
+                <p class="text-sm opacity-75">{{ farmDayLabel }}</p>
+                <p class="mt-1 text-sm opacity-75">{{ siteConfig?.farmPickup.slotLabel || $t('pages.home.scheduleDetail') }}</p>
               </div>
               <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
                 <div class="mb-2 font-semibold">{{ $t('pages.home.pricingBlockTitle') }}</div>
@@ -231,7 +233,7 @@
                 <Icon name="mdi:map-marker-radius-outline" size="20" class="text-primary" />
                 {{ $t('pages.home.whereToFindUsTitle') }}
               </div>
-              <p class="text-sm opacity-75">{{ $t('pages.home.whereToFindUsText') }}</p>
+              <p class="text-sm opacity-75">{{ siteConfig?.farmPickup.address || $t('pages.home.whereToFindUsText') }}</p>
             </div>
           </div>
         </div>
@@ -274,3 +276,23 @@
     </section>
   </div>
 </template>
+
+<script setup lang="ts">
+interface SiteConfig {
+  farmPickup: {
+    address: string
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+    slotLabel: string
+  }
+}
+
+const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
+
+const farmDayLabel = computed(() => {
+  const day = siteConfig.value?.farmPickup.dayOfWeek
+  const labels = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+  return typeof day === 'number' ? labels[day] : ''
+})
+</script>

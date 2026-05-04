@@ -11,6 +11,7 @@
             <div class="flex items-center gap-2">
               <h2 class="font-bold">{{ reservation.customerName }}</h2>
               <span class="badge" :class="badgeClass(reservation.status)">{{ statusLabel(reservation.status) }}</span>
+              <span v-if="reservation.archivedAt" class="badge badge-neutral">Archivee</span>
               <span v-if="reservation.googleCalendarEventId" class="badge badge-info badge-outline">Google</span>
             </div>
 
@@ -38,12 +39,12 @@
               <div v-if="reservation.deliveryCity" class="opacity-80">
                 {{ reservation.deliveryCity }}<span v-if="reservation.deliveryPostalCode"> {{ reservation.deliveryPostalCode }}</span>
               </div>
-              <div v-if="SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription" class="text-success">
+              <div v-if="subscriptionsEnabled && reservation.monthlySubscription" class="text-success">
                 Abonnement mensuel<span v-if="reservation.deliveryTour?.monthlyPrice"> - {{ formatPrice(reservation.deliveryTour.monthlyPrice) }}/mois</span>
               </div>
 
               <div v-if="reservation.displayDate || reservation.displayTime || reservation.displayLocation" class="mt-2 rounded-box bg-base-100 p-2">
-                <div v-if="reservation.displayDate"><strong>{{ SUBSCRIPTIONS_ENABLED && reservation.monthlySubscription ? 'Prochaine occurrence' : 'Date' }} :</strong> {{ formatDateOnly(reservation.displayDate) }}</div>
+                <div v-if="reservation.displayDate"><strong>{{ subscriptionsEnabled && reservation.monthlySubscription ? 'Prochaine occurrence' : 'Date' }} :</strong> {{ formatDateOnly(reservation.displayDate) }}</div>
                 <div v-if="reservation.displayTime"><strong>Heure :</strong> {{ reservation.displayTime }}</div>
                 <div v-if="reservation.deliveryType === 'TOUR' && reservation.deliveryTour"><strong>Fenetre de tournee :</strong> {{ reservation.deliveryTour.startTime }}-{{ reservation.deliveryTour.endTime }}</div>
                 <div v-if="reservation.displayLocation"><strong>Lieu :</strong> {{ reservation.displayLocation }}</div>
@@ -87,12 +88,11 @@
 </template>
 
 <script setup lang="ts">
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
-
 defineProps<{
   reservations: any[]
   page: number
   totalPages: number
+  subscriptionsEnabled: boolean
   statusLabel: (status: string) => string
   badgeClass: (status: string) => string
   formatPrice: (value: number) => string

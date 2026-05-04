@@ -1,6 +1,6 @@
 <template>
   <div class="card bg-base-100 shadow-xl max-w-md mx-auto p-6">
-    <div class="mb-6">
+    <div v-if="showHeading" class="mb-6">
       <h3 class="text-lg font-semibold">Connexion</h3>
       <p class="mt-1 text-sm opacity-70">
         L'inscription publique est desactivee pour le moment. Contactez l'administrateur si vous avez besoin d'un acces.
@@ -56,6 +56,11 @@ import { reactive, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
+withDefaults(defineProps<{
+  showHeading?: boolean
+}>(), {
+  showHeading: true
+})
 
 const emit = defineEmits<{
   success: []

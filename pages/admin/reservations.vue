@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <div class="mb-4 flex flex-wrap gap-2">
+    <div v-if="viewMode === 'list'" class="mb-4 flex flex-wrap gap-2">
       <button
         v-for="filter in statusFilters"
         :key="filter.value"
@@ -40,6 +40,7 @@
         :reservations="paginatedReservations"
         :page="reservationPage"
         :total-pages="reservationTotalPages"
+        :subscriptions-enabled="subscriptionsEnabled"
         :status-label="statusLabel"
         :badge-class="badgeClass"
         :format-price="$formatPrice"
@@ -82,6 +83,7 @@
                 <span class="badge" :class="badgeClass(detailsReservation.status)">
                   {{ statusLabel(detailsReservation.status) }}
                 </span>
+                <span v-if="detailsReservation.archivedAt" class="badge badge-neutral">Archivee</span>
               </div>
               <p class="text-sm opacity-70">
                 {{ detailsReservation.basket.name }} - {{ $formatPrice(detailsReservation.basket.finalPrice) }}
@@ -108,7 +110,7 @@
               <div v-if="detailsReservation.fulfillmentLocation"><strong>Lieu :</strong> {{ detailsReservation.fulfillmentLocation }}</div>
             </div>
 
-            <div v-if="SUBSCRIPTIONS_ENABLED && detailsReservation.monthlySubscription" class="rounded-xl bg-base-200 p-3">
+            <div v-if="subscriptionsEnabled && detailsReservation.monthlySubscription" class="rounded-xl bg-base-200 p-3">
               <div class="mb-3 font-semibold">Occurrences a venir</div>
               <div v-if="detailsReservation.occurrences?.length" class="space-y-2">
                 <div
@@ -252,6 +254,13 @@
         </p>
 
         <div v-if="decisionAction === 'confirmed'" class="mb-4 grid gap-3 md:grid-cols-3">
+          <div v-if="current?.deliveryType === 'FARM'" class="form-control md:col-span-3">
+            <label class="label"><span class="label-text">Action sur le creneau ferme</span></label>
+            <select v-model="scheduleMode" class="select select-bordered w-full">
+              <option value="CONFIRM">Confirmer ce creneau</option>
+              <option value="PROPOSE">Envoyer une contre-proposition</option>
+            </select>
+          </div>
           <div class="form-control">
             <label class="label"><span class="label-text">Date</span></label>
             <input v-model="fulfillmentForm.date" type="date" class="input input-bordered" />
@@ -271,7 +280,9 @@
             <textarea v-model="fulfillmentForm.location" rows="2" class="textarea textarea-bordered w-full" />
           </div>
           <p class="md:col-span-3 text-xs opacity-70">
-            Si un calendrier Google est selectionne dans les parametres et qu'une date est renseignee, la reservation confirmee sera ajoutee automatiquement.
+            {{ current?.deliveryType === 'FARM' && scheduleMode === 'PROPOSE'
+              ? 'Le client recevra un email pour accepter ce creneau ou en proposer un autre.'
+              : 'Si un calendrier Google est selectionne dans les parametres et qu une date est renseignee, la reservation confirmee sera ajoutee automatiquement.' }}
           </p>
         </div>
 
@@ -365,9 +376,9 @@ import { defineComponent, h } from 'vue'
 import type { PropType } from 'vue'
 import ReservationsCalendar from '~/components/admin/ReservationsCalendar.vue'
 import ReservationsList from '~/components/admin/ReservationsList.vue'
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
+const route = useRoute()
 
 interface Reservation {
   id: number
@@ -464,6 +475,8 @@ type ReservationDetails = Reservation & {
 }
 
 const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
+const { data: siteConfig } = await useFetch<{ subscriptionsEnabled?: boolean }>('/api/site-config')
+const subscriptionsEnabled = computed(() => siteConfig.value?.subscriptionsEnabled ?? false)
 
 const detailsDlg = ref<HTMLDialogElement>()
 const actionDlg = ref<HTMLDialogElement>()
@@ -476,6 +489,7 @@ const adminNote = ref('')
 const emailDraft = reactive({ subject: '', body: '' })
 const fulfillmentForm = reactive({ date: '', time: '', location: '' })
 const sending = ref(false)
+const scheduleMode = ref<'CONFIRM' | 'PROPOSE'>('CONFIRM')
 const syncingCalendar = ref(false)
 const savingOccurrence = ref(false)
 const viewMode = ref<'list' | 'calendar'>('list')
@@ -567,7 +581,8 @@ const statusLabel = (s: string) => ({
   PENDING: 'En attente',
   CONFIRMED: 'Confirmee',
   REJECTED: 'Refusee',
-  CANCELLED: 'Annulee'
+  CANCELLED: 'Annulee',
+  ARCHIVED: 'Archivee'
 } as Record<string, string>)[s] ?? s
 
 const occurrenceStatusLabel = (s: string) => ({
@@ -593,7 +608,8 @@ const badgeClass = (s: string) => ({
   PENDING: 'badge-warning',
   CONFIRMED: 'badge-success',
   REJECTED: 'badge-error',
-  CANCELLED: 'badge-ghost'
+  CANCELLED: 'badge-ghost',
+  ARCHIVED: 'badge-neutral'
 } as Record<string, string>)[s] ?? 'badge-ghost'
 
 const occurrenceStatusBadgeClass = (s: string) => ({
@@ -719,13 +735,17 @@ Anciens details :
 }
 
 const actionTitle = computed(() => ({
-  confirmed: current.value?.status === 'CONFIRMED' ? 'Mettre a jour la reservation' : 'Confirmer la reservation',
+  confirmed: current.value?.deliveryType === 'FARM' && scheduleMode.value === 'PROPOSE'
+    ? 'Envoyer une contre-proposition'
+    : current.value?.status === 'CONFIRMED' ? 'Mettre a jour la reservation' : 'Confirmer la reservation',
   rejected: 'Refuser la reservation',
   cancelled: 'Annuler la reservation'
 } as Record<DecisionAction, string>)[decisionAction.value])
 
 const actionButtonLabel = computed(() => ({
-  confirmed: current.value?.status === 'CONFIRMED' ? 'Mettre a jour et envoyer' : 'Confirmer et envoyer',
+  confirmed: current.value?.deliveryType === 'FARM' && scheduleMode.value === 'PROPOSE'
+    ? 'Envoyer la proposition'
+    : current.value?.status === 'CONFIRMED' ? 'Mettre a jour et envoyer' : 'Confirmer et envoyer',
   rejected: 'Refuser et envoyer',
   cancelled: 'Annuler et envoyer'
 } as Record<DecisionAction, string>)[decisionAction.value])
@@ -738,7 +758,10 @@ const actionButtonClass = computed(() => ({
 
 const loadPreview = async () => {
   if (!current.value) return
-  const params = new URLSearchParams({ action: decisionAction.value })
+  const previewAction = decisionAction.value === 'confirmed' && current.value.deliveryType === 'FARM' && scheduleMode.value === 'PROPOSE'
+    ? 'proposed'
+    : decisionAction.value
+  const params = new URLSearchParams({ action: previewAction })
   if (decisionAction.value === 'confirmed') {
     if (fulfillmentForm.date) params.set('fulfillmentDate', fulfillmentForm.date)
     if (fulfillmentForm.time) params.set('fulfillmentTime', fulfillmentForm.time)
@@ -756,6 +779,7 @@ const loadPreview = async () => {
 const openAction = async (reservation: Reservation, action: DecisionAction) => {
   current.value = reservation
   decisionAction.value = action
+  scheduleMode.value = 'CONFIRM'
   adminNote.value = reservation.adminNote ?? ''
   fulfillmentForm.date = formatDateInput(reservation.fulfillmentDate)
   fulfillmentForm.time = normalizeTimeInput(reservation.fulfillmentTime)
@@ -861,7 +885,7 @@ const toggleStatusFilter = (status: string) => {
 }
 
 watch(
-  () => [fulfillmentForm.date, fulfillmentForm.time, fulfillmentForm.location, decisionAction.value] as const,
+  () => [fulfillmentForm.date, fulfillmentForm.time, fulfillmentForm.location, decisionAction.value, scheduleMode.value] as const,
   () => {
     if (decisionAction.value === 'confirmed' && current.value) {
       loadPreview()
@@ -894,6 +918,16 @@ watch([detailsOccurrencePage, detailsNotificationPage], () => {
     loadDetails()
   }
 })
+
+watch(
+  () => route.query.open,
+  async (value) => {
+    const reservationId = Number(value)
+    if (!reservationId || Number.isNaN(reservationId) || pending.value) return
+    await openDetailsById(reservationId)
+  },
+  { immediate: true }
+)
 
 const syncReservationCalendar = async () => {
   if (!detailsReservation.value) return
@@ -979,12 +1013,13 @@ const submit = async () => {
   if (!current.value) return
   sending.value = true
   try {
-    const response = await $fetch<{ calendarSynced?: boolean; calendarRemoved?: boolean; calendarReason?: string | null }>(
+    const response = await $fetch<{ calendarSynced?: boolean; calendarRemoved?: boolean; calendarReason?: string | null; proposalPending?: boolean }>(
       `/api/admin/reservations/${current.value.id}/decide`,
       {
         method: 'POST',
         body: {
           decision: decisionAction.value.toUpperCase(),
+          scheduleMode: decisionAction.value === 'confirmed' ? scheduleMode.value : undefined,
           adminNote: adminNote.value || null,
           fulfillmentDate: decisionAction.value === 'confirmed' ? fulfillmentForm.date || null : null,
           fulfillmentTime: decisionAction.value === 'confirmed' ? fulfillmentForm.time || null : null,
@@ -994,7 +1029,9 @@ const submit = async () => {
       }
     )
 
-    if (decisionAction.value === 'confirmed') {
+    if (decisionAction.value === 'confirmed' && response.proposalPending) {
+      $toast.success('Contre-proposition envoyee au client')
+    } else if (decisionAction.value === 'confirmed') {
       $toast.success(response.calendarSynced
         ? 'Reservation confirmee, email envoye et agenda synchronise'
         : 'Reservation confirmee et email envoye')

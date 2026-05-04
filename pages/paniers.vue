@@ -120,7 +120,7 @@
           </div>
           <div class="form-control md:col-span-2">
             <label class="label"><span class="label-text">{{ $t('pages.baskets.phone') }}</span></label>
-            <input v-model="form.phone" type="tel" class="input input-bordered" />
+            <input v-model="form.phone" type="tel" class="input input-bordered w-full" />
           </div>
         </div>
 
@@ -167,9 +167,33 @@
           </label>
         </div>
 
-        <div v-if="form.deliveryType === 'FARM'" class="alert alert-info mb-3 text-sm">
-          <Icon name="mdi:information-outline" size="18" />
-          <span>Nous confirmerons par email le creneau exact de retrait a la ferme pour votre panier. Paiement en especes au retrait.</span>
+        <div v-if="form.deliveryType === 'FARM'" class="mb-3 space-y-3">
+          <div class="alert alert-info text-sm">
+            <Icon name="mdi:information-outline" size="18" />
+            <span>Le retrait a la ferme pour les paniers se fait par defaut sur le creneau ci-dessous. Vous pouvez proposer un autre horaire si besoin. Paiement en especes au retrait.</span>
+          </div>
+          <div class="rounded-xl bg-base-300 p-4 text-sm">
+            <div class="font-medium">Adresse de la ferme</div>
+            <div class="mt-1 opacity-80">{{ deliveryOptions?.farmPickup.address }}</div>
+            <div class="mt-3 font-medium">Creneau propose par defaut</div>
+            <div class="mt-1 opacity-80">
+              {{ deliveryOptions?.farmPickup.nextDate ? formatNextDate(deliveryOptions.farmPickup.nextDate) : '' }} de {{ deliveryOptions?.farmPickup.startTime }} a {{ deliveryOptions?.farmPickup.endTime }}
+            </div>
+          </div>
+          <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 bg-base-200 px-4 py-3">
+            <input v-model="form.farmAlternateEnabled" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
+            <span class="label-text">Proposer un autre jour / une autre heure</span>
+          </label>
+          <div v-if="form.farmAlternateEnabled" class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div class="form-control">
+              <label class="label"><span class="label-text">Autre date souhaitee</span></label>
+              <input v-model="form.farmAlternateDate" type="date" class="input input-bordered w-full" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Autre heure souhaitee</span></label>
+              <input v-model="form.farmAlternateTime" type="time" class="input input-bordered w-full" />
+            </div>
+          </div>
         </div>
 
         <div v-if="form.deliveryType === 'PICKUP'" class="alert alert-info mb-3 text-sm">
@@ -284,7 +308,7 @@
                 <Icon name="mdi:calendar-check" size="14" class="mr-1 inline" />
                 {{ formatNextDate(selectedTour.nextDate) }}
               </div>
-              <div v-if="SUBSCRIPTIONS_ENABLED && selectedTour.monthlyPrice" class="text-success">
+        <div v-if="subscriptionsEnabled && selectedTour.monthlyPrice" class="text-success">
                 <Icon name="mdi:cash-check" size="14" class="mr-1 inline" />
                 {{ $t('pages.baskets.monthlySubscriptionPrice', { price: $formatPrice(selectedTour.monthlyPrice) }) }}
               </div>
@@ -293,7 +317,7 @@
           </div>
         </div>
 
-        <div v-if="SUBSCRIPTIONS_ENABLED && form.deliveryType" class="mb-3 rounded-xl border border-base-300 bg-base-200 p-4 text-sm">
+        <div v-if="subscriptionsEnabled && form.deliveryType" class="mb-3 rounded-xl border border-base-300 bg-base-200 p-4 text-sm">
           <label class="label cursor-pointer justify-start gap-3 p-0">
             <input v-model="form.monthlySubscription" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
             <span class="label-text font-medium">{{ $t('pages.baskets.subscribeMonthly') }}</span>
@@ -341,8 +365,6 @@
 </template>
 
 <script setup lang="ts">
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
-
 interface PublicBasket {
   id: number
   name: string
@@ -398,10 +420,11 @@ interface OrdersWindow {
 interface SiteConfig {
   facebookFluxDeactivated: boolean
   ordersWindow: OrdersWindow
+  subscriptionsEnabled: boolean
 }
 
 interface DeliveryOptions {
-  farmPickup: { label: string; location: string }
+  farmPickup: { label: string; address: string; dayOfWeek: number; startTime: string; endTime: string; nextDate: string; slotLabel: string }
   pickupPoints: PickupPoint[]
   tours: DeliveryTour[]
   servedCities: string[]
@@ -415,6 +438,7 @@ const { data: deliveryCities, pending: deliveryCitiesLoading } = await useFetch<
 
 const ordersOpen = computed(() => siteConfig.value?.ordersWindow.isOpen ?? true)
 const ordersWindow = computed(() => siteConfig.value?.ordersWindow)
+const subscriptionsEnabled = computed(() => siteConfig.value?.subscriptionsEnabled ?? false)
 
 const formatLongDate = (value: string) =>
   new Date(value).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', {
@@ -469,7 +493,10 @@ const form = reactive({
   deliveryType: '' as '' | 'FARM' | 'PICKUP' | 'TOUR',
   pickupPointId: null as number | null,
   deliveryTourId: null as number | null,
-  monthlySubscription: false
+  monthlySubscription: false,
+  farmAlternateEnabled: false,
+  farmAlternateDate: '',
+  farmAlternateTime: ''
 })
 
 const canDeliverToCity = computed(() => {
@@ -512,6 +539,11 @@ watch(() => form.deliveryType, (value) => {
   }
   if (value !== 'PICKUP') {
     resetPickupFields()
+  }
+  if (value !== 'FARM') {
+    form.farmAlternateEnabled = false
+    form.farmAlternateDate = ''
+    form.farmAlternateTime = ''
   }
 })
 
@@ -611,6 +643,13 @@ const submit = async () => {
     }
   }
 
+  if (form.deliveryType === 'FARM' && form.farmAlternateEnabled) {
+    if (!form.farmAlternateDate || !form.farmAlternateTime) {
+      $toast.error('Renseignez la date et l heure souhaitees pour votre autre creneau')
+      return
+    }
+  }
+
   submitting.value = true
   try {
     await $fetch('/api/reservations', {
@@ -627,7 +666,9 @@ const submit = async () => {
         deliveryAddress: form.deliveryType === 'TOUR' ? form.deliveryAddress : '',
         deliveryCity: form.deliveryType === 'TOUR' ? form.deliveryCity : '',
         deliveryPostalCode: form.deliveryType === 'TOUR' ? form.deliveryPostalCode : '',
-        monthlySubscription: SUBSCRIPTIONS_ENABLED ? form.monthlySubscription : false
+        monthlySubscription: subscriptionsEnabled.value ? form.monthlySubscription : false,
+        farmAlternateDate: form.deliveryType === 'FARM' && form.farmAlternateEnabled ? form.farmAlternateDate : null,
+        farmAlternateTime: form.deliveryType === 'FARM' && form.farmAlternateEnabled ? form.farmAlternateTime : null
       }
     })
 
@@ -644,7 +685,10 @@ const submit = async () => {
       deliveryType: '',
       pickupPointId: null,
       deliveryTourId: null,
-      monthlySubscription: false
+      monthlySubscription: false,
+      farmAlternateEnabled: false,
+      farmAlternateDate: '',
+      farmAlternateTime: ''
     })
     citySearch.value = ''
     showCityDropdown.value = false

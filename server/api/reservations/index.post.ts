@@ -1,8 +1,8 @@
-import { getSetting, SETTING_KEYS, getOrdersWindow } from '~/server/utils/settings'
+import { getSetting, SETTING_KEYS, getOrdersWindow, getFarmPickupConfig, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { sendGmail } from '~/server/utils/gmail'
-import { buildGenericEmail } from '~/server/utils/reservationEmails'
+import { buildAdminReservationSummary, buildGenericEmail } from '~/server/utils/reservationEmails'
 import { getReservationFulfillment } from '~/server/utils/reservationFulfillment'
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
+import { createReservationScheduleProposal, normalizeProposalDate, normalizeProposalTime } from '~/server/utils/reservationScheduleProposals'
 import { prisma } from '../../../prisma/client'
 import { AuthService } from '../../services/auth/authService'
 import { randomBytes } from 'node:crypto'
@@ -20,6 +20,8 @@ interface Body {
   deliveryCity?: string
   deliveryPostalCode?: string
   monthlySubscription?: boolean
+  farmAlternateDate?: string | null
+  farmAlternateTime?: string | null
 }
 
 const authService = new AuthService()
@@ -32,6 +34,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const window = await getOrdersWindow()
+  const subscriptionsEnabled = await isSubscriptionsEnabled()
   if (!window.isOpen) {
     throw createError({ statusCode: 423, statusMessage: window.message || 'Les commandes sont actuellement fermees' })
   }
@@ -58,9 +61,14 @@ export default defineEventHandler(async (event) => {
   let deliveryTourId: number | null = null
   let pickupPoint: { name: string; address: string | null; deliveryDay: number | null; pickupStartTime: string | null } | null = null
   let deliveryTour: { name: string; dayOfWeek: number; startTime: string; endTime: string } | null = null
+  const farmPickup = await getFarmPickupConfig()
+  const farmAlternateTime = normalizeProposalTime(body.farmAlternateTime)
 
   if (body.deliveryType === 'FARM') {
     deliveryType = 'FARM'
+    if (body.farmAlternateDate && !farmAlternateTime) {
+      throw createError({ statusCode: 400, statusMessage: 'Heure requise pour proposer un autre creneau a la ferme' })
+    }
   } else if (body.deliveryType === 'PICKUP') {
     if (!body.pickupPointId) throw createError({ statusCode: 400, statusMessage: 'Point relais requis' })
     const p = await prisma.pickupPoint.findUnique({
@@ -116,10 +124,18 @@ export default defineEventHandler(async (event) => {
     deliveryType,
     pickupPoint,
     deliveryTour,
+    farmPickup,
     deliveryAddress,
     deliveryCity,
     deliveryPostalCode
   })
+
+  const farmRequestedDate = deliveryType === 'FARM'
+    ? (body.farmAlternateDate ? normalizeProposalDate(body.farmAlternateDate) : fulfillment.fulfillmentDate)
+    : null
+  const farmRequestedTime = deliveryType === 'FARM'
+    ? (farmAlternateTime || fulfillment.fulfillmentTime)
+    : null
 
   const reservation = await prisma.reservation.create({
     data: {
@@ -136,13 +152,25 @@ export default defineEventHandler(async (event) => {
       deliveryAddress,
       deliveryCity,
       deliveryPostalCode,
-      fulfillmentDate: fulfillment.fulfillmentDate,
-      fulfillmentTime: fulfillment.fulfillmentTime,
+      fulfillmentDate: deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate,
+      fulfillmentTime: deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime,
       fulfillmentLocation: fulfillment.fulfillmentLocation,
-      monthlySubscription: SUBSCRIPTIONS_ENABLED ? (body.monthlySubscription ?? false) : false,
-      publicActionToken: randomBytes(24).toString('hex')
+      monthlySubscription: subscriptionsEnabled ? (body.monthlySubscription ?? false) : false,
+      publicActionToken: randomBytes(24).toString('hex'),
+      scheduleProposalPendingBy: deliveryType === 'FARM' ? 'ADMIN' : null,
+      lastScheduleProposalAt: deliveryType === 'FARM' ? new Date() : null
     }
   })
+
+  if (deliveryType === 'FARM' && farmRequestedDate && farmRequestedTime) {
+    await createReservationScheduleProposal({
+      reservationId: reservation.id,
+      proposedBy: 'CUSTOMER',
+      proposalDate: farmRequestedDate,
+      proposalTime: farmRequestedTime,
+      proposalLocation: fulfillment.fulfillmentLocation
+    })
+  }
 
   try {
     const deliveryLabel = deliveryType === 'FARM'
@@ -161,8 +189,8 @@ Recapitulatif :
 
 - Mode : ${deliveryLabel}
 - Lieu / adresse : ${fulfillment.fulfillmentLocation ?? '-'}
-- Date indicative : ${fulfillment.fulfillmentDate ? fulfillment.fulfillmentDate.toLocaleDateString('fr-FR') : 'a confirmer'}
-- Heure indicative : ${fulfillment.fulfillmentTime ?? 'a confirmer'}
+- Date indicative : ${(deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)?.toLocaleDateString('fr-FR') ?? 'a confirmer'}
+- Heure indicative : ${deliveryType === 'FARM' ? (farmRequestedTime ?? 'a confirmer') : (fulfillment.fulfillmentTime ?? 'a confirmer')}
 - Montant du panier : ${Number(basket.finalPrice).toFixed(2)} EUR
 
 Important :
@@ -170,6 +198,7 @@ Important :
 - votre demande doit encore etre confirmee par la ferme
 - le paiement se fait en especes au retrait ou a la remise
 - aucun paiement en ligne n'est demande
+- pour un retrait a la ferme, ce creneau reste une proposition tant que la ferme ne l'a pas valide
 
 Nous vous recontacterons par email avec la confirmation finale.`
 
@@ -190,31 +219,29 @@ Nous vous recontacterons par email avec la confirmation finale.`
 
     const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
     if (adminEmail) {
+      const adminBody = buildAdminReservationSummary({
+        reservationId: reservation.id,
+        basketName: basket.name,
+        customerName: reservation.customerName,
+        customerEmail: reservation.email,
+        customerPhone: reservation.phone,
+        customerMessage: reservation.message,
+        deliveryLabel,
+        fulfillmentDate: deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate,
+        fulfillmentTime: deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime,
+        fulfillmentLocation: fulfillment.fulfillmentLocation,
+        contextLine: deliveryType === 'FARM' && body.farmAlternateDate
+          ? 'Nouvelle reservation recue avec proposition client pour le retrait a la ferme.'
+          : 'Nouvelle reservation recue.'
+      })
+
       await sendGmail({
         to: adminEmail,
         subject: `Nouvelle reservation - ${basket.name}`,
-        body: `Nouvelle reservation recue :
-
-- Panier : ${basket.name}
-- Client : ${reservation.customerName}
-- Email : ${reservation.email}
-- Telephone : ${reservation.phone ?? '-'}
-- Message : ${reservation.message ?? '-'}
-
-Connectez-vous a l'admin pour valider :
-/admin/reservations`,
+        body: adminBody,
         htmlBody: buildGenericEmail({
           title: `Nouvelle reservation - ${basket.name}`,
-          body: `Nouvelle reservation recue :
-
-- Panier : ${basket.name}
-- Client : ${reservation.customerName}
-- Email : ${reservation.email}
-- Telephone : ${reservation.phone ?? '-'}
-- Message : ${reservation.message ?? '-'}
-
-Connectez-vous a l'admin pour valider :
-/admin/reservations`,
+          body: adminBody,
           accent: '#4f8a34'
         })
       })

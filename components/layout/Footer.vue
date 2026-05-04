@@ -13,8 +13,8 @@
         <h4 class="footer-title">{{ $t("footer.hours") }}</h4>
         <div class="opacity-80 text-center">
           <p>{{ $t("footer.farmSale") }}</p>
-          <p>{{ $t("footer.saturday") }}</p>
-          <p>{{ $t("footer.time") }}</p>
+          <p>{{ farmDayLabel }}</p>
+          <p>{{ siteConfig?.farmPickup.slotLabel || $t('pages.home.scheduleDetail') }}</p>
         </div>
       </div>
 
@@ -22,15 +22,14 @@
       <div class="flex flex-col items-center">
         <h4 class="footer-title">{{ $t("footer.contact") }}</h4>
         <div class="opacity-80 text-center">
-          <p>Campeyrigoux</p>
-          <p>30140 Saint Sébastien d'Aigrefeuille</p>
+          {{ siteConfig?.farmPickup.address }}
           <p class="flex items-center gap-2 justify-center">
             <Icon name="mdi:phone" size="18" />
-            07 68 55 06 64
+            {{ siteConfig?.adminPhone || '07 68 55 06 64' }}
           </p>
           <p class="flex items-center gap-2 justify-center">
             <Icon name="mdi:email" size="18" />
-            ferme.campeyrigoux@gmail.com
+            {{ siteConfig?.adminEmail }}
           </p>
         </div>
       </div>
@@ -52,3 +51,27 @@
     </div>
   </footer>
 </template>
+
+
+<script setup lang="ts">
+interface SiteConfig {
+  farmPickup: {
+    address: string
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+    slotLabel: string
+  },
+  adminEmail: string
+  adminPhone: string
+}
+
+const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
+
+const farmDayLabel = computed(() => {
+  const day = siteConfig.value?.farmPickup.dayOfWeek
+  const labels = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+  return typeof day === 'number' ? labels[day] : ''
+})
+</script>
+

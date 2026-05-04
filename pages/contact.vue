@@ -60,6 +60,27 @@ const handleSubmit = async () => {
     sending.value = false
   }
 }
+
+
+interface SiteConfig {
+  farmPickup: {
+    address: string
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+    slotLabel: string
+  },
+  adminEmail: string
+  adminPhone: string
+}
+
+const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
+
+const farmDayLabel = computed(() => {
+  const day = siteConfig.value?.farmPickup.dayOfWeek
+  const labels = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+  return typeof day === 'number' ? labels[day] : ''
+})
 </script>
 
 <template>
@@ -140,8 +161,7 @@ const handleSubmit = async () => {
                   <Icon name="mdi:map-marker" class="mt-1 text-xl text-primary" />
                   <div>
                     <h3 class="font-medium">{{ $t('pages.contact.address') }}</h3>
-                    <p class="text-base-content/80">Campeyrigoux</p>
-                    <p class="text-base-content/80">30140 Saint Sebastien d'Aigrefeuille</p>
+                    <p class="text-base-content/80">{{ siteConfig?.farmPickup.address }}</p>
                   </div>
                 </div>
 
@@ -149,7 +169,7 @@ const handleSubmit = async () => {
                   <Icon name="mdi:phone" class="mt-1 text-xl text-primary" />
                   <div>
                     <h3 class="font-medium">{{ $t('pages.contact.phone') }}</h3>
-                    <p class="text-base-content/80">07 68 55 06 64</p>
+                    <p class="text-base-content/80">{{ siteConfig?.adminPhone || '07 68 55 06 64' }}</p>
                   </div>
                 </div>
 
@@ -157,7 +177,7 @@ const handleSubmit = async () => {
                   <Icon name="mdi:email" class="mt-1 text-xl text-primary" />
                   <div>
                     <h3 class="font-medium">Email</h3>
-                    <p class="text-base-content/80">ferme.campeyrigoux@gmail.com</p>
+                    <p class="text-base-content/80">{{ siteConfig?.adminEmail || 'ferme.campeyrigoux@gmail.com' }}</p>
                   </div>
                 </div>
 
@@ -166,7 +186,7 @@ const handleSubmit = async () => {
                   <div>
                     <h3 class="font-medium">{{ $t('pages.contact.openingHours') }}</h3>
                     <p class="text-base-content/80">{{ $t('pages.contact.directSale') }}</p>
-                    <p class="text-base-content/80">{{ $t('pages.contact.schedule') }}</p>
+                    <p class="text-base-content/80">{{ farmDayLabel }} {{ siteConfig?.farmPickup.startTime }} - {{ siteConfig?.farmPickup.endTime }}</p>
                   </div>
                 </div>
               </div>

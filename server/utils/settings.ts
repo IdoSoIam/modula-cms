@@ -14,8 +14,43 @@ export const SETTING_KEYS = {
   FACEBOOK_FLUX_DEACTIVATED: 'facebook_flux_deactivated',
   ORDERS_OPEN_FROM: 'orders_open_from',
   ORDERS_OPEN_TO: 'orders_open_to',
-  ORDERS_CLOSED_MESSAGE: 'orders_closed_message'
+  ORDERS_CLOSED_MESSAGE: 'orders_closed_message',
+  REGISTER_ENABLED: 'register_enabled',
+  SUBSCRIPTIONS_ENABLED: 'subscriptions_enabled',
+  FARM_PICKUP_ADDRESS: 'farm_pickup_address',
+  FARM_PICKUP_DAY_OF_WEEK: 'farm_pickup_day_of_week',
+  FARM_PICKUP_START_TIME: 'farm_pickup_start_time',
+  FARM_PICKUP_END_TIME: 'farm_pickup_end_time',
+  FARM_PICKUP_TIME: 'farm_pickup_time'
 } as const
+
+export interface FeatureFlags {
+  registerEnabled: boolean
+  subscriptionsEnabled: boolean
+}
+
+export interface FarmPickupConfig {
+  label: string
+  address: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  slotLabel: string
+}
+
+const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
+  registerEnabled: false,
+  subscriptionsEnabled: false
+}
+
+const DEFAULT_FARM_PICKUP_CONFIG: FarmPickupConfig = {
+  label: 'Retrait a la ferme',
+  address: 'Ferme du Campeyrigoux, 31350 Sepx',
+  dayOfWeek: 5,
+  startTime: '17:30',
+  endTime: '19:00',
+  slotLabel: '17:30-19:00'
+}
 
 export interface OrdersWindow {
   from: string | null
@@ -37,6 +72,16 @@ export async function getOrdersWindow(): Promise<OrdersWindow> {
   const fromOk = !from || new Date(from) <= now
   const toOk = !to || new Date(`${to}T23:59:59`) >= now
   return { from, to, message, isOpen: fromOk && toOk }
+}
+
+function parseBooleanSetting(value: string | null | undefined, fallback: boolean) {
+  if (value == null || value === '') return fallback
+  return value === 'true'
+}
+
+function parseIntegerSetting(value: string | null | undefined, fallback: number) {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) ? parsed : fallback
 }
 
 export const DEFAULT_TEMPLATES = {
@@ -117,4 +162,52 @@ export async function deleteSettings(keys: string[]): Promise<void> {
 export async function getSettings(keys: string[]): Promise<Record<string, string>> {
   const rows = await prisma.siteParams.findMany({ where: { key: { in: keys } } })
   return Object.fromEntries(rows.map((r) => [r.key, r.value]))
+}
+
+export async function getFeatureFlags(): Promise<FeatureFlags> {
+  const settings = await getSettings([
+    SETTING_KEYS.REGISTER_ENABLED,
+    SETTING_KEYS.SUBSCRIPTIONS_ENABLED
+  ])
+
+  return {
+    registerEnabled: parseBooleanSetting(settings[SETTING_KEYS.REGISTER_ENABLED], DEFAULT_FEATURE_FLAGS.registerEnabled),
+    subscriptionsEnabled: parseBooleanSetting(settings[SETTING_KEYS.SUBSCRIPTIONS_ENABLED], DEFAULT_FEATURE_FLAGS.subscriptionsEnabled)
+  }
+}
+
+export async function isRegisterEnabled() {
+  return (await getFeatureFlags()).registerEnabled
+}
+
+export async function isSubscriptionsEnabled() {
+  return (await getFeatureFlags()).subscriptionsEnabled
+}
+
+export async function getFarmPickupConfig(): Promise<FarmPickupConfig> {
+  const settings = await getSettings([
+    SETTING_KEYS.FARM_PICKUP_ADDRESS,
+    SETTING_KEYS.FARM_PICKUP_DAY_OF_WEEK,
+    SETTING_KEYS.FARM_PICKUP_START_TIME,
+    SETTING_KEYS.FARM_PICKUP_END_TIME,
+    SETTING_KEYS.FARM_PICKUP_TIME
+  ])
+
+  const dayOfWeek = parseIntegerSetting(
+    settings[SETTING_KEYS.FARM_PICKUP_DAY_OF_WEEK],
+    DEFAULT_FARM_PICKUP_CONFIG.dayOfWeek
+  )
+
+  const legacyTime = settings[SETTING_KEYS.FARM_PICKUP_TIME]?.trim() || ''
+  const startTime = settings[SETTING_KEYS.FARM_PICKUP_START_TIME]?.trim() || legacyTime || DEFAULT_FARM_PICKUP_CONFIG.startTime
+  const endTime = settings[SETTING_KEYS.FARM_PICKUP_END_TIME]?.trim() || DEFAULT_FARM_PICKUP_CONFIG.endTime
+
+  return {
+    label: DEFAULT_FARM_PICKUP_CONFIG.label,
+    address: settings[SETTING_KEYS.FARM_PICKUP_ADDRESS]?.trim() || DEFAULT_FARM_PICKUP_CONFIG.address,
+    dayOfWeek: dayOfWeek >= 0 && dayOfWeek <= 6 ? dayOfWeek : DEFAULT_FARM_PICKUP_CONFIG.dayOfWeek,
+    startTime,
+    endTime,
+    slotLabel: `${startTime}-${endTime}`
+  }
 }

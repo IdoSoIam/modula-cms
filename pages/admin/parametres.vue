@@ -63,6 +63,57 @@
 
       <section class="card bg-base-200 shadow">
         <div class="card-body">
+          <h2 class="card-title">Fonctionnalites</h2>
+          <div class="grid gap-3 md:grid-cols-2">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input v-model="form.registerEnabled" type="checkbox" class="toggle toggle-primary" />
+              <span class="label-text">Inscription publique active</span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-3">
+              <input v-model="form.subscriptionsEnabled" type="checkbox" class="toggle toggle-primary" />
+              <span class="label-text">Abonnements paniers actifs</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="card bg-base-200 shadow">
+        <div class="card-body">
+          <h2 class="card-title">Retrait a la ferme</h2>
+          <p class="text-sm opacity-70">
+            Adresse et horaires d'ouverture de la ferme. Ils servent a la fois pour la vente a la ferme et comme creneau par defaut pour le retrait des paniers.
+          </p>
+          <div class="grid gap-3 md:grid-cols-2">
+            <div class="form-control md:col-span-2">
+              <label class="label"><span class="label-text">Adresse precise</span></label>
+              <textarea v-model="form.farmPickupAddress" class="textarea textarea-bordered w-full" rows="2" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Jour par defaut</span></label>
+              <select v-model.number="form.farmPickupDayOfWeek" class="select select-bordered w-full">
+                <option :value="1">Lundi</option>
+                <option :value="2">Mardi</option>
+                <option :value="3">Mercredi</option>
+                <option :value="4">Jeudi</option>
+                <option :value="5">Vendredi</option>
+                <option :value="6">Samedi</option>
+                <option :value="0">Dimanche</option>
+              </select>
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Debut d'ouverture</span></label>
+              <input v-model="form.farmPickupStartTime" type="time" class="input input-bordered w-full" />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">Fin d'ouverture</span></label>
+              <input v-model="form.farmPickupEndTime" type="time" class="input input-bordered w-full" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card bg-base-200 shadow">
+        <div class="card-body">
           <h2 class="card-title">Connexion Google</h2>
           <p class="text-sm opacity-70">
             La connexion Google sert a envoyer les emails de confirmation et a synchroniser les reservations confirmees dans Google Calendar.
@@ -185,6 +236,15 @@ interface Settings {
   googleCalendarName: string
   googleCalendars: GoogleCalendarOption[]
   facebookFluxDeactivated: boolean
+  registerEnabled: boolean
+  subscriptionsEnabled: boolean
+  farmPickup: {
+    address: string
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+    slotLabel: string
+  }
   ordersOpenFrom: string
   ordersOpenTo: string
   ordersClosedMessage: string
@@ -198,6 +258,12 @@ const form = reactive({
   googleCalendarId: '',
   googleCalendarName: '',
   facebookFluxDeactivated: false,
+  registerEnabled: false,
+  subscriptionsEnabled: false,
+  farmPickupAddress: '',
+  farmPickupDayOfWeek: 5,
+  farmPickupStartTime: '17:30',
+  farmPickupEndTime: '19:00',
   ordersOpenFrom: '',
   ordersOpenTo: '',
   ordersClosedMessage: '',
@@ -217,6 +283,12 @@ watchEffect(() => {
     form.googleCalendarId = data.value.googleCalendarId
     form.googleCalendarName = data.value.googleCalendarName
     form.facebookFluxDeactivated = data.value.facebookFluxDeactivated
+    form.registerEnabled = data.value.registerEnabled
+    form.subscriptionsEnabled = data.value.subscriptionsEnabled
+    form.farmPickupAddress = data.value.farmPickup.address
+    form.farmPickupDayOfWeek = data.value.farmPickup.dayOfWeek
+    form.farmPickupStartTime = data.value.farmPickup.startTime
+    form.farmPickupEndTime = data.value.farmPickup.endTime
     form.ordersOpenFrom = data.value.ordersOpenFrom
     form.ordersOpenTo = data.value.ordersOpenTo
     form.ordersClosedMessage = data.value.ordersClosedMessage
@@ -242,6 +314,12 @@ const save = async () => {
         googleCalendarId: form.googleCalendarId,
         googleCalendarName: form.googleCalendarName,
         facebookFluxDeactivated: form.facebookFluxDeactivated,
+        registerEnabled: form.registerEnabled,
+        subscriptionsEnabled: form.subscriptionsEnabled,
+        farmPickupAddress: form.farmPickupAddress,
+        farmPickupDayOfWeek: form.farmPickupDayOfWeek,
+        farmPickupStartTime: form.farmPickupStartTime,
+        farmPickupEndTime: form.farmPickupEndTime,
         ordersOpenFrom: form.ordersOpenFrom,
         ordersOpenTo: form.ordersOpenTo,
         ordersClosedMessage: form.ordersClosedMessage,

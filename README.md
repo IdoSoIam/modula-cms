@@ -21,7 +21,7 @@ Le site couvre deja les briques principales pour publier une version utile :
 - synchronisation Google Calendar
 - lien public de gestion de reservation par token
 
-Les abonnements existent dans le code, mais ils sont actuellement desactives par `SUBSCRIPTIONS_ENABLED = false` dans [shared/constants/reservationFeatures.ts](/D:/Works/ferme-campeyrigoux/shared/constants/reservationFeatures.ts:1).
+Les abonnements et l'inscription publique sont maintenant pilotables depuis [pages/admin/parametres.vue](/D:/Works/ferme-campeyrigoux/pages/admin/parametres.vue:1), au lieu d'etre bloques en dur.
 
 ## Parcours client actuel
 
@@ -32,10 +32,13 @@ Les abonnements existent dans le code, mais ils sont actuellement desactives par
    - `FARM` : retrait a la ferme
    - `PICKUP` : point relais
    - `TOUR` : tournee de livraison
-5. La reservation est creee en `PENDING` via [server/api/reservations/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/reservations/index.post.ts:1).
-6. L'admin recoit une notification email.
-7. L'admin confirme / refuse / annule depuis [pages/admin/reservations.vue](/D:/Works/ferme-campeyrigoux/pages/admin/reservations.vue:1).
-8. Le client recoit ensuite l'email de decision avec, si besoin, un lien public de gestion.
+5. Pour `FARM`, le formulaire propose par defaut le creneau configure dans l'admin, avec possibilite pour le client de demander une autre date / heure.
+6. La reservation est creee en `PENDING` via [server/api/reservations/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/reservations/index.post.ts:1).
+7. Si le retrait est a la ferme, un historique de propositions de creneaux est conserve et le client peut accepter ou contre-proposer depuis le lien public.
+8. L'admin recoit une notification email.
+9. L'admin confirme / refuse / annule depuis [pages/admin/reservations.vue](/D:/Works/ferme-campeyrigoux/pages/admin/reservations.vue:1).
+10. Pour `FARM`, l'admin peut soit confirmer le creneau, soit envoyer une contre-proposition.
+11. Le client recoit ensuite l'email de decision avec, si besoin, un lien public de gestion.
 
 ## Ce qui a deja ete fait dans les rollouts du 03/05
 
@@ -57,6 +60,8 @@ Les abonnements existent dans le code, mais ils sont actuellement desactives par
 - inscription publique desactivee
 - le mode `Retrait a la ferme` sert uniquement aux paniers reserves sur le site
 - la `vente a la ferme` reste un temps de vente directe distinct pour les legumes recoltes / recoltables et les autres produits disponibles
+- le creneau et l'adresse du retrait a la ferme sont parametrables dans l'admin
+- en retrait a la ferme, une reservation reste une proposition tant que les deux parties n'ont pas valide le creneau
 
 ## Ce qui manque encore avant une publication sereine
 
@@ -75,16 +80,20 @@ Les abonnements existent dans le code, mais ils sont actuellement desactives par
 
 ### Priorite haute cote admin
 
+- appliquer la migration Prisma qui ajoute l'historique de propositions de creneaux ferme
+
 - verifier que les parametres minimum sont bien renseignables avant mise en ligne :
   - email admin
   - calendrier Google cible si utilise
   - fenetre d'ouverture des commandes
+  - adresse et creneau par defaut du retrait a la ferme
+  - activation / desactivation des abonnements et de l'inscription publique
   - points relais actifs
   - tournees actives avec villes rattachees
 - preparer un vrai process d'exploitation :
   - qui confirme les reservations
   - sous quel delai
-  - comment on fixe le creneau ferme
+  - comment on gere les contre-propositions de creneaux ferme
   - quand on archive les reservations terminees
 
 ### Priorite moyenne
@@ -111,7 +120,7 @@ Les abonnements existent dans le code, mais ils sont actuellement desactives par
 1. Publier sans abonnement.
 2. Publier sans paiement en ligne, avec message explicite "paiement en espece".
 3. Garder un seul parcours principal : panier -> choix du retrait / livraison -> validation admin.
-4. Utiliser `Retrait a la ferme` comme mode principal de vente a la ferme.
+4. Garder `Retrait a la ferme` pour les paniers reserves sur le site et presenter la `vente a la ferme` comme une vente directe distincte.
 5. Garder la connexion reservee a l'admin.
 6. Ajouter ensuite seulement :
    - accuse de reception client

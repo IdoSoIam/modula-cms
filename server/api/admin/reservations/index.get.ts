@@ -1,6 +1,6 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { ensureReservationOccurrences } from '~/server/utils/reservationOccurrences'
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
+import { isSubscriptionsEnabled } from '~/server/utils/settings'
 import { prisma } from '../../../../prisma/client'
 
 function toPositiveInt(value: unknown, fallback: number, max = 100) {
@@ -46,8 +46,8 @@ function getDayStart(date: Date) {
   return copy
 }
 
-function getReservationDisplayOccurrence(reservation: any, today: Date) {
-  if (!SUBSCRIPTIONS_ENABLED) return null
+function getReservationDisplayOccurrence(reservation: any, today: Date, subscriptionsEnabled: boolean) {
+  if (!subscriptionsEnabled) return null
   const futureOccurrences = (reservation.occurrences ?? [])
     .filter((occurrence: any) => new Date(occurrence.occurrenceDate) >= today)
     .sort((a: any, b: any) => new Date(a.occurrenceDate).getTime() - new Date(b.occurrenceDate).getTime())
@@ -56,8 +56,8 @@ function getReservationDisplayOccurrence(reservation: any, today: Date) {
   return nextScheduled ?? futureOccurrences[0] ?? null
 }
 
-function getReservationDisplayDate(reservation: any, today: Date) {
-  const nextOccurrence = getReservationDisplayOccurrence(reservation, today)
+function getReservationDisplayDate(reservation: any, today: Date, subscriptionsEnabled: boolean) {
+  const nextOccurrence = getReservationDisplayOccurrence(reservation, today, subscriptionsEnabled)
   return nextOccurrence
     ? new Date(nextOccurrence.occurrenceDate)
     : reservation.fulfillmentDate
@@ -65,8 +65,8 @@ function getReservationDisplayDate(reservation: any, today: Date) {
       : new Date(reservation.createdAt)
 }
 
-function serializeReservation(reservation: any, today: Date) {
-  const nextOccurrence = getReservationDisplayOccurrence(reservation, today)
+function serializeReservation(reservation: any, today: Date, subscriptionsEnabled: boolean) {
+  const nextOccurrence = getReservationDisplayOccurrence(reservation, today, subscriptionsEnabled)
 
   return {
     id: reservation.id,
@@ -87,9 +87,10 @@ function serializeReservation(reservation: any, today: Date) {
     fulfillmentDate: reservation.fulfillmentDate,
     fulfillmentTime: reservation.fulfillmentTime,
     fulfillmentLocation: reservation.fulfillmentLocation,
-    monthlySubscription: SUBSCRIPTIONS_ENABLED ? reservation.monthlySubscription : false,
-    subscriptionActive: SUBSCRIPTIONS_ENABLED ? reservation.subscriptionActive : false,
+    monthlySubscription: subscriptionsEnabled ? reservation.monthlySubscription : false,
+    subscriptionActive: subscriptionsEnabled ? reservation.subscriptionActive : false,
     subscriptionCancelledAt: reservation.subscriptionCancelledAt,
+    scheduleProposalPendingBy: reservation.scheduleProposalPendingBy,
     googleCalendarEventId: reservation.googleCalendarEventId,
     googleCalendarSyncedAt: reservation.googleCalendarSyncedAt,
     displayDate: nextOccurrence?.occurrenceDate ?? reservation.fulfillmentDate ?? reservation.createdAt,
@@ -130,6 +131,7 @@ function parseStatuses(value: unknown) {
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
+  const subscriptionsEnabled = await isSubscriptionsEnabled()
 
   const query = getQuery(event)
   const mode = query.mode === 'calendar' ? 'calendar' : 'list'
@@ -142,6 +144,9 @@ export default defineEventHandler(async (event) => {
     basket: true,
     pickupPoint: true,
     deliveryTour: { include: { cities: true } },
+    scheduleProposals: {
+      orderBy: { createdAt: 'asc' }
+    },
     occurrences: {
       orderBy: { occurrenceDate: 'asc' }
     }
@@ -165,11 +170,11 @@ export default defineEventHandler(async (event) => {
     include
   })
 
-  if (SUBSCRIPTIONS_ENABLED) {
+  if (subscriptionsEnabled) {
     await Promise.all(
       reservations
         .filter((reservation) => reservation.status === 'CONFIRMED' && reservation.fulfillmentDate)
-        .map((reservation) => ensureReservationOccurrences(reservation))
+        .map((reservation) => ensureReservationOccurrences(reservation, subscriptionsEnabled))
     )
   }
 
@@ -192,7 +197,7 @@ export default defineEventHandler(async (event) => {
     gridEnd.setHours(23, 59, 59, 999)
 
     const calendarItems = hydratedReservations.flatMap((reservation) => {
-      const occurrencesInRange = SUBSCRIPTIONS_ENABLED ? (reservation.occurrences ?? [])
+      const occurrencesInRange = subscriptionsEnabled ? (reservation.occurrences ?? [])
         .filter((occurrence: any) => {
           const date = new Date(occurrence.occurrenceDate)
           return date >= gridStart && date <= gridEnd
@@ -257,9 +262,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const filtered = hydratedReservations
-    .filter((reservation) => getReservationDisplayDate(reservation, today) >= today)
-    .sort((a, b) => getReservationDisplayDate(a, today).getTime() - getReservationDisplayDate(b, today).getTime())
-    .map((reservation) => serializeReservation(reservation, today))
+    .filter((reservation) => getReservationDisplayDate(reservation, today, subscriptionsEnabled) >= today)
+    .sort((a, b) => getReservationDisplayDate(a, today, subscriptionsEnabled).getTime() - getReservationDisplayDate(b, today, subscriptionsEnabled).getTime())
+    .map((reservation) => serializeReservation(reservation, today, subscriptionsEnabled))
 
   const page = toPositiveInt(query.page, 1)
   const perPage = toPositiveInt(query.limit, 10, 50)

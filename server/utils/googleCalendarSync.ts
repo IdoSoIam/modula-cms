@@ -55,7 +55,7 @@ export function getReservationCalendarSyncState(reservation: Reservation) {
   return { canSync: true as const, reason: null }
 }
 
-export async function syncReservationToGoogleCalendar(reservation: ReservationForSync) {
+export async function syncReservationToGoogleCalendar(reservation: ReservationForSync, subscriptionsEnabled: boolean) {
   const calendarId = await getSetting(SETTING_KEYS.GOOGLE_CALENDAR_ID)
   if (!calendarId) {
     return { synced: false as const, eventId: null, reason: 'Aucun calendrier Google n est selectionne dans les parametres.' }
@@ -93,7 +93,8 @@ export async function syncReservationToGoogleCalendar(reservation: ReservationFo
             endTime: reservation.deliveryTour.endTime
           }
         : null,
-      monthlySubscription: reservation.monthlySubscription
+      monthlySubscription: reservation.monthlySubscription,
+      subscriptionsEnabled
     },
     reservation.googleCalendarEventId
   )
@@ -133,7 +134,8 @@ export async function removeReservationFromGoogleCalendar(reservation: Reservati
 
 export async function syncReservationOccurrenceToGoogleCalendar(
   reservation: ReservationForSync,
-  occurrence: ReservationOccurrenceForSync
+  occurrence: ReservationOccurrenceForSync,
+  subscriptionsEnabled = false
 ) {
   const calendarId = await getSetting(SETTING_KEYS.GOOGLE_CALENDAR_ID)
   if (!calendarId || !reservation.googleCalendarEventId) {
@@ -163,14 +165,15 @@ export async function syncReservationOccurrenceToGoogleCalendar(
     pickupPoint: reservation.pickupPoint
       ? { name: reservation.pickupPoint.name, address: reservation.pickupPoint.address }
       : null,
-    deliveryTour: reservation.deliveryTour
-      ? {
-          name: reservation.deliveryTour.name,
-          startTime: reservation.deliveryTour.startTime,
-          endTime: reservation.deliveryTour.endTime
-        }
-      : null,
-    monthlySubscription: false
+      deliveryTour: reservation.deliveryTour
+        ? {
+            name: reservation.deliveryTour.name,
+            startTime: reservation.deliveryTour.startTime,
+            endTime: reservation.deliveryTour.endTime
+          }
+        : null,
+      monthlySubscription: false,
+      subscriptionsEnabled
   })
 
   if (!payload) {

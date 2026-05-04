@@ -1,9 +1,10 @@
 import { prisma } from '../../prisma/client'
 import { getNextDateForDayOfWeek } from '~/server/utils/reservationFulfillment'
+import { getFarmPickupConfig } from '~/server/utils/settings'
 
 export default defineEventHandler(async () => {
   const now = new Date()
-  const [pickupPoints, tours] = await Promise.all([
+  const [pickupPoints, tours, farmPickup] = await Promise.all([
     prisma.pickupPoint.findMany({
       where: { active: true },
       orderBy: [{ position: 'asc' }, { name: 'asc' }],
@@ -22,7 +23,8 @@ export default defineEventHandler(async () => {
       where: { active: true },
       orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
       include: { cities: true }
-    })
+    }),
+    getFarmPickupConfig()
   ])
 
   const formattedTours = tours.map(t => {
@@ -49,8 +51,13 @@ export default defineEventHandler(async () => {
 
   return {
     farmPickup: {
-      label: 'Retrait a la ferme',
-      location: 'Ferme du Campeyrigoux'
+      label: farmPickup.label,
+      address: farmPickup.address,
+      dayOfWeek: farmPickup.dayOfWeek,
+      startTime: farmPickup.startTime,
+      endTime: farmPickup.endTime,
+      nextDate: getNextDateForDayOfWeek(farmPickup.dayOfWeek, now).toISOString(),
+      slotLabel: farmPickup.slotLabel
     },
     pickupPoints,
     tours: formattedTours,

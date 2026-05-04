@@ -13,16 +13,16 @@
       <div class="stat rounded-box bg-base-200">
         <div class="stat-title">Cette semaine</div>
         <div class="stat-value text-success">{{ stats?.upcomingOccurrences7Days ?? '-' }}</div>
-        <div class="stat-desc">{{ SUBSCRIPTIONS_ENABLED ? 'Occurrences planifiees sur 7 jours' : 'Reservations confirmees sur 7 jours' }}</div>
+        <div class="stat-desc">{{ subscriptionsEnabled ? 'Occurrences planifiees sur 7 jours' : 'Reservations confirmees sur 7 jours' }}</div>
       </div>
 
       <div class="stat rounded-box bg-base-200">
         <div class="stat-title">Ce mois-ci</div>
         <div class="stat-value text-primary">{{ stats?.upcomingOccurrencesMonth ?? '-' }}</div>
-        <div class="stat-desc">{{ SUBSCRIPTIONS_ENABLED ? 'Occurrences restantes du mois' : 'Reservations confirmees restantes du mois' }}</div>
+        <div class="stat-desc">{{ subscriptionsEnabled ? 'Occurrences restantes du mois' : 'Reservations confirmees restantes du mois' }}</div>
       </div>
 
-      <div v-if="SUBSCRIPTIONS_ENABLED" class="stat rounded-box bg-base-200">
+      <div v-if="subscriptionsEnabled" class="stat rounded-box bg-base-200">
         <div class="stat-title">Abonnements actifs</div>
         <div class="stat-value text-secondary">{{ stats?.activeSubscriptions ?? '-' }}</div>
         <div class="stat-desc">Reservations recurrentes confirmees</div>
@@ -38,16 +38,16 @@
       <div class="rounded-box bg-base-200 p-5">
         <div class="text-sm uppercase opacity-60">Historique</div>
         <div class="mt-2 text-3xl font-bold">{{ stats?.completedOccurrences ?? '-' }}</div>
-        <div class="mt-1 text-sm opacity-70">{{ SUBSCRIPTIONS_ENABLED ? 'Occurrences passees comptabilisees' : 'Reservations passees comptabilisees' }}</div>
+        <div class="mt-1 text-sm opacity-70">{{ subscriptionsEnabled ? 'Occurrences passees comptabilisees' : 'Reservations passees comptabilisees' }}</div>
       </div>
 
       <div class="rounded-box bg-base-200 p-5">
         <div class="text-sm uppercase opacity-60">Annulations futures</div>
         <div class="mt-2 text-3xl font-bold text-warning">{{ stats?.cancelledOccurrences ?? '-' }}</div>
-        <div class="mt-1 text-sm opacity-70">{{ SUBSCRIPTIONS_ENABLED ? 'Occurrences annulees encore a venir' : 'Reservations annulees encore a venir' }}</div>
+        <div class="mt-1 text-sm opacity-70">{{ subscriptionsEnabled ? 'Occurrences annulees encore a venir' : 'Reservations annulees encore a venir' }}</div>
       </div>
 
-      <div v-if="SUBSCRIPTIONS_ENABLED" class="rounded-box bg-base-200 p-5">
+      <div v-if="subscriptionsEnabled" class="rounded-box bg-base-200 p-5">
         <div class="text-sm uppercase opacity-60">Archives</div>
         <div class="mt-2 text-3xl font-bold text-neutral">{{ stats?.archivedReservations ?? '-' }}</div>
         <div class="mt-1 text-sm opacity-70">Reservations archivees</div>
@@ -81,9 +81,8 @@
 </template>
 
 <script setup lang="ts">
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
-
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-const { data: stats } = await useFetch('/api/admin/stats')
+const { data: stats } = await useFetch<{ subscriptionsEnabled?: boolean }>('/api/admin/stats')
+const subscriptionsEnabled = computed(() => stats.value?.subscriptionsEnabled ?? false)
 </script>

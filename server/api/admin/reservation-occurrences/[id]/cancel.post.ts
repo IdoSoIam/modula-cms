@@ -4,14 +4,15 @@ import { buildReservationOccurrenceEmail } from '~/server/utils/reservationEmail
 import { sendGmail } from '~/server/utils/gmail'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { cancelReservationOccurrenceInGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
+import { isSubscriptionsEnabled } from '~/server/utils/settings'
 
 interface Body {
   email: { subject: string; body: string }
 }
 
 export default defineEventHandler(async (event) => {
-  if (!SUBSCRIPTIONS_ENABLED) {
+  const subscriptionsEnabled = await isSubscriptionsEnabled()
+  if (!subscriptionsEnabled) {
     throw createError({ statusCode: 410, statusMessage: 'Les abonnements ne sont pas actifs pour le moment.' })
   }
 
@@ -55,7 +56,8 @@ export default defineEventHandler(async (event) => {
     subject: body.email.subject,
     body: body.email.body,
     action: 'CANCELLED',
-    recurrenceId: occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate
+    recurrenceId: occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate,
+    subscriptionsEnabled
   })
 
   await sendGmail({

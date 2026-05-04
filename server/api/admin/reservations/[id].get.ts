@@ -1,6 +1,6 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { ensureReservationOccurrences } from '~/server/utils/reservationOccurrences'
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
+import { isSubscriptionsEnabled } from '~/server/utils/settings'
 import { prisma } from '../../../../prisma/client'
 
 function toPositiveInt(value: unknown, fallback: number, max = 100) {
@@ -21,23 +21,25 @@ export default defineEventHandler(async (event) => {
   const occurrenceLimit = toPositiveInt(query.occurrenceLimit, 5, 50)
   const notificationPage = toPositiveInt(query.notificationPage, 1)
   const notificationLimit = toPositiveInt(query.notificationLimit, 5, 50)
+  const subscriptionsEnabled = await isSubscriptionsEnabled()
 
   const reservation = await prisma.reservation.findUnique({
     where: { id },
     include: {
       basket: true,
       pickupPoint: true,
-      deliveryTour: { include: { cities: true } }
+      deliveryTour: { include: { cities: true } },
+      scheduleProposals: { orderBy: { createdAt: 'asc' } }
     }
   })
   if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
 
-  if (SUBSCRIPTIONS_ENABLED && reservation.status === 'CONFIRMED' && reservation.fulfillmentDate) {
-    await ensureReservationOccurrences(reservation)
+  if (subscriptionsEnabled && reservation.status === 'CONFIRMED' && reservation.fulfillmentDate) {
+    await ensureReservationOccurrences(reservation, subscriptionsEnabled)
   }
 
   const [occurrenceTotal, occurrences, notificationTotal, notifications] = await Promise.all([
-    SUBSCRIPTIONS_ENABLED
+    subscriptionsEnabled
       ? prisma.reservationOccurrence.count({
           where: {
             reservationId: id,
@@ -45,7 +47,7 @@ export default defineEventHandler(async (event) => {
           }
         })
       : Promise.resolve(0),
-    SUBSCRIPTIONS_ENABLED
+    subscriptionsEnabled
       ? prisma.reservationOccurrence.findMany({
           where: {
             reservationId: id,
@@ -83,9 +85,20 @@ export default defineEventHandler(async (event) => {
     fulfillmentDate: reservation.fulfillmentDate,
     fulfillmentTime: reservation.fulfillmentTime,
     fulfillmentLocation: reservation.fulfillmentLocation,
-    monthlySubscription: SUBSCRIPTIONS_ENABLED ? reservation.monthlySubscription : false,
-    subscriptionActive: SUBSCRIPTIONS_ENABLED ? reservation.subscriptionActive : false,
+    monthlySubscription: subscriptionsEnabled ? reservation.monthlySubscription : false,
+    subscriptionActive: subscriptionsEnabled ? reservation.subscriptionActive : false,
     subscriptionCancelledAt: reservation.subscriptionCancelledAt,
+    scheduleProposalPendingBy: reservation.scheduleProposalPendingBy,
+    scheduleProposalAcceptedAt: reservation.scheduleProposalAcceptedAt,
+    scheduleProposals: reservation.scheduleProposals.map((proposal) => ({
+      id: proposal.id,
+      proposedBy: proposal.proposedBy,
+      proposalDate: proposal.proposalDate,
+      proposalTime: proposal.proposalTime,
+      proposalLocation: proposal.proposalLocation,
+      acceptedAt: proposal.acceptedAt,
+      createdAt: proposal.createdAt
+    })),
     googleCalendarEventId: reservation.googleCalendarEventId,
     googleCalendarSyncedAt: reservation.googleCalendarSyncedAt,
     occurrences: occurrences.map((o) => ({
@@ -129,6 +142,7 @@ export default defineEventHandler(async (event) => {
       endTime: reservation.deliveryTour.endTime,
       monthlyPrice: reservation.deliveryTour.monthlyPrice ? Number(reservation.deliveryTour.monthlyPrice) : null,
       cities: reservation.deliveryTour.cities.map((c) => c.city)
-    } : null
+    } : null,
+    subscriptionsEnabled
   }
 })

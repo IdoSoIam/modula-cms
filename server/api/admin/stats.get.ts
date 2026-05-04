@@ -1,5 +1,5 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
+import { isSubscriptionsEnabled } from '~/server/utils/settings'
 import { prisma } from '../../../prisma/client'
 
 function startOfDay(date: Date) {
@@ -16,6 +16,7 @@ function endOfDay(date: Date) {
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
+  const subscriptionsEnabled = await isSubscriptionsEnabled()
 
   const today = startOfDay(new Date())
   const next7Days = endOfDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 6))
@@ -46,7 +47,7 @@ export default defineEventHandler(async (event) => {
         ]
       }
     }),
-    SUBSCRIPTIONS_ENABLED
+    subscriptionsEnabled
       ? prisma.reservation.count({
           where: {
             status: 'CONFIRMED',
@@ -56,7 +57,7 @@ export default defineEventHandler(async (event) => {
           }
         })
       : Promise.resolve(0),
-    SUBSCRIPTIONS_ENABLED
+    subscriptionsEnabled
       ? prisma.reservationOccurrence.count({
           where: {
             status: 'SCHEDULED',
@@ -70,7 +71,7 @@ export default defineEventHandler(async (event) => {
             fulfillmentDate: { gte: today, lte: next7Days }
           }
         }),
-    SUBSCRIPTIONS_ENABLED
+    subscriptionsEnabled
       ? prisma.reservationOccurrence.count({
           where: {
             status: 'SCHEDULED',
@@ -84,7 +85,7 @@ export default defineEventHandler(async (event) => {
             fulfillmentDate: { gte: today, lte: monthEnd }
           }
         }),
-    SUBSCRIPTIONS_ENABLED
+    subscriptionsEnabled
       ? prisma.reservationOccurrence.count({
           where: {
             occurrenceDate: { lt: today }
@@ -96,7 +97,7 @@ export default defineEventHandler(async (event) => {
             fulfillmentDate: { lt: today }
           }
         }),
-    SUBSCRIPTIONS_ENABLED
+    subscriptionsEnabled
       ? prisma.reservationOccurrence.count({
           where: {
             status: 'CANCELLED',
@@ -125,6 +126,7 @@ export default defineEventHandler(async (event) => {
     completedOccurrences,
     cancelledOccurrences,
     archivedReservations,
-    rejectedReservations
+    rejectedReservations,
+    subscriptionsEnabled
   }
 })

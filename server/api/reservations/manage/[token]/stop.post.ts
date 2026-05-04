@@ -1,13 +1,13 @@
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
 import { removeReservationFromGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { getSetting, SETTING_KEYS } from '~/server/utils/settings'
+import { getSetting, SETTING_KEYS, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
-import { SUBSCRIPTIONS_ENABLED } from '~/shared/constants/reservationFeatures'
 import { prisma } from '../../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {
-  if (!SUBSCRIPTIONS_ENABLED) {
+  const subscriptionsEnabled = await isSubscriptionsEnabled()
+  if (!subscriptionsEnabled) {
     throw createError({ statusCode: 410, statusMessage: 'Les abonnements ne sont pas actifs pour le moment.' })
   }
 
@@ -67,7 +67,8 @@ Merci pour votre confiance.`
     reservation: updated,
     subject,
     body,
-    action: 'CANCELLED'
+    action: 'CANCELLED',
+    subscriptionsEnabled
   })
 
   await sendGmail({
