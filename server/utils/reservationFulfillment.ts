@@ -93,9 +93,9 @@ export function formatFulfillmentDate(date: Date | null | undefined, locale = 'f
 }
 
 export function getDeliveryMethodLabel(deliveryType: Reservation['deliveryType']) {
-  if (deliveryType === 'FARM') return 'Retrait a la ferme'
+  if (deliveryType === 'FARM') return 'Retrait à la ferme'
   if (deliveryType === 'PICKUP') return 'Retrait en point relais'
-  if (deliveryType === 'TOUR') return 'Livraison (tournee)'
+  if (deliveryType === 'TOUR') return 'Livraison (tournée)'
   return 'Retrait / livraison'
 }
 

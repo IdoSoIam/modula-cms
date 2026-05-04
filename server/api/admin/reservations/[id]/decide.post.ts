@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<Body>(event)
   const subscriptionsEnabled = await isSubscriptionsEnabled()
   if (!['CONFIRMED', 'REJECTED', 'CANCELLED'].includes(body.decision)) {
-    throw createError({ statusCode: 400, statusMessage: 'Decision invalide' })
+    throw createError({ statusCode: 400, statusMessage: 'Décision invalide' })
   }
   if (!body.email?.subject || !body.email?.body) {
     throw createError({ statusCode: 400, statusMessage: 'Email vide' })
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
       deliveryTour: true
     }
   })
-  if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
+  if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
 
   const requestedDate = body.fulfillmentDate ? normalizeProposalDate(body.fulfillmentDate) : reservation.fulfillmentDate
   const requestedTime = normalizeProposalTime(body.fulfillmentTime) ?? reservation.fulfillmentTime
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
 
   if (body.decision === 'CONFIRMED' && body.scheduleMode === 'PROPOSE') {
     if (reservation.deliveryType !== 'FARM') {
-      throw createError({ statusCode: 400, statusMessage: 'Les contre-propositions sont reservees au retrait a la ferme' })
+      throw createError({ statusCode: 400, statusMessage: 'Les contre-propositions sont réservées au retrait à la ferme' })
     }
     if (!requestedDate || !requestedTime) {
       throw createError({ statusCode: 400, statusMessage: 'Date et heure requises pour une contre-proposition' })
@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
       : null
     const textBody = `${body.email.body}
 
-${manageUrl ? `Confirmer ce creneau ou en proposer un autre :\n${manageUrl}` : ''}`
+${manageUrl ? `Confirmer ce créneau ou en proposer un autre :\n${manageUrl}` : ''}`
 
     await sendGmail({
       to: updated.email,
@@ -176,7 +176,7 @@ ${manageUrl ? `Confirmer ce creneau ou en proposer un autre :\n${manageUrl}` : '
       data: {
         status: 'CANCELLED',
         cancelledAt: new Date(),
-        cancellationReason: body.decision === 'CANCELLED' ? 'Reservation annulee' : 'Reservation refusee'
+        cancellationReason: body.decision === 'CANCELLED' ? 'Réservation annulée' : 'Réservation refusée'
       }
     })
   }

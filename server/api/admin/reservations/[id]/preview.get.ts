@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
       deliveryTour: { select: { name: true, dayOfWeek: true, startTime: true, endTime: true } }
     }
   })
-  if (!r) throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
+  if (!r) throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
 
   const action = String(getQuery(event).action ?? 'confirmed') as 'confirmed' | 'rejected' | 'cancelled' | 'proposed'
   const settings = await getSettings([
@@ -33,24 +33,24 @@ export default defineEventHandler(async (event) => {
         : settings[SETTING_KEYS.RESERVATION_TEMPLATE_REJECTED]
   const fallback = action === 'proposed'
     ? {
-        subject: 'Proposition de creneau pour votre retrait a la ferme - Ferme du Campeyrigoux',
-        body: `Bonjour {{customerName}},
+      subject: 'Proposition de créneau pour votre retrait à la ferme - Ferme du Campeyrigoux',
+      body: `Bonjour {{customerName}},
 
-Nous vous proposons le creneau suivant pour votre panier "{{basketName}}" :
+Nous vous proposons le créneau suivant pour votre panier "{{basketName}}" :
 
 - Date : {{fulfillmentDate}}
 - Heure : {{fulfillmentTime}}
 - Lieu : {{fulfillmentLocation}}
 
-Merci de confirmer ce creneau ou de proposer une autre date et heure depuis le lien present dans notre email.
+Merci de confirmer ce créneau ou de proposer une autre date et heure depuis le lien présent dans notre email.
 
 La Ferme du Campeyrigoux`
-      }
+    }
     : action === 'confirmed'
-    ? DEFAULT_TEMPLATES.confirmed
-    : action === 'cancelled'
-      ? DEFAULT_TEMPLATES.cancelled
-      : DEFAULT_TEMPLATES.rejected
+      ? DEFAULT_TEMPLATES.confirmed
+      : action === 'cancelled'
+        ? DEFAULT_TEMPLATES.cancelled
+        : DEFAULT_TEMPLATES.rejected
 
   let tpl: { subject: string; body: string }
   try {

@@ -24,13 +24,13 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!reservation) {
-    throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
+    throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
   }
   if (reservation.deliveryType !== 'FARM' || reservation.scheduleProposalPendingBy !== 'CUSTOMER') {
     throw createError({ statusCode: 409, statusMessage: 'Aucune proposition en attente de votre confirmation' })
   }
   if (!reservation.fulfillmentDate || !reservation.fulfillmentTime) {
-    throw createError({ statusCode: 409, statusMessage: 'Le creneau propose est incomplet' })
+    throw createError({ statusCode: 409, statusMessage: 'Le créneau proposé est incomplet' })
   }
 
   const updated = await prisma.reservation.update({
@@ -57,16 +57,16 @@ export default defineEventHandler(async (event) => {
   await ensureReservationOccurrences(updated, subscriptionsEnabled)
   const calendarResult = await syncReservationToGoogleCalendar(updated, subscriptionsEnabled)
 
-  const subject = 'Votre retrait a la ferme est confirme - Ferme du Campeyrigoux'
+  const subject = 'Votre retrait à la ferme est confirmé - Ferme du Campeyrigoux'
   const body = `Bonjour ${updated.customerName},
 
-Votre reservation est maintenant confirmee pour le creneau suivant :
+Votre réservation est maintenant confirmée pour le créneau suivant :
 
-- Date : ${updated.fulfillmentDate.toLocaleDateString('fr-FR')}
+- Date : ${updated.fulfillmentDate?.toLocaleDateString('fr-FR')}
 - Heure : ${updated.fulfillmentTime}
 - Lieu : ${updated.fulfillmentLocation ?? 'Ferme du Campeyrigoux'}
 
-Le paiement se fait en especes au retrait.`
+Le paiement se fait en espèces au retrait.`
 
   const emailPayload = await buildReservationDecisionEmail({
     reservation: updated,
@@ -95,7 +95,7 @@ Le paiement se fait en especes au retrait.`
 
   const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
   if (adminEmail) {
-    const adminSubject = `Proposition acceptee par le client - ${updated.basket.name}`
+    const adminSubject = `Proposition acceptée par le client - ${updated.basket.name}`
     const adminBody = buildAdminReservationSummary({
       reservationId: updated.id,
       basketName: updated.basket.name,
@@ -103,11 +103,11 @@ Le paiement se fait en especes au retrait.`
       customerEmail: updated.email,
       customerPhone: updated.phone,
       customerMessage: updated.message,
-      deliveryLabel: 'Retrait a la ferme',
+      deliveryLabel: 'Retrait à la ferme',
       fulfillmentDate: updated.fulfillmentDate,
       fulfillmentTime: updated.fulfillmentTime,
       fulfillmentLocation: updated.fulfillmentLocation,
-      contextLine: 'Le client a accepte la proposition de creneau envoyee par la ferme.'
+      contextLine: 'Le client a accepté la proposition de créneau envoyée par la ferme.'
     })
 
     await sendGmail({

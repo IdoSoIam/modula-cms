@@ -76,7 +76,7 @@ export async function buildReservationDecisionEmail(options: {
   const actionHelp = options.action === 'CONFIRMED' && manageUrl
     ? `${options.body}
 
-${options.subscriptionsEnabled && options.reservation.monthlySubscription ? 'Arreter mon abonnement :' : 'Annuler ma reservation :'}
+${options.subscriptionsEnabled && options.reservation.monthlySubscription ? 'Arrêter mon abonnement :' : 'Annuler ma réservation :'}
 ${manageUrl}`
     : options.body
   const htmlBody = buildEmailHtml({
@@ -100,14 +100,14 @@ ${manageUrl}`
     if (ics) {
       calendarInvite = ics
     } else {
-      console.warn('[reservation-email] ICS non genere: date de reservation manquante', {
+      console.warn('[reservation-email] ICS non généré: date de reservation manquante', {
         reservationId: options.reservation.id,
         action: options.action,
         fulfillmentDate: options.reservation.fulfillmentDate
       })
     }
   } else if (options.action === 'CONFIRMED' || options.action === 'CANCELLED') {
-    console.warn('[reservation-email] ICS non genere: email Gmail connecte introuvable', {
+    console.warn('[reservation-email] ICS non généré: email Gmail connecte introuvable', {
       reservationId: options.reservation.id,
       action: options.action
     })
@@ -165,14 +165,14 @@ export async function buildReservationOccurrenceEmail(options: {
     if (ics) {
       calendarInvite = ics
     } else {
-      console.warn('[reservation-email] ICS occurrence non genere: date manquante', {
+      console.warn('[reservation-email] ICS occurrence non généré: date manquante', {
         reservationId: options.reservation.id,
         occurrenceId: options.occurrence.id,
         action: options.action
       })
     }
   } else {
-    console.warn('[reservation-email] ICS occurrence non genere: email Gmail connecte introuvable', {
+    console.warn('[reservation-email] ICS occurrence non généré: email Gmail connecte introuvable', {
       reservationId: options.reservation.id,
       occurrenceId: options.occurrence.id,
       action: options.action

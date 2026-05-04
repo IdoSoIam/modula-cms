@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!reservation) {
-    throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
+    throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
   }
   const subscriptionsEnabled = await isSubscriptionsEnabled()
 
@@ -37,8 +37,8 @@ export default defineEventHandler(async (event) => {
       subscriptionCancelledAt: subscriptionsEnabled && reservation.monthlySubscription ? new Date() : reservation.subscriptionCancelledAt,
       cancelledByCustomerAt: new Date(),
       adminNote: subscriptionsEnabled && reservation.monthlySubscription
-        ? 'Abonnement arrete par le client'
-        : 'Reservation annulee par le client'
+        ? 'Abonnement arrêté par le client'
+        : 'Réservation annulée par le client'
     },
     include: {
       basket: true,
@@ -57,25 +57,25 @@ export default defineEventHandler(async (event) => {
       status: 'CANCELLED',
       cancelledAt: new Date(),
       cancellationReason: subscriptionsEnabled && reservation.monthlySubscription
-        ? 'Abonnement arrete par le client'
-        : 'Reservation annulee par le client'
+        ? 'Abonnement arrêté par le client'
+        : 'Réservation annulée par le client'
     }
   })
 
   const customerSubject = subscriptionsEnabled && updated.monthlySubscription
-    ? 'Votre abonnement a ete arrete - Ferme du Campeyrigoux'
-    : 'Votre reservation a ete annulee - Ferme du Campeyrigoux'
+    ? 'Votre abonnement a été arrêté - Ferme du Campeyrigoux'
+    : 'Votre réservation a été annulée - Ferme du Campeyrigoux'
   const customerBody = subscriptionsEnabled && updated.monthlySubscription
     ? `Bonjour ${updated.customerName},
 
-Votre abonnement a bien ete arrete.
+Votre abonnement a bien été arrêté.
 
 Si besoin, vous pouvez nous recontacter pour remettre en place une livraison plus tard.`
     : `Bonjour ${updated.customerName},
 
-Votre reservation a bien ete annulee.
+Votre réservation a bien été annulée.
 
-Si besoin, vous pouvez nous recontacter pour refaire une demande ulterieurement.`
+Si besoin, vous pouvez nous recontacter pour refaire une demande ultérieurement.`
 
   const customerEmail = await buildReservationDecisionEmail({
     reservation: updated,
@@ -105,9 +105,9 @@ Si besoin, vous pouvez nous recontacter pour refaire une demande ulterieurement.
   const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
   if (adminEmail) {
     const subject = subscriptionsEnabled && updated.monthlySubscription
-      ? `Abonnement arrete par le client - ${updated.basket.name}`
-      : `Reservation annulee par le client - ${updated.basket.name}`
-    const body = `${subscriptionsEnabled && updated.monthlySubscription ? 'Le client a arrete son abonnement.' : 'Le client a annule sa reservation.'}
+      ? `Abonnement arrêté par le client - ${updated.basket.name}`
+      : `Réservation annulée par le client - ${updated.basket.name}`
+    const body = `${subscriptionsEnabled && updated.monthlySubscription ? 'Le client a arrêté son abonnement.' : 'Le client a annulé sa réservation.'}
 
 - Panier : ${updated.basket.name}
 - Client : ${updated.customerName}

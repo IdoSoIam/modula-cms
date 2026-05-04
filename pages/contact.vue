@@ -55,7 +55,7 @@ const handleSubmit = async () => {
     form.value = { name: '', email: '', message: '' }
     errors.value = {}
   } catch (error: any) {
-    $toast?.error(error.statusMessage || 'Erreur lors de l envoi')
+    $toast?.error(error.statusMessage || 'Erreur lors de l\'envoi')
   } finally {
     sending.value = false
   }

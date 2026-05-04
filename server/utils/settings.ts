@@ -44,7 +44,7 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
 }
 
 const DEFAULT_FARM_PICKUP_CONFIG: FarmPickupConfig = {
-  label: 'Retrait a la ferme',
+  label: 'Retrait à la ferme',
   address: 'Ferme du Campeyrigoux, 31350 Sepx',
   dayOfWeek: 5,
   startTime: '17:30',
@@ -86,43 +86,43 @@ function parseIntegerSetting(value: string | null | undefined, fallback: number)
 
 export const DEFAULT_TEMPLATES = {
   confirmed: {
-    subject: 'Votre reservation de panier est confirmee - Ferme du Campeyrigoux',
+    subject: 'Votre réservation de panier est confirmée - Ferme du Campeyrigoux',
     body: `Bonjour {{customerName}},
 
-Votre reservation pour le panier "{{basketName}}" est confirmee !
+Votre réservation pour le panier "{{basketName}}" est confirmée !
 
-Details de retrait :
+Détails de retrait :
 - Mode : {{deliveryMethod}}
 - Date : {{fulfillmentDate}}
 - Heure : {{fulfillmentTime}}
-- Fenetre de passage : {{deliveryWindow}}
+- Fenêtre de passage : {{deliveryWindow}}
 - Lieu : {{fulfillmentLocation}}
 - Montant : {{basketPrice}}
 
-Le paiement se fait en especes au retrait ou a la remise du panier.
+Le paiement se fait en espèces au retrait ou à la remise du panier.
 
-Si vous avez la moindre question, vous pouvez repondre a cet email.
+Si vous avez la moindre question, vous pouvez répondre à cet email.
 
-A bientot,
+À bientôt,
 La Ferme du Campeyrigoux`
   },
   rejected: {
-    subject: 'Concernant votre reservation de panier - Ferme du Campeyrigoux',
+    subject: 'Concernant votre réservation de panier - Ferme du Campeyrigoux',
     body: `Bonjour {{customerName}},
 
-Nous sommes desoles, votre reservation pour le panier "{{basketName}}" n'a pas pu etre confirmee.
+Nous sommes désolés, votre réservation pour le panier "{{basketName}}" n'a pas pu être confirmée.
 
 Raison : {{adminNote}}
 
-N'hesitez pas a nous recontacter pour une prochaine reservation.
+N'hésitez pas à nous recontacter pour une prochaine réservation.
 
 La Ferme du Campeyrigoux`
   },
   cancelled: {
-    subject: 'Votre reservation a ete annulee - Ferme du Campeyrigoux',
+    subject: 'Votre réservation a été annulée - Ferme du Campeyrigoux',
     body: `Bonjour {{customerName}},
 
-Votre reservation pour le panier "{{basketName}}" a ete annulee.
+Votre réservation pour le panier "{{basketName}}" a été annulée.
 
 Raison : {{adminNote}}
 

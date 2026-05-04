@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
       occurrences: true
     }
   })
-  if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
+  if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
 
   const occurrence = reservation.occurrences.find((item) => item.id === occurrenceId)
   if (!occurrence) throw createError({ statusCode: 404, statusMessage: 'Occurrence introuvable' })
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
     data: {
       status: 'CANCELLED',
       cancelledAt: new Date(),
-      cancellationReason: 'Occurrence annulee par le client'
+      cancellationReason: 'Occurrence annulée par le client'
     }
   })
 
@@ -55,10 +55,10 @@ export default defineEventHandler(async (event) => {
     console.error('Erreur annulation Google Calendar occurrence client:', error)
   }
 
-  const customerSubject = 'Votre livraison de cette semaine a ete annulee - Ferme du Campeyrigoux'
+  const customerSubject = 'Votre livraison de cette semaine a été annulée - Ferme du Campeyrigoux'
   const customerBody = `Bonjour ${reservation.customerName},
 
-Votre occurrence de cette semaine a bien ete annulee.
+Votre occurrence de cette semaine a bien été annulée.
 
 Votre abonnement reste actif pour les semaines suivantes.`
 
@@ -91,15 +91,15 @@ Votre abonnement reste actif pour les semaines suivantes.`
 
   const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
   if (adminEmail) {
-    const subject = `Occurrence annulee par le client - ${reservation.basket.name}`
-    const body = `Le client a annule une occurrence de son abonnement.
+    const subject = `Occurrence annulée par le client - ${reservation.basket.name}`
+    const body = `Le client a annulé une occurrence de son abonnement.
 
 - Panier : ${reservation.basket.name}
 - Client : ${reservation.customerName}
 - Email : ${reservation.email}
 - Date : ${formatOccurrenceDate(occurrence.occurrenceDate)}
-- Heure : ${occurrence.occurrenceTime ?? reservation.fulfillmentTime ?? 'Heure a confirmer'}
-- Lieu : ${occurrence.occurrenceLocation ?? reservation.fulfillmentLocation ?? 'Lieu a confirmer'}`
+- Heure : ${occurrence.occurrenceTime ?? reservation.fulfillmentTime ?? 'Heure à confirmer'}
+- Lieu : ${occurrence.occurrenceLocation ?? reservation.fulfillmentLocation ?? 'Lieu à confirmer'}`
 
     await sendGmail({
       to: adminEmail,

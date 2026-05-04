@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   const window = await getOrdersWindow()
   const subscriptionsEnabled = await isSubscriptionsEnabled()
   if (!window.isOpen) {
-    throw createError({ statusCode: 423, statusMessage: window.message || 'Les commandes sont actuellement fermees' })
+    throw createError({ statusCode: 423, statusMessage: window.message || 'Les commandes sont actuellement fermées' })
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
     throw createError({ statusCode: 400, statusMessage: 'Email invalide' })
@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
   if (body.deliveryType === 'FARM') {
     deliveryType = 'FARM'
     if (body.farmAlternateDate && !farmAlternateTime) {
-      throw createError({ statusCode: 400, statusMessage: 'Heure requise pour proposer un autre creneau a la ferme' })
+      throw createError({ statusCode: 400, statusMessage: 'Heure requise pour proposer un autre créneau à la ferme' })
     }
   } else if (body.deliveryType === 'PICKUP') {
     if (!body.pickupPointId) throw createError({ statusCode: 400, statusMessage: 'Point relais requis' })
@@ -87,9 +87,9 @@ export default defineEventHandler(async (event) => {
     pickupPointId = p.id
     pickupPoint = p
   } else if (body.deliveryType === 'TOUR') {
-    if (!body.deliveryTourId) throw createError({ statusCode: 400, statusMessage: 'Tournee requise' })
-    if (!body.deliveryCity?.trim()) throw createError({ statusCode: 400, statusMessage: 'Ville requise pour la tournee' })
-    if (!body.deliveryAddress?.trim()) throw createError({ statusCode: 400, statusMessage: 'Adresse requise pour la tournee' })
+    if (!body.deliveryTourId) throw createError({ statusCode: 400, statusMessage: 'Tournée requise' })
+    if (!body.deliveryCity?.trim()) throw createError({ statusCode: 400, statusMessage: 'Ville requise pour la tournée' })
+    if (!body.deliveryAddress?.trim()) throw createError({ statusCode: 400, statusMessage: 'Adresse requise pour la tournée' })
     const t = await prisma.deliveryTour.findUnique({
       where: { id: body.deliveryTourId },
       select: {
@@ -106,11 +106,11 @@ export default defineEventHandler(async (event) => {
         }
       }
     })
-    if (!t || !t.active) throw createError({ statusCode: 400, statusMessage: 'Tournee invalide' })
+    if (!t || !t.active) throw createError({ statusCode: 400, statusMessage: 'Tournée invalide' })
     const cityLower = body.deliveryCity.trim().toLowerCase()
     const cityAllowed = t.cities.some((city) => city.city.trim().toLowerCase() === cityLower)
     if (!cityAllowed) {
-      throw createError({ statusCode: 400, statusMessage: 'Cette ville n est pas desservie par la tournee selectionnee' })
+      throw createError({ statusCode: 400, statusMessage: 'Cette ville n\'est pas desservie par la tournée sélectionnée' })
     }
     deliveryType = 'TOUR'
     deliveryTourId = t.id
@@ -174,41 +174,41 @@ export default defineEventHandler(async (event) => {
 
   try {
     const deliveryLabel = deliveryType === 'FARM'
-      ? 'Retrait a la ferme'
+      ? 'Retrait à la ferme'
       : deliveryType === 'PICKUP'
         ? 'Retrait en point relais'
         : deliveryType === 'TOUR'
-          ? 'Livraison en tournee'
-          : 'Retrait / livraison a confirmer'
+          ? 'Livraison en tournée'
+          : 'Retrait / livraison à confirmer'
 
     const customerBody = `Bonjour ${reservation.customerName},
 
-Nous avons bien recu votre demande de reservation pour le panier "${basket.name}".
+Nous avons bien reçu votre demande de réservation pour le panier "${basket.name}".
 
 Recapitulatif :
 
 - Mode : ${deliveryLabel}
 - Lieu / adresse : ${fulfillment.fulfillmentLocation ?? '-'}
-- Date indicative : ${(deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)?.toLocaleDateString('fr-FR') ?? 'a confirmer'}
-- Heure indicative : ${deliveryType === 'FARM' ? (farmRequestedTime ?? 'a confirmer') : (fulfillment.fulfillmentTime ?? 'a confirmer')}
+- Date indicative : ${(deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)?.toLocaleDateString('fr-FR') ?? 'à confirmer'}
+- Heure indicative : ${deliveryType === 'FARM' ? (farmRequestedTime ?? 'à confirmer') : (fulfillment.fulfillmentTime ?? 'à confirmer')}
 - Montant du panier : ${Number(basket.finalPrice).toFixed(2)} EUR
 
 Important :
 
-- votre demande doit encore etre confirmee par la ferme
-- le paiement se fait en especes au retrait ou a la remise
-- aucun paiement en ligne n'est demande
-- pour un retrait a la ferme, ce creneau reste une proposition tant que la ferme ne l'a pas valide
+- Votre demande doit encore être confirmée par la ferme
+- Le paiement se fait en espèces au retrait ou à la remise
+- Aucun paiement en ligne n'est demandé
+- Pour un retrait à la ferme, ce créneau reste une proposition tant que la ferme ne l'a pas validé
 
 Nous vous recontacterons par email avec la confirmation finale.`
 
     try {
       await sendGmail({
         to: reservation.email,
-        subject: `Nous avons bien recu votre demande - ${basket.name}`,
+        subject: `Nous avons bien reçu votre demande - ${basket.name}`,
         body: customerBody,
         htmlBody: buildGenericEmail({
-          title: `Nous avons bien recu votre demande - ${basket.name}`,
+          title: `Nous avons bien reçu votre demande - ${basket.name}`,
           body: customerBody,
           accent: '#4f8a34'
         })
@@ -231,16 +231,16 @@ Nous vous recontacterons par email avec la confirmation finale.`
         fulfillmentTime: deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime,
         fulfillmentLocation: fulfillment.fulfillmentLocation,
         contextLine: deliveryType === 'FARM' && body.farmAlternateDate
-          ? 'Nouvelle reservation recue avec proposition client pour le retrait a la ferme.'
-          : 'Nouvelle reservation recue.'
+          ? 'Nouvelle réservation reçue avec proposition client pour le retrait à la ferme.'
+          : 'Nouvelle réservation reçue.'
       })
 
       await sendGmail({
         to: adminEmail,
-        subject: `Nouvelle reservation - ${basket.name}`,
+        subject: `Nouvelle réservation - ${basket.name}`,
         body: adminBody,
         htmlBody: buildGenericEmail({
-          title: `Nouvelle reservation - ${basket.name}`,
+          title: `Nouvelle réservation - ${basket.name}`,
           body: adminBody,
           accent: '#4f8a34'
         })

@@ -3,7 +3,7 @@
     <div v-if="showHeading" class="mb-6">
       <h3 class="text-lg font-semibold">Connexion</h3>
       <p class="mt-1 text-sm opacity-70">
-        L'inscription publique est desactivee pour le moment. Contactez l'administrateur si vous avez besoin d'un acces.
+        L'inscription publique est désactivée pour le moment. Contactez l'administrateur si vous avez besoin d'un accès.
       </p>
     </div>
 
@@ -90,7 +90,7 @@ const handleLogin = async () => {
       password: loginForm.password
     })
 
-    success.value = 'Connexion reussie !'
+    success.value = 'Connexion réussie !'
     loginForm.email = ''
     loginForm.password = ''
 

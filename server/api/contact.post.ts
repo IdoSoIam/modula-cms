@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   if (!adminEmail) {
     throw createError({
       statusCode: 503,
-      statusMessage: 'Adresse email admin non configuree'
+      statusMessage: 'Adresse email admin non configurée'
     })
   }
 
@@ -52,6 +52,6 @@ ${body.message.trim()}`,
 
   return {
     success: true,
-    message: 'Message envoye avec succes'
+    message: 'Message envoyé avec succès'
   }
 })

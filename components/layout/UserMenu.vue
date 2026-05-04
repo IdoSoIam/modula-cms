@@ -116,13 +116,13 @@ const registerEnabled = computed(() => siteConfig.value?.registerEnabled ?? fals
 const handleLogout = async () => {
   await authStore.logout()
   const { $toast } = useNuxtApp()
-  $toast.success('Vous avez ete deconnecte')
+  $toast.success('Vous avez été déconnecté')
   await router.push('/')
 }
 
 const onAuthSuccess = () => {
   showAuthModal.value = false
   const { $toast } = useNuxtApp()
-  $toast.success('Connexion reussie')
+  $toast.success('Connexion réussie')
 }
 </script>

@@ -106,7 +106,7 @@
 
         <div class="alert alert-info mb-4 text-sm">
           <Icon name="mdi:cash" size="18" />
-          <span>Paiement en especes uniquement au retrait ou a la remise. Aucun paiement en ligne.</span>
+          <span>Paiement en espèces uniquement au retrait ou à la remise. Aucun paiement en ligne.</span>
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -133,10 +133,10 @@
           >
             <div class="flex items-center gap-2">
               <input v-model="form.deliveryType" type="radio" value="FARM" class="radio radio-primary radio-sm" />
-              <span class="font-medium">Retrait a la ferme</span>
+              <span class="font-medium">Retrait à la ferme</span>
             </div>
             <div class="mt-2 text-xs opacity-70">
-              Pour les paniers reserves sur le site.
+              Pour les paniers réservés sur le site.
             </div>
           </label>
 
@@ -149,7 +149,7 @@
               <span class="font-medium">{{ $t('pages.baskets.deliveryPickup') }}</span>
             </div>
             <div class="mt-2 text-xs opacity-70">
-              Retrait dans un point partenaire selon disponibilites.
+              Retrait dans un point partenaire selon disponibilités.
             </div>
           </label>
 
@@ -170,14 +170,14 @@
         <div v-if="form.deliveryType === 'FARM'" class="mb-3 space-y-3">
           <div class="alert alert-info text-sm">
             <Icon name="mdi:information-outline" size="18" />
-            <span>Le retrait a la ferme pour les paniers se fait par defaut sur le creneau ci-dessous. Vous pouvez proposer un autre horaire si besoin. Paiement en especes au retrait.</span>
+            <span>Le retrait à la ferme pour les paniers se fait par défaut sur le créneau ci-dessous. Vous pouvez proposer un autre horaire si besoin. Paiement en espèces au retrait.</span>
           </div>
           <div class="rounded-xl bg-base-300 p-4 text-sm">
             <div class="font-medium">Adresse de la ferme</div>
             <div class="mt-1 opacity-80">{{ deliveryOptions?.farmPickup.address }}</div>
-            <div class="mt-3 font-medium">Creneau propose par defaut</div>
+            <div class="mt-3 font-medium">Créneau proposé par défaut</div>
             <div class="mt-1 opacity-80">
-              {{ deliveryOptions?.farmPickup.nextDate ? formatNextDate(deliveryOptions.farmPickup.nextDate) : '' }} de {{ deliveryOptions?.farmPickup.startTime }} a {{ deliveryOptions?.farmPickup.endTime }}
+              {{ deliveryOptions?.farmPickup.nextDate ? formatNextDate(deliveryOptions.farmPickup.nextDate) : '' }} de {{ deliveryOptions?.farmPickup.startTime }} à {{ deliveryOptions?.farmPickup.endTime }}
             </div>
           </div>
           <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 bg-base-200 px-4 py-3">
@@ -186,11 +186,11 @@
           </label>
           <div v-if="form.farmAlternateEnabled" class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div class="form-control">
-              <label class="label"><span class="label-text">Autre date souhaitee</span></label>
+              <label class="label"><span class="label-text">Autre date souhaitée</span></label>
               <input v-model="form.farmAlternateDate" type="date" class="input input-bordered w-full" />
             </div>
             <div class="form-control">
-              <label class="label"><span class="label-text">Autre heure souhaitee</span></label>
+              <label class="label"><span class="label-text">Autre heure souhaitée</span></label>
               <input v-model="form.farmAlternateTime" type="time" class="input input-bordered w-full" />
             </div>
           </div>
@@ -198,7 +198,7 @@
 
         <div v-if="form.deliveryType === 'PICKUP'" class="alert alert-info mb-3 text-sm">
           <Icon name="mdi:information-outline" size="18" />
-          <span>Choisissez le point relais le plus pratique. Paiement en especes lors du retrait.</span>
+          <span>Choisissez le point relais le plus pratique. Paiement en espèces lors du retrait.</span>
         </div>
 
         <div v-if="form.deliveryType === 'PICKUP'" class="form-control mb-3">
@@ -235,9 +235,9 @@
 
         <div v-if="form.deliveryType === 'TOUR'" class="mb-3 space-y-3">
           <div class="rounded-xl border border-base-300 bg-base-200 p-4 text-sm">
-            <div class="font-medium">Livraison en tournee</div>
+            <div class="font-medium">Livraison en tournée</div>
             <p class="mt-1 opacity-75">
-              Indiquez d'abord votre ville pour verifier si la tournee passe chez vous, puis choisissez votre tournee. Paiement en especes a la remise.
+              Indiquez d'abord votre ville pour vérifier si la tournée passe chez vous, puis choisissez votre tournée. Paiement en espèces à la remise.
             </p>
           </div>
 
@@ -258,7 +258,7 @@
                 />
                 <ul class="dropdown-content menu z-[1] max-h-60 w-full overflow-y-auto rounded-box bg-base-100 p-2 shadow">
                   <li v-if="deliveryCitiesLoading" class="disabled"><a>Chargement...</a></li>
-                  <li v-else-if="!filteredCities.length" class="disabled"><a>Aucune ville trouvee</a></li>
+                  <li v-else-if="!filteredCities.length" class="disabled"><a>Aucune ville trouvée</a></li>
                   <li v-for="city in filteredCities" :key="city.city" @mousedown.prevent="selectCity(city)">
                     <a class="flex justify-between">
                       <span>{{ city.city }}</span>
@@ -323,7 +323,7 @@
             <span class="label-text font-medium">{{ $t('pages.baskets.subscribeMonthly') }}</span>
           </label>
           <p class="mt-2 opacity-70">
-            Vous recevrez une reservation recurrente chaque semaine pour ce mode de retrait ou livraison. Vous pourrez ensuite arreter l'abonnement ou annuler seulement une semaine depuis l'email de confirmation.
+            Vous recevrez une réservation récurrente chaque semaine pour ce mode de retrait ou livraison. Vous pourrez ensuite arrêter l'abonnement ou annuler seulement une semaine depuis l'email de confirmation.
           </p>
           <p v-if="form.deliveryType === 'TOUR' && selectedTour?.monthlyPrice" class="mt-2 text-success">
             Tarif abonnement indicatif : {{ $formatPrice(selectedTour.monthlyPrice) }}/mois
@@ -645,7 +645,7 @@ const submit = async () => {
 
   if (form.deliveryType === 'FARM' && form.farmAlternateEnabled) {
     if (!form.farmAlternateDate || !form.farmAlternateTime) {
-      $toast.error('Renseignez la date et l heure souhaitees pour votre autre creneau')
+      $toast.error('Renseignez la date et l\'heure souhaitées pour votre autre créneau')
       return
     }
   }

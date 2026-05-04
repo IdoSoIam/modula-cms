@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<Body>(event)
   const proposalTime = normalizeProposalTime(body.proposalTime)
   if (!body.proposalDate || !proposalTime) {
-    throw createError({ statusCode: 400, statusMessage: 'Date et heure requises pour proposer un autre creneau' })
+    throw createError({ statusCode: 400, statusMessage: 'Date et heure requises pour proposer un autre créneau' })
   }
 
   const reservation = await prisma.reservation.findUnique({
@@ -30,10 +30,10 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!reservation) {
-    throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
+    throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
   }
   if (reservation.deliveryType !== 'FARM') {
-    throw createError({ statusCode: 400, statusMessage: 'Cette action est reservee au retrait a la ferme' })
+    throw createError({ statusCode: 400, statusMessage: 'Cette action est réservée au retrait à la ferme' })
   }
 
   const proposalDate = normalizeProposalDate(body.proposalDate)
@@ -67,11 +67,11 @@ export default defineEventHandler(async (event) => {
       customerEmail: reservation.email,
       customerPhone: reservation.phone,
       customerMessage: reservation.message,
-      deliveryLabel: 'Retrait a la ferme',
+      deliveryLabel: 'Retrait à la ferme',
       fulfillmentDate: proposalDate,
       fulfillmentTime: proposalTime,
       fulfillmentLocation: reservation.fulfillmentLocation,
-      contextLine: `${reservation.customerName} a propose un autre creneau pour son retrait a la ferme.`
+      contextLine: `${reservation.customerName} a proposé un autre créneau pour son retrait à la ferme.`
     })
 
     await sendGmail({

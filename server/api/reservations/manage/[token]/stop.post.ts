@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
       deliveryTour: true
     }
   })
-  if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
+  if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
   if (reservation.status === 'CANCELLED' || !reservation.subscriptionActive) {
     return { ok: true, alreadyStopped: true }
   }
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
       subscriptionActive: false,
       subscriptionCancelledAt: new Date(),
       cancelledByCustomerAt: new Date(),
-      adminNote: 'Abonnement arrete par le client'
+      adminNote: 'Abonnement arrêté par le client'
     },
     include: {
       basket: true,
@@ -52,14 +52,14 @@ export default defineEventHandler(async (event) => {
     data: {
       status: 'CANCELLED',
       cancelledAt: new Date(),
-      cancellationReason: 'Abonnement arrete par le client'
+      cancellationReason: 'Abonnement arrêté par le client'
     }
   })
 
-  const subject = 'Votre abonnement a ete arrete - Ferme du Campeyrigoux'
+  const subject = 'Votre abonnement a été arrêté - Ferme du Campeyrigoux'
   const body = `Bonjour ${updated.customerName},
 
-Votre abonnement a bien ete arrete.
+'Votre abonnement a bien été arrêté.'
 
 Merci pour votre confiance.`
 
@@ -90,8 +90,8 @@ Merci pour votre confiance.`
 
   const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
   if (adminEmail) {
-    const adminSubject = `Abonnement arrete par le client - ${updated.basket.name}`
-    const adminBody = `Le client a arrete son abonnement.
+    const adminSubject = `Abonnement arrêté par le client - ${updated.basket.name}`
+    const adminBody = `Le client a arrêté son abonnement.
 
 - Panier : ${updated.basket.name}
 - Client : ${updated.customerName}

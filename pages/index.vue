@@ -133,9 +133,9 @@
       <div class="container mx-auto px-4">
         <div class="rounded-[2rem] border border-base-300 bg-base-200/60 p-8">
           <div class="mb-6 max-w-2xl">
-            <h2 class="text-3xl font-bold">Des paniers simples a reserver</h2>
+            <h2 class="text-3xl font-bold">Des paniers simples à réserver</h2>
             <p class="mt-3 opacity-75">
-              L'objectif est de rendre la commande facile a comprendre: vous choisissez votre panier, puis votre mode de retrait ou livraison. Le retrait a la ferme concerne les paniers reserves sur le site.
+              L'objectif est de rendre la commande facile à comprendre : vous choisissez votre panier, puis votre mode de retrait ou livraison. Le retrait à la ferme concerne les paniers réservés sur le site.
             </p>
           </div>
 
@@ -144,9 +144,9 @@
               <div class="mb-3 w-fit rounded-xl bg-primary/10 p-3 text-primary">
                 <Icon name="mdi:home-outline" size="22" />
               </div>
-              <div class="font-semibold">Retrait a la ferme</div>
+              <div class="font-semibold">Retrait à la ferme</div>
               <p class="mt-2 text-sm opacity-75">
-                Une solution simple pour venir recuperer votre panier reserve directement a la ferme, sur confirmation par email.
+                Une solution simple pour venir récupérer votre panier réservé directement à la ferme, sur confirmation par email.
               </p>
             </div>
 
@@ -156,7 +156,7 @@
               </div>
               <div class="font-semibold">Point relais</div>
               <p class="mt-2 text-sm opacity-75">
-                Selon les disponibilites, vous pouvez choisir un point de retrait pratique.
+                Selon les disponibilités, vous pouvez choisir un point de retrait pratique.
               </p>
             </div>
 
@@ -164,9 +164,9 @@
               <div class="mb-3 w-fit rounded-xl bg-primary/10 p-3 text-primary">
                 <Icon name="mdi:truck-fast-outline" size="22" />
               </div>
-              <div class="font-semibold">Livraison tournee</div>
+              <div class="font-semibold">Livraison tournée</div>
               <p class="mt-2 text-sm opacity-75">
-                Pour certaines villes, une tournee de livraison peut etre proposee.
+                Pour certaines villes, une tournée de livraison peut être proposée.
               </p>
             </div>
           </div>
@@ -182,7 +182,7 @@
             <h2 class="text-3xl font-bold">{{ $t('pages.home.directSale') }}</h2>
             <p class="text-lg opacity-85">{{ $t('pages.home.directSaleIntro') }}</p>
             <div class="rounded-2xl border border-base-300 bg-base-100 p-5 text-sm opacity-85">
-              La vente a la ferme n'est pas la meme chose que le retrait a la ferme des paniers. Ici, il s'agit d'un temps de vente directe pour les legumes recoltes ou recoltables et les autres produits disponibles a la ferme.
+              La vente à la ferme n'est pas la même chose que le retrait à la ferme des paniers. Ici, il s'agit d'un temps de vente directe pour les légumes récoltés ou récoltables et les autres produits disponibles à la ferme.
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
@@ -201,21 +201,21 @@
               <h3 class="mb-2 font-semibold">{{ $t('pages.home.howItWorksTitle') }}</h3>
               <div class="grid gap-3 md:grid-cols-3">
                 <div>
-                  <div class="text-sm font-semibold">Je viens ou je reserve</div>
+                  <div class="text-sm font-semibold">Je viens ou je réserve</div>
                   <p class="mt-1 text-sm opacity-75">
-                    Je peux venir a la vente a la ferme pour les produits disponibles, ou reserver un panier depuis le site.
+                    Je peux venir à la vente à la ferme pour les produits disponibles, ou réserver un panier depuis le site.
                   </p>
                 </div>
                 <div>
-                  <div class="text-sm font-semibold">Je recois la confirmation</div>
+                  <div class="text-sm font-semibold">Je reçois la confirmation</div>
                   <p class="mt-1 text-sm opacity-75">
-                    Pour les paniers, la ferme confirme par email le lieu et le creneau exacts.
+                    Pour les paniers, la ferme confirme par email le lieu et le créneau exacts.
                   </p>
                 </div>
                 <div>
-                  <div class="text-sm font-semibold">Je regle sur place</div>
+                  <div class="text-sm font-semibold">Je règle sur place</div>
                   <p class="mt-1 text-sm opacity-75">
-                    Le paiement se fait en especes au retrait ou a la remise des produits.
+                    Le paiement se fait en espèces au retrait ou à la remise des produits.
                   </p>
                 </div>
               </div>
