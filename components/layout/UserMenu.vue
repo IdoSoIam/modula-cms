@@ -3,18 +3,18 @@
     <label tabindex="0" class="btn btn-ghost btn-circle">
       <ClientOnly>
         <Icon
-          :name="authStore.isAuthenticated ? 'mdi:account-circle' : 'mdi:account-outline'"
+          name="mdi:account-circle"
           size="24"
         />
         <template #fallback>
-          <Icon name="mdi:account-outline" size="24" />
+          <Icon name="mdi:account-circle" size="24" />
         </template>
       </ClientOnly>
     </label>
     <ClientOnly>
       <ul
         tabindex="0"
-        class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+        class="dropdown-content z-[1] menu rounded-box bg-base-100 p-2 shadow w-52"
       >
         <template v-if="!authStore.isAuthenticated">
           <li><button @click="showAuthModal = true">{{ $t('auth.login') }}</button></li>
@@ -74,26 +74,25 @@
             </li>
           </template>
           <li>
-            <button @click="handleLogout" class="text-error">{{ $t('auth.logout') }}</button>
+            <button class="text-error" @click="handleLogout">{{ $t('auth.logout') }}</button>
           </li>
         </template>
       </ul>
       <template #fallback>
-        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+        <ul tabindex="0" class="dropdown-content z-[1] menu rounded-box bg-base-100 p-2 shadow w-52">
           <li><button @click="showAuthModal = true">{{ $t('auth.login') }}</button></li>
         </ul>
       </template>
     </ClientOnly>
   </div>
 
-  <!-- Modal d'authentification -->
   <dialog id="auth_modal" class="modal" :class="{ 'modal-open': showAuthModal }">
     <div class="modal-box relative">
       <button
         class="btn btn-sm btn-circle absolute right-2 top-2"
         @click="showAuthModal = false"
       >
-        ✕
+        x
       </button>
       <AuthForm @success="onAuthSuccess" />
     </div>
@@ -107,6 +106,7 @@
 import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const showAuthModal = ref(false)
 
 const { data: siteConfig } = await useFetch<{ facebookFluxDeactivated: boolean; registerEnabled: boolean }>('/api/site-config')
@@ -116,12 +116,13 @@ const registerEnabled = computed(() => siteConfig.value?.registerEnabled ?? fals
 const handleLogout = async () => {
   await authStore.logout()
   const { $toast } = useNuxtApp()
-  $toast.success("Vous avez été déconnecté")
+  $toast.success('Vous avez ete deconnecte')
+  await router.push('/')
 }
 
 const onAuthSuccess = () => {
   showAuthModal.value = false
   const { $toast } = useNuxtApp()
-  $toast.success("Connexion réussie")
+  $toast.success('Connexion reussie')
 }
 </script>
