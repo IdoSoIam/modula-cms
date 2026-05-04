@@ -21,53 +21,53 @@
         </template>
         <template v-else>
           <li class="menu-title">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</li>
-          <li><NuxtLink to="/profile">{{ $t('auth.profile') }}</NuxtLink></li>
+          <li><NuxtLink :to="localePath('/profile')">{{ $t('auth.profile') }}</NuxtLink></li>
           <template v-if="authStore.user?.role === 'admin'">
             <li class="menu-title mt-2">{{ $t('admin.title') }}</li>
             <li>
-              <NuxtLink to="/admin/paniers" class="text-primary">
+              <NuxtLink :to="localePath('/admin/paniers')" class="text-primary">
                 <Icon name="mdi:basket-outline" size="16" class="mr-1" />
                 {{ $t('admin.baskets') }}
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/admin/legumes" class="text-primary">
+              <NuxtLink :to="localePath('/admin/legumes')" class="text-primary">
                 <Icon name="mdi:carrot" size="16" class="mr-1" />
                 {{ $t('admin.vegetables') }}
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/admin/reservations" class="text-primary">
+              <NuxtLink :to="localePath('/admin/reservations')" class="text-primary">
                 <Icon name="mdi:calendar-check" size="16" class="mr-1" />
                 {{ $t('admin.reservations') }}
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/admin/articles" class="text-primary">
+              <NuxtLink :to="localePath('/admin/articles')" class="text-primary">
                 <Icon name="mdi:newspaper-variant-outline" size="18" />
                 {{ $t('admin.articles') }}
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/admin/livraison" class="text-primary">
+              <NuxtLink :to="localePath('/admin/livraison')" class="text-primary">
                 <Icon name="mdi:truck-outline" size="18" />
                 {{ $t('admin.delivery') }}
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/admin/images" class="text-primary">
+              <NuxtLink :to="localePath('/admin/images')" class="text-primary">
                 <Icon name="mdi:image-multiple-outline" size="18" />
                 {{ $t('admin.images') }}
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/admin/parametres" class="text-primary">
+              <NuxtLink :to="localePath('/admin/parametres')" class="text-primary">
                 <Icon name="mdi:cog-outline" size="16" class="mr-1" />
                 {{ $t('admin.settings') }}
               </NuxtLink>
             </li>
             <li v-if="!facebookFluxDeactivated">
-              <NuxtLink to="/facebook-sync" class="text-primary">
+              <NuxtLink :to="localePath('/facebook-sync')" class="text-primary">
                 <Icon name="mdi:facebook" size="16" class="mr-1" />
                 {{ $t('admin.facebookSync') }}
               </NuxtLink>
@@ -107,6 +107,7 @@ import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const localePath = useLocalePath()
 const showAuthModal = ref(false)
 
 const { data: siteConfig } = await useFetch<{ facebookFluxDeactivated: boolean; registerEnabled: boolean }>('/api/site-config')
@@ -117,7 +118,7 @@ const handleLogout = async () => {
   await authStore.logout()
   const { $toast } = useNuxtApp()
   $toast.success('Vous avez été déconnecté')
-  await router.push('/')
+  await router.push(localePath('/'))
 }
 
 const onAuthSuccess = () => {

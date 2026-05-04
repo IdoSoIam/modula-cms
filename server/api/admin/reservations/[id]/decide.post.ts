@@ -1,8 +1,8 @@
 import { prisma } from '../../../../../prisma/client'
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { sendGmail, getSiteOrigin } from '~/server/utils/gmail'
+import { sendGmail } from '~/server/utils/gmail'
 import { removeReservationFromGoogleCalendar, syncReservationToGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
+import { appendReservationManageLink, buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
 import { getReservationEmailHtmlLang } from '~/server/utils/reservationEmailContent'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { ensureReservationOccurrences, updateFutureOccurrencesFromReservation } from '~/server/utils/reservationOccurrences'
@@ -82,15 +82,12 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    const manageUrl = updated.publicActionToken
-      ? `${getSiteOrigin()}/reservation/manage/${updated.publicActionToken}`
-      : null
-    const linkLabel = reservation.language === 'en'
-      ? 'Confirm this slot or suggest another one:'
-      : 'Confirmer ce créneau ou en proposer un autre :'
-    const textBody = `${body.email.body}
-
-${manageUrl ? `${linkLabel}\n${manageUrl}` : ''}`
+    const textBody = appendReservationManageLink({
+      body: body.email.body,
+      reservation: updated,
+      mode: 'respond',
+      subscriptionsEnabled
+    })
 
     await sendGmail({
       to: updated.email,
@@ -196,7 +193,8 @@ ${manageUrl ? `${linkLabel}\n${manageUrl}` : ''}`
     subject: body.email.subject,
     body: body.email.body,
     action: body.decision,
-    subscriptionsEnabled
+    subscriptionsEnabled,
+    manageLinkMode: body.decision === 'CONFIRMED' ? 'cancel' : 'none'
   })
 
   await sendGmail({

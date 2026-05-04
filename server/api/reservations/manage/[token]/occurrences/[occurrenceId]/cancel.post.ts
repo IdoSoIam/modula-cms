@@ -68,7 +68,8 @@ export default defineEventHandler(async (event) => {
     subject: customerDraft.subject,
     body: customerDraft.body,
     action: 'CANCELLED',
-    subscriptionsEnabled
+    subscriptionsEnabled,
+    manageLinkMode: 'manage'
   })
 
   await sendGmail({

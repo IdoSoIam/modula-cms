@@ -8,7 +8,8 @@
       <!-- Conteneur pour les toasts -->
       <div
         id="toast"
-        class="fixed right-4 z-[60] hidden w-[min(26rem,calc(100vw-2rem))] max-w-full"
+        popover="manual"
+        class="fixed inset-auto right-4 m-0 w-[min(26rem,calc(100vw-2rem))] max-w-full border-0 bg-transparent p-0 text-inherit shadow-none outline-none backdrop:bg-transparent"
         style="top: 5rem"
       ></div>
 

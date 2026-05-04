@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen container mx-auto px-4 py-8">
+  <div class="mx-auto min-h-screen w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
     <header class="mb-10 text-center">
       <h1 class="mb-2 text-4xl font-bold">{{ $t('pages.baskets.title') }}</h1>
       <p class="mx-auto max-w-2xl opacity-70">
@@ -18,6 +18,76 @@
 
     <div v-else-if="!baskets?.length" class="py-12 text-center opacity-60">
       {{ $t('pages.baskets.noBaskets') }}
+    </div>
+
+    <div v-else-if="singleBasket" class="overflow-hidden rounded-[2rem] border border-base-300 bg-base-100 shadow-xl">
+      <div class="grid gap-0 lg:grid-cols-[1.1fr_.9fr]">
+        <div class="relative min-h-[320px] bg-base-200">
+          <img
+            v-if="singleBasket.imageUrl"
+            :src="singleBasket.imageUrl"
+            :alt="singleBasket.name"
+            class="h-full w-full object-cover"
+          />
+          <div v-else class="flex h-full items-center justify-center bg-base-200 text-base-content/40">
+            <Icon name="mdi:basket-outline" size="96" />
+          </div>
+          <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-6 text-white">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="badge badge-primary badge-lg border-0">{{ $formatPrice(singleBasket.finalPrice) }}</span>
+              <span v-if="singleBasket.remaining === 0" class="badge badge-error badge-lg">{{ $t('pages.baskets.complete') }}</span>
+              <span v-else-if="singleBasket.remaining <= 3" class="badge badge-warning badge-lg">
+                {{ $t('pages.baskets.remaining', { count: singleBasket.remaining }) }}
+              </span>
+            </div>
+            <h2 class="mt-4 text-4xl font-black tracking-tight">{{ singleBasket.name }}</h2>
+            <p v-if="singleBasket.description" class="mt-3 max-w-2xl text-sm text-white/85 md:text-base">{{ singleBasket.description }}</p>
+          </div>
+        </div>
+
+        <div class="flex flex-col justify-between gap-6 p-6 md:p-8">
+          <div>
+            <div class="mb-3 text-sm font-semibold uppercase tracking-[0.22em] text-primary">
+              {{ $t('pages.baskets.composition', { count: singleBasket.items.length }) }}
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div
+                v-for="(item, idx) in singleBasket.items"
+                :key="`${singleBasket.id}-${idx}`"
+                class="rounded-2xl border border-base-300 bg-base-200/70 p-4"
+              >
+                <button
+                  v-if="item.vegetable.imageUrl"
+                  type="button"
+                  class="flex w-full items-center justify-between gap-3 text-left"
+                  @click="openVegetablePreview(item.vegetable.imageUrl, item.vegetable.name)"
+                >
+                  <span class="font-semibold">{{ item.vegetable.name }}</span>
+                  <Icon name="mdi:image-search-outline" size="18" class="opacity-60" />
+                </button>
+                <div v-else class="font-semibold">{{ item.vegetable.name }}</div>
+                <div class="mt-2 text-sm opacity-70">{{ formatBasketItemQuantity(item.quantity, item.vegetable.unit) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-base-300 bg-base-200 p-5">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div class="text-sm uppercase tracking-[0.18em] opacity-60">{{ $t('pages.baskets.reserve') }}</div>
+                <div class="mt-1 text-3xl font-bold text-primary">{{ $formatPrice(singleBasket.finalPrice) }}</div>
+              </div>
+              <button
+                class="btn btn-primary btn-lg"
+                :disabled="singleBasket.remaining === 0 || !ordersOpen"
+                @click="openReservation(singleBasket)"
+              >
+                {{ $t('pages.baskets.reserve') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -96,7 +166,7 @@
     </div>
 
     <dialog ref="dlg" class="modal">
-      <div class="modal-box max-w-2xl">
+      <div class="modal-box max-w-5xl">
         <h3 class="mb-2 text-lg font-bold">
           {{ $t('pages.baskets.reserveTitle', { name: selected?.name ?? '' }) }}
         </h3>
@@ -106,17 +176,17 @@
 
         <div class="alert alert-info mb-4 text-sm">
           <Icon name="mdi:cash" size="18" />
-          <span>Paiement en espèces uniquement au retrait ou à la remise. Aucun paiement en ligne.</span>
+          <span>{{ $t('pages.baskets.cashOnlyNotice') }}</span>
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div class="form-control">
             <label class="label"><span class="label-text">{{ $t('pages.baskets.fullName') }} *</span></label>
-            <input v-model="form.customerName" class="input input-bordered" />
+            <input v-model="form.customerName" class="input input-bordered w-full" />
           </div>
           <div class="form-control">
             <label class="label"><span class="label-text">{{ $t('auth.email') }} *</span></label>
-            <input v-model="form.email" type="email" class="input input-bordered" />
+            <input v-model="form.email" type="email" class="input input-bordered w-full" />
           </div>
           <div class="form-control md:col-span-2">
             <label class="label"><span class="label-text">{{ $t('pages.baskets.phone') }}</span></label>
@@ -133,10 +203,10 @@
           >
             <div class="flex items-center gap-2">
               <input v-model="form.deliveryType" type="radio" value="FARM" class="radio radio-primary radio-sm" />
-              <span class="font-medium">Retrait à la ferme</span>
+              <span class="font-medium">{{ $t('orders.pickup') }}</span>
             </div>
             <div class="mt-2 text-xs opacity-70">
-              Pour les paniers réservés sur le site.
+              {{ $t('pages.baskets.farmPickupHelp') }}
             </div>
           </label>
 
@@ -149,7 +219,7 @@
               <span class="font-medium">{{ $t('pages.baskets.deliveryPickup') }}</span>
             </div>
             <div class="mt-2 text-xs opacity-70">
-              Retrait dans un point partenaire selon disponibilités.
+              {{ $t('pages.baskets.pickupHelp') }}
             </div>
           </label>
 
@@ -162,7 +232,7 @@
               <span class="font-medium">{{ $t('pages.baskets.deliveryTour') }}</span>
             </div>
             <div class="mt-2 text-xs opacity-70">
-              Livraison possible seulement dans certaines villes.
+              {{ $t('pages.baskets.deliveryTourHelp') }}
             </div>
           </label>
         </div>
@@ -170,27 +240,27 @@
         <div v-if="form.deliveryType === 'FARM'" class="mb-3 space-y-3">
           <div class="alert alert-info text-sm">
             <Icon name="mdi:information-outline" size="18" />
-            <span>Le retrait à la ferme pour les paniers se fait par défaut sur le créneau ci-dessous. Vous pouvez proposer un autre horaire si besoin. Paiement en espèces au retrait.</span>
+            <span>{{ $t('pages.baskets.farmDefaultSlotHelp') }}</span>
           </div>
           <div class="rounded-xl bg-base-300 p-4 text-sm">
-            <div class="font-medium">Adresse de la ferme</div>
+            <div class="font-medium">{{ $t('pages.baskets.farmAddressTitle') }}</div>
             <div class="mt-1 opacity-80">{{ deliveryOptions?.farmPickup.address }}</div>
-            <div class="mt-3 font-medium">Créneau proposé par défaut</div>
+            <div class="mt-3 font-medium">{{ $t('pages.baskets.defaultSlotTitle') }}</div>
             <div class="mt-1 opacity-80">
-              {{ deliveryOptions?.farmPickup.nextDate ? formatNextDate(deliveryOptions.farmPickup.nextDate) : '' }} de {{ deliveryOptions?.farmPickup.startTime }} à {{ deliveryOptions?.farmPickup.endTime }}
+              {{ deliveryOptions?.farmPickup.nextDate ? formatNextDate(deliveryOptions.farmPickup.nextDate) : '' }} {{ $t('pages.baskets.fromTo', { start: deliveryOptions?.farmPickup.startTime, end: deliveryOptions?.farmPickup.endTime }) }}
             </div>
           </div>
           <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 bg-base-200 px-4 py-3">
             <input v-model="form.farmAlternateEnabled" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-            <span class="label-text">Proposer un autre jour / une autre heure</span>
+            <span class="label-text">{{ $t('pages.baskets.proposeAnotherSlot') }}</span>
           </label>
           <div v-if="form.farmAlternateEnabled" class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div class="form-control">
-              <label class="label"><span class="label-text">Autre date souhaitée</span></label>
+              <label class="label"><span class="label-text">{{ $t('pages.baskets.alternateDate') }}</span></label>
               <input v-model="form.farmAlternateDate" type="date" class="input input-bordered w-full" />
             </div>
             <div class="form-control">
-              <label class="label"><span class="label-text">Autre heure souhaitée</span></label>
+              <label class="label"><span class="label-text">{{ $t('pages.baskets.alternateTime') }}</span></label>
               <input v-model="form.farmAlternateTime" type="time" class="input input-bordered w-full" />
             </div>
           </div>
@@ -198,7 +268,7 @@
 
         <div v-if="form.deliveryType === 'PICKUP'" class="alert alert-info mb-3 text-sm">
           <Icon name="mdi:information-outline" size="18" />
-          <span>Choisissez le point relais le plus pratique. Paiement en espèces lors du retrait.</span>
+          <span>{{ $t('pages.baskets.pickupNotice') }}</span>
         </div>
 
         <div v-if="form.deliveryType === 'PICKUP'" class="form-control mb-3">
@@ -235,9 +305,9 @@
 
         <div v-if="form.deliveryType === 'TOUR'" class="mb-3 space-y-3">
           <div class="rounded-xl border border-base-300 bg-base-200 p-4 text-sm">
-            <div class="font-medium">Livraison en tournée</div>
+            <div class="font-medium">{{ $t('pages.baskets.deliveryTourTitle') }}</div>
             <p class="mt-1 opacity-75">
-              Indiquez d'abord votre ville pour vérifier si la tournée passe chez vous, puis choisissez votre tournée. Paiement en espèces à la remise.
+              {{ $t('pages.baskets.deliveryTourNotice') }}
             </p>
           </div>
 
@@ -248,7 +318,7 @@
                 <input
                   v-model="citySearch"
                   class="input input-bordered w-full"
-                  placeholder="Chercher une ville..."
+                  :placeholder="$t('pages.baskets.citySearchPlaceholder')"
                   autocomplete="off"
                   @focus="showCityDropdown = true"
                   @input="onCitySearch"
@@ -257,8 +327,8 @@
                   @keydown.enter.prevent="selectFirstCity"
                 />
                 <ul class="dropdown-content menu z-[1] max-h-60 w-full overflow-y-auto rounded-box bg-base-100 p-2 shadow">
-                  <li v-if="deliveryCitiesLoading" class="disabled"><a>Chargement...</a></li>
-                  <li v-else-if="!filteredCities.length" class="disabled"><a>Aucune ville trouvée</a></li>
+                  <li v-if="deliveryCitiesLoading" class="disabled"><a>{{ $t('common.loading') }}</a></li>
+                  <li v-else-if="!filteredCities.length" class="disabled"><a>{{ $t('pages.baskets.noCitiesFound') }}</a></li>
                   <li v-for="city in filteredCities" :key="city.city" @mousedown.prevent="selectCity(city)">
                     <a class="flex justify-between">
                       <span>{{ city.city }}</span>
@@ -326,7 +396,7 @@
             Vous recevrez une réservation récurrente chaque semaine pour ce mode de retrait ou livraison. Vous pourrez ensuite arrêter l'abonnement ou annuler seulement une semaine depuis l'email de confirmation.
           </p>
           <p v-if="form.deliveryType === 'TOUR' && selectedTour?.monthlyPrice" class="mt-2 text-success">
-            Tarif abonnement indicatif : {{ $formatPrice(selectedTour.monthlyPrice) }}/mois
+            {{ $t('pages.baskets.subscriptionPriceHint', { price: $formatPrice(selectedTour.monthlyPrice) }) }}
           </p>
         </div>
 
@@ -356,7 +426,7 @@
           class="max-h-[70vh] w-full rounded-box object-contain"
         />
         <div class="modal-action">
-          <button class="btn" @click="closeVegetablePreview">Fermer</button>
+          <button class="btn" @click="closeVegetablePreview">{{ $t('common.close') }}</button>
         </div>
       </div>
       <form method="dialog" class="modal-backdrop"><button>close</button></form>
@@ -436,9 +506,17 @@ const { data: deliveryOptions } = await useFetch<DeliveryOptions>('/api/delivery
 const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
 const { data: deliveryCities, pending: deliveryCitiesLoading } = await useFetch<DeliveryCity[]>('/api/delivery-cities')
 
+usePageSeo({
+  title: computed(() => locale.value === 'en' ? 'Reserve a vegetable basket' : 'Réserver un panier de légumes'),
+  description: computed(() => locale.value === 'en'
+    ? 'Browse available vegetable baskets, choose pickup or delivery, and send your reservation online.'
+    : 'Consultez les paniers de légumes disponibles, choisissez votre retrait ou votre livraison et envoyez votre réservation en ligne.')
+})
+
 const ordersOpen = computed(() => siteConfig.value?.ordersWindow.isOpen ?? true)
 const ordersWindow = computed(() => siteConfig.value?.ordersWindow)
 const subscriptionsEnabled = computed(() => siteConfig.value?.subscriptionsEnabled ?? false)
+const singleBasket = computed(() => baskets.value?.length === 1 ? baskets.value[0] : null)
 
 const formatLongDate = (value: string) =>
   new Date(value).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', {
@@ -611,6 +689,9 @@ const formatNextDate = (value: string) =>
     month: 'long'
   })
 
+const formatBasketItemQuantity = (quantity: number, unit: 'KG' | 'PIECE') =>
+  `${quantity}${unit === 'KG' ? ' kg' : ' x'}`
+
 const submit = async () => {
   if (!selected.value) return
 
@@ -645,7 +726,7 @@ const submit = async () => {
 
   if (form.deliveryType === 'FARM' && form.farmAlternateEnabled) {
     if (!form.farmAlternateDate || !form.farmAlternateTime) {
-      $toast.error('Renseignez la date et l\'heure souhaitées pour votre autre créneau')
+      $toast.error(t('pages.baskets.alternateSlotRequired'))
       return
     }
   }

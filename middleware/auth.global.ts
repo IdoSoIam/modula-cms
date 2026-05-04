@@ -2,6 +2,8 @@ import { useAuthStore } from '~/stores/auth'
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const authStore = useAuthStore()
+  const localePath = useLocalePath()
+  const normalizedPath = to.path.replace(/^\/en(?=\/|$)/, '') || '/'
 
   try {
     await authStore.ensureInitialized()
@@ -12,23 +14,23 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const adminRoutes = ['/admin', '/facebook-test']
   const protectedRoutes = ['/profile', '/commandes']
 
-  if (adminRoutes.some(route => to.path.startsWith(route))) {
+  if (adminRoutes.some(route => normalizedPath.startsWith(route))) {
     if (!authStore.isAuthenticated) {
-      return navigateTo('/login')
+      return navigateTo(localePath('/login'))
     }
 
     if (!authStore.isAdmin) {
-      return navigateTo('/')
+      return navigateTo(localePath('/'))
     }
   }
 
-  if (protectedRoutes.some(route => to.path.startsWith(route))) {
+  if (protectedRoutes.some(route => normalizedPath.startsWith(route))) {
     if (!authStore.isAuthenticated) {
-      return navigateTo('/login')
+      return navigateTo(localePath('/login'))
     }
   }
 
-  if (to.path === '/login' && authStore.isAuthenticated) {
-    return navigateTo('/profile')
+  if (normalizedPath === '/login' && authStore.isAuthenticated) {
+    return navigateTo(localePath('/profile'))
   }
 })

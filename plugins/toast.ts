@@ -1,5 +1,10 @@
 export default defineNuxtPlugin(() => {
   let hideTimeout: ReturnType<typeof setTimeout> | null = null;
+  type ToastPopoverElement = HTMLElement & {
+    showPopover?: () => void
+    hidePopover?: () => void
+    matches: (selectors: string) => boolean
+  }
 
   const getToastOffset = () => {
     const header = document.getElementById('site-header');
@@ -13,7 +18,7 @@ export default defineNuxtPlugin(() => {
   };
 
   const showToast = (type: 'success' | 'error', message: string) => {
-    const toast = document.getElementById('toast') as HTMLElement | null;
+    const toast = document.getElementById('toast') as ToastPopoverElement | null;
 
     if (!toast) {
       return;
@@ -25,14 +30,27 @@ export default defineNuxtPlugin(() => {
         <span>${message}</span>
       </div>
     `;
-    toast.classList.remove('hidden');
+
+    if (typeof toast.showPopover === 'function') {
+      if (!toast.matches(':popover-open')) {
+        toast.showPopover();
+      }
+    } else {
+      toast.style.display = 'block';
+    }
 
     if (hideTimeout) {
       clearTimeout(hideTimeout);
     }
 
     hideTimeout = setTimeout(() => {
-      toast.classList.add('hidden');
+      if (typeof toast.hidePopover === 'function') {
+        if (toast.matches(':popover-open')) {
+          toast.hidePopover();
+        }
+      } else {
+        toast.style.display = 'none';
+      }
     }, 3000);
   };
 

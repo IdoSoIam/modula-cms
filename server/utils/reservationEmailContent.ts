@@ -700,17 +700,24 @@ export function resolveReservationTemplate(
 }
 
 export function getReservationActionLinkLabel(options: {
-  action: 'CONFIRMED' | 'CANCELLED'
+  action: 'CONFIRMED' | 'CANCELLED' | 'PROPOSED'
   monthlySubscription: boolean
   locale: string | null | undefined
 }) {
   const normalized = normalizeReservationLocale(options.locale)
 
   if (normalized === 'en') {
+    if (options.action === 'PROPOSED') {
+      return 'Confirm this slot or suggest another one:'
+    }
     if (options.action === 'CONFIRMED') {
       return options.monthlySubscription ? 'Stop my subscription:' : 'Cancel my reservation:'
     }
     return options.monthlySubscription ? 'Subscription management:' : 'Reservation management:'
+  }
+
+  if (options.action === 'PROPOSED') {
+    return 'Confirmer ce créneau ou en proposer un autre :'
   }
 
   if (options.action === 'CONFIRMED') {

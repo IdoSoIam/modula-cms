@@ -19,8 +19,8 @@
           </p>
 
           <div class="flex flex-wrap gap-3">
-            <NuxtLink to="/paniers" class="btn btn-primary btn-lg">{{ $t('pages.home.basketsCta') }}</NuxtLink>
-            <NuxtLink to="/contact" class="btn btn-outline btn-lg text-white hover:text-base-content">{{ $t('pages.home.meetUs') }}</NuxtLink>
+            <NuxtLink :to="localePath('/paniers')" class="btn btn-primary btn-lg">{{ $t('pages.home.basketsCta') }}</NuxtLink>
+            <NuxtLink :to="localePath('/contact')" class="btn btn-outline btn-lg text-white hover:text-base-content">{{ $t('pages.home.meetUs') }}</NuxtLink>
           </div>
 
           <div class="mt-8 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
@@ -42,7 +42,7 @@
     </section>
 
     <section class="border-y border-base-300 bg-base-200/70 py-5">
-      <div class="container mx-auto grid gap-4 px-4 md:grid-cols-3">
+      <div class="mx-auto grid w-full max-w-6xl gap-4 px-4 sm:px-6 lg:px-8 md:grid-cols-3">
         <div class="flex items-center gap-3">
           <div class="rounded-xl bg-primary/10 p-3 text-primary">
             <Icon name="mdi:calendar-week" size="22" />
@@ -76,7 +76,7 @@
     </section>
 
     <section class="py-16">
-      <div class="container mx-auto px-4">
+      <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
         <div class="mb-10 max-w-2xl">
           <h2 class="text-3xl font-bold">{{ $t('pages.home.ourActivities') }}</h2>
           <p class="mt-3 opacity-75">{{ $t('pages.home.activitiesIntro') }}</p>
@@ -101,7 +101,7 @@
               <h3 class="card-title">{{ $t('pages.home.basketsTitle') }}</h3>
               <p>{{ $t('pages.home.basketsDesc') }}</p>
               <div class="card-actions mt-3 justify-end">
-                <NuxtLink to="/paniers" class="btn btn-primary">{{ $t('pages.home.basketsCta') }}</NuxtLink>
+                <NuxtLink :to="localePath('/paniers')" class="btn btn-primary">{{ $t('pages.home.basketsCta') }}</NuxtLink>
               </div>
             </div>
           </div>
@@ -130,7 +130,7 @@
     </section>
 
     <section class="bg-base-100 py-4">
-      <div class="container mx-auto px-4">
+      <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
         <div class="rounded-[2rem] border border-base-300 bg-base-200/60 p-8">
           <div class="mb-6 max-w-2xl">
             <h2 class="text-3xl font-bold">Des paniers simples à réserver</h2>
@@ -175,7 +175,7 @@
     </section>
 
     <section class="bg-base-200 py-16">
-      <div class="container mx-auto px-4">
+      <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
         <div class="grid items-center gap-8 lg:grid-cols-[1.15fr_.85fr]">
           <div class="space-y-5">
             <div class="badge badge-primary badge-outline">{{ $t('pages.home.directSaleBadge') }}</div>
@@ -222,26 +222,19 @@
             </div>
 
             <div class="pt-2">
-              <NuxtLink to="/contact" class="btn btn-primary">{{ $t('pages.home.findUs') }}</NuxtLink>
+              <NuxtLink :to="localePath('/contact')" class="btn btn-primary">{{ $t('pages.home.findUs') }}</NuxtLink>
             </div>
           </div>
 
           <div class="space-y-4">
-            <img src="/images/vente_direct_saint_seb.jpg" alt="Vente directe" class="w-full rounded-[2rem] shadow-xl" />
-            <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
-              <div class="mb-2 flex items-center gap-2 font-semibold">
-                <Icon name="mdi:map-marker-radius-outline" size="20" class="text-primary" />
-                {{ $t('pages.home.whereToFindUsTitle') }}
-              </div>
-              <p class="text-sm opacity-75">{{ siteConfig?.farmPickup.address || $t('pages.home.whereToFindUsText') }}</p>
-            </div>
+            <img :src="localePath('/images/vente_direct_saint_seb.jpg')" alt="Vente directe" class="w-full rounded-[2rem] shadow-xl" />
           </div>
         </div>
       </div>
     </section>
 
     <section class="py-16">
-      <div class="container mx-auto px-4">
+      <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
         <div class="grid gap-6 lg:grid-cols-[.95fr_1.05fr]">
           <div class="rounded-[2rem] border border-base-300 bg-base-100 p-8 shadow-sm">
             <div class="badge badge-outline mb-4">{{ $t('pages.home.trustBadge') }}</div>
@@ -263,10 +256,10 @@
             <h2 class="text-3xl font-bold">{{ $t('pages.home.ctaTitle') }}</h2>
             <p class="mt-4 max-w-xl text-primary-content/85">{{ $t('pages.home.ctaText') }}</p>
             <div class="mt-6 flex flex-wrap gap-3">
-              <NuxtLink to="/paniers" class="btn bg-white text-primary hover:bg-white/90 border-white">
+              <NuxtLink :to="localePath('/paniers')" class="btn bg-white text-primary hover:bg-white/90 border-white">
                 {{ $t('pages.home.ctaPrimary') }}
               </NuxtLink>
-              <NuxtLink to="/contact" class="btn btn-outline border-white text-white hover:bg-white hover:text-primary">
+              <NuxtLink :to="localePath('/contact')" class="btn btn-outline border-white text-white hover:bg-white hover:text-primary">
                 {{ $t('pages.home.ctaSecondary') }}
               </NuxtLink>
             </div>
@@ -288,7 +281,16 @@ interface SiteConfig {
   }
 }
 
+const { locale } = useI18n()
+const localePath = useLocalePath()
 const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
+
+usePageSeo({
+  title: computed(() => locale.value === 'en' ? 'Organic vegetables, baskets and farm pickup' : 'Légumes bio, paniers et vente à la ferme'),
+  description: computed(() => locale.value === 'en'
+    ? 'Discover seasonal organic vegetables, farm pickup and local basket reservations at Ferme du Campeyrigoux.'
+    : 'Découvrez les légumes bio de saison, la vente à la ferme et la réservation de paniers à la Ferme du Campeyrigoux.')
+})
 
 const farmDayLabel = computed(() => {
   const day = siteConfig.value?.farmPickup.dayOfWeek

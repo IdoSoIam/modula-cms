@@ -5,8 +5,15 @@ interface ContactForm {
   message: string
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { $toast } = useNuxtApp() as any
+
+usePageSeo({
+  title: computed(() => t('pages.contact.title')),
+  description: computed(() => locale.value === 'en'
+    ? 'Contact Ferme du Campeyrigoux for basket reservations, farm pickup details and local delivery information.'
+    : 'Contactez la Ferme du Campeyrigoux pour vos réservations de paniers, le retrait à la ferme et les informations de livraison locale.')
+})
 
 const form = ref<ContactForm>({
   name: '',
@@ -84,7 +91,7 @@ const farmDayLabel = computed(() => {
 </script>
 
 <template>
-  <div class="container mx-auto px-4 py-12">
+  <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
     <div class="mx-auto max-w-4xl">
       <h1 class="mb-8 text-center text-4xl font-bold text-base-content">{{ $t('pages.contact.title') }}</h1>
 

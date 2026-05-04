@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen container mx-auto px-4 py-8">
+  <div class="mx-auto min-h-screen w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
     <NuxtLink :to="localePath('/news')" class="link link-hover text-sm opacity-70 inline-flex items-center gap-1 mb-6">
       <Icon name="mdi:arrow-left" size="16" />
       {{ $t('pages.news.backToNews') }}
@@ -44,6 +44,18 @@ const { data: article } = await useFetch<Article>(() => `/api/articles/${slug.va
 
 const formatDate = (s: string) =>
   new Date(s).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+
+const articleDescription = computed(() => {
+  if (!article.value) return ''
+  if (article.value.excerpt) return article.value.excerpt
+  return article.value.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)
+})
+
+usePageSeo({
+  title: computed(() => article.value?.title || t('pages.news.title')),
+  description: articleDescription,
+  type: 'article'
+})
 </script>
 
 <style>

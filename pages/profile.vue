@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto px-4 py-8">
+  <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto">
       <h1 class="text-3xl font-bold mb-8">{{ $t('profile.title') }}</h1>
 
@@ -357,8 +357,11 @@ definePageMeta({
   middleware: 'auth'
 })
 
+const localePath = useLocalePath()
 const authStore = useAuthStore()
 const { $toast } = useNuxtApp() as any
+
+useNoIndexSeo('Mon compte', 'Espace personnel réservé aux clients connectés.')
 
 // State
 const activeTab = ref('personal')
@@ -528,7 +531,7 @@ const deleteAccount = async () => {
     
     await authStore.logout()
     $toast.success($t('profile.deleteAccountSuccess'))
-    await navigateTo('/')
+    await navigateTo(localePath('/'))
   } catch (e: any) {
     error.value = e?.data?.message || $t('profile.deleteAccountError')
     $toast.error(error.value)

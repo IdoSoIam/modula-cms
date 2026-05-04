@@ -7,7 +7,7 @@
         <div class="stat-title">À traiter</div>
         <div class="stat-value text-warning">{{ stats?.pendingReservations ?? '-' }}</div>
         <div class="stat-desc">Réservations en attente</div>
-        <NuxtLink to="/admin/reservations" class="stat-actions"><button class="btn btn-sm btn-ghost">Voir</button></NuxtLink>
+        <NuxtLink :to="localePath('/admin/reservations')" class="stat-actions"><button class="btn btn-sm btn-ghost">Voir</button></NuxtLink>
       </div>
 
       <div class="stat rounded-box bg-base-200">
@@ -28,7 +28,7 @@
         <div class="stat-desc">Réservations récurrentes confirmées</div>
       </div>
       <div v-else class="stat rounded-box bg-base-200">
-        <div class="stat-title">Archives</div>
+        <div class="stat-title">Archivés</div>
         <div class="stat-value text-secondary">{{ stats?.archivedReservations ?? '-' }}</div>
         <div class="stat-desc">Réservations archivées</div>
       </div>
@@ -48,7 +48,7 @@
       </div>
 
       <div v-if="subscriptionsEnabled" class="rounded-box bg-base-200 p-5">
-        <div class="text-sm uppercase opacity-60">Archives</div>
+        <div class="text-sm uppercase opacity-60">Archivés</div>
         <div class="mt-2 text-3xl font-bold text-neutral">{{ stats?.archivedReservations ?? '-' }}</div>
         <div class="mt-1 text-sm opacity-70">Réservations archivées</div>
       </div>
@@ -104,5 +104,6 @@ interface Stats {
 }
 
 const { data: stats } = await useFetch<Stats>('/api/admin/stats')
+const localePath = useLocalePath()
 const subscriptionsEnabled = computed(() => stats.value?.subscriptionsEnabled ?? false)
 </script>

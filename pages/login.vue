@@ -16,8 +16,11 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const localePath = useLocalePath()
+
+useNoIndexSeo('Connexion', 'Accès réservé aux comptes autorisés de la ferme.')
 
 const handleSuccess = async () => {
-  await router.push('/profile')
+  await router.push(localePath('/profile'))
 }
 </script>

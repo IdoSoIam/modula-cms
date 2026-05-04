@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto p-4">
+  <div class="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
     <h1 class="text-2xl font-bold mb-4">Test Facebook OAuth</h1>
     
     <div class="space-y-4">
@@ -35,6 +35,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import type { FacebookLoginStatus, FacebookAuthResponse } from '~/types/facebook'
+
+useNoIndexSeo('Synchronisation Facebook', 'Page technique réservée à l’administration.')
 
 const isLoading = ref(false)
 const error = ref('')

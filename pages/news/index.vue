@@ -2,9 +2,7 @@
 import FacebookFeed from '~/components/FacebookFeed.vue'
 
 definePageMeta({
-  layout: 'default',
-  title: 'Actualités',
-  description: 'Suivez nos dernières actualités et mises à jour'
+  layout: 'default'
 })
 
 interface ArticleSummary {
@@ -22,6 +20,13 @@ type ViewMode = 'grid' | 'list'
 const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const router = useRouter()
+
+usePageSeo({
+  title: computed(() => t('pages.news.title')),
+  description: computed(() => locale.value === 'en'
+    ? 'Read the latest farm news, updates and seasonal highlights from Ferme du Campeyrigoux.'
+    : 'Suivez les actualités, les nouveautés et les temps forts de saison de la Ferme du Campeyrigoux.')
+})
 
 const { data: config } = await useFetch<{ facebookFluxDeactivated: boolean }>('/api/site-config')
 const useArticles = computed(() => config.value?.facebookFluxDeactivated === true)
@@ -59,7 +64,7 @@ const formatDate = (s: string | null) =>
 
 <template>
   <div class="min-h-screen bg-base-100">
-    <div class="container mx-auto px-4 py-8">
+    <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <h1 class="text-4xl font-bold text-center mb-8">{{ $t('pages.news.title') }}</h1>
 
       <div class="max-w-4xl mx-auto">
@@ -73,7 +78,6 @@ const formatDate = (s: string | null) =>
             {{ $t('pages.news.noArticles') }}
           </div>
           <div v-else>
-            <!-- Controls -->
             <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
               <div class="flex items-center gap-2">
                 <span class="text-sm opacity-70">{{ t('pages.news.sortBy') }}:</span>
@@ -101,7 +105,6 @@ const formatDate = (s: string | null) =>
               </div>
             </div>
 
-            <!-- Grid View -->
             <div v-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div
                 v-for="a in sortedArticles"
@@ -119,13 +122,12 @@ const formatDate = (s: string | null) =>
                   </p>
                   <p v-if="a.excerpt" class="opacity-80 line-clamp-3">{{ a.excerpt }}</p>
                   <div class="card-actions justify-end mt-2">
-                    <span class="link link-primary text-sm">{{ $t('pages.news.readMore') }} →</span>
+                    <span class="link link-primary text-sm">{{ $t('pages.news.readMore') }} -></span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- List View -->
             <div v-else class="grid gap-4">
               <div
                 v-for="a in sortedArticles"
@@ -143,7 +145,7 @@ const formatDate = (s: string | null) =>
                   </p>
                   <p v-if="a.excerpt" class="opacity-80 line-clamp-2">{{ a.excerpt }}</p>
                   <div class="card-actions justify-end mt-2">
-                    <span class="link link-primary text-sm">{{ $t('pages.news.readMore') }} →</span>
+                    <span class="link link-primary text-sm">{{ $t('pages.news.readMore') }} -></span>
                   </div>
                 </div>
               </div>

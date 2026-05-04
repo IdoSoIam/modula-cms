@@ -1,6 +1,6 @@
 import { getSetting, SETTING_KEYS, getOrdersWindow, getFarmPickupConfig, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { sendGmail } from '~/server/utils/gmail'
-import { buildGenericEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
+import { appendReservationManageLink, buildGenericEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
 import { getReservationEmailHtmlLang, normalizeReservationLocale, resolveTemplateFromSettings, applyTemplateVars } from '~/server/utils/reservationEmailContent'
 import { getReservationFulfillment, getDeliveryMethodLabel } from '~/server/utils/reservationFulfillment'
 import { createReservationScheduleProposal, normalizeProposalDate, normalizeProposalTime } from '~/server/utils/reservationScheduleProposals'
@@ -196,15 +196,21 @@ export default defineEventHandler(async (event) => {
       fulfillmentTime: (deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime) ?? (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
       basketPrice: new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'EUR' }).format(Number(basket.finalPrice))
     })
+    const customerBody = appendReservationManageLink({
+      body: customerEmail.body,
+      reservation,
+      mode: 'cancel',
+      subscriptionsEnabled
+    })
 
     try {
       await sendGmail({
         to: reservation.email,
         subject: customerEmail.subject,
-        body: customerEmail.body,
+        body: customerBody,
         htmlBody: buildGenericEmail({
           title: customerEmail.subject,
-          body: customerEmail.body,
+          body: customerBody,
           accent: '#4f8a34',
           lang: getReservationEmailHtmlLang(reservation.language)
         })

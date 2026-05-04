@@ -1,7 +1,11 @@
 import type { Basket, DeliveryTour, PickupPoint, Reservation } from '@prisma/client'
 import { buildReservationIcs } from './calendarInvite'
 import { buildEmailHtml } from './emailTemplates'
-import { getReservationActionLinkLabel, getReservationEmailHtmlLang } from './reservationEmailContent'
+import {
+  getReservationActionLinkLabel,
+  getReservationEmailHtmlLang,
+  normalizeReservationLocale
+} from './reservationEmailContent'
 import { getSetting, SETTING_KEYS } from './settings'
 import { getSiteOrigin, type GmailCalendarInvite } from './gmail'
 
@@ -11,17 +15,41 @@ type ReservationWithRelations = Reservation & {
   deliveryTour: DeliveryTour | null
 }
 
+type CustomerManageLinkMode = 'cancel' | 'manage' | 'respond' | 'none'
+
 function getLogoUrl() {
   return `${getSiteOrigin()}/images/logo-removebg-preview.png`
 }
 
-function getManageReservationUrl(token: string | null | undefined) {
+export function getManageReservationUrl(token: string | null | undefined, locale?: string | null) {
   if (!token) return null
-  return `${getSiteOrigin()}/reservation/manage/${token}`
+  const localePrefix = normalizeReservationLocale(locale) === 'en' ? '/en' : ''
+  return `${getSiteOrigin()}${localePrefix}/reservation/manage/${token}`
 }
 
 export function getAdminReservationUrl(reservationId: number) {
   return `${getSiteOrigin()}/admin/reservations?open=${reservationId}`
+}
+
+export function appendReservationManageLink(options: {
+  body: string
+  reservation: Pick<Reservation, 'publicActionToken' | 'language' | 'monthlySubscription'>
+  mode: CustomerManageLinkMode
+  subscriptionsEnabled: boolean
+}) {
+  if (options.mode === 'none') return options.body
+
+  const manageUrl = getManageReservationUrl(options.reservation.publicActionToken, options.reservation.language)
+  if (!manageUrl) return options.body
+
+  const monthlySubscription = options.subscriptionsEnabled && options.reservation.monthlySubscription
+  const label = getReservationActionLinkLabel({
+    action: options.mode === 'respond' ? 'PROPOSED' : options.mode === 'cancel' ? 'CONFIRMED' : 'CANCELLED',
+    monthlySubscription,
+    locale: options.reservation.language
+  })
+
+  return `${options.body}\n\n${label}\n${manageUrl}`
 }
 
 export function buildAdminReservationSummary(options: {
@@ -73,28 +101,26 @@ export async function buildReservationDecisionEmail(options: {
   body: string
   action: 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
   subscriptionsEnabled: boolean
+  manageLinkMode?: CustomerManageLinkMode
 }) {
   const organizerEmail = await getSetting(SETTING_KEYS.GMAIL_CONNECTED_EMAIL)
-  const manageUrl = getManageReservationUrl(options.reservation.publicActionToken)
-  const actionHelp = options.action === 'CONFIRMED' && manageUrl
-    ? `${options.body}
-
-${getReservationActionLinkLabel({
-      action: 'CONFIRMED',
-      monthlySubscription: options.subscriptionsEnabled && options.reservation.monthlySubscription,
-      locale: options.reservation.language
-    })}
-${manageUrl}`
-    : options.body
+  const textBody = appendReservationManageLink({
+    body: options.body,
+    reservation: options.reservation,
+    mode: options.manageLinkMode ?? (options.action === 'CONFIRMED' ? 'cancel' : 'none'),
+    subscriptionsEnabled: options.subscriptionsEnabled
+  })
   const htmlBody = buildEmailHtml({
     title: options.subject,
-    body: actionHelp,
+    body: textBody,
     accent: options.action === 'CONFIRMED' ? '#4f8a34' : options.action === 'CANCELLED' ? '#d97706' : '#b91c1c',
     logoUrl: getLogoUrl(),
     lang: getReservationEmailHtmlLang(options.reservation.language)
   })
 
   let calendarInvite: GmailCalendarInvite | undefined
+  const manageUrl = getManageReservationUrl(options.reservation.publicActionToken, options.reservation.language)
+
   if (organizerEmail && (options.action === 'CONFIRMED' || options.action === 'CANCELLED')) {
     const ics = buildReservationIcs({
       reservation: options.reservation,
@@ -108,14 +134,14 @@ ${manageUrl}`
     if (ics) {
       calendarInvite = ics
     } else {
-      console.warn('[reservation-email] ICS non généré: date de reservation manquante', {
+      console.warn('[reservation-email] ICS non genere: date de reservation manquante', {
         reservationId: options.reservation.id,
         action: options.action,
         fulfillmentDate: options.reservation.fulfillmentDate
       })
     }
   } else if (options.action === 'CONFIRMED' || options.action === 'CANCELLED') {
-    console.warn('[reservation-email] ICS non généré: email Gmail connecte introuvable', {
+    console.warn('[reservation-email] ICS non genere: email Gmail connecte introuvable', {
       reservationId: options.reservation.id,
       action: options.action
     })
@@ -123,7 +149,7 @@ ${manageUrl}`
 
   return {
     htmlBody,
-    textBody: actionHelp,
+    textBody,
     calendarInvite,
     attachments: []
   }
@@ -144,11 +170,18 @@ export async function buildReservationOccurrenceEmail(options: {
   action: 'CONFIRMED' | 'CANCELLED'
   recurrenceId?: Date | null
   subscriptionsEnabled?: boolean
+  manageLinkMode?: CustomerManageLinkMode
 }) {
   const organizerEmail = await getSetting(SETTING_KEYS.GMAIL_CONNECTED_EMAIL)
+  const textBody = appendReservationManageLink({
+    body: options.body,
+    reservation: options.reservation,
+    mode: options.manageLinkMode ?? 'manage',
+    subscriptionsEnabled: options.subscriptionsEnabled ?? false
+  })
   const htmlBody = buildEmailHtml({
     title: options.subject,
-    body: options.body,
+    body: textBody,
     accent: options.action === 'CONFIRMED' ? '#2563eb' : '#d97706',
     logoUrl: getLogoUrl(),
     lang: getReservationEmailHtmlLang(options.reservation.language)
@@ -174,14 +207,14 @@ export async function buildReservationOccurrenceEmail(options: {
     if (ics) {
       calendarInvite = ics
     } else {
-      console.warn('[reservation-email] ICS occurrence non généré: date manquante', {
+      console.warn('[reservation-email] ICS occurrence non genere: date manquante', {
         reservationId: options.reservation.id,
         occurrenceId: options.occurrence.id,
         action: options.action
       })
     }
   } else {
-    console.warn('[reservation-email] ICS occurrence non généré: email Gmail connecte introuvable', {
+    console.warn('[reservation-email] ICS occurrence non genere: email Gmail connecte introuvable', {
       reservationId: options.reservation.id,
       occurrenceId: options.occurrence.id,
       action: options.action
@@ -189,7 +222,7 @@ export async function buildReservationOccurrenceEmail(options: {
   }
 
   return {
-    textBody: options.body,
+    textBody,
     htmlBody,
     calendarInvite,
     attachments: []

@@ -66,7 +66,8 @@ export default defineEventHandler(async (event) => {
     body: body.email.body,
     action: 'CONFIRMED',
     recurrenceId: occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate,
-    subscriptionsEnabled
+    subscriptionsEnabled,
+    manageLinkMode: 'manage'
   })
 
   await sendGmail({
