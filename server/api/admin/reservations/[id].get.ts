@@ -71,6 +71,7 @@ export default defineEventHandler(async (event) => {
     id: reservation.id,
     customerName: reservation.customerName,
     email: reservation.email,
+    language: reservation.language,
     phone: reservation.phone,
     message: reservation.message,
     status: reservation.status,

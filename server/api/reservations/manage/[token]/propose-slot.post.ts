@@ -1,6 +1,7 @@
 import { prisma } from '../../../../../prisma/client'
 import { sendGmail } from '~/server/utils/gmail'
-import { buildAdminReservationSummary, buildGenericEmail } from '~/server/utils/reservationEmails'
+import { buildGenericEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
+import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
 import { getSetting, SETTING_KEYS } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { createReservationScheduleProposal, normalizeProposalDate, normalizeProposalTime } from '~/server/utils/reservationScheduleProposals'
@@ -59,29 +60,31 @@ export default defineEventHandler(async (event) => {
 
   const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
   if (adminEmail) {
-    const subject = `Nouvelle proposition client - ${reservation.basket.name}`
-    const message = buildAdminReservationSummary({
-      reservationId: reservation.id,
+    const adminTemplate = await resolveTemplateFromSettings('admin_customer_proposed_slot', 'fr')
+    const adminDraft = applyTemplateVars(adminTemplate, {
+      contextLine: `${reservation.customerName} a proposé un autre créneau pour son retrait à la ferme.`,
+      reservationId: String(reservation.id),
       basketName: reservation.basket.name,
       customerName: reservation.customerName,
       customerEmail: reservation.email,
-      customerPhone: reservation.phone,
-      customerMessage: reservation.message,
-      deliveryLabel: 'Retrait à la ferme',
-      fulfillmentDate: proposalDate,
+      customerPhone: reservation.phone ?? '-',
+      customerMessage: reservation.message ?? '-',
+      deliveryMethod: 'Retrait à la ferme',
+      fulfillmentDate: proposalDate.toLocaleDateString('fr-FR'),
       fulfillmentTime: proposalTime,
-      fulfillmentLocation: reservation.fulfillmentLocation,
-      contextLine: `${reservation.customerName} a proposé un autre créneau pour son retrait à la ferme.`
+      fulfillmentLocation: reservation.fulfillmentLocation ?? 'à confirmer',
+      adminReservationUrl: getAdminReservationUrl(reservation.id)
     })
 
     await sendGmail({
       to: adminEmail,
-      subject,
-      body: message,
+      subject: adminDraft.subject,
+      body: adminDraft.body,
       htmlBody: buildGenericEmail({
-        title: subject,
-        body: message,
-        accent: '#4f8a34'
+        title: adminDraft.subject,
+        body: adminDraft.body,
+        accent: '#4f8a34',
+        lang: getReservationEmailHtmlLang('fr')
       })
     })
 
@@ -89,8 +92,8 @@ export default defineEventHandler(async (event) => {
       reservationId: reservation.id,
       kind: 'CUSTOMER_PROPOSED_NEW_SLOT',
       recipientEmail: adminEmail,
-      subject,
-      summary: message
+      subject: adminDraft.subject,
+      summary: adminDraft.body
     })
   }
 

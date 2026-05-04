@@ -3,6 +3,7 @@ import { requireAdmin } from '~/server/utils/requireAdmin'
 import { sendGmail, getSiteOrigin } from '~/server/utils/gmail'
 import { removeReservationFromGoogleCalendar, syncReservationToGoogleCalendar } from '~/server/utils/googleCalendarSync'
 import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
+import { getReservationEmailHtmlLang } from '~/server/utils/reservationEmailContent'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { ensureReservationOccurrences, updateFutureOccurrencesFromReservation } from '~/server/utils/reservationOccurrences'
 import { createReservationScheduleProposal, markReservationProposalAccepted, normalizeProposalDate, normalizeProposalTime } from '~/server/utils/reservationScheduleProposals'
@@ -84,9 +85,12 @@ export default defineEventHandler(async (event) => {
     const manageUrl = updated.publicActionToken
       ? `${getSiteOrigin()}/reservation/manage/${updated.publicActionToken}`
       : null
+    const linkLabel = reservation.language === 'en'
+      ? 'Confirm this slot or suggest another one:'
+      : 'Confirmer ce créneau ou en proposer un autre :'
     const textBody = `${body.email.body}
 
-${manageUrl ? `Confirmer ce créneau ou en proposer un autre :\n${manageUrl}` : ''}`
+${manageUrl ? `${linkLabel}\n${manageUrl}` : ''}`
 
     await sendGmail({
       to: updated.email,
@@ -95,7 +99,8 @@ ${manageUrl ? `Confirmer ce créneau ou en proposer un autre :\n${manageUrl}` : 
       htmlBody: buildGenericEmail({
         title: body.email.subject,
         body: textBody,
-        accent: '#2563eb'
+        accent: '#2563eb',
+        lang: getReservationEmailHtmlLang(updated.language)
       })
     })
 

@@ -1,6 +1,10 @@
 import type { DeliveryTour, DeliveryType, PickupPoint, Reservation } from '@prisma/client'
 import type { FarmPickupConfig } from './settings'
 
+function normalizeReservationLocale(value: string | null | undefined) {
+  return value === 'en' ? 'en' : 'fr'
+}
+
 interface FulfillmentInput {
   deliveryType: DeliveryType | null
   pickupPoint: Pick<PickupPoint, 'name' | 'address' | 'deliveryDay' | 'pickupStartTime'> | null
@@ -92,7 +96,14 @@ export function formatFulfillmentDate(date: Date | null | undefined, locale = 'f
   }).format(date)
 }
 
-export function getDeliveryMethodLabel(deliveryType: Reservation['deliveryType']) {
+export function getDeliveryMethodLabel(deliveryType: Reservation['deliveryType'], locale: string | null | undefined = 'fr') {
+  if (normalizeReservationLocale(locale) === 'en') {
+    if (deliveryType === 'FARM') return 'Farm pickup'
+    if (deliveryType === 'PICKUP') return 'Pickup point collection'
+    if (deliveryType === 'TOUR') return 'Delivery route'
+    return 'Pickup / delivery'
+  }
+
   if (deliveryType === 'FARM') return 'Retrait à la ferme'
   if (deliveryType === 'PICKUP') return 'Retrait en point relais'
   if (deliveryType === 'TOUR') return 'Livraison (tournée)'

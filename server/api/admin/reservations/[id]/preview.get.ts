@@ -1,5 +1,6 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { getSettings, SETTING_KEYS, DEFAULT_TEMPLATES } from '~/server/utils/settings'
+import { getSettings, SETTING_KEYS } from '~/server/utils/settings'
+import { getReservationDateLocale, resolveReservationTemplate } from '~/server/utils/reservationEmailContent'
 import { formatFulfillmentDate, getDeliveryMethodLabel, getDeliveryWindowLabel, getReservationFulfillment } from '~/server/utils/reservationFulfillment'
 import { prisma } from '../../../../../prisma/client'
 
@@ -29,35 +30,10 @@ export default defineEventHandler(async (event) => {
     : action === 'cancelled'
       ? settings[SETTING_KEYS.RESERVATION_TEMPLATE_CANCELLED]
       : action === 'proposed'
-        ? null
+        ? settings[SETTING_KEYS.RESERVATION_TEMPLATE_PROPOSED]
         : settings[SETTING_KEYS.RESERVATION_TEMPLATE_REJECTED]
-  const fallback = action === 'proposed'
-    ? {
-      subject: 'Proposition de créneau pour votre retrait à la ferme - Ferme du Campeyrigoux',
-      body: `Bonjour {{customerName}},
-
-Nous vous proposons le créneau suivant pour votre panier "{{basketName}}" :
-
-- Date : {{fulfillmentDate}}
-- Heure : {{fulfillmentTime}}
-- Lieu : {{fulfillmentLocation}}
-
-Merci de confirmer ce créneau ou de proposer une autre date et heure depuis le lien présent dans notre email.
-
-La Ferme du Campeyrigoux`
-    }
-    : action === 'confirmed'
-      ? DEFAULT_TEMPLATES.confirmed
-      : action === 'cancelled'
-        ? DEFAULT_TEMPLATES.cancelled
-        : DEFAULT_TEMPLATES.rejected
-
-  let tpl: { subject: string; body: string }
-  try {
-    tpl = raw ? JSON.parse(raw) : fallback
-  } catch {
-    tpl = fallback
-  }
+  const templateAction = action === 'proposed' ? 'proposed' : action
+  const tpl = resolveReservationTemplate(raw, templateAction, r.language)
 
   const query = getQuery(event)
   const fulfillment = getReservationFulfillment({
@@ -81,11 +57,11 @@ La Ferme du Campeyrigoux`
   const replace = (s: string) => s
     .replace(/\{\{customerName\}\}/g, r.customerName)
     .replace(/\{\{basketName\}\}/g, r.basket.name)
-    .replace(/\{\{basketPrice\}\}/g, new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(Number(r.basket.finalPrice)))
+    .replace(/\{\{basketPrice\}\}/g, new Intl.NumberFormat(getReservationDateLocale(r.language), { style: 'currency', currency: 'EUR' }).format(Number(r.basket.finalPrice)))
     .replace(/\{\{adminNote\}\}/g, typeof query.adminNote === 'string' ? query.adminNote : (r.adminNote ?? ''))
-    .replace(/\{\{deliveryMethod\}\}/g, getDeliveryMethodLabel(r.deliveryType))
+    .replace(/\{\{deliveryMethod\}\}/g, getDeliveryMethodLabel(r.deliveryType, r.language))
     .replace(/\{\{deliveryWindow\}\}/g, getDeliveryWindowLabel({ deliveryType: r.deliveryType, pickupPoint: r.pickupPoint, deliveryTour: r.deliveryTour }))
-    .replace(/\{\{fulfillmentDate\}\}/g, formatFulfillmentDate(fulfillment.fulfillmentDate))
+    .replace(/\{\{fulfillmentDate\}\}/g, formatFulfillmentDate(fulfillment.fulfillmentDate, getReservationDateLocale(r.language)))
     .replace(/\{\{fulfillmentTime\}\}/g, fulfillment.fulfillmentTime ?? '')
     .replace(/\{\{fulfillmentLocation\}\}/g, fulfillment.fulfillmentLocation ?? '')
 

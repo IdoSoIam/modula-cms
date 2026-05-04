@@ -44,13 +44,15 @@ export function buildEmailHtml(options: {
   accent?: string
   logoUrl?: string | null
   footer?: string
+  lang?: string
 }) {
   const accent = options.accent ?? '#5d7c2f'
   const footer = options.footer ?? 'Ferme du Campeyrigoux'
   const preheader = options.preheader ?? options.title
+  const lang = options.lang ?? 'fr'
 
   return `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${escapeHtml(lang)}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

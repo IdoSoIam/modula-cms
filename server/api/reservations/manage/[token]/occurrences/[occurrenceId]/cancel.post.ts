@@ -1,6 +1,7 @@
 import { prisma } from '../../../../../../../prisma/client'
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationOccurrenceEmail } from '~/server/utils/reservationEmails'
+import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
 import { cancelReservationOccurrenceInGoogleCalendar } from '~/server/utils/googleCalendarSync'
 import { getSetting, SETTING_KEYS, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
@@ -55,25 +56,24 @@ export default defineEventHandler(async (event) => {
     console.error('Erreur annulation Google Calendar occurrence client:', error)
   }
 
-  const customerSubject = 'Votre livraison de cette semaine a été annulée - Ferme du Campeyrigoux'
-  const customerBody = `Bonjour ${reservation.customerName},
-
-Votre occurrence de cette semaine a bien été annulée.
-
-Votre abonnement reste actif pour les semaines suivantes.`
+  const customerTemplate = await resolveTemplateFromSettings('cancelled_occurrence', reservation.language)
+  const customerDraft = applyTemplateVars(customerTemplate, {
+    customerName: reservation.customerName,
+    basketName: reservation.basket.name
+  })
 
   const customerEmail = await buildReservationOccurrenceEmail({
     reservation,
     occurrence: updatedOccurrence,
-    subject: customerSubject,
-    body: customerBody,
+    subject: customerDraft.subject,
+    body: customerDraft.body,
     action: 'CANCELLED',
     subscriptionsEnabled
   })
 
   await sendGmail({
     to: reservation.email,
-    subject: customerSubject,
+    subject: customerDraft.subject,
     body: customerEmail.textBody,
     htmlBody: customerEmail.htmlBody,
     calendarInvite: customerEmail.calendarInvite,
@@ -85,27 +85,28 @@ Votre abonnement reste actif pour les semaines suivantes.`
     occurrenceId: occurrence.id,
     kind: 'CUSTOMER_CANCELLED_OCCURRENCE',
     recipientEmail: reservation.email,
-    subject: customerSubject,
-    summary: customerBody
+    subject: customerDraft.subject,
+    summary: customerDraft.body
   })
 
   const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
   if (adminEmail) {
-    const subject = `Occurrence annulée par le client - ${reservation.basket.name}`
-    const body = `Le client a annulé une occurrence de son abonnement.
-
-- Panier : ${reservation.basket.name}
-- Client : ${reservation.customerName}
-- Email : ${reservation.email}
-- Date : ${formatOccurrenceDate(occurrence.occurrenceDate)}
-- Heure : ${occurrence.occurrenceTime ?? reservation.fulfillmentTime ?? 'Heure à confirmer'}
-- Lieu : ${occurrence.occurrenceLocation ?? reservation.fulfillmentLocation ?? 'Lieu à confirmer'}`
+    const adminTemplate = await resolveTemplateFromSettings('admin_customer_cancelled_occurrence', 'fr')
+    const adminDraft = applyTemplateVars(adminTemplate, {
+      contextLine: 'Le client a annulé une occurrence de son abonnement.',
+      basketName: reservation.basket.name,
+      customerName: reservation.customerName,
+      customerEmail: reservation.email,
+      fulfillmentDate: formatOccurrenceDate(occurrence.occurrenceDate),
+      fulfillmentTime: occurrence.occurrenceTime ?? reservation.fulfillmentTime ?? 'Heure à confirmer',
+      fulfillmentLocation: occurrence.occurrenceLocation ?? reservation.fulfillmentLocation ?? 'Lieu à confirmer'
+    })
 
     await sendGmail({
       to: adminEmail,
-      subject,
-      body,
-      htmlBody: buildGenericEmail({ title: subject, body, accent: '#d97706' })
+      subject: adminDraft.subject,
+      body: adminDraft.body,
+      htmlBody: buildGenericEmail({ title: adminDraft.subject, body: adminDraft.body, accent: '#d97706', lang: getReservationEmailHtmlLang('fr') })
     })
   }
 

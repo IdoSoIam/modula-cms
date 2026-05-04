@@ -109,6 +109,7 @@ model Reservation {
   userId                     Int?
   customerName               String
   email                      String
+  language                   String                             @default("fr")
   phone                      String?
   message                    String?                            @db.Text
   status                     ReservationStatus                  @default(PENDING)

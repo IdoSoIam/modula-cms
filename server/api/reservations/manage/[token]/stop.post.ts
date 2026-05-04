@@ -1,5 +1,6 @@
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
+import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
 import { removeReservationFromGoogleCalendar } from '~/server/utils/googleCalendarSync'
 import { getSetting, SETTING_KEYS, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
@@ -56,24 +57,22 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const subject = 'Votre abonnement a été arrêté - Ferme du Campeyrigoux'
-  const body = `Bonjour ${updated.customerName},
-
-'Votre abonnement a bien été arrêté.'
-
-Merci pour votre confiance.`
+  const customerTemplate = await resolveTemplateFromSettings('stopped_subscription', updated.language)
+  const customerDraft = applyTemplateVars(customerTemplate, {
+    customerName: updated.customerName
+  })
 
   const customerEmail = await buildReservationDecisionEmail({
     reservation: updated,
-    subject,
-    body,
+    subject: customerDraft.subject,
+    body: customerDraft.body,
     action: 'CANCELLED',
     subscriptionsEnabled
   })
 
   await sendGmail({
     to: updated.email,
-    subject,
+    subject: customerDraft.subject,
     body: customerEmail.textBody,
     htmlBody: customerEmail.htmlBody,
     calendarInvite: customerEmail.calendarInvite,
@@ -84,32 +83,33 @@ Merci pour votre confiance.`
     reservationId: updated.id,
     kind: 'CUSTOMER_STOPPED_SUBSCRIPTION',
     recipientEmail: updated.email,
-    subject,
-    summary: body
+    subject: customerDraft.subject,
+    summary: customerDraft.body
   })
 
   const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
   if (adminEmail) {
-    const adminSubject = `Abonnement arrêté par le client - ${updated.basket.name}`
-    const adminBody = `Le client a arrêté son abonnement.
-
-- Panier : ${updated.basket.name}
-- Client : ${updated.customerName}
-- Email : ${updated.email}`
+    const adminTemplate = await resolveTemplateFromSettings('admin_customer_stopped_subscription', 'fr')
+    const adminDraft = applyTemplateVars(adminTemplate, {
+      contextLine: 'Le client a arrêté son abonnement.',
+      basketName: updated.basket.name,
+      customerName: updated.customerName,
+      customerEmail: updated.email
+    })
 
     await sendGmail({
       to: adminEmail,
-      subject: adminSubject,
-      body: adminBody,
-      htmlBody: buildGenericEmail({ title: adminSubject, body: adminBody, accent: '#d97706' })
+      subject: adminDraft.subject,
+      body: adminDraft.body,
+      htmlBody: buildGenericEmail({ title: adminDraft.subject, body: adminDraft.body, accent: '#d97706', lang: getReservationEmailHtmlLang('fr') })
     })
 
     await logReservationNotification({
       reservationId: updated.id,
       kind: 'ADMIN_NOTIFIED_CUSTOMER_STOP',
       recipientEmail: adminEmail,
-      subject: adminSubject,
-      summary: adminBody
+      subject: adminDraft.subject,
+      summary: adminDraft.body
     })
   }
 

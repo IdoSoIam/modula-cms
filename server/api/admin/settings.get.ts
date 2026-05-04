@@ -1,15 +1,13 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { getSettings, SETTING_KEYS, DEFAULT_TEMPLATES, getFeatureFlags, getFarmPickupConfig } from '~/server/utils/settings'
+import { getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig } from '~/server/utils/settings'
 import { listGoogleCalendars } from '~/server/utils/gmail'
+import { TEMPLATE_DEFINITIONS, resolveReservationTemplate, ALL_TEMPLATE_SETTING_KEYS } from '~/server/utils/reservationEmailContent'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const s = await getSettings([
+  const allSettingKeys = [
     SETTING_KEYS.ADMIN_EMAIL,
-    SETTING_KEYS.RESERVATION_TEMPLATE_CONFIRMED,
-    SETTING_KEYS.RESERVATION_TEMPLATE_REJECTED,
-    SETTING_KEYS.RESERVATION_TEMPLATE_CANCELLED,
     SETTING_KEYS.GMAIL_CONNECTED_EMAIL,
     SETTING_KEYS.GOOGLE_CALENDAR_ID,
     SETTING_KEYS.GOOGLE_CALENDAR_NAME,
@@ -23,8 +21,10 @@ export default defineEventHandler(async (event) => {
     SETTING_KEYS.FARM_PICKUP_DAY_OF_WEEK,
     SETTING_KEYS.FARM_PICKUP_START_TIME,
     SETTING_KEYS.FARM_PICKUP_END_TIME,
-    SETTING_KEYS.FARM_PICKUP_TIME
-  ])
+    SETTING_KEYS.FARM_PICKUP_TIME,
+    ...ALL_TEMPLATE_SETTING_KEYS
+  ]
+  const s = await getSettings(allSettingKeys)
   const [featureFlags, farmPickup] = await Promise.all([getFeatureFlags(), getFarmPickupConfig()])
 
   let googleCalendars: Array<{ id: string; summary: string; primary: boolean; accessRole: string }> = []
@@ -36,9 +36,13 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const parseTpl = (raw: string | undefined, fallback: { subject: string; body: string }) => {
-    if (!raw) return fallback
-    try { return JSON.parse(raw) } catch { return fallback }
+  const templates: Record<string, { fr: { subject: string; body: string }; en: { subject: string; body: string } }> = {}
+  for (const template of TEMPLATE_DEFINITIONS) {
+    const raw = s[template.settingKey]
+    templates[template.action] = {
+      fr: resolveReservationTemplate(raw, template.action, 'fr'),
+      en: resolveReservationTemplate(raw, template.action, 'en')
+    }
   }
 
   return {
@@ -54,10 +58,7 @@ export default defineEventHandler(async (event) => {
     ordersOpenFrom: s[SETTING_KEYS.ORDERS_OPEN_FROM] ?? '',
     ordersOpenTo: s[SETTING_KEYS.ORDERS_OPEN_TO] ?? '',
     ordersClosedMessage: s[SETTING_KEYS.ORDERS_CLOSED_MESSAGE] ?? '',
-    templates: {
-      confirmed: parseTpl(s[SETTING_KEYS.RESERVATION_TEMPLATE_CONFIRMED], DEFAULT_TEMPLATES.confirmed),
-      rejected: parseTpl(s[SETTING_KEYS.RESERVATION_TEMPLATE_REJECTED], DEFAULT_TEMPLATES.rejected),
-      cancelled: parseTpl(s[SETTING_KEYS.RESERVATION_TEMPLATE_CANCELLED], DEFAULT_TEMPLATES.cancelled)
-    }
+    templateDefinitions: TEMPLATE_DEFINITIONS,
+    templates
   }
 })

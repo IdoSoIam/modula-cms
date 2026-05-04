@@ -165,46 +165,65 @@
         <div class="card-body">
           <h2 class="card-title">Modeles d'email</h2>
           <p class="mb-2 text-sm opacity-70">
-            Variables disponibles : <code v-pre>{{customerName}}</code>,
-            <code v-pre>{{basketName}}</code>, <code v-pre>{{basketPrice}}</code>,
-            <code v-pre>{{adminNote}}</code>, <code v-pre>{{deliveryMethod}}</code>,
-            <code v-pre>{{deliveryWindow}}</code>, <code v-pre>{{fulfillmentDate}}</code>, <code v-pre>{{fulfillmentTime}}</code>,
-            <code v-pre>{{fulfillmentLocation}}</code>
+            Chaque email peut être personnalisé en français et en anglais.
           </p>
 
-          <div class="tabs tabs-border mb-4 w-fit">
-            <a
-              class="tab"
-              :class="{ 'tab-active': activeTab === 'confirmed' }"
-              @click="activeTab = 'confirmed'"
-            >Confirmation</a>
-            <a
-              class="tab"
-              :class="{ 'tab-active': activeTab === 'rejected' }"
-              @click="activeTab = 'rejected'"
-            >Refus</a>
-            <a
-              class="tab"
-              :class="{ 'tab-active': activeTab === 'cancelled' }"
-              @click="activeTab = 'cancelled'"
-            >Annulation</a>
-          </div>
+          <div class="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+            <div class="max-h-[70vh] space-y-2 overflow-y-auto pr-2">
+              <button
+                v-for="templateDef in templateDefinitions"
+                :key="templateDef.action"
+                class="w-full rounded-xl border p-3 text-left transition"
+                :class="activeTemplateAction === templateDef.action ? 'border-primary bg-base-100' : 'border-base-300 bg-base-200/60'"
+                @click="activeTemplateAction = templateDef.action"
+              >
+                <div class="font-medium">{{ templateDef.label }}</div>
+                <div class="mt-1 text-xs opacity-70">{{ templateDef.description }}</div>
+              </button>
+            </div>
 
-          <div class="form-control mb-2">
-            <label class="label"><span class="label-text">Sujet</span></label>
-            <input
-              v-model="form.templates[activeTab].subject"
-              type="text"
-              class="input input-bordered w-full"
-            />
-          </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text">Corps du message</span></label>
-            <textarea
-              v-model="form.templates[activeTab].body"
-              class="textarea textarea-bordered font-mono text-sm w-full"
-              rows="12"
-            />
+            <div v-if="activeTemplateDefinition && currentTemplate" class="space-y-4">
+              <div class="rounded-xl bg-base-300 p-4">
+                <div class="font-medium">{{ activeTemplateDefinition.label }}</div>
+                <p class="mt-1 text-sm opacity-75">{{ activeTemplateDefinition.description }}</p>
+                <p class="mt-3 text-xs opacity-70">
+                  Variables disponibles :
+                  <span v-for="variable in activeTemplateDefinition.variables" :key="variable" class="mr-2 inline-block">
+                    <code>{{ formatTemplateVariable(variable) }}</code>
+                  </span>
+                </p>
+              </div>
+
+              <div class="tabs tabs-border w-fit">
+                <a
+                  class="tab"
+                  :class="{ 'tab-active': activeTemplateLocale === 'fr' }"
+                  @click="activeTemplateLocale = 'fr'"
+                >Français</a>
+                <a
+                  class="tab"
+                  :class="{ 'tab-active': activeTemplateLocale === 'en' }"
+                  @click="activeTemplateLocale = 'en'"
+                >English</a>
+              </div>
+
+              <div class="form-control mb-2">
+                <label class="label"><span class="label-text">Sujet</span></label>
+                <input
+                  v-model="currentTemplate.subject"
+                  type="text"
+                  class="input input-bordered w-full"
+                />
+              </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Corps du message</span></label>
+                <textarea
+                  v-model="currentTemplate.body"
+                  class="textarea textarea-bordered font-mono text-sm w-full"
+                  rows="14"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -223,6 +242,14 @@
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 interface Template { subject: string; body: string }
+interface TemplateTranslations { fr: Template; en: Template }
+interface TemplateDefinition {
+  action: string
+  settingKey: string
+  label: string
+  description: string
+  variables: string[]
+}
 interface GoogleCalendarOption {
   id: string
   summary: string
@@ -248,7 +275,8 @@ interface Settings {
   ordersOpenFrom: string
   ordersOpenTo: string
   ordersClosedMessage: string
-  templates: { confirmed: Template; rejected: Template; cancelled: Template }
+  templateDefinitions: TemplateDefinition[]
+  templates: Record<string, TemplateTranslations>
 }
 
 const { data, pending, refresh } = await useFetch<Settings>('/api/admin/settings')
@@ -267,15 +295,22 @@ const form = reactive({
   ordersOpenFrom: '',
   ordersOpenTo: '',
   ordersClosedMessage: '',
-  templates: {
-    confirmed: { subject: '', body: '' },
-    rejected: { subject: '', body: '' },
-    cancelled: { subject: '', body: '' }
-  }
+  templates: {} as Record<string, TemplateTranslations>
 })
 
-const activeTab = ref<'confirmed' | 'rejected' | 'cancelled'>('confirmed')
+const activeTemplateAction = ref('')
+const activeTemplateLocale = ref<'fr' | 'en'>('fr')
 const saving = ref(false)
+
+const templateDefinitions = computed(() => data.value?.templateDefinitions ?? [])
+const activeTemplateDefinition = computed(() =>
+  templateDefinitions.value.find((template) => template.action === activeTemplateAction.value) ?? null
+)
+const currentTemplate = computed<Template | null>(() => {
+  const action = activeTemplateAction.value
+  if (!action || !form.templates[action]) return null
+  return form.templates[action][activeTemplateLocale.value]
+})
 
 watchEffect(() => {
   if (data.value) {
@@ -292,9 +327,19 @@ watchEffect(() => {
     form.ordersOpenFrom = data.value.ordersOpenFrom
     form.ordersOpenTo = data.value.ordersOpenTo
     form.ordersClosedMessage = data.value.ordersClosedMessage
-    form.templates.confirmed = { ...data.value.templates.confirmed }
-    form.templates.rejected = { ...data.value.templates.rejected }
-    form.templates.cancelled = { ...data.value.templates.cancelled }
+    form.templates = Object.fromEntries(
+      Object.entries(data.value.templates).map(([action, translations]) => [
+        action,
+        {
+          fr: { ...translations.fr },
+          en: { ...translations.en }
+        }
+      ])
+    )
+
+    if (!activeTemplateAction.value && data.value.templateDefinitions[0]) {
+      activeTemplateAction.value = data.value.templateDefinitions[0].action
+    }
   }
 })
 
@@ -302,6 +347,8 @@ const updateCalendarName = () => {
   const selected = data.value?.googleCalendars.find((calendar) => calendar.id === form.googleCalendarId)
   form.googleCalendarName = selected?.summary ?? ''
 }
+
+const formatTemplateVariable = (variable: string) => `{{${variable}}}`
 
 const save = async () => {
   saving.value = true

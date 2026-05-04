@@ -1,7 +1,8 @@
 import { getSetting, SETTING_KEYS, getOrdersWindow, getFarmPickupConfig, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { sendGmail } from '~/server/utils/gmail'
-import { buildAdminReservationSummary, buildGenericEmail } from '~/server/utils/reservationEmails'
-import { getReservationFulfillment } from '~/server/utils/reservationFulfillment'
+import { buildGenericEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
+import { getReservationEmailHtmlLang, normalizeReservationLocale, resolveTemplateFromSettings, applyTemplateVars } from '~/server/utils/reservationEmailContent'
+import { getReservationFulfillment, getDeliveryMethodLabel } from '~/server/utils/reservationFulfillment'
 import { createReservationScheduleProposal, normalizeProposalDate, normalizeProposalTime } from '~/server/utils/reservationScheduleProposals'
 import { prisma } from '../../../prisma/client'
 import { AuthService } from '../../services/auth/authService'
@@ -22,6 +23,7 @@ interface Body {
   monthlySubscription?: boolean
   farmAlternateDate?: string | null
   farmAlternateTime?: string | null
+  language?: string
 }
 
 const authService = new AuthService()
@@ -120,6 +122,7 @@ export default defineEventHandler(async (event) => {
   const deliveryAddress = body.deliveryAddress?.trim() || null
   const deliveryCity = body.deliveryCity?.trim() || null
   const deliveryPostalCode = body.deliveryPostalCode?.trim() || null
+  const reservationLanguage = normalizeReservationLocale(body.language)
   const fulfillment = getReservationFulfillment({
     deliveryType,
     pickupPoint,
@@ -143,6 +146,7 @@ export default defineEventHandler(async (event) => {
       userId: sessionUser?.id ?? null,
       customerName: body.customerName.trim(),
       email: body.email.trim().toLowerCase(),
+      language: reservationLanguage,
       phone: body.phone?.trim() || null,
       message: body.message?.trim() || null,
       status: 'PENDING',
@@ -181,36 +185,28 @@ export default defineEventHandler(async (event) => {
           ? 'Livraison en tournée'
           : 'Retrait / livraison à confirmer'
 
-    const customerBody = `Bonjour ${reservation.customerName},
-
-Nous avons bien reçu votre demande de réservation pour le panier "${basket.name}".
-
-Recapitulatif :
-
-- Mode : ${deliveryLabel}
-- Lieu / adresse : ${fulfillment.fulfillmentLocation ?? '-'}
-- Date indicative : ${(deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)?.toLocaleDateString('fr-FR') ?? 'à confirmer'}
-- Heure indicative : ${deliveryType === 'FARM' ? (farmRequestedTime ?? 'à confirmer') : (fulfillment.fulfillmentTime ?? 'à confirmer')}
-- Montant du panier : ${Number(basket.finalPrice).toFixed(2)} EUR
-
-Important :
-
-- Votre demande doit encore être confirmée par la ferme
-- Le paiement se fait en espèces au retrait ou à la remise
-- Aucun paiement en ligne n'est demandé
-- Pour un retrait à la ferme, ce créneau reste une proposition tant que la ferme ne l'a pas validé
-
-Nous vous recontacterons par email avec la confirmation finale.`
+    const tpl = await resolveTemplateFromSettings('created', reservation.language)
+    const localeCode = reservation.language === 'en' ? 'en-US' : 'fr-FR'
+    const customerEmail = applyTemplateVars(tpl, {
+      customerName: reservation.customerName,
+      basketName: basket.name,
+      deliveryMethod: getDeliveryMethodLabel(deliveryType, reservation.language),
+      fulfillmentLocation: fulfillment.fulfillmentLocation ?? (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
+      fulfillmentDate: (deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)?.toLocaleDateString(localeCode) ?? (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
+      fulfillmentTime: (deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime) ?? (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
+      basketPrice: new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'EUR' }).format(Number(basket.finalPrice))
+    })
 
     try {
       await sendGmail({
         to: reservation.email,
-        subject: `Nous avons bien reçu votre demande - ${basket.name}`,
-        body: customerBody,
+        subject: customerEmail.subject,
+        body: customerEmail.body,
         htmlBody: buildGenericEmail({
-          title: `Nous avons bien reçu votre demande - ${basket.name}`,
-          body: customerBody,
-          accent: '#4f8a34'
+          title: customerEmail.subject,
+          body: customerEmail.body,
+          accent: '#4f8a34',
+          lang: getReservationEmailHtmlLang(reservation.language)
         })
       })
     } catch (error) {
@@ -219,29 +215,31 @@ Nous vous recontacterons par email avec la confirmation finale.`
 
     const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
     if (adminEmail) {
-      const adminBody = buildAdminReservationSummary({
-        reservationId: reservation.id,
+      const adminTemplate = await resolveTemplateFromSettings('admin_new_reservation', 'fr')
+      const adminDraft = applyTemplateVars(adminTemplate, {
+        contextLine: deliveryType === 'FARM' && body.farmAlternateDate
+          ? 'Nouvelle réservation reçue avec proposition client pour le retrait à la ferme.'
+          : 'Nouvelle réservation reçue.',
+        reservationId: String(reservation.id),
         basketName: basket.name,
         customerName: reservation.customerName,
         customerEmail: reservation.email,
-        customerPhone: reservation.phone,
-        customerMessage: reservation.message,
-        deliveryLabel,
-        fulfillmentDate: deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate,
-        fulfillmentTime: deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime,
-        fulfillmentLocation: fulfillment.fulfillmentLocation,
-        contextLine: deliveryType === 'FARM' && body.farmAlternateDate
-          ? 'Nouvelle réservation reçue avec proposition client pour le retrait à la ferme.'
-          : 'Nouvelle réservation reçue.'
+        customerPhone: reservation.phone ?? '-',
+        customerMessage: reservation.message ?? '-',
+        deliveryMethod: deliveryLabel,
+        fulfillmentDate: (deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)?.toLocaleDateString('fr-FR') ?? 'à confirmer',
+        fulfillmentTime: (deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime) ?? 'à confirmer',
+        fulfillmentLocation: fulfillment.fulfillmentLocation ?? 'à confirmer',
+        adminReservationUrl: getAdminReservationUrl(reservation.id)
       })
 
       await sendGmail({
         to: adminEmail,
-        subject: `Nouvelle réservation - ${basket.name}`,
-        body: adminBody,
+        subject: adminDraft.subject,
+        body: adminDraft.body,
         htmlBody: buildGenericEmail({
-          title: `Nouvelle réservation - ${basket.name}`,
-          body: adminBody,
+          title: adminDraft.subject,
+          body: adminDraft.body,
           accent: '#4f8a34'
         })
       })

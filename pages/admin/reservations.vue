@@ -100,6 +100,9 @@
               <a :href="`mailto:${detailsReservation.email}`" class="link">{{ detailsReservation.email }}</a>
               <span v-if="detailsReservation.phone"> · <a :href="`tel:${detailsReservation.phone}`" class="link">{{ detailsReservation.phone }}</a></span>
             </div>
+            <div class="text-xs opacity-70">
+              Langue client : <strong>{{ reservationLanguageLabel(detailsReservation.language) }}</strong>
+            </div>
             <div v-if="detailsReservation.message" class="rounded-xl bg-base-200 p-3 italic opacity-80">
               "{{ detailsReservation.message }}"
             </div>
@@ -252,6 +255,9 @@
         <p class="mb-4 text-sm opacity-70">
           Email envoyé à <strong>{{ current?.email }}</strong> via Google.
         </p>
+        <p v-if="current" class="mb-4 text-xs opacity-70">
+          Langue du brouillon : <strong>{{ reservationLanguageLabel(current.language) }}</strong>
+        </p>
 
         <div v-if="decisionAction === 'confirmed'" class="mb-4 grid gap-3 md:grid-cols-3">
           <div v-if="current?.deliveryType === 'FARM'" class="form-control md:col-span-3">
@@ -384,6 +390,7 @@ interface Reservation {
   id: number
   customerName: string
   email: string
+  language: 'fr' | 'en'
   phone: string | null
   message: string | null
   status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
@@ -705,34 +712,8 @@ const monthInput = computed({
   }
 })
 
-const buildOccurrenceEmailBody = (
-  reservation: Reservation,
-  occurrence: Reservation['occurrences'][number],
-  date: string,
-  time: string,
-  location: string
-) => {
-  const previousDate = formatDateOnlyLabel(occurrence.occurrenceDate)
-  const previousTime = occurrence.occurrenceTime || reservation.fulfillmentTime || 'heure a confirmer'
-  const previousLocation = occurrence.occurrenceLocation || reservation.fulfillmentLocation || 'lieu a confirmer'
-  const nextDate = formatDateOnlyLabel(date || null)
-  const nextTime = time || reservation.fulfillmentTime || 'heure a confirmer'
-  const nextLocation = location || reservation.fulfillmentLocation || 'lieu a confirmer'
-
-  return `Bonjour ${reservation.customerName},
-
-Votre reservation du panier "${reservation.basket.name}" prevue le ${previousDate} a ${previousTime} a ete modifiee.
-
-Nouveaux details :
-- Date : ${nextDate}
-- Heure : ${nextTime}
-- Lieu : ${nextLocation}
-
-Anciens details :
-- Date : ${previousDate}
-- Heure : ${previousTime}
-- Lieu : ${previousLocation}`
-}
+const reservationLanguageLabel = (language: Reservation['language'] | null | undefined) =>
+  language === 'en' ? 'English' : 'Français'
 
 const actionTitle = computed(() => ({
   confirmed: current.value?.deliveryType === 'FARM' && scheduleMode.value === 'PROPOSE'
@@ -776,6 +757,21 @@ const loadPreview = async () => {
   emailDraft.body = preview.body
 }
 
+const loadOccurrencePreview = async (action: 'updated' | 'cancelled' = 'updated') => {
+  if (!currentOccurrence.value) return
+  const params = new URLSearchParams({ action })
+  if (action === 'updated') {
+    if (occurrenceForm.date) params.set('occurrenceDate', occurrenceForm.date)
+    if (occurrenceForm.time) params.set('occurrenceTime', occurrenceForm.time)
+    if (occurrenceForm.location) params.set('occurrenceLocation', occurrenceForm.location)
+  }
+  const preview = await $fetch<{ subject: string; body: string }>(
+    `/api/admin/reservation-occurrences/${currentOccurrence.value.id}/preview?${params.toString()}`
+  )
+  occurrenceEmailDraft.subject = preview.subject
+  occurrenceEmailDraft.body = preview.body
+}
+
 const openAction = async (reservation: Reservation, action: DecisionAction) => {
   current.value = reservation
   decisionAction.value = action
@@ -814,19 +810,12 @@ const openDetailsById = async (reservationId: number) => {
   detailsDlg.value?.showModal()
 }
 
-const openOccurrenceEditor = (reservation: Reservation, occurrence: Reservation['occurrences'][number]) => {
+const openOccurrenceEditor = async (reservation: Reservation, occurrence: Reservation['occurrences'][number]) => {
   currentOccurrence.value = occurrence
   occurrenceForm.date = formatDateInput(occurrence.occurrenceDate)
   occurrenceForm.time = normalizeTimeInput(occurrence.occurrenceTime)
   occurrenceForm.location = occurrence.occurrenceLocation ?? ''
-  occurrenceEmailDraft.subject = `Mise a jour de votre reservation - ${reservation.basket.name}`
-  occurrenceEmailDraft.body = buildOccurrenceEmailBody(
-    reservation,
-    occurrence,
-    occurrenceForm.date,
-    occurrenceForm.time,
-    occurrenceForm.location
-  )
+  await loadOccurrencePreview('updated')
   occurrenceDlg.value?.showModal()
 }
 
@@ -903,13 +892,7 @@ watch(
   () => [occurrenceForm.date, occurrenceForm.time, occurrenceForm.location] as const,
   () => {
     if (!detailsReservation.value || !currentOccurrence.value) return
-    occurrenceEmailDraft.body = buildOccurrenceEmailBody(
-      detailsReservation.value,
-      currentOccurrence.value,
-      occurrenceForm.date,
-      occurrenceForm.time,
-      occurrenceForm.location
-    )
+    loadOccurrencePreview('updated')
   }
 )
 
@@ -972,14 +955,16 @@ const cancelOccurrence = async (reservation: Reservation, occurrence: Reservatio
   const confirmed = confirm('Annuler uniquement cette occurrence ?')
   if (!confirmed) return
   try {
+    currentOccurrence.value = occurrence
+    const preview = await $fetch<{ subject: string; body: string }>(
+      `/api/admin/reservation-occurrences/${occurrence.id}/preview?action=cancelled`
+    )
     await $fetch(`/api/admin/reservation-occurrences/${occurrence.id}/cancel`, {
       method: 'POST',
       body: {
         email: {
-          subject: `Annulation de cette semaine - ${reservation.basket.name}`,
-          body: `Bonjour ${reservation.customerName},
-
-Cette occurrence de votre reservation a ete annulee pour cette semaine uniquement.`
+          subject: preview.subject,
+          body: preview.body
         }
       }
     })

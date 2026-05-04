@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
     id: reservation.id,
     customerName: reservation.customerName,
     email: reservation.email,
+    language: reservation.language,
     status: reservation.status,
     deliveryType: reservation.deliveryType,
     monthlySubscription: subscriptionsEnabled ? reservation.monthlySubscription : false,

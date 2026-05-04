@@ -1,6 +1,7 @@
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail } from '~/server/utils/reservationEmails'
 import { getSetting, SETTING_KEYS } from '~/server/utils/settings'
+import { resolveTemplateFromSettings, applyTemplateVars, getReservationEmailHtmlLang } from '~/server/utils/reservationEmailContent'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ name?: string; email?: string; message?: string }>(event)
@@ -27,26 +28,22 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const tpl = await resolveTemplateFromSettings('contact', 'fr')
+  const email = applyTemplateVars(tpl, {
+    contactName: body.name.trim(),
+    contactEmail: body.email.trim(),
+    contactMessage: body.message.trim()
+  })
+
   await sendGmail({
     to: adminEmail,
-    subject: `Nouveau message de contact - ${body.name.trim()}`,
-    body: `Nouveau message depuis le formulaire de contact :
-
-- Nom : ${body.name.trim()}
-- Email : ${body.email.trim()}
-
-Message :
-${body.message.trim()}`,
+    subject: email.subject,
+    body: email.body,
     htmlBody: buildGenericEmail({
-      title: `Nouveau message de contact - ${body.name.trim()}`,
-      body: `Nouveau message depuis le formulaire de contact :
-
-- Nom : ${body.name.trim()}
-- Email : ${body.email.trim()}
-
-Message :
-${body.message.trim()}`,
-      accent: '#2563eb'
+      title: email.subject,
+      body: email.body,
+      accent: '#2563eb',
+      lang: getReservationEmailHtmlLang('fr')
     })
   })
 

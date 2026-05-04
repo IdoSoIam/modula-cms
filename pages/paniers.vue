@@ -668,7 +668,8 @@ const submit = async () => {
         deliveryPostalCode: form.deliveryType === 'TOUR' ? form.deliveryPostalCode : '',
         monthlySubscription: subscriptionsEnabled.value ? form.monthlySubscription : false,
         farmAlternateDate: form.deliveryType === 'FARM' && form.farmAlternateEnabled ? form.farmAlternateDate : null,
-        farmAlternateTime: form.deliveryType === 'FARM' && form.farmAlternateEnabled ? form.farmAlternateTime : null
+        farmAlternateTime: form.deliveryType === 'FARM' && form.farmAlternateEnabled ? form.farmAlternateTime : null,
+        language: locale.value
       }
     })
 

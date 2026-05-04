@@ -1,5 +1,6 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { setSetting, SETTING_KEYS } from '~/server/utils/settings'
+import { TEMPLATE_DEFINITIONS } from '~/server/utils/reservationEmailContent'
 
 interface Body {
   adminEmail?: string
@@ -15,11 +16,7 @@ interface Body {
   ordersOpenFrom?: string
   ordersOpenTo?: string
   ordersClosedMessage?: string
-  templates?: {
-    confirmed?: { subject: string; body: string }
-    rejected?: { subject: string; body: string }
-    cancelled?: { subject: string; body: string }
-  }
+  templates?: Record<string, { fr?: { subject: string; body: string }; en?: { subject: string; body: string } }>
 }
 
 export default defineEventHandler(async (event) => {
@@ -65,14 +62,17 @@ export default defineEventHandler(async (event) => {
   if (typeof body.ordersClosedMessage === 'string') {
     await setSetting(SETTING_KEYS.ORDERS_CLOSED_MESSAGE, body.ordersClosedMessage.trim())
   }
-  if (body.templates?.confirmed) {
-    await setSetting(SETTING_KEYS.RESERVATION_TEMPLATE_CONFIRMED, JSON.stringify(body.templates.confirmed))
-  }
-  if (body.templates?.rejected) {
-    await setSetting(SETTING_KEYS.RESERVATION_TEMPLATE_REJECTED, JSON.stringify(body.templates.rejected))
-  }
-  if (body.templates?.cancelled) {
-    await setSetting(SETTING_KEYS.RESERVATION_TEMPLATE_CANCELLED, JSON.stringify(body.templates.cancelled))
+  if (body.templates) {
+    for (const [action, locales] of Object.entries(body.templates)) {
+      const templateDefinition = TEMPLATE_DEFINITIONS.find((template) => template.action === action)
+      if (!templateDefinition) continue
+      if (locales.fr || locales.en) {
+        const value: Record<string, { subject: string; body: string }> = {}
+        if (locales.fr) value.fr = locales.fr
+        if (locales.en) value.en = locales.en
+        await setSetting(templateDefinition.settingKey, JSON.stringify(value))
+      }
+    }
   }
   return { ok: true }
 })

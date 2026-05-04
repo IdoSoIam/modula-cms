@@ -1,6 +1,7 @@
 import type { Basket, DeliveryTour, PickupPoint, Reservation } from '@prisma/client'
 import { buildReservationIcs } from './calendarInvite'
 import { buildEmailHtml } from './emailTemplates'
+import { getReservationActionLinkLabel, getReservationEmailHtmlLang } from './reservationEmailContent'
 import { getSetting, SETTING_KEYS } from './settings'
 import { getSiteOrigin, type GmailCalendarInvite } from './gmail'
 
@@ -55,12 +56,14 @@ export function buildGenericEmail(options: {
   title: string
   body: string
   accent?: string
+  lang?: string
 }) {
   return buildEmailHtml({
     title: options.title,
     body: options.body,
     accent: options.accent,
-    logoUrl: getLogoUrl()
+    logoUrl: getLogoUrl(),
+    lang: options.lang
   })
 }
 
@@ -76,14 +79,19 @@ export async function buildReservationDecisionEmail(options: {
   const actionHelp = options.action === 'CONFIRMED' && manageUrl
     ? `${options.body}
 
-${options.subscriptionsEnabled && options.reservation.monthlySubscription ? 'Arrêter mon abonnement :' : 'Annuler ma réservation :'}
+${getReservationActionLinkLabel({
+      action: 'CONFIRMED',
+      monthlySubscription: options.subscriptionsEnabled && options.reservation.monthlySubscription,
+      locale: options.reservation.language
+    })}
 ${manageUrl}`
     : options.body
   const htmlBody = buildEmailHtml({
     title: options.subject,
     body: actionHelp,
     accent: options.action === 'CONFIRMED' ? '#4f8a34' : options.action === 'CANCELLED' ? '#d97706' : '#b91c1c',
-    logoUrl: getLogoUrl()
+    logoUrl: getLogoUrl(),
+    lang: getReservationEmailHtmlLang(options.reservation.language)
   })
 
   let calendarInvite: GmailCalendarInvite | undefined
@@ -142,7 +150,8 @@ export async function buildReservationOccurrenceEmail(options: {
     title: options.subject,
     body: options.body,
     accent: options.action === 'CONFIRMED' ? '#2563eb' : '#d97706',
-    logoUrl: getLogoUrl()
+    logoUrl: getLogoUrl(),
+    lang: getReservationEmailHtmlLang(options.reservation.language)
   })
 
   let calendarInvite: GmailCalendarInvite | undefined

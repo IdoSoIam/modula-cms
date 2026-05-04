@@ -2,6 +2,7 @@ import { prisma } from '../../../../../prisma/client'
 import { removeReservationFromGoogleCalendar } from '~/server/utils/googleCalendarSync'
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
+import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
 import { getSetting, SETTING_KEYS, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 
@@ -62,32 +63,25 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const customerSubject = subscriptionsEnabled && updated.monthlySubscription
-    ? 'Votre abonnement a été arrêté - Ferme du Campeyrigoux'
-    : 'Votre réservation a été annulée - Ferme du Campeyrigoux'
-  const customerBody = subscriptionsEnabled && updated.monthlySubscription
-    ? `Bonjour ${updated.customerName},
-
-Votre abonnement a bien été arrêté.
-
-Si besoin, vous pouvez nous recontacter pour remettre en place une livraison plus tard.`
-    : `Bonjour ${updated.customerName},
-
-Votre réservation a bien été annulée.
-
-Si besoin, vous pouvez nous recontacter pour refaire une demande ultérieurement.`
+  const customerTemplate = await resolveTemplateFromSettings(
+    subscriptionsEnabled && updated.monthlySubscription ? 'stopped_subscription' : 'cancelled_by_customer',
+    updated.language
+  )
+  const customerDraft = applyTemplateVars(customerTemplate, {
+    customerName: updated.customerName
+  })
 
   const customerEmail = await buildReservationDecisionEmail({
     reservation: updated,
-    subject: customerSubject,
-    body: customerBody,
+    subject: customerDraft.subject,
+    body: customerDraft.body,
     action: 'CANCELLED',
     subscriptionsEnabled
   })
 
   await sendGmail({
     to: updated.email,
-    subject: customerSubject,
+    subject: customerDraft.subject,
     body: customerEmail.textBody,
     htmlBody: customerEmail.htmlBody,
     calendarInvite: customerEmail.calendarInvite,
@@ -98,29 +92,34 @@ Si besoin, vous pouvez nous recontacter pour refaire une demande ultérieurement
     reservationId: updated.id,
     kind: subscriptionsEnabled && updated.monthlySubscription ? 'CUSTOMER_STOPPED_SUBSCRIPTION' : 'CUSTOMER_CANCELLED',
     recipientEmail: updated.email,
-    subject: customerSubject,
-    summary: customerBody
+    subject: customerDraft.subject,
+    summary: customerDraft.body
   })
 
   const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
   if (adminEmail) {
-    const subject = subscriptionsEnabled && updated.monthlySubscription
-      ? `Abonnement arrêté par le client - ${updated.basket.name}`
-      : `Réservation annulée par le client - ${updated.basket.name}`
-    const body = `${subscriptionsEnabled && updated.monthlySubscription ? 'Le client a arrêté son abonnement.' : 'Le client a annulé sa réservation.'}
-
-- Panier : ${updated.basket.name}
-- Client : ${updated.customerName}
-- Email : ${updated.email}`
+    const adminTemplate = await resolveTemplateFromSettings(
+      subscriptionsEnabled && updated.monthlySubscription ? 'admin_customer_stopped_subscription' : 'admin_customer_cancelled',
+      'fr'
+    )
+    const adminDraft = applyTemplateVars(adminTemplate, {
+      contextLine: subscriptionsEnabled && updated.monthlySubscription
+        ? 'Le client a arrêté son abonnement.'
+        : 'Le client a annulé sa réservation.',
+      basketName: updated.basket.name,
+      customerName: updated.customerName,
+      customerEmail: updated.email
+    })
 
     await sendGmail({
       to: adminEmail,
-      subject,
-      body,
+      subject: adminDraft.subject,
+      body: adminDraft.body,
       htmlBody: buildGenericEmail({
-        title: subject,
-        body,
-        accent: '#d97706'
+        title: adminDraft.subject,
+        body: adminDraft.body,
+        accent: '#d97706',
+        lang: getReservationEmailHtmlLang('fr')
       })
     })
 
@@ -128,8 +127,8 @@ Si besoin, vous pouvez nous recontacter pour refaire une demande ultérieurement
       reservationId: updated.id,
       kind: subscriptionsEnabled && updated.monthlySubscription ? 'ADMIN_NOTIFIED_CUSTOMER_STOP' : 'ADMIN_NOTIFIED_CUSTOMER_CANCEL',
       recipientEmail: adminEmail,
-      subject,
-      summary: body
+      subject: adminDraft.subject,
+      summary: adminDraft.body
     })
   }
 

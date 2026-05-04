@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { ensureReservationOccurrences } from '~/server/utils/reservationOccurrences'
 import { isSubscriptionsEnabled } from '~/server/utils/settings'
@@ -72,6 +73,7 @@ function serializeReservation(reservation: any, today: Date, subscriptionsEnable
     id: reservation.id,
     customerName: reservation.customerName,
     email: reservation.email,
+    language: reservation.language,
     phone: reservation.phone,
     message: reservation.message,
     status: reservation.status,
@@ -145,12 +147,12 @@ export default defineEventHandler(async (event) => {
     pickupPoint: true,
     deliveryTour: { include: { cities: true } },
     scheduleProposals: {
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' as const }
     },
     occurrences: {
-      orderBy: { occurrenceDate: 'asc' }
+      orderBy: { occurrenceDate: 'asc' as const }
     }
-  }
+  } satisfies Prisma.ReservationInclude
 
   const reservations = await prisma.reservation.findMany({
     where: includeArchived && baseStatuses.length

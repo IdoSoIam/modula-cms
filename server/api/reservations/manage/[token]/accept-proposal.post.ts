@@ -1,10 +1,12 @@
 import { prisma } from '../../../../../prisma/client'
 import { sendGmail } from '~/server/utils/gmail'
-import { buildAdminReservationSummary, buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
+import { buildGenericEmail, buildReservationDecisionEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
+import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { ensureReservationOccurrences } from '~/server/utils/reservationOccurrences'
 import { markReservationProposalAccepted } from '~/server/utils/reservationScheduleProposals'
 import { syncReservationToGoogleCalendar } from '~/server/utils/googleCalendarSync'
+import { getDeliveryMethodLabel } from '~/server/utils/reservationFulfillment'
 import { getSetting, isSubscriptionsEnabled, SETTING_KEYS } from '~/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
@@ -57,28 +59,25 @@ export default defineEventHandler(async (event) => {
   await ensureReservationOccurrences(updated, subscriptionsEnabled)
   const calendarResult = await syncReservationToGoogleCalendar(updated, subscriptionsEnabled)
 
-  const subject = 'Votre retrait à la ferme est confirmé - Ferme du Campeyrigoux'
-  const body = `Bonjour ${updated.customerName},
-
-Votre réservation est maintenant confirmée pour le créneau suivant :
-
-- Date : ${updated.fulfillmentDate?.toLocaleDateString('fr-FR')}
-- Heure : ${updated.fulfillmentTime}
-- Lieu : ${updated.fulfillmentLocation ?? 'Ferme du Campeyrigoux'}
-
-Le paiement se fait en espèces au retrait.`
+  const customerTemplate = await resolveTemplateFromSettings('accepted_proposal', updated.language)
+  const customerEmailDraft = applyTemplateVars(customerTemplate, {
+    customerName: updated.customerName,
+    fulfillmentDate: updated.fulfillmentDate?.toLocaleDateString(updated.language === 'en' ? 'en-US' : 'fr-FR') ?? (updated.language === 'en' ? 'to be confirmed' : 'à confirmer'),
+    fulfillmentTime: updated.fulfillmentTime ?? (updated.language === 'en' ? 'to be confirmed' : 'à confirmer'),
+    fulfillmentLocation: updated.fulfillmentLocation ?? 'Ferme du Campeyrigoux'
+  })
 
   const emailPayload = await buildReservationDecisionEmail({
     reservation: updated,
-    subject,
-    body,
+    subject: customerEmailDraft.subject,
+    body: customerEmailDraft.body,
     action: 'CONFIRMED',
     subscriptionsEnabled
   })
 
   await sendGmail({
     to: updated.email,
-    subject,
+    subject: customerEmailDraft.subject,
     body: emailPayload.textBody,
     htmlBody: emailPayload.htmlBody,
     calendarInvite: emailPayload.calendarInvite,
@@ -89,35 +88,37 @@ Le paiement se fait en espèces au retrait.`
     reservationId: updated.id,
     kind: 'CUSTOMER_ACCEPTED_SCHEDULE_PROPOSAL',
     recipientEmail: updated.email,
-    subject,
-    summary: body
+    subject: customerEmailDraft.subject,
+    summary: customerEmailDraft.body
   })
 
   const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
   if (adminEmail) {
-    const adminSubject = `Proposition acceptée par le client - ${updated.basket.name}`
-    const adminBody = buildAdminReservationSummary({
-      reservationId: updated.id,
+    const adminTemplate = await resolveTemplateFromSettings('admin_customer_accepted_proposal', 'fr')
+    const adminDraft = applyTemplateVars(adminTemplate, {
+      contextLine: 'Le client a accepté la proposition de créneau envoyée par la ferme.',
+      reservationId: String(updated.id),
       basketName: updated.basket.name,
       customerName: updated.customerName,
       customerEmail: updated.email,
-      customerPhone: updated.phone,
-      customerMessage: updated.message,
-      deliveryLabel: 'Retrait à la ferme',
-      fulfillmentDate: updated.fulfillmentDate,
-      fulfillmentTime: updated.fulfillmentTime,
-      fulfillmentLocation: updated.fulfillmentLocation,
-      contextLine: 'Le client a accepté la proposition de créneau envoyée par la ferme.'
+      customerPhone: updated.phone ?? '-',
+      customerMessage: updated.message ?? '-',
+      deliveryMethod: getDeliveryMethodLabel(updated.deliveryType, 'fr'),
+      fulfillmentDate: updated.fulfillmentDate?.toLocaleDateString('fr-FR') ?? 'à confirmer',
+      fulfillmentTime: updated.fulfillmentTime ?? 'à confirmer',
+      fulfillmentLocation: updated.fulfillmentLocation ?? 'à confirmer',
+      adminReservationUrl: getAdminReservationUrl(updated.id)
     })
 
     await sendGmail({
       to: adminEmail,
-      subject: adminSubject,
-      body: adminBody,
+      subject: adminDraft.subject,
+      body: adminDraft.body,
       htmlBody: buildGenericEmail({
-        title: adminSubject,
-        body: adminBody,
-        accent: '#4f8a34'
+        title: adminDraft.subject,
+        body: adminDraft.body,
+        accent: '#4f8a34',
+        lang: getReservationEmailHtmlLang('fr')
       })
     })
 
@@ -125,8 +126,8 @@ Le paiement se fait en espèces au retrait.`
       reservationId: updated.id,
       kind: 'ADMIN_NOTIFIED_CUSTOMER_ACCEPTED_SCHEDULE_PROPOSAL',
       recipientEmail: adminEmail,
-      subject: adminSubject,
-      summary: adminBody
+      subject: adminDraft.subject,
+      summary: adminDraft.body
     })
   }
 
