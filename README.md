@@ -1,75 +1,134 @@
-# Nuxt Minimal Starter
+# Ferme du Campeyrigoux
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+## Etat actuel
 
-## Setup
+Le site couvre deja les briques principales pour publier une version utile :
 
-Make sure to install dependencies:
+- page d'accueil et page `paniers`
+- reservation de paniers cote client
+- 3 modes de retrait / livraison :
+  - retrait a la ferme
+  - point relais
+  - tournee de livraison
+- back-office admin pour :
+  - gerer les paniers
+  - gerer les legumes
+  - gerer les points relais
+  - gerer les tournees
+  - gerer les reservations
+  - gerer les parametres email / Google / fenetre de commande
+- emails de confirmation / refus / annulation
+- synchronisation Google Calendar
+- lien public de gestion de reservation par token
 
-```bash
-# npm
-npm install
+Les abonnements existent dans le code, mais ils sont actuellement desactives par `SUBSCRIPTIONS_ENABLED = false` dans [shared/constants/reservationFeatures.ts](/D:/Works/ferme-campeyrigoux/shared/constants/reservationFeatures.ts:1).
 
-# pnpm
-pnpm install
+## Parcours client actuel
 
-# yarn
-yarn install
+1. Le client arrive sur la home puis ouvre [pages/paniers.vue](/D:/Works/ferme-campeyrigoux/pages/paniers.vue:1).
+2. Il choisit un panier.
+3. Il remplit son nom, email, telephone et son mode de retrait / livraison.
+4. Il peut choisir :
+   - `FARM` : retrait a la ferme
+   - `PICKUP` : point relais
+   - `TOUR` : tournee de livraison
+5. La reservation est creee en `PENDING` via [server/api/reservations/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/reservations/index.post.ts:1).
+6. L'admin recoit une notification email.
+7. L'admin confirme / refuse / annule depuis [pages/admin/reservations.vue](/D:/Works/ferme-campeyrigoux/pages/admin/reservations.vue:1).
+8. Le client recoit ensuite l'email de decision avec, si besoin, un lien public de gestion.
 
-# bun
-bun install
-```
+## Ce qui a deja ete fait dans les rollouts du 03/05
 
-## Development Server
+- ajout du retrait a la ferme dans les reservations
+- ajout des champs de fulfillment dans Prisma
+- ajout de la synchro Google Calendar
+- ajout des emails de confirmation / annulation / refus
+- ajout des tokens publics de gestion de reservation
+- ajout du back-office de gestion des reservations
+- ajout des points relais et des tournees
+- ajout de la logique d'occurrences et notifications pour les abonnements
+- ajout de l'archivage de reservations
 
-Start the development server on `http://localhost:3000`:
+## Decisions fonctionnelles retenues pour la publication
 
-```bash
-# npm
-npm run dev
+- pas d'abonnement pour le moment
+- pas de paiement en ligne
+- paiement en espece au retrait / a la remise
+- inscription publique desactivee
+- le mode `Retrait a la ferme` sert uniquement aux paniers reserves sur le site
+- la `vente a la ferme` reste un temps de vente directe distinct pour les legumes recoltes / recoltables et les autres produits disponibles
 
-# pnpm
-pnpm dev
+## Ce qui manque encore avant une publication sereine
 
-# yarn
-yarn dev
+### Priorite haute
 
-# bun
-bun run dev
-```
+- clarifier partout le paiement :
+  - il faut afficher explicitement "paiement en espece, pas de paiement en ligne" dans le parcours client, les emails et idealement dans la home
+- envoyer un email d'accuse de reception immediat au client apres demande :
+  - aujourd'hui le client a seulement un toast local, puis attend la decision admin
+- simplifier le formulaire panier pour les clients :
+  - actuellement la ville / code postal apparaissent meme avant d'avoir choisi une tournee
+  - il serait plus simple de demander d'abord le mode de retrait / livraison, puis d'afficher seulement les champs utiles
+- verifier le contenu final des emails admin / client :
+  - heures, lieu de retrait, consigne de paiement en espece, et vocabulaire "tournee / point relais / ferme"
+- nettoyer les textes mal encodes visibles dans plusieurs fichiers (`â€”`, `Ã©`, etc.)
 
-## Production
+### Priorite haute cote admin
 
-Build the application for production:
+- verifier que les parametres minimum sont bien renseignables avant mise en ligne :
+  - email admin
+  - calendrier Google cible si utilise
+  - fenetre d'ouverture des commandes
+  - points relais actifs
+  - tournees actives avec villes rattachees
+- preparer un vrai process d'exploitation :
+  - qui confirme les reservations
+  - sous quel delai
+  - comment on fixe le creneau ferme
+  - quand on archive les reservations terminees
 
-```bash
-# npm
-npm run build
+### Priorite moyenne
 
-# pnpm
-pnpm build
+- rendre l'adresse / ville prefillees plus intelligemment si un client connecte existe
+- ajouter un message d'aide visible sur le mode `Retrait a la ferme`
+- ajouter une vraie mention "vente a la ferme" plus operationnelle :
+  - adresse precise
+  - jours / horaires
+  - eventuelle consigne de commande
+- ajouter une page ou un bloc "comment ca marche"
+- harmoniser les libelles admin / client
 
-# yarn
-yarn build
+## Points de vigilance identifies dans les fichiers
 
-# bun
-bun run build
-```
+- [components/AuthForm.vue](/D:/Works/ferme-campeyrigoux/components/AuthForm.vue:1) exposait encore l'inscription publique
+- [server/api/auth/register.post.ts](/D:/Works/ferme-campeyrigoux/server/api/auth/register.post.ts:1) acceptait encore l'inscription
+- [server/api/reservations/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/reservations/index.post.ts:1) devait revalider plus strictement la coherence `tournee <-> ville`
+- [pages/paniers.vue](/D:/Works/ferme-campeyrigoux/pages/paniers.vue:1) contient encore des points de friction UX
+- [pages/admin/reservations.vue](/D:/Works/ferme-campeyrigoux/pages/admin/reservations.vue:1) est deja riche, mais depend fortement de la qualite des parametres et des textes email
 
-Locally preview production build:
+## Recommandation simple pour publier vite
 
-```bash
-# npm
-npm run preview
+1. Publier sans abonnement.
+2. Publier sans paiement en ligne, avec message explicite "paiement en espece".
+3. Garder un seul parcours principal : panier -> choix du retrait / livraison -> validation admin.
+4. Utiliser `Retrait a la ferme` comme mode principal de vente a la ferme.
+5. Garder la connexion reservee a l'admin.
+6. Ajouter ensuite seulement :
+   - accuse de reception client
+   - simplification du formulaire
+   - nettoyage des textes
 
-# pnpm
-pnpm preview
+## Fichiers les plus importants
 
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+- client :
+  - [pages/index.vue](/D:/Works/ferme-campeyrigoux/pages/index.vue:1)
+  - [pages/paniers.vue](/D:/Works/ferme-campeyrigoux/pages/paniers.vue:1)
+  - [pages/reservation/manage/[token].vue](/D:/Works/ferme-campeyrigoux/pages/reservation/manage/[token].vue:1)
+- reservation :
+  - [server/api/reservations/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/reservations/index.post.ts:1)
+  - [server/utils/reservationFulfillment.ts](/D:/Works/ferme-campeyrigoux/server/utils/reservationFulfillment.ts:1)
+  - [server/utils/reservationEmails.ts](/D:/Works/ferme-campeyrigoux/server/utils/reservationEmails.ts:1)
+- admin :
+  - [pages/admin/reservations.vue](/D:/Works/ferme-campeyrigoux/pages/admin/reservations.vue:1)
+  - [pages/admin/livraison.vue](/D:/Works/ferme-campeyrigoux/pages/admin/livraison.vue:1)
+  - [pages/admin/parametres.vue](/D:/Works/ferme-campeyrigoux/pages/admin/parametres.vue:1)

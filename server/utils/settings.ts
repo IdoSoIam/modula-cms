@@ -54,6 +54,8 @@ Details de retrait :
 - Lieu : {{fulfillmentLocation}}
 - Montant : {{basketPrice}}
 
+Le paiement se fait en especes au retrait ou a la remise du panier.
+
 Si vous avez la moindre question, vous pouvez repondre a cet email.
 
 A bientot,

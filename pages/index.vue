@@ -133,7 +133,7 @@
           <div class="mb-6 max-w-2xl">
             <h2 class="text-3xl font-bold">Des paniers simples a reserver</h2>
             <p class="mt-3 opacity-75">
-              L'objectif est de rendre la commande facile a comprendre: vous choisissez votre panier, puis votre mode de retrait ou livraison.
+              L'objectif est de rendre la commande facile a comprendre: vous choisissez votre panier, puis votre mode de retrait ou livraison. Le retrait a la ferme concerne les paniers reserves sur le site.
             </p>
           </div>
 
@@ -144,7 +144,7 @@
               </div>
               <div class="font-semibold">Retrait a la ferme</div>
               <p class="mt-2 text-sm opacity-75">
-                Une solution simple pour venir recuperer votre panier directement a la ferme.
+                Une solution simple pour venir recuperer votre panier reserve directement a la ferme, sur confirmation par email.
               </p>
             </div>
 
@@ -179,6 +179,9 @@
             <div class="badge badge-primary badge-outline">{{ $t('pages.home.directSaleBadge') }}</div>
             <h2 class="text-3xl font-bold">{{ $t('pages.home.directSale') }}</h2>
             <p class="text-lg opacity-85">{{ $t('pages.home.directSaleIntro') }}</p>
+            <div class="rounded-2xl border border-base-300 bg-base-100 p-5 text-sm opacity-85">
+              La vente a la ferme n'est pas la meme chose que le retrait a la ferme des paniers. Ici, il s'agit d'un temps de vente directe pour les legumes recoltes ou recoltables et les autres produits disponibles a la ferme.
+            </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
@@ -196,16 +199,22 @@
               <h3 class="mb-2 font-semibold">{{ $t('pages.home.howItWorksTitle') }}</h3>
               <div class="grid gap-3 md:grid-cols-3">
                 <div>
-                  <div class="text-sm font-semibold">{{ $t('pages.home.step1Title') }}</div>
-                  <p class="mt-1 text-sm opacity-75">{{ $t('pages.home.step1Text') }}</p>
+                  <div class="text-sm font-semibold">Je viens ou je reserve</div>
+                  <p class="mt-1 text-sm opacity-75">
+                    Je peux venir a la vente a la ferme pour les produits disponibles, ou reserver un panier depuis le site.
+                  </p>
                 </div>
                 <div>
-                  <div class="text-sm font-semibold">{{ $t('pages.home.step2Title') }}</div>
-                  <p class="mt-1 text-sm opacity-75">{{ $t('pages.home.step2Text') }}</p>
+                  <div class="text-sm font-semibold">Je recois la confirmation</div>
+                  <p class="mt-1 text-sm opacity-75">
+                    Pour les paniers, la ferme confirme par email le lieu et le creneau exacts.
+                  </p>
                 </div>
                 <div>
-                  <div class="text-sm font-semibold">{{ $t('pages.home.step3Title') }}</div>
-                  <p class="mt-1 text-sm opacity-75">{{ $t('pages.home.step3Text') }}</p>
+                  <div class="text-sm font-semibold">Je regle sur place</div>
+                  <p class="mt-1 text-sm opacity-75">
+                    Le paiement se fait en especes au retrait ou a la remise des produits.
+                  </p>
                 </div>
               </div>
             </div>

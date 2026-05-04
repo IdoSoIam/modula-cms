@@ -7,6 +7,14 @@ const authService = new AuthService()
 
 export default defineEventHandler(async (event: H3Event) => {
   try {
+    const userCount = await prisma.user.count()
+    if (userCount > 0) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Public registration is disabled'
+      })
+    }
+
     const { email, password, firstName, lastName, birthDate } = await readBody(event)
 
     if (!email || !password) {
@@ -20,7 +28,6 @@ export default defineEventHandler(async (event: H3Event) => {
     const birthDateObj = birthDate ? new Date(birthDate) : undefined;
 
     // First registered user becomes admin (bootstrap)
-    const userCount = await prisma.user.count()
     const role = userCount === 0 ? 'admin' : 'user'
 
     const user = await authService.createUser(email, password, firstName, lastName, birthDateObj, role)

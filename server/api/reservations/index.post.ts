@@ -80,6 +80,8 @@ export default defineEventHandler(async (event) => {
     pickupPoint = p
   } else if (body.deliveryType === 'TOUR') {
     if (!body.deliveryTourId) throw createError({ statusCode: 400, statusMessage: 'Tournee requise' })
+    if (!body.deliveryCity?.trim()) throw createError({ statusCode: 400, statusMessage: 'Ville requise pour la tournee' })
+    if (!body.deliveryAddress?.trim()) throw createError({ statusCode: 400, statusMessage: 'Adresse requise pour la tournee' })
     const t = await prisma.deliveryTour.findUnique({
       where: { id: body.deliveryTourId },
       select: {
@@ -88,10 +90,20 @@ export default defineEventHandler(async (event) => {
         name: true,
         dayOfWeek: true,
         startTime: true,
-        endTime: true
+        endTime: true,
+        cities: {
+          select: {
+            city: true
+          }
+        }
       }
     })
     if (!t || !t.active) throw createError({ statusCode: 400, statusMessage: 'Tournee invalide' })
+    const cityLower = body.deliveryCity.trim().toLowerCase()
+    const cityAllowed = t.cities.some((city) => city.city.trim().toLowerCase() === cityLower)
+    if (!cityAllowed) {
+      throw createError({ statusCode: 400, statusMessage: 'Cette ville n est pas desservie par la tournee selectionnee' })
+    }
     deliveryType = 'TOUR'
     deliveryTourId = t.id
     deliveryTour = t
@@ -133,6 +145,49 @@ export default defineEventHandler(async (event) => {
   })
 
   try {
+    const deliveryLabel = deliveryType === 'FARM'
+      ? 'Retrait a la ferme'
+      : deliveryType === 'PICKUP'
+        ? 'Retrait en point relais'
+        : deliveryType === 'TOUR'
+          ? 'Livraison en tournee'
+          : 'Retrait / livraison a confirmer'
+
+    const customerBody = `Bonjour ${reservation.customerName},
+
+Nous avons bien recu votre demande de reservation pour le panier "${basket.name}".
+
+Recapitulatif :
+
+- Mode : ${deliveryLabel}
+- Lieu / adresse : ${fulfillment.fulfillmentLocation ?? '-'}
+- Date indicative : ${fulfillment.fulfillmentDate ? fulfillment.fulfillmentDate.toLocaleDateString('fr-FR') : 'a confirmer'}
+- Heure indicative : ${fulfillment.fulfillmentTime ?? 'a confirmer'}
+- Montant du panier : ${Number(basket.finalPrice).toFixed(2)} EUR
+
+Important :
+
+- votre demande doit encore etre confirmee par la ferme
+- le paiement se fait en especes au retrait ou a la remise
+- aucun paiement en ligne n'est demande
+
+Nous vous recontacterons par email avec la confirmation finale.`
+
+    try {
+      await sendGmail({
+        to: reservation.email,
+        subject: `Nous avons bien recu votre demande - ${basket.name}`,
+        body: customerBody,
+        htmlBody: buildGenericEmail({
+          title: `Nous avons bien recu votre demande - ${basket.name}`,
+          body: customerBody,
+          accent: '#4f8a34'
+        })
+      })
+    } catch (error) {
+      console.warn('[reservation] customer ack failed:', error)
+    }
+
     const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
     if (adminEmail) {
       await sendGmail({
