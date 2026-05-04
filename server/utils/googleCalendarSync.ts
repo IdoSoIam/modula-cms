@@ -46,7 +46,7 @@ async function findGoogleCalendarOccurrenceInstance(
 
 export function getReservationCalendarSyncState(reservation: Reservation) {
   if (reservation.status !== 'CONFIRMED') {
-    return { canSync: false as const, reason: 'Seules les reservations confirmees peuvent etre synchronisees.' }
+    return { canSync: false as const, reason: 'Seules les reservations confirmées peuvent être synchronisées.' }
   }
   if (!reservation.fulfillmentDate) {
     return { canSync: false as const, reason: 'Ajoutez une date de retrait ou livraison avant de synchroniser.' }
@@ -58,7 +58,7 @@ export function getReservationCalendarSyncState(reservation: Reservation) {
 export async function syncReservationToGoogleCalendar(reservation: ReservationForSync, subscriptionsEnabled: boolean) {
   const calendarId = await getSetting(SETTING_KEYS.GOOGLE_CALENDAR_ID)
   if (!calendarId) {
-    return { synced: false as const, eventId: null, reason: 'Aucun calendrier Google n est selectionne dans les parametres.' }
+    return { synced: false as const, eventId: null, reason: 'Aucun calendrier Google n\'est sélectionné dans les paramètres.' }
   }
 
   const syncState = getReservationCalendarSyncState(reservation)
@@ -88,10 +88,10 @@ export async function syncReservationToGoogleCalendar(reservation: ReservationFo
         : null,
       deliveryTour: reservation.deliveryTour
         ? {
-            name: reservation.deliveryTour.name,
-            startTime: reservation.deliveryTour.startTime,
-            endTime: reservation.deliveryTour.endTime
-          }
+          name: reservation.deliveryTour.name,
+          startTime: reservation.deliveryTour.startTime,
+          endTime: reservation.deliveryTour.endTime
+        }
         : null,
       monthlySubscription: reservation.monthlySubscription,
       subscriptionsEnabled
@@ -165,15 +165,15 @@ export async function syncReservationOccurrenceToGoogleCalendar(
     pickupPoint: reservation.pickupPoint
       ? { name: reservation.pickupPoint.name, address: reservation.pickupPoint.address }
       : null,
-      deliveryTour: reservation.deliveryTour
-        ? {
-            name: reservation.deliveryTour.name,
-            startTime: reservation.deliveryTour.startTime,
-            endTime: reservation.deliveryTour.endTime
-          }
-        : null,
-      monthlySubscription: false,
-      subscriptionsEnabled
+    deliveryTour: reservation.deliveryTour
+      ? {
+        name: reservation.deliveryTour.name,
+        startTime: reservation.deliveryTour.startTime,
+        endTime: reservation.deliveryTour.endTime
+      }
+      : null,
+    monthlySubscription: false,
+    subscriptionsEnabled
   })
 
   if (!payload) {

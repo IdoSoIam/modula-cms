@@ -510,10 +510,10 @@ const calendarMonth = ref(startOfMonth(new Date()))
 const selectedStatuses = ref(['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED'])
 const statusFilters = [
   { value: 'PENDING', label: 'En attente', activeClass: 'btn-warning' },
-  { value: 'CONFIRMED', label: 'Confirmees', activeClass: 'btn-success' },
-  { value: 'CANCELLED', label: 'Annulees', activeClass: 'btn-warning' },
-  { value: 'REJECTED', label: 'Refusees', activeClass: 'btn-error' },
-  { value: 'ARCHIVED', label: 'Archivees', activeClass: 'btn-neutral' }
+  { value: 'CONFIRMED', label: 'Confirmées', activeClass: 'btn-success' },
+  { value: 'CANCELLED', label: 'Annulées', activeClass: 'btn-warning' },
+  { value: 'REJECTED', label: 'Refusées', activeClass: 'btn-error' },
+  { value: 'ARCHIVED', label: 'Archivées', activeClass: 'btn-neutral' }
 ]
 
 const calendarMonthParam = computed(() => {
@@ -579,29 +579,29 @@ function sameDay(a: Date, b: Date) {
 
 const statusLabel = (s: string) => ({
   PENDING: 'En attente',
-  CONFIRMED: 'Confirmee',
-  REJECTED: 'Refusee',
-  CANCELLED: 'Annulee',
-  ARCHIVED: 'Archivee'
+  CONFIRMED: 'Confirmée',
+  REJECTED: 'Refusée',
+  CANCELLED: 'Annulée',
+  ARCHIVED: 'Archivée'
 } as Record<string, string>)[s] ?? s
 
 const occurrenceStatusLabel = (s: string) => ({
-  SCHEDULED: 'Planifiee',
-  CANCELLED: 'Annulee'
+  SCHEDULED: 'Planifiée',
+  CANCELLED: 'Annulée'
 } as Record<string, string>)[s] ?? s
 
 const notificationKindLabel = (kind: string) => ({
-  CONFIRMED: 'Reservation confirmee',
-  UPDATED: 'Reservation mise a jour',
-  REJECTED: 'Reservation refusee',
-  CANCELLED: 'Reservation annulee',
-  OCCURRENCE_UPDATED: 'Occurrence mise a jour',
-  OCCURRENCE_CANCELLED: 'Occurrence annulee',
+  CONFIRMED: 'Reservation confirmée',
+  UPDATED: 'Reservation mise à jour',
+  REJECTED: 'Reservation refusée',
+  CANCELLED: 'Reservation annulée',
+  OCCURRENCE_UPDATED: 'Occurrence mise à jour',
+  OCCURRENCE_CANCELLED: 'Occurrence annulée',
   CUSTOMER_CANCELLED: 'Annulation client',
-  CUSTOMER_STOPPED_SUBSCRIPTION: 'Abonnement arrete par le client',
-  CUSTOMER_CANCELLED_OCCURRENCE: 'Occurrence annulee par le client',
-  ADMIN_NOTIFIED_CUSTOMER_CANCEL: 'Admin notifie',
-  ADMIN_NOTIFIED_CUSTOMER_STOP: 'Admin notifie'
+  CUSTOMER_STOPPED_SUBSCRIPTION: 'Abonnement arrêté par le client',
+  CUSTOMER_CANCELLED_OCCURRENCE: 'Occurrence annulée par le client',
+  ADMIN_NOTIFIED_CUSTOMER_CANCEL: 'Admin notifié',
+  ADMIN_NOTIFIED_CUSTOMER_STOP: 'Admin notifié'
 } as Record<string, string>)[kind] ?? kind.replace(/_/g, ' ').toLowerCase()
 
 const badgeClass = (s: string) => ({
@@ -1030,22 +1030,22 @@ const submit = async () => {
     )
 
     if (decisionAction.value === 'confirmed' && response.proposalPending) {
-      $toast.success('Contre-proposition envoyee au client')
+      $toast.success('Contre-proposition envoyée au client')
     } else if (decisionAction.value === 'confirmed') {
       $toast.success(response.calendarSynced
-        ? 'Reservation confirmee, email envoye et agenda synchronise'
-        : 'Reservation confirmee et email envoye')
+        ? 'Reservation confirmée, email envoyé et agenda synchronisé'
+        : 'Reservation confirmée et email envoyé')
       if (!response.calendarSynced && response.calendarReason) {
         $toast.info(response.calendarReason)
       }
     } else if (decisionAction.value === 'cancelled') {
       $toast.success(response.calendarRemoved
-        ? 'Reservation annulee, email envoye et evenement retire du calendrier'
-        : 'Reservation annulee et email envoye')
+        ? 'Reservation annulée, email envoyé et événement retiré du calendrier'
+        : 'Reservation annulée et email envoyé')
     } else {
       $toast.success(response.calendarRemoved
-        ? 'Reservation refusee, email envoye et evenement retire du calendrier'
-        : 'Reservation refusee et email envoye')
+        ? 'Reservation refusée, email envoyé et événement retiré du calendrier'
+        : 'Reservation refusée et email envoyé')
     }
 
     closeAction()

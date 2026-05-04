@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (reservation.status !== 'CONFIRMED') {
-    throw createError({ statusCode: 400, statusMessage: 'Seules les reservations confirmees peuvent etre synchronisees' })
+    throw createError({ statusCode: 400, statusMessage: 'Seules les reservations confirmées peuvent être synchronisées' })
   }
 
   const result = await syncReservationToGoogleCalendar(reservation, await isSubscriptionsEnabled())

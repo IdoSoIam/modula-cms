@@ -206,16 +206,16 @@ const formatDate = (value: string) =>
 
 const statusLabel = (value: ManagedReservation['status']) => ({
   PENDING: 'En attente',
-  CONFIRMED: 'Confirmee',
-  REJECTED: 'Refusee',
-  CANCELLED: 'Annulee'
+  CONFIRMED: 'Confirmée',
+  REJECTED: 'Refusée',
+  CANCELLED: 'Annulée'
 } as const)[value] ?? value
 
 const cancelReservation = async () => {
   submitting.value = true
   try {
     await $fetch(`/api/reservations/manage/${token}/cancel`, { method: 'POST' })
-    $toast.success('Votre demande a bien ete prise en compte')
+    $toast.success('Votre demande a bien été prise en compte')
     await refresh()
   } catch (e: any) {
     $toast.error(e.statusMessage || 'Impossible d annuler cette reservation')
@@ -228,10 +228,10 @@ const stopSubscription = async () => {
   submitting.value = true
   try {
     await $fetch(`/api/reservations/manage/${token}/stop`, { method: 'POST' })
-    $toast.success('Votre abonnement a bien ete arrete')
+    $toast.success('Votre abonnement a bien été arrêté')
     await refresh()
   } catch (e: any) {
-    $toast.error(e.statusMessage || 'Impossible d arreter cet abonnement')
+    $toast.error(e.statusMessage || 'Impossible d arrêter cet abonnement')
   } finally {
     submitting.value = false
   }
@@ -241,7 +241,7 @@ const cancelOccurrence = async (occurrenceId: number) => {
   submitting.value = true
   try {
     await $fetch(`/api/reservations/manage/${token}/occurrences/${occurrenceId}/cancel`, { method: 'POST' })
-    $toast.success('Cette semaine a bien ete annulee')
+    $toast.success('Cette semaine a bien été annulée')
     await refresh()
   } catch (e: any) {
     $toast.error(e.statusMessage || 'Impossible d annuler cette semaine')
@@ -254,7 +254,7 @@ const acceptProposal = async () => {
   submitting.value = true
   try {
     await $fetch(`/api/reservations/manage/${token}/accept-proposal`, { method: 'POST' })
-    $toast.success('Le creneau a bien ete confirme')
+    $toast.success('Le creneau a bien été confirmé')
     await refresh()
   } catch (e: any) {
     $toast.error(e.statusMessage || 'Impossible de confirmer ce creneau')
@@ -273,12 +273,12 @@ const submitProposal = async () => {
         proposalTime: proposalForm.time
       }
     })
-    $toast.success('Votre contre-proposition a ete envoyee')
+    $toast.success('Votre contre-proposition a été envoyée')
     proposalForm.date = ''
     proposalForm.time = ''
     await refresh()
   } catch (e: any) {
-    $toast.error(e.statusMessage || 'Impossible d envoyer votre contre-proposition')
+    $toast.error(e.statusMessage || "Impossible d'envoyer votre contre-proposition")
   } finally {
     submitting.value = false
   }
