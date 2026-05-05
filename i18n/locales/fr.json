@@ -72,7 +72,22 @@
       "ctaTitle": "Commander un panier ou prendre contact",
       "ctaText": "Si vous souhaitez suivre les disponibilités, réserver un panier ou simplement en savoir plus sur la ferme, les prochaines étapes sont ici.",
       "ctaPrimary": "Réserver un panier",
-      "ctaSecondary": "Nous écrire"
+      "ctaSecondary": "Nous écrire",
+      "simpleBasketsTitle": "Des paniers simples à réserver",
+      "simpleBasketsDesc": "L'objectif est de rendre la commande facile à comprendre : vous choisissez votre panier, puis votre mode de retrait ou livraison. Le retrait à la ferme concerne les paniers réservés sur le site.",
+      "pickupFarmTitle": "Retrait à la ferme",
+      "pickupFarmDesc": "Une solution simple pour venir récupérer votre panier réservé directement à la ferme, sur confirmation par email.",
+      "pickupPointTitle": "Point relais",
+      "pickupPointDesc": "Selon les disponibilités, vous pouvez choisir un point de retrait pratique.",
+      "deliveryTourTitle": "Livraison tournée",
+      "deliveryTourDesc": "Pour certaines villes, une tournée de livraison peut être proposée.",
+      "directSaleNote": "La vente à la ferme n'est pas la même chose que le retrait à la ferme des paniers. Ici, il s'agit d'un temps de vente directe pour les légumes récoltés ou récoltables et les autres produits disponibles à la ferme.",
+      "howItWorksStep1Title": "Je viens ou je réserve",
+      "howItWorksStep1Text": "Je peux venir à la vente à la ferme pour les produits disponibles, ou réserver un panier depuis le site.",
+      "howItWorksStep2Title": "Je reçois la confirmation",
+      "howItWorksStep2Text": "Pour les paniers, la ferme confirme par email le lieu et le créneau exacts.",
+      "howItWorksStep3Title": "Je règle sur place",
+      "howItWorksStep3Text": "Le paiement se fait en espèces au retrait ou à la remise des produits."
     },
     "cbd": {
       "title": "Découvrez notre CBD Bio",

@@ -70,8 +70,14 @@ const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
 
 const farmDayLabel = computed(() => {
   const day = siteConfig.value?.farmPickup.dayOfWeek
-  const labels = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-  return typeof day === 'number' ? labels[day] : ''
+  const labelsFR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+  const labelsEN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  
+  if (import.meta.client) {
+    const locale = useI18n().locale.value
+    return typeof day === 'number' ? (locale === 'fr' ? labelsFR[day] : labelsEN[day]) : ''
+  }
+  return ''
 })
 </script>
 

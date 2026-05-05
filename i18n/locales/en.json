@@ -72,7 +72,22 @@
       "ctaTitle": "Reserve a basket or get in touch",
       "ctaText": "If you want to follow availability, reserve a basket or simply learn more about the farm, start here.",
       "ctaPrimary": "Reserve a basket",
-      "ctaSecondary": "Contact us"
+      "ctaSecondary": "Contact us",
+      "simpleBasketsTitle": "Simple baskets to reserve",
+      "simpleBasketsDesc": "The goal is to make ordering easy to understand: you choose your basket, then your pickup or delivery method. Farm pickup is for baskets reserved on the website.",
+      "pickupFarmTitle": "Farm pickup",
+      "pickupFarmDesc": "A simple solution to come pick up your reserved basket directly at the farm, upon email confirmation.",
+      "pickupPointTitle": "Pickup point",
+      "pickupPointDesc": "Depending on availability, you can choose a convenient pickup location.",
+      "deliveryTourTitle": "Delivery tour",
+      "deliveryTourDesc": "For certain cities, a delivery tour may be offered.",
+      "directSaleNote": "Farm sales are not the same as farm pickup for baskets. Here, it is a direct sales time for harvested or harvestable vegetables and other products available at the farm.",
+      "howItWorksStep1Title": "I come or I reserve",
+      "howItWorksStep1Text": "I can come to the farm sale for available products, or reserve a basket from the website.",
+      "howItWorksStep2Title": "I receive confirmation",
+      "howItWorksStep2Text": "For baskets, the farm confirms by email the exact location and time slot.",
+      "howItWorksStep3Title": "I pay on site",
+      "howItWorksStep3Text": "Payment is made in cash upon pickup or delivery of products."
     },
     "cbd": {
       "title": "Discover our Organic CBD",

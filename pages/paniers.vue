@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto min-h-screen w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+  <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
     <header class="mb-10 text-center">
       <h1 class="mb-2 text-4xl font-bold">{{ $t('pages.baskets.title') }}</h1>
       <p class="mx-auto max-w-2xl opacity-70">

@@ -63,7 +63,7 @@ const formatDate = (s: string | null) =>
 </script>
 
 <template>
-  <div class="min-h-screen bg-base-100">
+  <div class="bg-base-100">
     <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <h1 class="text-4xl font-bold text-center mb-8">{{ $t('pages.news.title') }}</h1>
 

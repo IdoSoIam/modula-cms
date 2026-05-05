@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto min-h-screen w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+  <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
     <NuxtLink :to="localePath('/news')" class="link link-hover text-sm opacity-70 inline-flex items-center gap-1 mb-6">
       <Icon name="mdi:arrow-left" size="16" />
       {{ $t('pages.news.backToNews') }}

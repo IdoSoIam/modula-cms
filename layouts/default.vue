@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-base-100">
     <input id="drawer-toggle" type="checkbox" class="drawer-toggle" />
     
-    <div class="drawer-content flex flex-col">      <!-- Navigation -->
+    <div class="drawer-content flex min-h-screen flex-col">      <!-- Navigation -->
       <LayoutNavigation />
 
       <!-- Conteneur pour les toasts -->

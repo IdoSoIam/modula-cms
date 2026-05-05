@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-base-100">
+  <div class="bg-base-100">
     <section
       class="hero min-h-[78vh] items-end overflow-hidden"
       style="background-image: linear-gradient(120deg, rgba(19,33,17,.68), rgba(19,33,17,.34)), url('/images/plaquette.jpg'); background-position:center; background-size:cover;"
@@ -133,10 +133,8 @@
       <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
         <div class="rounded-[2rem] border border-base-300 bg-base-200/60 p-8">
           <div class="mb-6 max-w-2xl">
-            <h2 class="text-3xl font-bold">Des paniers simples à réserver</h2>
-            <p class="mt-3 opacity-75">
-              L'objectif est de rendre la commande facile à comprendre : vous choisissez votre panier, puis votre mode de retrait ou livraison. Le retrait à la ferme concerne les paniers réservés sur le site.
-            </p>
+            <h2 class="text-3xl font-bold">{{ $t('pages.home.simpleBasketsTitle') }}</h2>
+            <p class="mt-3 opacity-75">{{ $t('pages.home.simpleBasketsDesc') }}</p>
           </div>
 
           <div class="grid gap-4 md:grid-cols-3">
@@ -144,30 +142,24 @@
               <div class="mb-3 w-fit rounded-xl bg-primary/10 p-3 text-primary">
                 <Icon name="mdi:home-outline" size="22" />
               </div>
-              <div class="font-semibold">Retrait à la ferme</div>
-              <p class="mt-2 text-sm opacity-75">
-                Une solution simple pour venir récupérer votre panier réservé directement à la ferme, sur confirmation par email.
-              </p>
+              <div class="font-semibold">{{ $t('pages.home.pickupFarmTitle') }}</div>
+              <p class="mt-2 text-sm opacity-75">{{ $t('pages.home.pickupFarmDesc') }}</p>
             </div>
 
             <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
               <div class="mb-3 w-fit rounded-xl bg-primary/10 p-3 text-primary">
                 <Icon name="mdi:store-marker-outline" size="22" />
               </div>
-              <div class="font-semibold">Point relais</div>
-              <p class="mt-2 text-sm opacity-75">
-                Selon les disponibilités, vous pouvez choisir un point de retrait pratique.
-              </p>
+              <div class="font-semibold">{{ $t('pages.home.pickupPointTitle') }}</div>
+              <p class="mt-2 text-sm opacity-75">{{ $t('pages.home.pickupPointDesc') }}</p>
             </div>
 
             <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
               <div class="mb-3 w-fit rounded-xl bg-primary/10 p-3 text-primary">
                 <Icon name="mdi:truck-fast-outline" size="22" />
               </div>
-              <div class="font-semibold">Livraison tournée</div>
-              <p class="mt-2 text-sm opacity-75">
-                Pour certaines villes, une tournée de livraison peut être proposée.
-              </p>
+              <div class="font-semibold">{{ $t('pages.home.deliveryTourTitle') }}</div>
+              <p class="mt-2 text-sm opacity-75">{{ $t('pages.home.deliveryTourDesc') }}</p>
             </div>
           </div>
         </div>
@@ -182,7 +174,7 @@
             <h2 class="text-3xl font-bold">{{ $t('pages.home.directSale') }}</h2>
             <p class="text-lg opacity-85">{{ $t('pages.home.directSaleIntro') }}</p>
             <div class="rounded-2xl border border-base-300 bg-base-100 p-5 text-sm opacity-85">
-              La vente à la ferme n'est pas la même chose que le retrait à la ferme des paniers. Ici, il s'agit d'un temps de vente directe pour les légumes récoltés ou récoltables et les autres produits disponibles à la ferme.
+              {{ $t('pages.home.directSaleNote') }}
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
@@ -201,22 +193,16 @@
               <h3 class="mb-2 font-semibold">{{ $t('pages.home.howItWorksTitle') }}</h3>
               <div class="grid gap-3 md:grid-cols-3">
                 <div>
-                  <div class="text-sm font-semibold">Je viens ou je réserve</div>
-                  <p class="mt-1 text-sm opacity-75">
-                    Je peux venir à la vente à la ferme pour les produits disponibles, ou réserver un panier depuis le site.
-                  </p>
+                  <div class="text-sm font-semibold">{{ $t('pages.home.howItWorksStep1Title') }}</div>
+                  <p class="mt-1 text-sm opacity-75">{{ $t('pages.home.howItWorksStep1Text') }}</p>
                 </div>
                 <div>
-                  <div class="text-sm font-semibold">Je reçois la confirmation</div>
-                  <p class="mt-1 text-sm opacity-75">
-                    Pour les paniers, la ferme confirme par email le lieu et le créneau exacts.
-                  </p>
+                  <div class="text-sm font-semibold">{{ $t('pages.home.howItWorksStep2Title') }}</div>
+                  <p class="mt-1 text-sm opacity-75">{{ $t('pages.home.howItWorksStep2Text') }}</p>
                 </div>
                 <div>
-                  <div class="text-sm font-semibold">Je règle sur place</div>
-                  <p class="mt-1 text-sm opacity-75">
-                    Le paiement se fait en espèces au retrait ou à la remise des produits.
-                  </p>
+                  <div class="text-sm font-semibold">{{ $t('pages.home.howItWorksStep3Title') }}</div>
+                  <p class="mt-1 text-sm opacity-75">{{ $t('pages.home.howItWorksStep3Text') }}</p>
                 </div>
               </div>
             </div>
@@ -292,9 +278,10 @@ usePageSeo({
     : 'Découvrez les légumes bio de saison, la vente à la ferme et la réservation de paniers à la Ferme du Campeyrigoux.')
 })
 
+const { t } = useI18n()
+
 const farmDayLabel = computed(() => {
   const day = siteConfig.value?.farmPickup.dayOfWeek
-  const labels = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-  return typeof day === 'number' ? labels[day] : ''
+  return typeof day === 'number' ? t(`pages.baskets.weekdays.${day}`) : ''
 })
 </script>
