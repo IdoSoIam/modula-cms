@@ -21,6 +21,32 @@ Le site couvre deja les briques principales pour publier une version utile :
 - synchronisation Google Calendar
 - lien public de gestion de reservation par token
 
+## Base de donnees Cloudflare / D1
+
+Le projet est maintenant prepare pour fonctionner avec :
+
+- dev local Node sur SQLite : [prisma/local.db](/D:/Works/ferme-campeyrigoux/prisma/local.db:1)
+- preview Cloudflare locale sur D1 local via Wrangler
+- prod Cloudflare sur D1 distant
+- stockage image sur R2 quand le runtime Cloudflare est disponible, avec fallback local en base pour `npm run dev`
+
+Commandes utiles :
+
+- `npm run db:local:reset` : recree la base locale SQLite depuis [migrations/0001_init.sql](/D:/Works/ferme-campeyrigoux/migrations/0001_init.sql:1)
+- `npm run dev` : dev Nuxt local avec la base SQLite locale
+- `npm run preview` : build + preview Cloudflare locale
+- `npm run db:d1:migrate:local` : applique les migrations au D1 local Wrangler
+- `npm run db:d1:migrate:remote` : applique les migrations au D1 distant
+- `npm run db:studio` : ouvre Prisma Studio sur la base locale SQLite
+
+Avant le vrai deploy Cloudflare :
+
+- creer la base D1 distante
+- creer aussi le bucket R2 `ferme-du-campeyrigoux-images`
+- remplacer `database_id` dans [wrangler.jsonc](/D:/Works/ferme-campeyrigoux/wrangler.jsonc:1)
+- lancer `npm run db:d1:migrate:remote`
+- lancer `npm run deploy`
+
 Les abonnements et l'inscription publique sont maintenant pilotables depuis [pages/admin/parametres.vue](/D:/Works/ferme-campeyrigoux/pages/admin/parametres.vue:1), au lieu d'etre bloques en dur.
 
 ## Parcours client actuel

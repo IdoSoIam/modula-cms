@@ -6,8 +6,18 @@
     "build": "nuxt build",
     "dev": "npx nuxt dev",
     "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "preview": "npm run build && wrangler --cwd .output dev",
+    "deploy": "npm run build && wrangler --cwd .output deploy",
+    "postinstall": "nuxt prepare && prisma generate",
+    "cf-typegen": "wrangler types",
+    "db:generate": "prisma generate",
+    "db:local:migrate": "node ./scripts/apply-local-migrations.mjs",
+    "db:local:reset": "node ./scripts/apply-local-migrations.mjs --reset",
+    "db:studio": "npx -p better-sqlite3 -p prisma prisma studio --url file:./prisma/local.db",
+    "db:d1:migrate:local": "wrangler d1 migrations apply ferme-du-campeyrigoux --local",
+    "db:d1:migrate:remote": "wrangler d1 migrations apply ferme-du-campeyrigoux --remote",
+    "db:d1:query:local": "wrangler d1 execute ferme-du-campeyrigoux --local --command",
+    "db:d1:query:remote": "wrangler d1 execute ferme-du-campeyrigoux --remote --command"
   },
   "dependencies": {
     "@nuxt/devtools": "3.2.4",
@@ -15,7 +25,8 @@
     "@nuxt/image": "^2.0.0",
     "@nuxtjs/i18n": "^10.2.4",
     "@pinia/nuxt": "^0.11.3",
-    "@prisma/adapter-mariadb": "^7.8.0",
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/adapter-d1": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@tailwindcss/vite": "^4.2.4",
     "@tanstack/vue-query": "^5.100.1",
@@ -23,13 +34,11 @@
     "@tiptap/extension-link": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
     "@tiptap/vue-3": "^3.22.4",
-    "@types/bcrypt": "^6.0.0",
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "daisyui": "^5.5.19",
     "dotenv": "^17.4.2",
     "facebook-node-sdk": "^0.2.0",
     "fb": "^2.0.0",
-    "mysql2": "^3.22.2",
     "nuxt": "^4.4.2",
     "pinia": "^3.0.4",
     "prisma": "^7.8.0",
@@ -39,6 +48,9 @@
   },
   "devDependencies": {
     "@iconify-json/mdi": "^1.2.3",
-    "@types/fb": "^0.0.30"
+    "@types/fb": "^0.0.30",
+    "@types/node": "^25.6.0",
+    "nitro-cloudflare-dev": "^0.2.2",
+    "wrangler": "^4.85.0"
   }
 }

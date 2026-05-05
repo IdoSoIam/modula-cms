@@ -2,12 +2,10 @@ import { requireAdmin } from '~/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
 import { updateImageReferences } from '~/server/utils/imageReferences'
 import { slugify } from '~/server/utils/slug'
-import { mkdir, rename, unlink, writeFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
-import { extname, join } from 'node:path'
+import { extname } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { hasUploadsBucket, putUploadObject, renameUploadObject, deleteUploadObject } from '~/server/utils/uploadStorage'
 
-const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads')
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
 const MAX_SIZE = 8 * 1024 * 1024
 
@@ -30,16 +28,12 @@ export default defineEventHandler(async (event) => {
   const filenamePart = parts.find(p => p.name === 'filename')
   const nextBaseName = (filenamePart?.data ? Buffer.from(filenamePart.data).toString('utf8').trim() : '') || image.filename.replace(/\.[^.]+$/, '')
   const filePart = parts.find(p => p.name === 'file' && p.filename)
-
-  if (!existsSync(UPLOAD_DIR)) {
-    await mkdir(UPLOAD_DIR, { recursive: true })
-  }
-
-  const currentPath = join(UPLOAD_DIR, image.filename)
   let nextFilename = image.filename
   let nextUrl = image.url
   let nextMimeType = image.mimeType
   let nextSize = image.size
+  let nextData = image.data
+  const useBucket = hasUploadsBucket()
 
   if (filePart?.data) {
     const mime = filePart.type || 'application/octet-stream'
@@ -55,18 +49,24 @@ export default defineEventHandler(async (event) => {
     nextUrl = `/uploads/${nextFilename}`
     nextMimeType = mime
     nextSize = filePart.data.length
+    const fileData = new Uint8Array(filePart.data)
 
-    await writeFile(join(UPLOAD_DIR, nextFilename), filePart.data)
-    try {
-      await unlink(currentPath)
-    } catch (error) {
-      console.warn('[image update] old file unlink failed:', error)
+    if (useBucket) {
+      await putUploadObject(nextFilename, fileData, mime)
+      if (image.filename !== nextFilename) {
+        await deleteUploadObject(image.filename)
+      }
+      nextData = null
+    } else {
+      nextData = fileData
     }
   } else if (nextBaseName !== image.filename.replace(/\.[^.]+$/, '')) {
     const ext = extname(image.filename)
     nextFilename = buildFilename(nextBaseName, ext)
     nextUrl = `/uploads/${nextFilename}`
-    await rename(currentPath, join(UPLOAD_DIR, nextFilename))
+    if (useBucket) {
+      await renameUploadObject(image.filename, nextFilename, image.mimeType)
+    }
   }
 
   if (nextUrl !== image.url) {
@@ -79,7 +79,8 @@ export default defineEventHandler(async (event) => {
       filename: nextFilename,
       url: nextUrl,
       mimeType: nextMimeType,
-      size: nextSize
+      size: nextSize,
+      data: nextData
     }
   })
 })

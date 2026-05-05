@@ -1,30 +1,43 @@
-import { PrismaMariaDb } from '@prisma/adapter-mariadb'
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import { PrismaD1 } from '@prisma/adapter-d1'
 import { PrismaClient } from '@prisma/client'
 import { config } from 'dotenv'
 
-// Load .env file
 config()
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-function getPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL
+function createPrismaClient(): PrismaClient {
+  const cloudflareEnv = (globalThis as { __env__?: { DB?: D1Database } }).__env__
 
-  if (!connectionString) {
-    throw new Error('DATABASE_URL environment variable is not set')
+  if (cloudflareEnv?.DB) {
+    return new PrismaClient({
+      adapter: new PrismaD1(cloudflareEnv.DB)
+    })
   }
 
+  const connectionString = process.env.DATABASE_URL?.startsWith('file:')
+    ? process.env.DATABASE_URL
+    : 'file:./prisma/local.db'
+
+  return new PrismaClient({
+    adapter: new PrismaBetterSqlite3(
+      { url: connectionString },
+      { timestampFormat: 'iso8601' }
+    )
+  })
+}
+
+export function getPrismaClient(): PrismaClient {
   if (!globalForPrisma.prisma) {
-    const adapter = new PrismaMariaDb(connectionString)
-    globalForPrisma.prisma = new PrismaClient({ adapter })
+    globalForPrisma.prisma = createPrismaClient()
   }
 
   return globalForPrisma.prisma
 }
 
-// Export a proxy that lazily initializes the client
 export const prisma = new Proxy({} as PrismaClient, {
   get(_, prop: string | symbol) {
     const client = getPrismaClient()

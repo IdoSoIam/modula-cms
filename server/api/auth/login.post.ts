@@ -7,15 +7,16 @@ const authService = new AuthService()
 export default defineEventHandler(async (event: H3Event) => {
   try {
     const { email, password } = await readBody(event)
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : ''
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       throw createError({
         statusCode: 400,
         statusMessage: 'Email and password are required'
       })
     }
 
-    const user = await authService.validateUser(email, password)
+    const user = await authService.validateUser(normalizedEmail, password)
     if (!user) {
       throw createError({
         statusCode: 401,

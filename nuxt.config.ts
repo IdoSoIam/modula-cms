@@ -8,7 +8,14 @@ export default defineNuxtConfig({
     inlineStyles: true
   },
   nitro: {
-    preset: 'cloudflare-pages'
+    preset: 'cloudflare_module',
+    experimental: {
+      wasm: true
+    },
+    cloudflare: {
+      deployConfig: true,
+      nodeCompat: true
+    }
   },
   devServer: {
     https: {
@@ -28,10 +35,18 @@ export default defineNuxtConfig({
     '@nuxt/image',
     "@nuxt/icon",
     '@nuxtjs/i18n',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    'nitro-cloudflare-dev'
   ],
   vite: {
     plugins: [tailwindcss()],
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        '@tanstack/vue-query',
+      ]
+    }
   },
   css: [
     '@/assets/css/tailwind.css',
@@ -70,4 +85,6 @@ export default defineNuxtConfig({
       facebookPageId: process.env.FACEBOOK_PAGE_ID
     }
   }
+
+
 })

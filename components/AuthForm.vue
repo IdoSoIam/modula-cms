@@ -86,7 +86,7 @@ const handleLogin = async () => {
 
   try {
     await authStore.login({
-      email: loginForm.email,
+      email: loginForm.email.trim().toLowerCase(),
       password: loginForm.password
     })
 

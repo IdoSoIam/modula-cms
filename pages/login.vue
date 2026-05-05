@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center justify-center bg-base-200">
+  <div class="flex items-center justify-center bg-base-200 min-h-[calc(100vh-300px)]">
     <div class="card w-96 bg-base-100 shadow-xl">
       <div class="card-body">
         <h2 class="card-title mb-4">Connexion</h2>

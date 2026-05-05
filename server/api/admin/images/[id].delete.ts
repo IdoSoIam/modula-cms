@@ -1,8 +1,7 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
 import { countImageReferences } from '~/server/utils/imageReferences'
-import { unlink } from 'node:fs/promises'
-import { join } from 'node:path'
+import { deleteUploadObject } from '~/server/utils/uploadStorage'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -16,12 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Image encore utilisee, remplacez-la ou retirez les associations avant suppression' })
   }
 
-  try {
-    await unlink(join(process.cwd(), 'public', 'uploads', img.filename))
-  } catch (e) {
-    console.warn('[image delete] file unlink failed:', e)
-  }
-
+  await deleteUploadObject(img.filename)
   await prisma.image.delete({ where: { id } })
   return { ok: true }
 })

@@ -6,6 +6,8 @@ config()
 
 export default defineConfig({
   datasource: {
-    url: process.env.DATABASE_URL,
+    url: process.env.DATABASE_URL?.startsWith('file:')
+      ? process.env.DATABASE_URL
+      : 'file:./prisma/local.db',
   },
 })

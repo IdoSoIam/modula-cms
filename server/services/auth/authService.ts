@@ -1,5 +1,5 @@
 import { H3Event } from 'h3'
-import * as bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import { getSessionConfig } from '../../utils/session'
 import { prisma } from '../../../prisma/client'
 
@@ -14,10 +14,11 @@ export class AuthService {
     role: string = 'user'
   ): Promise<{ id: number; email: string; firstName?: string; lastName?: string; role: string }> {
     try {
+      const normalizedEmail = email.trim().toLowerCase()
       const hashedPassword = await bcrypt.hash(password, AuthService.SALT_ROUNDS)
       const user = await prisma.user.create({
         data: {
-          email,
+          email: normalizedEmail,
           password: hashedPassword,
           firstName,
           lastName,
@@ -60,8 +61,9 @@ export class AuthService {
     }
   } | null> {
     try {
+      const normalizedEmail = email.trim().toLowerCase()
       const user = await prisma.user.findUnique({
-        where: { email },
+        where: { email: normalizedEmail },
         select: {
           id: true,
           email: true,
@@ -184,12 +186,13 @@ export class AuthService {
     }
   }> {
     try {
+      const normalizedEmail = data.email.trim().toLowerCase()
       const user = await prisma.user.update({
         where: { id: userId },
         data: {
           firstName: data.firstName,
           lastName: data.lastName,
-          email: data.email
+          email: normalizedEmail
         },
         select: {
           id: true,

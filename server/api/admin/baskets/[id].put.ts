@@ -38,12 +38,10 @@ export default defineEventHandler(async (event) => {
     data.computedPrice = computed
     if (body.finalPrice === undefined) data.finalPrice = computed
 
-    await prisma.$transaction([
-      prisma.basketItem.deleteMany({ where: { basketId: id } }),
-      prisma.basketItem.createMany({
-        data: body.items.map(it => ({ basketId: id, vegetableId: it.vegetableId, quantity: it.quantity }))
-      })
-    ])
+    await prisma.basketItem.deleteMany({ where: { basketId: id } })
+    await prisma.basketItem.createMany({
+      data: body.items.map(it => ({ basketId: id, vegetableId: it.vegetableId, quantity: it.quantity }))
+    })
   }
 
   if (body.finalPrice !== undefined) data.finalPrice = body.finalPrice

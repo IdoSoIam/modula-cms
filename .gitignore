@@ -18,8 +18,16 @@ logs
 .DS_Store
 .fleet
 .idea
+.wrangler
+worker-configuration.d.ts
 
 # Local env files
 .env
 .env.*
 !.env.example
+
+# Local backups
+backups
+
+# Local SQLite/D1 dev database
+prisma/local.db

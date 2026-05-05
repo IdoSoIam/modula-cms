@@ -1,11 +1,9 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
-import { writeFile, mkdir } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
-import { join, extname } from 'node:path'
+import { extname } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { hasUploadsBucket, putUploadObject } from '~/server/utils/uploadStorage'
 
-const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads')
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
 const MAX_SIZE = 8 * 1024 * 1024
 
@@ -25,22 +23,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Image trop lourde (max 8 Mo)' })
   }
 
-  if (!existsSync(UPLOAD_DIR)) {
-    await mkdir(UPLOAD_DIR, { recursive: true })
-  }
-
   const ext = (extname(filePart.filename || '').toLowerCase() || '.' + mime.split('/')[1]).slice(0, 6)
   const filename = `${Date.now()}-${randomUUID().slice(0, 8)}${ext}`
-  const filePath = join(UPLOAD_DIR, filename)
-  await writeFile(filePath, filePart.data)
-
   const url = `/uploads/${filename}`
+  const fileData = new Uint8Array(filePart.data)
+  const storedInBucket = await putUploadObject(filename, fileData, mime)
   const image = await prisma.image.create({
     data: {
       filename,
       url,
       mimeType: mime,
       size: filePart.data.length,
+      data: storedInBucket || !hasUploadsBucket() ? fileData : null,
       uploadedById: user.id
     }
   })
