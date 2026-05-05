@@ -31,7 +31,7 @@
       "eggsPoultry": "Eggs \u0026 Poultry",
       "eggsPoultryDesc": "Free-range poultry farming and organic egg production.",
       "directSale": "Direct Sale",
-      "schedule": "Every Saturday from 9:30 AM to 12:00 PM",
+      "schedule": "Farm pickup",
       "location": "On the terrace of SAINT SEB",
       "solidarityPricing": "A solidarity pricing system allows everyone to access quality, organic, local food.",
       "findUs": "Find us",
@@ -46,7 +46,7 @@
       "diversificationTitle": "Farm diversification",
       "diversificationDesc": "The farm is also developing other crops and activities to build a resilient agricultural model.",
       "directSaleBadge": "The weekly meeting point",
-      "directSaleIntro": "A simple weekly direct-sale moment to find farm products, ask questions and reserve your baskets.",
+      "directSaleIntro": "Two simple weekly meetings to find farm products, ask questions and choose the format that suits you best.",
       "scheduleDetail": "Meet us every week for direct sales.",
       "locationTitle": "Pickup location",
       "qualityTitle": "Quality and proximity",
@@ -81,7 +81,10 @@
       "pickupPointDesc": "Depending on availability, you can choose a convenient pickup location.",
       "deliveryTourTitle": "Delivery tour",
       "deliveryTourDesc": "For certain cities, a delivery tour may be offered.",
-      "directSaleNote": "Farm sales are not the same as farm pickup for baskets. Here, it is a direct sales time for harvested or harvestable vegetables and other products available at the farm.",
+      "directSaleNote": "Direct sales and pickup for baskets reserved on the website are two different things. Here, we clearly present the weekly times to buy at the farm or meet us at the market.",
+      "directSaleAsideTitle": "Direct sales and weekly market presence",
+      "directSaleAsideText": "We keep things clear: one meeting at the farm for reserved baskets, and one weekly meeting at the Saint-Sebastien-d'Aigrefeuille market.",
+      "directSaleAsideLocation": "Saint-Sebastien-d'Aigrefeuille, on the Saint Seb terrace",
       "howItWorksStep1Title": "I come or I reserve",
       "howItWorksStep1Text": "I can come to the farm sale for available products, or reserve a basket from the website.",
       "howItWorksStep2Title": "I receive confirmation",
@@ -289,6 +292,11 @@
         "cancelled": "Cancelled"
       }
     }
+  },
+  "sales": {
+    "farmTitle": "Direct sale at the farm",
+    "marketTitle": "Saint-Sebastien-d'Aigrefeuille market",
+    "marketPlace": "On the Saint Seb terrace"
   },
   "cart": {
     "title": "My Cart",

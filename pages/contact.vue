@@ -82,12 +82,8 @@ interface SiteConfig {
 }
 
 const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
-
-const farmDayLabel = computed(() => {
-  const day = siteConfig.value?.farmPickup.dayOfWeek
-  const labels = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-  return typeof day === 'number' ? labels[day] : ''
-})
+const { formatWeeklySchedule } = useSalesInfo()
+const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))
 </script>
 
 <template>
@@ -168,7 +164,7 @@ const farmDayLabel = computed(() => {
                   <Icon name="mdi:map-marker" class="mt-1 text-xl text-primary" />
                   <div>
                     <h3 class="font-medium">{{ $t('pages.contact.address') }}</h3>
-                    <p class="text-base-content/80">{{ siteConfig?.farmPickup.address }}</p>
+                    <p class="text-base-content/80 whitespace-pre-line">{{ siteConfig?.farmPickup.address }}</p>
                   </div>
                 </div>
 
@@ -193,7 +189,7 @@ const farmDayLabel = computed(() => {
                   <div>
                     <h3 class="font-medium">{{ $t('pages.contact.openingHours') }}</h3>
                     <p class="text-base-content/80">{{ $t('pages.contact.directSale') }}</p>
-                    <p class="text-base-content/80">{{ farmDayLabel }} {{ siteConfig?.farmPickup.startTime }} - {{ siteConfig?.farmPickup.endTime }}</p>
+                    <p class="text-base-content/80">{{ farmScheduleText }}</p>
                   </div>
                 </div>
               </div>

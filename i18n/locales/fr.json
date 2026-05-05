@@ -31,7 +31,7 @@
       "eggsPoultry": "Œufs & Volailles",
       "eggsPoultryDesc": "Élevage de poules en plein air et production d'œufs bio.",
       "directSale": "Vente Directe",
-      "schedule": "Tous les samedis de 9h30 à 12h",
+      "schedule": "Retrait à la ferme",
       "location": "Sur la terrasse du SAINT SEB",
       "solidarityPricing": "Un système de tarification solidaire permet à tous d'avoir accès à une alimentation de qualité, bio et locale.",
       "findUs": "Nous trouver",
@@ -46,7 +46,7 @@
       "diversificationTitle": "Diversification de la ferme",
       "diversificationDesc": "La ferme développe aussi d'autres ateliers et cultures pour construire un modèle agricole résilient.",
       "directSaleBadge": "Le rendez-vous de la semaine",
-      "directSaleIntro": "Un temps de vente simple et régulier pour retrouver les produits de la ferme, poser vos questions et réserver vos paniers.",
+      "directSaleIntro": "Deux rendez-vous simples et réguliers pour retrouver les produits de la ferme, poser vos questions et choisir le format qui vous convient.",
       "scheduleDetail": "Retrouvez-nous chaque semaine pour la vente directe.",
       "locationTitle": "Lieu de retrait",
       "qualityTitle": "Qualité et proximité",
@@ -63,7 +63,7 @@
       "whereToFindUsTitle": "Où nous trouver",
       "whereToFindUsText": "La vente directe a lieu à Saint-Sebastien-d'Aigrefeuille, dans un cadre simple et accessible pour les habitants du secteur.",
       "trustBadge": "Repères utiles",
-      "trustTitle": "Une ferme jeune, concrète et en construction",
+      "trustTitle": "Une ferme jeune, concrète et en développement",
       "trustIntro": "Le projet s'appuie sur une installation agricole locale, une démarche biologique et une volonté de rendre des produits fermiers accessibles dans la durée.",
       "trustCard1Title": "Agriculture biologique",
       "trustCard1Text": "La ferme est engagée dans une production centrée sur le vivant et la saisonnalité.",
@@ -81,7 +81,10 @@
       "pickupPointDesc": "Selon les disponibilités, vous pouvez choisir un point de retrait pratique.",
       "deliveryTourTitle": "Livraison tournée",
       "deliveryTourDesc": "Pour certaines villes, une tournée de livraison peut être proposée.",
-      "directSaleNote": "La vente à la ferme n'est pas la même chose que le retrait à la ferme des paniers. Ici, il s'agit d'un temps de vente directe pour les légumes récoltés ou récoltables et les autres produits disponibles à la ferme.",
+      "directSaleNote": "La vente directe et le retrait des paniers réservés sur le site sont deux choses différentes. Ici, nous présentons clairement les rendez-vous hebdomadaires pour venir acheter à la ferme ou nous retrouver au marché.",
+      "directSaleAsideTitle": "Vente directe et présence au marché",
+      "directSaleAsideText": "Nous privilégions une information claire : un rendez-vous à la ferme pour les paniers réservés, et un rendez-vous au marché de Saint-Sébastien-d'Aigrefeuille chaque semaine.",
+      "directSaleAsideLocation": "Saint-Sébastien-d'Aigrefeuille, sur la terrasse du Saint Seb",
       "howItWorksStep1Title": "Je viens ou je réserve",
       "howItWorksStep1Text": "Je peux venir à la vente à la ferme pour les produits disponibles, ou réserver un panier depuis le site.",
       "howItWorksStep2Title": "Je reçois la confirmation",
@@ -289,6 +292,11 @@
         "cancelled": "Annulée"
       }
     }
+  },
+  "sales": {
+    "farmTitle": "Vente directe à la ferme",
+    "marketTitle": "Marché de Saint-Sébastien-d'Aigrefeuille",
+    "marketPlace": "Sur la terrasse du Saint Seb"
   },
   "cart": {
     "title": "Mon panier",

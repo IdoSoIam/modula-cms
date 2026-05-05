@@ -11,18 +11,23 @@
       <!-- Horaires -->
       <div class="flex flex-col items-center">
         <h4 class="footer-title">{{ $t("footer.hours") }}</h4>
-        <div class="opacity-80 text-center">
-          <p>{{ $t("footer.farmSale") }}</p>
-          <p>{{ farmDayLabel }}</p>
-          <p>{{ siteConfig?.farmPickup.slotLabel || $t('pages.home.scheduleDetail') }}</p>
+        <div class="space-y-3 opacity-80 text-center">
+          <div>
+            <p>{{ $t("sales.farmTitle") }}</p>
+            <p>{{ farmScheduleText }}</p>
+          </div>
+          <div>
+            <p>{{ marketSale.title }}</p>
+            <p>{{ marketSale.scheduleText }}</p>
+          </div>
         </div>
       </div>
 
       <!-- Contact -->
       <div class="flex flex-col items-center">
         <h4 class="footer-title">{{ $t("footer.contact") }}</h4>
-        <div class="opacity-80 text-center">
-          {{ siteConfig?.farmPickup.address }}
+        <div class="opacity-80 text-center word-wrap">
+          <p class="whitespace-pre-line">{{ siteConfig?.farmPickup.address }}</p>
           <p class="flex items-center gap-2 justify-center">
             <Icon name="mdi:phone" size="18" />
             {{ siteConfig?.adminPhone || '07 68 55 06 64' }}
@@ -67,17 +72,8 @@ interface SiteConfig {
 }
 
 const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
+const { formatWeeklySchedule, marketSale } = useSalesInfo()
 
-const farmDayLabel = computed(() => {
-  const day = siteConfig.value?.farmPickup.dayOfWeek
-  const labelsFR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-  const labelsEN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  
-  if (import.meta.client) {
-    const locale = useI18n().locale.value
-    return typeof day === 'number' ? (locale === 'fr' ? labelsFR[day] : labelsEN[day]) : ''
-  }
-  return ''
-})
+const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))
 </script>
 

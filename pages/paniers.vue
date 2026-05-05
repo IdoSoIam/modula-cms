@@ -59,7 +59,7 @@
                 <button
                   v-if="item.vegetable.imageUrl"
                   type="button"
-                  class="flex w-full items-center justify-between gap-3 text-left"
+                  class="flex w-full items-center justify-between gap-3 text-left cursor-pointer"
                   @click="openVegetablePreview(item.vegetable.imageUrl, item.vegetable.name)"
                 >
                   <span class="font-semibold">{{ item.vegetable.name }}</span>
@@ -128,7 +128,7 @@
                     <button
                       v-if="item.vegetable.imageUrl"
                       type="button"
-                      class="link link-hover inline-flex items-center gap-1 text-left"
+                      class="link link-hover inline-flex items-center gap-1 text-left cursor-pointer"
                       @click="openVegetablePreview(item.vegetable.imageUrl, item.vegetable.name)"
                     >
                       <Icon name="mdi:image-search-outline" size="16" class="opacity-70" />

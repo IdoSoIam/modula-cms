@@ -50,7 +50,7 @@
           <div>
             <div class="font-semibold">{{ $t('pages.home.schedule') }}</div>
             <div class="text-sm opacity-70">
-              {{ farmDayLabel }} - {{ siteConfig?.farmPickup.slotLabel || $t('pages.home.scheduleDetail') }}
+              {{ farmScheduleText }}
             </div>
           </div>
         </div>
@@ -60,7 +60,7 @@
           </div>
           <div>
             <div class="font-semibold">{{ $t('pages.home.locationTitle') }}</div>
-            <div class="text-sm opacity-70">{{ siteConfig?.farmPickup.address || $t('pages.home.location') }}</div>
+            <div class="text-sm opacity-70 whitespace-pre-line">{{ siteConfig?.farmPickup.address || $t('pages.home.location') }}</div>
           </div>
         </div>
         <div class="flex items-center gap-3">
@@ -179,14 +179,26 @@
 
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
-                <div class="mb-2 font-semibold">{{ $t('pages.home.scheduleBlockTitle') }}</div>
-                <p class="text-sm opacity-75">{{ farmDayLabel }}</p>
-                <p class="mt-1 text-sm opacity-75">{{ siteConfig?.farmPickup.slotLabel || $t('pages.home.scheduleDetail') }}</p>
+                <div class="mb-2 flex items-center gap-2 font-semibold">
+                  <Icon name="mdi:home-heart" size="20" class="text-primary" />
+                  {{ $t('sales.farmTitle') }}
+                </div>
+                <p class="text-sm opacity-75">{{ farmScheduleText }}</p>
+                <p class="mt-1 text-sm opacity-75 whitespace-pre-line">{{ siteConfig?.farmPickup.address }}</p>
               </div>
               <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
-                <div class="mb-2 font-semibold">{{ $t('pages.home.pricingBlockTitle') }}</div>
-                <p class="text-sm opacity-75">{{ $t('pages.home.solidarityPricing') }}</p>
+                <div class="mb-2 flex items-center gap-2 font-semibold">
+                  <Icon name="mdi:storefront-outline" size="20" class="text-primary" />
+                  {{ marketSale.title }}
+                </div>
+                <p class="text-sm opacity-75">{{ marketSale.scheduleText }}</p>
+                <p class="mt-1 text-sm opacity-75">{{ marketSale.place }}</p>
               </div>
+            </div>
+
+            <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
+              <div class="mb-2 font-semibold">{{ $t('pages.home.pricingBlockTitle') }}</div>
+              <p class="text-sm opacity-75">{{ $t('pages.home.solidarityPricing') }}</p>
             </div>
 
             <div class="rounded-2xl border border-base-300 bg-base-100 p-5">
@@ -213,15 +225,15 @@
           </div>
 
           <div class="space-y-4">
-            <img :src="localePath('/images/vente_direct_saint_seb.jpg')" alt="Vente directe" class="w-full rounded-[2rem] shadow-xl" />
+            <img src="/images/erasebg-transformed.png" alt="Logo Ferme du Campeyrigoux" class="mx-auto w-auto" />
           </div>
         </div>
       </div>
     </section>
 
     <section class="py-16">
-      <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div class="grid gap-6 lg:grid-cols-[.95fr_1.05fr]">
+      <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 justify-center">
+        <div class="grid gap-6 lg:grid-cols-[.95fr_1.05fr] items-end">
           <div class="rounded-[2rem] border border-base-300 bg-base-100 p-8 shadow-sm">
             <div class="badge badge-outline mb-4">{{ $t('pages.home.trustBadge') }}</div>
             <h2 class="text-3xl font-bold">{{ $t('pages.home.trustTitle') }}</h2>
@@ -238,7 +250,7 @@
             </div>
           </div>
 
-          <div class="rounded-[2rem] bg-primary p-8 text-primary-content shadow-xl">
+          <div class="rounded-[2rem] bg-primary p-8 text-primary-content shadow-xl h-fit">
             <h2 class="text-3xl font-bold">{{ $t('pages.home.ctaTitle') }}</h2>
             <p class="mt-4 max-w-xl text-primary-content/85">{{ $t('pages.home.ctaText') }}</p>
             <div class="mt-6 flex flex-wrap gap-3">
@@ -270,6 +282,7 @@ interface SiteConfig {
 const { locale } = useI18n()
 const localePath = useLocalePath()
 const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
+const { formatWeeklySchedule, marketSale } = useSalesInfo()
 
 usePageSeo({
   title: computed(() => locale.value === 'en' ? 'Organic vegetables, baskets and farm pickup' : 'Légumes bio, paniers et vente à la ferme'),
@@ -278,10 +291,5 @@ usePageSeo({
     : 'Découvrez les légumes bio de saison, la vente à la ferme et la réservation de paniers à la Ferme du Campeyrigoux.')
 })
 
-const { t } = useI18n()
-
-const farmDayLabel = computed(() => {
-  const day = siteConfig.value?.farmPickup.dayOfWeek
-  return typeof day === 'number' ? t(`pages.baskets.weekdays.${day}`) : ''
-})
+const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))
 </script>
