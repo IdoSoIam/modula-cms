@@ -551,6 +551,19 @@
     "lightMode": "Passer en mode clair",
     "darkMode": "Passer en mode sombre"
   },
+  "construction": {
+    "title": "Notre site arrive bientôt",
+    "subtitle": "La Ferme du Campeyrigoux prépare actuellement son nouveau site internet.",
+    "featuresTitle": "Vous y retrouverez prochainement :",
+    "features": [
+      "la présentation de la ferme,",
+      "nos légumes et produits de saison,",
+      "les paniers disponibles,",
+      "les réservations et commandes,",
+      "ainsi que certaines actualités de la ferme."
+    ],
+    "footer": "Merci pour votre patience et à très bientôt au cœur de la ferme"
+  },
   "theme": {
     "title": "Thème",
     "select": "Choisir un thème",

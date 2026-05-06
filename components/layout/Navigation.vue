@@ -16,7 +16,7 @@
 
     <!-- Menu desktop -->
     <div class="navbar-center hidden md:flex">
-      <ul class="menu menu-horizontal px-1 gap-2">
+      <ul v-if="!inDevelopment" class="menu menu-horizontal px-1 gap-2">
         <li v-for="item in menuItems" :key="item.path">
           <NuxtLink
             :to="localePath(item.path)"
@@ -38,6 +38,7 @@
 
 <script setup lang="ts">
 const localePath = useLocalePath();
+const inDevelopment = useRuntimeConfig().public.inDevelopment;
 
 const menuItems = [
   { path: '/', label: 'menu.home' },

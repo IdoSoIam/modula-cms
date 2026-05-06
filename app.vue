@@ -5,10 +5,22 @@
 </template>
 
 <script setup lang="ts">
+const config = useRuntimeConfig()
+
 useHead({
   htmlAttrs: {
     'data-theme': 'ferme'
   },
+  meta: config.public.inDevelopment ? [
+    {
+      name: 'robots',
+      content: 'noindex, nofollow, noarchive, nosnippet, noimageindex'
+    },
+    {
+      name: 'googlebot',
+      content: 'noindex, nofollow, noarchive, nosnippet, noimageindex'
+    }
+  ] : [],
   script: [
     {
       innerHTML: `

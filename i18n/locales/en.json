@@ -530,6 +530,19 @@
     "lightMode": "Switch to light mode",
     "darkMode": "Switch to dark mode"
   },
+  "construction": {
+    "title": "Our website is coming soon",
+    "subtitle": "Ferme du Campeyrigoux is currently preparing its new website.",
+    "featuresTitle": "You will soon find:",
+    "features": [
+      "the presentation of the farm,",
+      "our seasonal vegetables and products,",
+      "available baskets,",
+      "reservations and orders,",
+      "as well as some farm news."
+    ],
+    "footer": "Thank you for your patience and see you very soon at the heart of the farm"
+  },
   "theme": {
     "title": "Theme",
     "select": "Choose a theme",
