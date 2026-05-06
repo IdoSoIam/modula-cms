@@ -1,5 +1,5 @@
 <template>
-  <section class="bg-base-200">
+  <section class="min-h-[calc(100vh-280px)] bg-base-200">
     <div class="mx-auto max-w-3xl px-6 py-16 text-center">
       <div class="mb-8 text-6xl">🌿</div>
       <h1 class="mb-6 text-4xl font-black leading-tight md:text-5xl">
