@@ -1,5 +1,7 @@
-export default defineEventHandler(() => {
-  const inDevelopment = process.env.NUXT_PUBLIC_IN_DEVELOPMENT === 'true'
+import { getFeatureFlags } from '~/server/utils/settings'
+
+export default defineEventHandler(async () => {
+  const { inDevelopment } = await getFeatureFlags()
 
   const body = inDevelopment
     ? [

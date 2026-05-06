@@ -3,14 +3,20 @@ import { useAuthStore } from '~/stores/auth'
 export default defineNuxtRouteMiddleware(async (to) => {
   const authStore = useAuthStore()
   const localePath = useLocalePath()
-  const config = useRuntimeConfig()
-  const inDevelopment = config.public.inDevelopment === 'true'
   const normalizedPath = to.path.replace(/^\/en(?=\/|$)/, '') || '/'
 
   try {
     await authStore.ensureInitialized()
   } catch (error) {
     console.debug('Auth check failed:', error)
+  }
+
+  let inDevelopment = false
+  try {
+    const siteConfig = await ensureSiteConfigState()
+    inDevelopment = siteConfig.inDevelopment === true
+  } catch (error) {
+    console.debug('Site config check failed:', error)
   }
 
   const adminRoutes = ['/admin', '/facebook-test']

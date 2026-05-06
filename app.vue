@@ -5,14 +5,14 @@
 </template>
 
 <script setup lang="ts">
-const config = useRuntimeConfig()
-const inDevelopment = config.public.inDevelopment === true || config.public.inDevelopment === 'true'
+const { data: siteConfig } = await useFetch('/api/site-config')
+const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
 
 useHead({
   htmlAttrs: {
     'data-theme': 'ferme'
   },
-  meta: inDevelopment ? [
+  meta: inDevelopment.value ? [
     {
       name: 'robots',
       content: 'noindex, nofollow, noarchive, nosnippet, noimageindex'

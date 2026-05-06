@@ -26,6 +26,7 @@ export const SETTING_KEYS = {
   GOOGLE_CALENDAR_ID: 'google_calendar_id',
   GOOGLE_CALENDAR_NAME: 'google_calendar_name',
   FACEBOOK_FLUX_DEACTIVATED: 'facebook_flux_deactivated',
+  IN_DEVELOPMENT: 'in_development',
   ORDERS_OPEN_FROM: 'orders_open_from',
   ORDERS_OPEN_TO: 'orders_open_to',
   ORDERS_CLOSED_MESSAGE: 'orders_closed_message',
@@ -39,6 +40,7 @@ export const SETTING_KEYS = {
 } as const
 
 export interface FeatureFlags {
+  inDevelopment: boolean
   registerEnabled: boolean
   subscriptionsEnabled: boolean
 }
@@ -53,6 +55,7 @@ export interface FarmPickupConfig {
 }
 
 const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
+  inDevelopment: false,
   registerEnabled: false,
   subscriptionsEnabled: false
 }
@@ -180,11 +183,13 @@ export async function getSettings(keys: string[]): Promise<Record<string, string
 
 export async function getFeatureFlags(): Promise<FeatureFlags> {
   const settings = await getSettings([
+    SETTING_KEYS.IN_DEVELOPMENT,
     SETTING_KEYS.REGISTER_ENABLED,
     SETTING_KEYS.SUBSCRIPTIONS_ENABLED
   ])
 
   return {
+    inDevelopment: parseBooleanSetting(settings[SETTING_KEYS.IN_DEVELOPMENT], DEFAULT_FEATURE_FLAGS.inDevelopment),
     registerEnabled: parseBooleanSetting(settings[SETTING_KEYS.REGISTER_ENABLED], DEFAULT_FEATURE_FLAGS.registerEnabled),
     subscriptionsEnabled: parseBooleanSetting(settings[SETTING_KEYS.SUBSCRIPTIONS_ENABLED], DEFAULT_FEATURE_FLAGS.subscriptionsEnabled)
   }

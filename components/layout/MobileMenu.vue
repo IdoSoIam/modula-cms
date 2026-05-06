@@ -22,8 +22,8 @@ import { useAuthStore } from '~/stores/auth'
 
 const localePath = useLocalePath();
 const authStore = useAuthStore()
-const config = useRuntimeConfig()
-const inDevelopment = computed(() => config.public.inDevelopment === true || config.public.inDevelopment === 'true')
+const siteConfig = useSiteConfigState()
+const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
 const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated))
 
 const menuItems = [

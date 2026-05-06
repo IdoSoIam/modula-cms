@@ -66,6 +66,10 @@
           <h2 class="card-title">Fonctionnalités</h2>
           <div class="grid gap-3 md:grid-cols-2">
             <label class="label cursor-pointer justify-start gap-3">
+              <input v-model="form.inDevelopment" type="checkbox" class="toggle toggle-primary" />
+              <span class="label-text">Site en cours de construction</span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-3">
               <input v-model="form.registerEnabled" type="checkbox" class="toggle toggle-primary" />
               <span class="label-text">Inscription publique active</span>
             </label>
@@ -263,6 +267,7 @@ interface Settings {
   googleCalendarName: string
   googleCalendars: GoogleCalendarOption[]
   facebookFluxDeactivated: boolean
+  inDevelopment: boolean
   registerEnabled: boolean
   subscriptionsEnabled: boolean
   farmPickup: {
@@ -286,6 +291,7 @@ const form = reactive({
   googleCalendarId: '',
   googleCalendarName: '',
   facebookFluxDeactivated: false,
+  inDevelopment: false,
   registerEnabled: false,
   subscriptionsEnabled: false,
   farmPickupAddress: '',
@@ -318,6 +324,7 @@ watchEffect(() => {
     form.googleCalendarId = data.value.googleCalendarId
     form.googleCalendarName = data.value.googleCalendarName
     form.facebookFluxDeactivated = data.value.facebookFluxDeactivated
+    form.inDevelopment = data.value.inDevelopment
     form.registerEnabled = data.value.registerEnabled
     form.subscriptionsEnabled = data.value.subscriptionsEnabled
     form.farmPickupAddress = data.value.farmPickup.address
@@ -361,6 +368,7 @@ const save = async () => {
         googleCalendarId: form.googleCalendarId,
         googleCalendarName: form.googleCalendarName,
         facebookFluxDeactivated: form.facebookFluxDeactivated,
+        inDevelopment: form.inDevelopment,
         registerEnabled: form.registerEnabled,
         subscriptionsEnabled: form.subscriptionsEnabled,
         farmPickupAddress: form.farmPickupAddress,

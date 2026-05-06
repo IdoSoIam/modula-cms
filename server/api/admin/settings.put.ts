@@ -7,6 +7,7 @@ interface Body {
   googleCalendarId?: string
   googleCalendarName?: string
   facebookFluxDeactivated?: boolean
+  inDevelopment?: boolean
   registerEnabled?: boolean
   subscriptionsEnabled?: boolean
   farmPickupAddress?: string
@@ -34,6 +35,9 @@ export default defineEventHandler(async (event) => {
   }
   if (typeof body.facebookFluxDeactivated === 'boolean') {
     await setSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED, body.facebookFluxDeactivated ? 'true' : 'false')
+  }
+  if (typeof body.inDevelopment === 'boolean') {
+    await setSetting(SETTING_KEYS.IN_DEVELOPMENT, body.inDevelopment ? 'true' : 'false')
   }
   if (typeof body.registerEnabled === 'boolean') {
     await setSetting(SETTING_KEYS.REGISTER_ENABLED, body.registerEnabled ? 'true' : 'false')

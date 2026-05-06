@@ -10,6 +10,7 @@ export default defineEventHandler(async () => {
   ])
   return {
     facebookFluxDeactivated: fb === 'true',
+    inDevelopment: featureFlags.inDevelopment,
     ordersWindow,
     registerEnabled: featureFlags.registerEnabled,
     subscriptionsEnabled: featureFlags.subscriptionsEnabled,
