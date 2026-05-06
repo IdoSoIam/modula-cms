@@ -274,7 +274,6 @@ model Image {
   url          String
   mimeType     String
   size         Int
-  data         Bytes?
   width        Int?
   height       Int?
   uploadedById Int?
