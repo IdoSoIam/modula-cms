@@ -4,7 +4,7 @@ import { updateImageReferences } from '~/server/utils/imageReferences'
 import { slugify } from '~/server/utils/slug'
 import { extname } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { hasUploadsBucket, putUploadObject, renameUploadObject, deleteUploadObject } from '~/server/utils/uploadStorage'
+import { putUploadObject, renameUploadObject, deleteUploadObject } from '~/server/utils/uploadStorage'
 
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
 const MAX_SIZE = 8 * 1024 * 1024
@@ -32,8 +32,7 @@ export default defineEventHandler(async (event) => {
   let nextUrl = image.url
   let nextMimeType = image.mimeType
   let nextSize = image.size
-  let nextData = image.data
-  const useBucket = hasUploadsBucket()
+  let nextData: Uint8Array | null = null
 
   if (filePart?.data) {
     const mime = filePart.type || 'application/octet-stream'
@@ -51,22 +50,15 @@ export default defineEventHandler(async (event) => {
     nextSize = filePart.data.length
     const fileData = new Uint8Array(filePart.data)
 
-    if (useBucket) {
-      await putUploadObject(nextFilename, fileData, mime)
-      if (image.filename !== nextFilename) {
-        await deleteUploadObject(image.filename)
-      }
-      nextData = null
-    } else {
-      nextData = fileData
+    await putUploadObject(nextFilename, fileData, mime)
+    if (image.filename !== nextFilename) {
+      await deleteUploadObject(image.filename)
     }
   } else if (nextBaseName !== image.filename.replace(/\.[^.]+$/, '')) {
     const ext = extname(image.filename)
     nextFilename = buildFilename(nextBaseName, ext)
     nextUrl = `/uploads/${nextFilename}`
-    if (useBucket) {
-      await renameUploadObject(image.filename, nextFilename, image.mimeType)
-    }
+    await renameUploadObject(image.filename, nextFilename, image.mimeType)
   }
 
   if (nextUrl !== image.url) {

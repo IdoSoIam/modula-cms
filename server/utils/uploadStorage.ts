@@ -14,38 +14,50 @@ export function hasUploadsBucket() {
   return Boolean(getUploadsBucket())
 }
 
-export async function putUploadObject(key: string, body: Uint8Array, contentType: string) {
+export function requireUploadsBucket() {
   const bucket = getUploadsBucket()
-  if (!bucket) return false
+  if (!bucket) {
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'Bucket R2 IMAGES indisponible dans ce runtime'
+    })
+  }
+
+  return bucket
+}
+
+export async function putUploadObject(key: string, body: Uint8Array, contentType: string) {
+  const bucket = requireUploadsBucket()
 
   await bucket.put(key, body, {
     httpMetadata: {
       contentType
     }
   })
-
-  return true
 }
 
 export async function getUploadObject(key: string) {
-  const bucket = getUploadsBucket()
-  if (!bucket) return null
+  const bucket = requireUploadsBucket()
   return await bucket.get(key)
 }
 
 export async function deleteUploadObject(key: string) {
-  const bucket = getUploadsBucket()
-  if (!bucket) return false
+  const bucket = requireUploadsBucket()
   await bucket.delete(key)
-  return true
 }
 
 export async function renameUploadObject(oldKey: string, newKey: string, contentType: string) {
-  const bucket = getUploadsBucket()
-  if (!bucket || oldKey === newKey) return false
+  if (oldKey === newKey) return
+
+  const bucket = requireUploadsBucket()
 
   const existing = await bucket.get(oldKey)
-  if (!existing) return false
+  if (!existing) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Image source introuvable dans R2'
+    })
+  }
 
   const body = await existing.arrayBuffer()
   await bucket.put(newKey, body, {
@@ -54,5 +66,4 @@ export async function renameUploadObject(oldKey: string, newKey: string, content
     }
   })
   await bucket.delete(oldKey)
-  return true
 }

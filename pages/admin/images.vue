@@ -40,7 +40,7 @@
 
         <div v-if="editing" class="space-y-4">
           <div class="overflow-hidden rounded-box border border-base-300">
-            <img :src="editing.url" :alt="editing.filename" class="max-h-80 w-full object-contain bg-base-200" />
+            <img :src="displayedImageUrl" :alt="editing.filename" class="max-h-80 w-full object-contain bg-base-200" />
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">
@@ -114,7 +114,9 @@ const deleting = ref(false)
 const editorDialog = ref<HTMLDialogElement>()
 const editing = ref<ImageRow | null>(null)
 const replacementFile = ref<File | null>(null)
+const replacementPreviewUrl = ref<string | null>(null)
 const editForm = reactive({ filename: '' })
+const displayedImageUrl = computed(() => replacementPreviewUrl.value || editing.value?.url || '')
 
 const totalReferences = (references: ImageReferences) =>
   references.vegetables + references.baskets + references.articles + references.articleContent
@@ -143,17 +145,25 @@ const onFileChange = async (e: Event) => {
 const openEditor = (img: ImageRow) => {
   editing.value = img
   editForm.filename = img.filename.replace(/\.[^.]+$/, '')
-  replacementFile.value = null
+  resetReplacement()
   editorDialog.value?.showModal()
 }
 
 const closeEditor = () => {
+  resetReplacement()
   editorDialog.value?.close()
 }
 
 const onReplacementSelected = (e: Event) => {
   const input = e.target as HTMLInputElement
   replacementFile.value = input.files?.[0] ?? null
+  if (replacementPreviewUrl.value) {
+    URL.revokeObjectURL(replacementPreviewUrl.value)
+    replacementPreviewUrl.value = null
+  }
+  if (replacementFile.value) {
+    replacementPreviewUrl.value = URL.createObjectURL(replacementFile.value)
+  }
 }
 
 const saveCurrent = async () => {
@@ -194,4 +204,16 @@ const removeCurrent = async () => {
     deleting.value = false
   }
 }
+
+function resetReplacement() {
+  replacementFile.value = null
+  if (replacementPreviewUrl.value) {
+    URL.revokeObjectURL(replacementPreviewUrl.value)
+    replacementPreviewUrl.value = null
+  }
+}
+
+onBeforeUnmount(() => {
+  resetReplacement()
+})
 </script>

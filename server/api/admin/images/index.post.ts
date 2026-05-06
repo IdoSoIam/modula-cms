@@ -2,7 +2,7 @@ import { requireAdmin } from '~/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
 import { extname } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { hasUploadsBucket, putUploadObject } from '~/server/utils/uploadStorage'
+import { putUploadObject } from '~/server/utils/uploadStorage'
 
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
 const MAX_SIZE = 8 * 1024 * 1024
@@ -27,14 +27,14 @@ export default defineEventHandler(async (event) => {
   const filename = `${Date.now()}-${randomUUID().slice(0, 8)}${ext}`
   const url = `/uploads/${filename}`
   const fileData = new Uint8Array(filePart.data)
-  const storedInBucket = await putUploadObject(filename, fileData, mime)
+  await putUploadObject(filename, fileData, mime)
   const image = await prisma.image.create({
     data: {
       filename,
       url,
       mimeType: mime,
       size: filePart.data.length,
-      data: storedInBucket || !hasUploadsBucket() ? fileData : null,
+      data: null,
       uploadedById: user.id
     }
   })

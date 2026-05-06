@@ -1,11 +1,11 @@
 <template>
   <div class="space-y-2">
-    <div v-if="modelValue" class="relative w-40 h-40 rounded-box overflow-hidden border border-base-300">
-      <img :src="modelValue" alt="" class="w-full h-full object-cover" />
+    <div v-if="previewUrl" class="relative w-40 h-40 rounded-box overflow-hidden border border-base-300">
+      <img :src="previewUrl" alt="" class="w-full h-full object-cover" />
       <button
         type="button"
         class="btn btn-xs btn-circle btn-error absolute top-1 right-1"
-        @click="$emit('update:modelValue', '')"
+        @click="clearPreview"
       >
         <Icon name="mdi:close" size="14" />
       </button>
@@ -29,12 +29,37 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ modelValue: string | null | undefined }>()
+const props = defineProps<{ modelValue: string | null | undefined }>()
 const emit = defineEmits<{ (e: 'update:modelValue', value: string): void }>()
 
 const pickerOpen = ref(false)
+const localPreviewUrl = ref<string | null>(null)
+const previewUrl = computed(() => localPreviewUrl.value || props.modelValue || '')
+
+function revokeLocalPreview() {
+  if (localPreviewUrl.value) {
+    URL.revokeObjectURL(localPreviewUrl.value)
+    localPreviewUrl.value = null
+  }
+}
+
+function clearPreview() {
+  revokeLocalPreview()
+  emit('update:modelValue', '')
+}
+
+watch(() => props.modelValue, (value) => {
+  if (!value) {
+    revokeLocalPreview()
+  }
+})
+
+onBeforeUnmount(() => {
+  revokeLocalPreview()
+})
 
 const onPick = (url: string) => {
+  revokeLocalPreview()
   emit('update:modelValue', url)
   pickerOpen.value = false
 }
@@ -43,13 +68,17 @@ const onFile = async (e: Event) => {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  revokeLocalPreview()
+  localPreviewUrl.value = URL.createObjectURL(file)
   try {
     const fd = new FormData()
     fd.append('file', file)
     const created = await $fetch<{ url: string }>('/api/admin/images', { method: 'POST', body: fd })
+    revokeLocalPreview()
     emit('update:modelValue', created.url)
     input.value = ''
   } catch (err: any) {
+    revokeLocalPreview()
     const { $toast } = useNuxtApp() as any
     $toast?.error(err.statusMessage || 'Erreur upload')
   }
