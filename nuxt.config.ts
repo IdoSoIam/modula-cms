@@ -115,7 +115,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      inDevelopment: process.env.IN_DEVELOPMENT === 'true',
+      inDevelopment: process.env.NUXT_PUBLIC_IN_DEVELOPMENT ?? 'false',
       facebookAppId: process.env.FACEBOOK_APP_ID,
       facebookPageId: process.env.FACEBOOK_PAGE_ID
     }

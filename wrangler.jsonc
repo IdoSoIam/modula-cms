@@ -23,7 +23,7 @@
     }
   ],
   "vars": {
-    "IN_DEVELOPMENT": "true",
+    "NUXT_PUBLIC_IN_DEVELOPMENT": "true",
     "SITE_URL": "https://ferme-du-campeyrigoux.ferme-du-campeyrigoux.workers.dev",
     "GOOGLE_CLIENT_ID": "20869168628-br2ql6hphfmocsd6f2a671m4krp335vn.apps.googleusercontent.com",
     "GOOGLE_REDIRECT_URI": "https://ferme-du-campeyrigoux.ferme-du-campeyrigoux.workers.dev/api/auth/gmail/callback",

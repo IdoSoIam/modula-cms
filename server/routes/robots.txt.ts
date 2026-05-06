@@ -1,5 +1,5 @@
 export default defineEventHandler(() => {
-  const inDevelopment = process.env.IN_DEVELOPMENT === 'true'
+  const inDevelopment = process.env.NUXT_PUBLIC_IN_DEVELOPMENT === 'true'
 
   const body = inDevelopment
     ? [

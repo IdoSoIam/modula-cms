@@ -6,12 +6,13 @@
 
 <script setup lang="ts">
 const config = useRuntimeConfig()
+const inDevelopment = config.public.inDevelopment === true || config.public.inDevelopment === 'true'
 
 useHead({
   htmlAttrs: {
     'data-theme': 'ferme'
   },
-  meta: config.public.inDevelopment ? [
+  meta: inDevelopment ? [
     {
       name: 'robots',
       content: 'noindex, nofollow, noarchive, nosnippet, noimageindex'

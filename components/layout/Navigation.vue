@@ -2,7 +2,7 @@
   <div id="site-header" class="navbar bg-base-100 sticky shadow-sm top-0 z-50">
     <div class="navbar-start">
       <!-- Hamburger pour mobile -->
-      <div class="md:hidden">
+      <div v-if="showNavigation" class="md:hidden">
         <label for="drawer-toggle" class="btn btn-ghost btn-circle">
           <Icon name="mdi:menu" size="24" />
         </label>
@@ -16,7 +16,7 @@
 
     <!-- Menu desktop -->
     <div class="navbar-center hidden md:flex">
-      <ul v-if="!inDevelopment" class="menu menu-horizontal px-1 gap-2">
+      <ul v-if="showNavigation" class="menu menu-horizontal px-1 gap-2">
         <li v-for="item in menuItems" :key="item.path">
           <NuxtLink
             :to="localePath(item.path)"
@@ -37,8 +37,13 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '~/stores/auth'
+
 const localePath = useLocalePath();
-const inDevelopment = useRuntimeConfig().public.inDevelopment;
+const authStore = useAuthStore()
+const config = useRuntimeConfig()
+const inDevelopment = computed(() => config.public.inDevelopment === 'true')
+const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated))
 
 const menuItems = [
   { path: '/', label: 'menu.home' },

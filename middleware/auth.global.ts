@@ -4,6 +4,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const authStore = useAuthStore()
   const localePath = useLocalePath()
   const config = useRuntimeConfig()
+  const inDevelopment = config.public.inDevelopment === 'true'
   const normalizedPath = to.path.replace(/^\/en(?=\/|$)/, '') || '/'
 
   try {
@@ -17,7 +18,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const publicAllowedInDevelopment = ['/login', '/construction']
 
   if (
-    config.public.inDevelopment &&
+    inDevelopment &&
     !authStore.isAuthenticated &&
     !publicAllowedInDevelopment.includes(normalizedPath)
   ) {
