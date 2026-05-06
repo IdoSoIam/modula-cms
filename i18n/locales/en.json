@@ -344,11 +344,6 @@
     "firstNameRequired": "First name is required",
     "lastNameRequired": "Last name is required"
   },
-  "common": {
-    "cancel": "Cancel",
-    "close": "Close",
-    "loading": "Loading..."
-  },
   "profile": {
     "title": "My Profile",
     "personalInfo": "Personal Information",

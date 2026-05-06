@@ -39,7 +39,41 @@ export default defineNuxtConfig({
     'nitro-cloudflare-dev'
   ],
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [
+      tailwindcss(),
+      {
+        apply: 'build',
+        name: 'vite-plugin-ignore-sourcemap-warnings',
+        configResolved(config) {
+          const originalOnWarn = config.build.rollupOptions.onwarn;
+          config.build.rollupOptions.onwarn = (warning, warn) => {
+            if (
+              warning.code === 'SOURCEMAP_BROKEN' &&
+              (warning.plugin === '@tailwindcss/vite:generate:build' ||
+                warning.plugin === 'nuxt:module-preload-polyfill')
+            ) {
+              return;
+            }
+
+            if (originalOnWarn) {
+              originalOnWarn(
+                warning, warn
+              );
+            } else {
+              warn(
+                warning
+              );
+            }
+          };
+        },
+      },
+    ],
+    css: {
+      devSourcemap: false
+    },
+    build: {
+      sourcemap: false
+    },
     optimizeDeps: {
       include: [
         '@vue/devtools-core',

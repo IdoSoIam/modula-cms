@@ -23,29 +23,101 @@ Le site couvre deja les briques principales pour publier une version utile :
 
 ## Base de donnees Cloudflare / D1
 
-Le projet est maintenant prepare pour fonctionner avec :
+Le projet manipule en pratique 3 bases differentes :
 
-- dev local Node sur SQLite : [prisma/local.db](/D:/Works/ferme-campeyrigoux/prisma/local.db:1)
-- preview Cloudflare locale sur D1 local via Wrangler
-- prod Cloudflare sur D1 distant
-- stockage image sur R2 quand le runtime Cloudflare est disponible, avec fallback local en base pour `npm run dev`
+- SQLite locale Prisma : [prisma/local.db](/D:/Works/ferme-campeyrigoux/prisma/local.db:1)
+- D1 locale Wrangler : base utilisee par `npm run dev` et `npm run preview`
+- D1 distante Cloudflare : base utilisee apres `npm run deploy`
 
-Commandes utiles :
+Point important :
 
-- `npm run db:local:reset` : recree la base locale SQLite depuis [migrations/0001_init.sql](/D:/Works/ferme-campeyrigoux/migrations/0001_init.sql:1)
-- `npm run dev` : dev Nuxt local avec la base SQLite locale
-- `npm run preview` : build + preview Cloudflare locale
+- `npm run dev` ne lit pas `prisma/local.db`
+- avec `nitro-cloudflare-dev`, `npm run dev` utilise le binding Cloudflare local, donc la D1 locale Wrangler
+- `npm run preview` utilise aussi la D1 locale Wrangler grace a `wrangler dev --local`
+- `npm run db:studio` ouvre Prisma Studio sur `prisma/local.db`, pas sur la D1 locale
+
+Le stockage image reste sur R2 quand le runtime Cloudflare est disponible, avec fallback local en base pour certains usages de dev.
+
+### Commandes utiles
+
+- `npm run db:local:reset` : recree la base SQLite locale [prisma/local.db](/D:/Works/ferme-campeyrigoux/prisma/local.db:1) depuis [migrations/0001_init.sql](/D:/Works/ferme-campeyrigoux/migrations/0001_init.sql:1)
+- `npm run dev` : lance Nuxt en dev avec la D1 locale Wrangler
+- `npm run preview` : build + preview Cloudflare locale avec la D1 locale Wrangler
 - `npm run db:d1:migrate:local` : applique les migrations au D1 local Wrangler
 - `npm run db:d1:migrate:remote` : applique les migrations au D1 distant
-- `npm run db:studio` : ouvre Prisma Studio sur la base locale SQLite
+- `npm run db:d1:query:local -- "SELECT * FROM User;"` : execute une requete SQL sur la D1 locale
+- `npm run db:d1:query:remote -- "SELECT * FROM User;"` : execute une requete SQL sur la D1 distante
+- `npm run db:studio` : ouvre Prisma Studio sur `prisma/local.db`
+- `npm run db:studio:d1:local` : exporte la D1 locale vers `prisma/d1-local-studio.db` puis ouvre Prisma Studio sur ce miroir
 
-Avant le vrai deploy Cloudflare :
+### Synchronisation entre bases
+
+- `npm run db:d1:import:sqlite-local` : copie les donnees de `prisma/local.db` vers la D1 locale
+- `npm run db:d1:push:prod` : copie les donnees de la D1 locale vers la D1 distante
+- `npm run db:d1:pull:prod` : copie les donnees de la D1 distante vers la D1 locale
+
+Notes sur ces commandes :
+
+- elles reappliquent les migrations sur la cible avant import
+- elles remplacent les donnees applicatives de la cible
+- elles ne sont pas destinees a fusionner des environnements
+- `db:d1:push:prod` est destructrice pour les donnees actuelles de prod
+- `db:d1:pull:prod` ecrase les donnees actuelles de la D1 locale
+
+### Prisma Studio et D1 locale
+
+Prisma Studio ne se branche pas proprement en direct sur le binding D1 local de Wrangler.
+
+La commande `npm run db:studio:d1:local` contourne ca ainsi :
+
+- export SQL de la D1 locale
+- reconstruction d'une SQLite miroir dans [prisma/d1-local-studio.db](/D:/Works/ferme-campeyrigoux/prisma/d1-local-studio.db:1)
+- ouverture de Prisma Studio sur cette copie
+
+Donc :
+
+- le miroir est fidele au moment de l'export
+- si la D1 locale change, il faut relancer `npm run db:studio:d1:local`
+- Prisma Studio reste un outil de visualisation pratique, pas la source de verite du runtime Cloudflare
+
+### Flux recommande en dev
+
+1. Modifier le schema ou les migrations si besoin.
+2. Lancer `npm run db:d1:migrate:local`.
+3. Si besoin, importer les donnees SQLite historiques avec `npm run db:d1:import:sqlite-local`.
+4. Travailler avec `npm run dev`.
+5. Verifier les donnees D1 locale avec `npm run db:d1:query:local -- "<sql>"` ou `npm run db:studio:d1:local`.
+
+### Avant le vrai deploy Cloudflare
 
 - creer la base D1 distante
 - creer aussi le bucket R2 `ferme-du-campeyrigoux-images`
 - remplacer `database_id` dans [wrangler.jsonc](/D:/Works/ferme-campeyrigoux/wrangler.jsonc:1)
 - lancer `npm run db:d1:migrate:remote`
+- si on veut pousser les donnees de la D1 locale vers la prod, lancer `npm run db:d1:push:prod`
 - lancer `npm run deploy`
+
+### Deploiement prod
+
+Pour deployer seulement le code et le schema :
+
+1. `npm run db:d1:migrate:remote`
+2. `npm run deploy`
+
+Pour deployer le code, le schema et aussi les donnees de la D1 locale vers la prod :
+
+1. `npm run db:d1:migrate:remote`
+2. `npm run db:d1:push:prod`
+3. `npm run deploy`
+
+Verification utile apres deploiement :
+
+- `npm run db:d1:query:remote -- "SELECT id, email, role FROM User;"`
+
+Attention :
+
+- `npm run db:d1:push:prod` remplace les donnees applicatives actuelles de la base distante
+- verifier avant de deployer que [wrangler.jsonc](/D:/Works/ferme-campeyrigoux/wrangler.jsonc:1) contient bien le bon `database_id`
 
 Les abonnements et l'inscription publique sont maintenant pilotables depuis [pages/admin/parametres.vue](/D:/Works/ferme-campeyrigoux/pages/admin/parametres.vue:1), au lieu d'etre bloques en dur.
 

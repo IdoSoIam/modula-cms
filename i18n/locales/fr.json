@@ -344,11 +344,6 @@
     "firstNameRequired": "Le prénom est requis",
     "lastNameRequired": "Le nom est requis"
   },
-  "common": {
-    "cancel": "Annuler",
-    "close": "Fermer",
-    "loading": "Chargement..."
-  },
   "profile": {
     "title": "Mon profil",
     "personalInfo": "Informations personnelles",

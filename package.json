@@ -6,7 +6,7 @@
     "build": "nuxt build",
     "dev": "npx nuxt dev",
     "generate": "nuxt generate",
-    "preview": "npm run build && wrangler --cwd .output dev",
+    "preview": "npm run build && wrangler --cwd .output dev --local",
     "deploy": "npm run build && wrangler --cwd .output deploy",
     "postinstall": "nuxt prepare && prisma generate",
     "cf-typegen": "wrangler types",
@@ -14,10 +14,14 @@
     "db:local:migrate": "node ./scripts/apply-local-migrations.mjs",
     "db:local:reset": "node ./scripts/apply-local-migrations.mjs --reset",
     "db:studio": "npx -p better-sqlite3 -p prisma prisma studio --url file:./prisma/local.db",
+    "db:studio:d1:local": "node ./scripts/d1-studio.mjs",
     "db:d1:migrate:local": "wrangler d1 migrations apply ferme-du-campeyrigoux --local",
     "db:d1:migrate:remote": "wrangler d1 migrations apply ferme-du-campeyrigoux --remote",
     "db:d1:query:local": "wrangler d1 execute ferme-du-campeyrigoux --local --command",
-    "db:d1:query:remote": "wrangler d1 execute ferme-du-campeyrigoux --remote --command"
+    "db:d1:query:remote": "wrangler d1 execute ferme-du-campeyrigoux --remote --command",
+    "db:d1:import:sqlite-local": "node ./scripts/d1-sync.mjs sqlite-to-d1-local",
+    "db:d1:push:prod": "node ./scripts/d1-sync.mjs d1-local-to-remote",
+    "db:d1:pull:prod": "node ./scripts/d1-sync.mjs d1-remote-to-local"
   },
   "dependencies": {
     "@nuxt/devtools": "3.2.4",
