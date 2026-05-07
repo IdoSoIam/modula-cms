@@ -71,8 +71,14 @@ interface SiteConfig {
   adminPhone: string
 }
 
-const siteConfig = await useSiteConfig()
+const siteConfigState = useSiteConfigState()
+
+if (process.server && !siteConfigState.value) {
+  await ensureSiteConfigState()
+}
+
 const { formatWeeklySchedule, marketSale } = useSalesInfo()
+const siteConfig = computed(() => siteConfigState.value as SiteConfig | null)
 
 const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))
 </script>

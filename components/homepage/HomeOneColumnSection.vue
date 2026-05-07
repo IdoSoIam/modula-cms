@@ -24,7 +24,7 @@
         </template>
 
         <template v-else>
-          <div class="space-y-5" :class="contentAlignClass(section.column.align)" :style="columnTextStyle(section.column)">
+          <div class="w-full space-y-5" :class="contentAlignClass(section.column.align)" :style="columnTextStyle(section.column)">
             <template v-if="hasColumnHeaderContent(section.column)">
               <HomePageEditable v-if="pickLocalizedText(locale, section.column.badge)" inline :editable="editable" label="Texte" button-position="inline-end" @edit="emit('edit', createTextTarget('Badge', section.column.badge, section.column, 'badgeSize'))">
               <div class="badge badge-primary badge-outline" :class="badgeSizeClass(section.column.badgeSize)">
@@ -246,7 +246,7 @@ const imageClass = (column: HomePageOneColumnSection['column'] & { type: 'image'
   return [fitClass, alignClass, enlargeClass].filter(Boolean).join(' ')
 }
 
-const contentAlignClass = (align: string) => align === 'center' ? 'mx-auto text-center items-center' : ''
+const contentAlignClass = (align: string) => align === 'center' ? 'text-center items-center' : ''
 
 const cardsContainerClass = (cards: HomePageCard[], align: string) => {
   if (cards.length <= 1) {

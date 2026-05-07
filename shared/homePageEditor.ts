@@ -20,4 +20,4 @@ export type HomePageEditTarget =
   | { kind: 'column'; label: string; column: EditableColumn }
   | { kind: 'card'; label: string; card: HomePageCard }
   | { kind: 'button'; label: string; button: HomePageButton }
-  | { kind: 'text'; label: string; text: LocalizedText; multiline?: boolean; fontSize?: Ref<TypographySize> }
+  | { kind: 'text'; label: string; text: LocalizedText; multiline?: boolean; fontSize?: TypographySize }
