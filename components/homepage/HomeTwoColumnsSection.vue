@@ -27,20 +27,20 @@
           <template v-else>
             <div class="space-y-5" :class="contentAlignClass(column.align)" :style="columnTextStyle(column)">
               <template v-if="hasColumnHeaderContent(column)">
-                <HomePageEditable v-if="pickLocalizedText(locale, column.badge)" inline :editable="editable" label="Texte" button-position="inline-end" @edit="emit('edit', { kind: 'text', label: `Badge colonne ${index + 1}`, text: column.badge })">
-                <div class="badge badge-primary badge-outline">
+                <HomePageEditable v-if="pickLocalizedText(locale, column.badge)" inline :editable="editable" label="Texte" button-position="inline-end" @edit="emit('edit', createTextTarget(`Badge colonne ${index + 1}`, column.badge, column, 'badgeSize'))">
+                <div class="badge badge-primary badge-outline" :class="badgeSizeClass(column.badgeSize)">
                   {{ pickLocalizedText(locale, column.badge) }}
                 </div>
                 </HomePageEditable>
 
-                <HomePageEditable v-if="pickLocalizedText(locale, column.title)" :editable="editable" label="Texte" @edit="emit('edit', { kind: 'text', label: `Titre colonne ${index + 1}`, text: column.title })">
-                <h2 class="text-3xl font-bold">
+                <HomePageEditable v-if="pickLocalizedText(locale, column.title)" :editable="editable" label="Texte" @edit="emit('edit', createTextTarget(`Titre colonne ${index + 1}`, column.title, column, 'titleSize'))">
+                <h2 class="font-bold" :class="titleSizeClass(column.titleSize)">
                   {{ pickLocalizedText(locale, column.title) }}
                 </h2>
                 </HomePageEditable>
 
-                <HomePageEditable v-if="pickLocalizedText(locale, column.text)" :editable="editable" label="Texte" @edit="emit('edit', { kind: 'text', label: `Texte colonne ${index + 1}`, text: column.text, multiline: true })">
-                <p class="text-base opacity-80 md:text-lg">
+                <HomePageEditable v-if="pickLocalizedText(locale, column.text)" :editable="editable" label="Texte" @edit="emit('edit', createTextTarget(`Texte colonne ${index + 1}`, column.text, column, 'textSize', true))">
+                <p class="opacity-80" :class="textSizeClass(column.textSize)">
                   {{ pickLocalizedText(locale, column.text) }}
                 </p>
                 </HomePageEditable>
@@ -67,11 +67,11 @@
                     <Icon :name="card.icon" size="22" />
                   </div>
 
-                  <div class="font-semibold" :style="textColorStyle(card.textColor)">
+                  <div class="font-semibold" :class="cardTitleSizeClass(card.titleSize)" :style="textColorStyle(card.textColor)">
                     {{ pickLocalizedText(locale, card.title) }}
                   </div>
 
-                  <p class="mt-2 text-sm" :style="textColorStyle(card.textColor, 0.78)">
+                  <p class="mt-2" :class="cardTextSizeClass(card.textSize)" :style="textColorStyle(card.textColor, 0.78)">
                     {{ pickLocalizedText(locale, card.text) }}
                   </p>
 
@@ -85,8 +85,8 @@
                     >
                       <NuxtLink
                         :to="localePath(primaryCardButton(card)!.href)"
-                        class="btn btn-sm"
-                        :class="buttonClass(primaryCardButton(card)!.tone)"
+                        class="btn"
+                        :class="[buttonClass(primaryCardButton(card)!.tone), buttonSizeClass(primaryCardButton(card)!.size)]"
                         :style="buttonStyle(primaryCardButton(card)!)"
                       >
                         {{ pickLocalizedText(locale, primaryCardButton(card)!.label) }}
@@ -102,8 +102,8 @@
                     >
                       <NuxtLink
                         :to="localePath(secondaryCardButton(card)!.href)"
-                        class="btn btn-sm"
-                        :class="buttonClass(secondaryCardButton(card)!.tone)"
+                        class="btn"
+                        :class="[buttonClass(secondaryCardButton(card)!.tone), buttonSizeClass(secondaryCardButton(card)!.size)]"
                         :style="buttonStyle(secondaryCardButton(card)!)"
                       >
                         {{ pickLocalizedText(locale, secondaryCardButton(card)!.label) }}
@@ -120,7 +120,7 @@
                   v-if="primaryColumnButton(column)"
                   :to="localePath(primaryColumnButton(column)!.href)"
                   class="btn"
-                  :class="buttonClass(primaryColumnButton(column)!.tone)"
+                  :class="[buttonClass(primaryColumnButton(column)!.tone), buttonSizeClass(primaryColumnButton(column)!.size)]"
                   :style="buttonStyle(primaryColumnButton(column)!)"
                 >
                   {{ pickLocalizedText(locale, primaryColumnButton(column)!.label) }}
@@ -132,7 +132,7 @@
                   v-if="secondaryColumnButton(column)"
                   :to="localePath(secondaryColumnButton(column)!.href)"
                   class="btn"
-                  :class="buttonClass(secondaryColumnButton(column)!.tone)"
+                  :class="[buttonClass(secondaryColumnButton(column)!.tone), buttonSizeClass(secondaryColumnButton(column)!.size)]"
                   :style="buttonStyle(secondaryColumnButton(column)!)"
                 >
                   {{ pickLocalizedText(locale, secondaryColumnButton(column)!.label) }}
@@ -204,7 +204,16 @@ const containerWidthClass = computed(() => {
 const gridClass = computed(() => props.section.reverseOnDesktop ? 'lg:grid-cols-[.9fr_1.1fr]' : 'lg:grid-cols-[1.1fr_.9fr]')
 
 const getColumnVerticalAlignClass = (column: HomePageColumn) => {
-  if (column.type !== 'content') return 'relative flex h-full items-start'
+  if (column.type === 'image') {
+    switch (column.verticalAlign) {
+      case 'start':
+        return 'relative flex h-full items-start'
+      case 'end':
+        return 'relative flex h-full items-end'
+      default:
+        return 'relative flex h-full items-center'
+    }
+  }
   switch (column.verticalAlign) {
     case 'start':
       return 'relative flex h-full items-start'
@@ -280,6 +289,120 @@ const buttonClass = (tone: string) => {
       return 'btn-primary'
   }
 }
+
+const buttonSizeClass = (size: string) => {
+  switch (size) {
+    case 'xs':
+      return 'btn-xs'
+    case 'sm':
+      return 'btn-sm'
+    case 'lg':
+      return 'btn-lg'
+    default:
+      return ''
+  }
+}
+
+const badgeSizeClass = (size: string) => {
+  switch (size) {
+    case 'xs':
+      return 'text-xs'
+    case 'md':
+      return 'text-base'
+    case 'lg':
+      return 'text-lg'
+    case 'xl':
+      return 'text-xl'
+    case '2xl':
+      return 'text-2xl'
+    default:
+      return 'text-sm'
+  }
+}
+
+const titleSizeClass = (size: string) => {
+  switch (size) {
+    case 'xs':
+      return 'text-xl'
+    case 'sm':
+      return 'text-2xl'
+    case 'md':
+      return 'text-3xl'
+    case 'lg':
+      return 'text-4xl'
+    case 'xl':
+      return 'text-5xl'
+    case '2xl':
+      return 'text-6xl'
+    default:
+      return 'text-3xl'
+  }
+}
+
+const textSizeClass = (size: string) => {
+  switch (size) {
+    case 'xs':
+      return 'text-xs'
+    case 'sm':
+      return 'text-sm'
+    case 'lg':
+      return 'text-lg'
+    case 'xl':
+      return 'text-xl'
+    case '2xl':
+      return 'text-2xl'
+    default:
+      return 'text-base md:text-lg'
+  }
+}
+
+const cardTitleSizeClass = (size: string) => {
+  switch (size) {
+    case 'xs':
+      return 'text-sm'
+    case 'sm':
+      return 'text-base'
+    case 'lg':
+      return 'text-xl'
+    case 'xl':
+      return 'text-2xl'
+    case '2xl':
+      return 'text-3xl'
+    default:
+      return 'text-lg'
+  }
+}
+
+const cardTextSizeClass = (size: string) => {
+  switch (size) {
+    case 'xs':
+      return 'text-xs'
+    case 'md':
+      return 'text-base'
+    case 'lg':
+      return 'text-lg'
+    case 'xl':
+      return 'text-xl'
+    case '2xl':
+      return 'text-2xl'
+    default:
+      return 'text-sm'
+  }
+}
+
+const createTextTarget = (
+  label: string,
+  text: HomePageContentBlock['title'],
+  source: HomePageContentBlock,
+  key: 'badgeSize' | 'titleSize' | 'textSize',
+  multiline = false
+): HomePageEditTarget => ({
+  kind: 'text',
+  label,
+  text,
+  multiline,
+  fontSize: toRef(source, key)
+})
 
 const hasColumnHeaderContent = (column: HomePageContentBlock) =>
   pickLocalizedText(props.locale, column.badge) ||

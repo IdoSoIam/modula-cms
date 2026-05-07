@@ -133,9 +133,9 @@
                   </select>
                 </div>
 
-                <TranslationTabs v-model="content.hero.badge" label="Badge" />
-                <TranslationTabs v-model="content.hero.title" label="Titre" />
-                <TranslationTabs v-model="content.hero.text" label="Texte" multiline />
+                <TranslationTabs v-model="content.hero.badge" v-model:size="content.hero.badgeSize" label="Badge" />
+                <TranslationTabs v-model="content.hero.title" v-model:size="content.hero.titleSize" label="Titre" />
+                <TranslationTabs v-model="content.hero.text" v-model:size="content.hero.textSize" label="Texte" multiline />
 
                 <div class="rounded-xl border border-base-300 bg-base-100 p-4">
                   <div class="mb-3 font-medium">Bouton principal</div>
@@ -333,9 +333,9 @@
                         default-token="base-content"
                       />
 
-                      <TranslationTabs v-model="column.badge" label="Badge" />
-                      <TranslationTabs v-model="column.title" label="Titre" />
-                      <TranslationTabs v-model="column.text" label="Texte" multiline />
+                      <TranslationTabs v-model="column.badge" v-model:size="column.badgeSize" label="Badge" />
+                      <TranslationTabs v-model="column.title" v-model:size="column.titleSize" label="Titre" />
+                      <TranslationTabs v-model="column.text" v-model:size="column.textSize" label="Texte" multiline />
 
                       <div class="rounded-xl border border-base-300 bg-base-100 p-4">
                         <div class="mb-3 flex items-center justify-between gap-2">
@@ -423,6 +423,8 @@ import AdminIconPicker from '~/components/admin/IconPicker.vue'
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
 import type { HomePageButton, HomePageCard, HomePageContent, HomePageContentBlock, HomePageOneColumnSection, HomePageTwoColumnsSection, ThemeColorSelection } from '~/shared/homePage'
 import {
+  BUTTON_SIZE_LABELS,
+  BUTTON_SIZES,
   applyDefaultSectionStyling,
   BUTTON_TONES,
   CARD_SIZE_LABELS,
@@ -442,6 +444,8 @@ import {
   SECTION_CONTAINER_WIDTH_LABELS,
   SECTION_CONTAINER_WIDTHS,
   SECTION_TONES,
+  TYPOGRAPHY_SIZE_LABELS,
+  TYPOGRAPHY_SIZES,
   VERTICAL_ALIGNS
 } from '~/shared/homePage'
 
@@ -451,14 +455,25 @@ const TranslationTabs = defineComponent({
   props: {
     modelValue: { type: Object as PropType<{ fr: string; en: string }>, required: true },
     label: { type: String, required: true },
+    size: { type: String as PropType<any>, default: undefined },
     multiline: { type: Boolean, default: false }
   },
-  setup(props) {
+  emits: ['update:size'],
+  setup(props, { emit }) {
     const activeLang = ref<'fr' | 'en'>('fr')
 
     return () => h('div', { class: 'form-control' }, [
-      h('div', { class: 'flex items-center justify-between mb-2' }, [
-        h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, props.label)]),
+      h('div', { class: 'flex items-center justify-between mb-2 gap-2' }, [
+        h('div', { class: 'flex items-center gap-2' }, [
+          h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, props.label)]),
+          props.size !== undefined
+            ? h('select', {
+                class: 'select select-xs select-bordered w-auto min-w-20',
+                value: props.size,
+                onChange: (event: Event) => emit('update:size', (event.target as HTMLSelectElement).value)
+              }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size])))
+            : null
+        ]),
         h('div', { class: 'tabs tabs-box tabs-xs' }, [
           h('button', {
             class: ['tab', activeLang.value === 'fr' ? 'tab-active' : ''],
@@ -537,6 +552,14 @@ const HomePageButtonFields = defineComponent({
             value: props.modelValue.tone,
             onChange: (event: Event) => { props.modelValue.tone = (event.target as HTMLSelectElement).value as HomePageButton['tone'] }
           }, BUTTON_TONES.map(tone => h('option', { value: tone }, tone)))
+        ]),
+        h('div', { class: 'form-control gap-3 flex' }, [
+          h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Taille du bouton')]),
+          h('select', {
+            class: 'select select-bordered w-full',
+            value: props.modelValue.size,
+            onChange: (event: Event) => { props.modelValue.size = (event.target as HTMLSelectElement).value as HomePageButton['size'] }
+          }, BUTTON_SIZES.map(size => h('option', { value: size }, BUTTON_SIZE_LABELS[size])))
         ])
       ]),
       h(ThemeColorPicker, {
@@ -636,7 +659,14 @@ const HomePageCardFields = defineComponent({
       }),
       h('div', { class: 'form-control' }, [
         h('div', { class: 'flex items-center justify-between mb-2' }, [
-          h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, 'Titre')]),
+          h('div', { class: 'flex items-center gap-2' }, [
+            h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, 'Titre')]),
+            h('select', {
+              class: 'select select-xs select-bordered w-auto min-w-20',
+              value: props.modelValue.titleSize,
+              onChange: (event: Event) => { props.modelValue.titleSize = (event.target as HTMLSelectElement).value as HomePageCard['titleSize'] }
+            }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size])))
+          ]),
           h('div', { class: 'tabs tabs-box tabs-xs' }, [
             h('button', {
               class: ['tab', titleTab.value === 'fr' ? 'tab-active' : ''],
@@ -656,7 +686,14 @@ const HomePageCardFields = defineComponent({
       ]),
       h('div', { class: 'form-control' }, [
         h('div', { class: 'flex items-center justify-between mb-2' }, [
-          h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, 'Texte')]),
+          h('div', { class: 'flex items-center gap-2' }, [
+            h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, 'Texte')]),
+            h('select', {
+              class: 'select select-xs select-bordered w-auto min-w-20',
+              value: props.modelValue.textSize,
+              onChange: (event: Event) => { props.modelValue.textSize = (event.target as HTMLSelectElement).value as HomePageCard['textSize'] }
+            }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size])))
+          ]),
           h('div', { class: 'tabs tabs-box tabs-xs' }, [
             h('button', {
               class: ['tab', textTab.value === 'fr' ? 'tab-active' : ''],

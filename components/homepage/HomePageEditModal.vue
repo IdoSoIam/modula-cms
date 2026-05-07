@@ -23,9 +23,9 @@
               </option>
             </select>
           </div>
-          <LocalizedTextFields v-model="target.hero.badge" label="Badge" />
-          <LocalizedTextFields v-model="target.hero.title" label="Titre" />
-          <LocalizedTextFields v-model="target.hero.text" label="Texte" multiline />
+          <LocalizedTextFields v-model="target.hero.badge" v-model:size="target.hero.badgeSize" label="Badge" />
+          <LocalizedTextFields v-model="target.hero.title" v-model:size="target.hero.titleSize" label="Titre" />
+          <LocalizedTextFields v-model="target.hero.text" v-model:size="target.hero.textSize" label="Texte" multiline />
         </template>
 
         <template v-else-if="target.kind === 'section'">
@@ -65,9 +65,9 @@
               </select>
             </div>
             <ThemeColorPicker v-model="target.column.textColor" label="Couleur du texte de la colonne" default-token="base-content" />
-            <LocalizedTextFields v-model="target.column.badge" label="Badge" />
-            <LocalizedTextFields v-model="target.column.title" label="Titre" />
-            <LocalizedTextFields v-model="target.column.text" label="Texte" multiline />
+            <LocalizedTextFields v-model="target.column.badge" v-model:size="target.column.badgeSize" label="Badge" />
+            <LocalizedTextFields v-model="target.column.title" v-model:size="target.column.titleSize" label="Titre" />
+            <LocalizedTextFields v-model="target.column.text" v-model:size="target.column.textSize" label="Texte" multiline />
           </template>
           <template v-else>
             <div class="form-control">
@@ -119,8 +119,8 @@
           <ThemeColorPicker v-model="target.card.iconColor" label="Couleur de l’icône" default-token="primary" />
           <ThemeColorPicker v-model="target.card.iconBackgroundColor" label="Fond de l’icône" default-token="transparent" />
           <ThemeColorPicker v-model="target.card.borderColor" label="Bordure de la carte" default-token="base-300" />
-          <LocalizedTextFields v-model="target.card.title" label="Titre" />
-          <LocalizedTextFields v-model="target.card.text" label="Texte" multiline />
+          <LocalizedTextFields v-model="target.card.title" v-model:size="target.card.titleSize" label="Titre" />
+          <LocalizedTextFields v-model="target.card.text" v-model:size="target.card.textSize" label="Texte" multiline />
         </template>
 
         <template v-else-if="target.kind === 'button'">
@@ -135,13 +135,24 @@
               <option v-for="tone in BUTTON_TONES" :key="tone" :value="tone">{{ tone }}</option>
             </select>
           </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Taille du bouton</span></label>
+            <select v-model="target.button.size" class="select select-bordered w-full">
+              <option v-for="size in BUTTON_SIZES" :key="size" :value="size">{{ BUTTON_SIZE_LABELS[size] }}</option>
+            </select>
+          </div>
           <ThemeColorPicker v-model="target.button.backgroundColor" label="Fond du bouton" default-token="primary" />
           <ThemeColorPicker v-model="target.button.textColor" label="Texte du bouton" default-token="primary-content" />
           <ThemeColorPicker v-model="target.button.borderColor" label="Bordure du bouton" default-token="transparent" />
         </template>
 
         <template v-else-if="target.kind === 'text'">
-          <LocalizedTextFields v-model="target.text" :label="target.label" :multiline="target.multiline === true" />
+          <LocalizedTextFields
+            v-model="target.text"
+            v-model:size="target.fontSize"
+            :label="target.label"
+            :multiline="target.multiline === true"
+          />
         </template>
       </div>
 
@@ -162,6 +173,8 @@ import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
 import type { HomePageEditTarget } from '~/shared/homePageEditor'
 import {
   BUTTON_TONES,
+  BUTTON_SIZE_LABELS,
+  BUTTON_SIZES,
   CARD_SIZE_LABELS,
   CARD_SIZES,
   CONTENT_ALIGNS,
@@ -169,6 +182,8 @@ import {
   IMAGE_FITS,
   SECTION_CONTAINER_WIDTH_LABELS,
   SECTION_CONTAINER_WIDTHS,
+  TYPOGRAPHY_SIZE_LABELS,
+  TYPOGRAPHY_SIZES,
   VERTICAL_ALIGNS
 } from '~/shared/homePage'
 
@@ -185,14 +200,32 @@ const LocalizedTextFields = defineComponent({
   props: {
     modelValue: { type: Object as PropType<{ fr: string; en: string }>, required: true },
     label: { type: String, required: true },
+    size: { type: [String, Object] as PropType<any>, default: undefined },
     multiline: { type: Boolean, default: false }
   },
-  setup(props) {
+  emits: ['update:size'],
+  setup(props, { emit }) {
     const lang = ref<'fr' | 'en'>('fr')
 
     return () => h('div', { class: 'form-control' }, [
       h('div', { class: 'mb-2 flex items-center justify-between gap-2' }, [
-        h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, props.label)]),
+        h('div', { class: 'flex items-center gap-2' }, [
+          h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, props.label)]),
+          props.size !== undefined
+            ? h('select', {
+                class: 'select select-xs select-bordered w-auto min-w-20',
+                value: props.size?.value ?? props.size,
+                onChange: (event: Event) => {
+                  const value = (event.target as HTMLSelectElement).value
+                  if (props.size && typeof props.size === 'object' && 'value' in props.size) {
+                    props.size.value = value
+                  } else {
+                    emit('update:size', value)
+                  }
+                }
+              }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size])))
+            : null
+        ]),
         h('div', { class: 'tabs tabs-box tabs-xs' }, [
           h('button', { class: ['tab', lang.value === 'fr' ? 'tab-active' : ''], onClick: () => lang.value = 'fr' }, 'FR'),
           h('button', { class: ['tab', lang.value === 'en' ? 'tab-active' : ''], onClick: () => lang.value = 'en' }, 'EN')

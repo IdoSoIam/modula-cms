@@ -12,9 +12,9 @@
             :editable="editable"
             label="Badge"
             button-position="inline-end"
-            @edit="emit('edit', { kind: 'text', label: 'Badge du hero', text: content.hero.badge })"
+            @edit="emit('edit', createTextTarget('Badge du hero', content.hero.badge, 'badgeSize'))"
           >
-            <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm backdrop-blur">
+            <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur" :class="badgeSizeClass(content.hero.badgeSize)">
               <Icon name="mdi:leaf" size="18" />
               {{ badge }}
             </div>
@@ -24,9 +24,9 @@
             inline
             :editable="editable"
             label="Titre"
-            @edit="emit('edit', { kind: 'text', label: 'Titre du hero', text: content.hero.title })"
+            @edit="emit('edit', createTextTarget('Titre du hero', content.hero.title, 'titleSize'))"
           >
-            <h1 class="mb-5 text-5xl font-bold leading-tight md:text-6xl">
+            <h1 class="mb-5 font-bold leading-tight" :class="titleSizeClass(content.hero.titleSize, true)">
               {{ title }}
             </h1>
           </HomePageEditable>
@@ -35,9 +35,9 @@
             inline
             :editable="editable"
             label="Texte"
-            @edit="emit('edit', { kind: 'text', label: 'Texte du hero', text: content.hero.text, multiline: true })"
+            @edit="emit('edit', createTextTarget('Texte du hero', content.hero.text, 'textSize', true))"
           >
-            <p class="mb-6 max-w-2xl text-lg text-white/90 md:text-xl">
+            <p class="mb-6 max-w-2xl text-white/90" :class="textSizeClass(content.hero.textSize, true)">
               {{ text }}
             </p>
           </HomePageEditable>
@@ -52,8 +52,8 @@
             >
               <NuxtLink
                 :to="localePath(content.hero.primaryButton.href)"
-                class="btn btn-lg"
-                :class="buttonClass(content.hero.primaryButton.tone)"
+                class="btn"
+                :class="[buttonClass(content.hero.primaryButton.tone), buttonSizeClass(content.hero.primaryButton.size)]"
                 :style="buttonStyle(content.hero.primaryButton)"
               >
                 {{ pickLocalizedText(locale, content.hero.primaryButton.label) }}
@@ -68,8 +68,8 @@
             >
               <NuxtLink
                 :to="localePath(content.hero.secondaryButton.href)"
-                class="btn btn-lg"
-                :class="buttonClass(content.hero.secondaryButton.tone)"
+                class="btn"
+                :class="[buttonClass(content.hero.secondaryButton.tone), buttonSizeClass(content.hero.secondaryButton.size)]"
                 :style="buttonStyle(content.hero.secondaryButton)"
               >
                 {{ pickLocalizedText(locale, content.hero.secondaryButton.label) }}
@@ -93,15 +93,15 @@
                 <div v-if="highlight.icon" class="mb-3 w-fit rounded-xl p-3" :style="iconWrapperStyle(highlight)">
                   <Icon :name="highlight.icon" size="22" />
                 </div>
-                <div class="text-xs uppercase tracking-[0.18em]" :style="textColorStyle(highlight.textColor, 0.72)">{{ pickLocalizedText(locale, highlight.title) }}</div>
-                <div class="mt-2 text-sm" :style="textColorStyle(highlight.textColor)">{{ pickLocalizedText(locale, highlight.text) }}</div>
+                <div class="uppercase tracking-[0.18em]" :class="cardTitleSizeClass(highlight.titleSize)" :style="textColorStyle(highlight.textColor, 0.72)">{{ pickLocalizedText(locale, highlight.title) }}</div>
+                <div class="mt-2" :class="cardTextSizeClass(highlight.textSize)" :style="textColorStyle(highlight.textColor)">{{ pickLocalizedText(locale, highlight.text) }}</div>
 
                 <div v-if="primaryHighlightButton(highlight) || secondaryHighlightButton(highlight)" class="mt-3 flex flex-wrap gap-2">
                   <NuxtLink
                     v-if="primaryHighlightButton(highlight)"
                     :to="localePath(primaryHighlightButton(highlight)!.href)"
-                    class="btn btn-xs"
-                    :class="buttonClass(primaryHighlightButton(highlight)!.tone)"
+                    class="btn"
+                    :class="[buttonClass(primaryHighlightButton(highlight)!.tone), buttonSizeClass(primaryHighlightButton(highlight)!.size)]"
                     :style="buttonStyle(primaryHighlightButton(highlight)!)"
                   >
                     {{ pickLocalizedText(locale, primaryHighlightButton(highlight)!.label) }}
@@ -109,8 +109,8 @@
                   <NuxtLink
                     v-if="secondaryHighlightButton(highlight)"
                     :to="localePath(secondaryHighlightButton(highlight)!.href)"
-                    class="btn btn-xs"
-                    :class="buttonClass(secondaryHighlightButton(highlight)!.tone)"
+                    class="btn"
+                    :class="[buttonClass(secondaryHighlightButton(highlight)!.tone), buttonSizeClass(secondaryHighlightButton(highlight)!.size)]"
                     :style="buttonStyle(secondaryHighlightButton(highlight)!)"
                   >
                     {{ pickLocalizedText(locale, secondaryHighlightButton(highlight)!.label) }}
@@ -126,6 +126,7 @@
 </template>
 
 <script setup lang="ts">
+import { toRef } from 'vue'
 import type { HomePageButton, HomePageCard, HomePageContent, ThemeColorSelection } from '~/shared/homePage'
 import type { HomePageEditTarget } from '~/shared/homePageEditor'
 import HomePageEditable from '~/components/homepage/HomePageEditable.vue'
@@ -177,6 +178,108 @@ const buttonClass = (tone: string) => {
       return 'btn-outline text-white hover:text-base-content'
     default:
       return 'btn-primary'
+  }
+}
+
+const buttonSizeClass = (size: string) => {
+  switch (size) {
+    case 'xs':
+      return 'btn-xs'
+    case 'sm':
+      return 'btn-sm'
+    case 'lg':
+      return 'btn-lg'
+    default:
+      return ''
+  }
+}
+
+const badgeSizeClass = (size: string) => {
+  switch (size) {
+    case 'xs':
+      return 'text-xs'
+    case 'md':
+      return 'text-base'
+    case 'lg':
+      return 'text-lg'
+    case 'xl':
+      return 'text-xl'
+    case '2xl':
+      return 'text-2xl'
+    default:
+      return 'text-sm'
+  }
+}
+
+const titleSizeClass = (size: string, hero = false) => {
+  if (!hero) return 'text-3xl'
+  switch (size) {
+    case 'xs':
+      return 'text-2xl md:text-3xl'
+    case 'sm':
+      return 'text-3xl md:text-4xl'
+    case 'md':
+      return 'text-4xl md:text-5xl'
+    case 'lg':
+      return 'text-5xl md:text-6xl'
+    case 'xl':
+      return 'text-5xl md:text-7xl'
+    case '2xl':
+      return 'text-6xl md:text-7xl'
+    default:
+      return 'text-4xl md:text-5xl'
+  }
+}
+
+const textSizeClass = (size: string, hero = false) => {
+  if (!hero) return 'text-base'
+  switch (size) {
+    case 'xs':
+      return 'text-sm md:text-base'
+    case 'sm':
+      return 'text-base md:text-lg'
+    case 'lg':
+      return 'text-lg md:text-xl'
+    case 'xl':
+      return 'text-xl md:text-2xl'
+    case '2xl':
+      return 'text-2xl md:text-3xl'
+    default:
+      return 'text-base md:text-lg'
+  }
+}
+
+const cardTitleSizeClass = (size: string) => {
+  switch (size) {
+    case 'xs':
+      return 'text-xs'
+    case 'sm':
+      return 'text-sm'
+    case 'lg':
+      return 'text-lg'
+    case 'xl':
+      return 'text-xl'
+    case '2xl':
+      return 'text-2xl'
+    default:
+      return 'text-base'
+  }
+}
+
+const cardTextSizeClass = (size: string) => {
+  switch (size) {
+    case 'xs':
+      return 'text-xs'
+    case 'md':
+      return 'text-base'
+    case 'lg':
+      return 'text-lg'
+    case 'xl':
+      return 'text-xl'
+    case '2xl':
+      return 'text-2xl'
+    default:
+      return 'text-sm'
   }
 }
 
@@ -285,4 +388,17 @@ const textColorStyle = (selection?: ThemeColorSelection | null, opacity = 1) => 
 const hasButton = (button?: { href?: string | null } | null) => Boolean(button?.href?.trim())
 const primaryHighlightButton = (highlight: HomePageCard) => hasButton(highlight.primaryButton) ? highlight.primaryButton : null
 const secondaryHighlightButton = (highlight: HomePageCard) => hasButton(highlight.secondaryButton) ? highlight.secondaryButton : null
+
+const createTextTarget = (
+  label: string,
+  text: HomePageContent['hero']['title'],
+  key: 'badgeSize' | 'titleSize' | 'textSize',
+  multiline = false
+): HomePageEditTarget => ({
+  kind: 'text',
+  label,
+  text,
+  multiline,
+  fontSize: toRef(props.content.hero, key)
+})
 </script>
