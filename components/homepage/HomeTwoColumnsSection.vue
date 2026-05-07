@@ -149,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import type { HomePageButton, HomePageCard, HomePageColumn, HomePageContentBlock, HomePageTwoColumnsSection, ThemeColorSelection } from '~/shared/homePage'
+import type { HomePageButton, HomePageCard, HomePageColumn, HomePageContentBlock, HomePageTwoColumnsSection, ThemeColorSelection, TypographySize } from '~/shared/homePage'
 import type { HomePageEditTarget } from '~/shared/homePageEditor'
 import HomePageEditable from '~/components/homepage/HomePageEditable.vue'
 import { createThemeColorSelection, pickLocalizedText } from '~/shared/homePage'
@@ -401,7 +401,7 @@ const createTextTarget = (
   label,
   text,
   multiline,
-  fontSize: toRef(source, key)
+  fontSize: toRef(source, key) as any
 })
 
 const hasColumnHeaderContent = (column: HomePageContentBlock) =>
