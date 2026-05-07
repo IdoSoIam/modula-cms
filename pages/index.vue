@@ -49,14 +49,9 @@
           </div>
           <div>
             <div class="font-semibold">{{ $t('pages.home.schedule') }}</div>
-            <ClientOnly>
-              <div class="text-sm opacity-70">
-                {{ farmScheduleText }}
-              </div>
-              <template #fallback>
-                <div class="text-sm opacity-70">...</div>
-              </template>
-            </ClientOnly>
+            <div class="text-sm opacity-70">
+              {{ farmScheduleText }}
+            </div>
           </div>
         </div>
         <div class="flex items-center gap-3">
@@ -65,12 +60,7 @@
           </div>
           <div>
             <div class="font-semibold">{{ $t('pages.home.locationTitle') }}</div>
-            <ClientOnly>
-              <div class="text-sm opacity-70 whitespace-pre-line">{{ siteConfig?.farmPickup?.address || $t('pages.home.location') }}</div>
-              <template #fallback>
-                <div class="text-sm opacity-70 whitespace-pre-line">{{ $t('pages.home.location') }}</div>
-              </template>
-            </ClientOnly>
+            <div class="text-sm opacity-70 whitespace-pre-line">{{ siteConfig?.farmPickup?.address || $t('pages.home.location') }}</div>
           </div>
         </div>
         <div class="flex items-center gap-3">
@@ -193,28 +183,16 @@
                   <Icon name="mdi:home-heart" size="20" class="text-primary" />
                   {{ $t('sales.farmTitle') }}
                 </div>
-                <ClientOnly>
-                  <p class="text-sm opacity-75">{{ farmScheduleText }}</p>
-                  <p class="mt-1 text-sm opacity-75 whitespace-pre-line">{{ siteConfig?.farmPickup?.address }}</p>
-                  <template #fallback>
-                    <p class="text-sm opacity-75">...</p>
-                    <p class="mt-1 text-sm opacity-75 whitespace-pre-line">...</p>
-                  </template>
-                </ClientOnly>
+                <p class="text-sm opacity-75">{{ farmScheduleText }}</p>
+                <p class="mt-1 text-sm opacity-75 whitespace-pre-line">{{ siteConfig?.farmPickup?.address }}</p>
               </div>
               <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
                 <div class="mb-2 flex items-center gap-2 font-semibold">
                   <Icon name="mdi:storefront-outline" size="20" class="text-primary" />
                   {{ marketSale.title }}
                 </div>
-                <ClientOnly>
-                  <p class="text-sm opacity-75">{{ marketSale.scheduleText }}</p>
-                  <p class="mt-1 text-sm opacity-75">{{ marketSale.place }}</p>
-                  <template #fallback>
-                    <p class="text-sm opacity-75">...</p>
-                    <p class="mt-1 text-sm opacity-75">...</p>
-                  </template>
-                </ClientOnly>
+                <p class="text-sm opacity-75">{{ marketSale.scheduleText }}</p>
+                <p class="mt-1 text-sm opacity-75">{{ marketSale.place }}</p>
               </div>
             </div>
 

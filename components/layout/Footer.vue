@@ -1,12 +1,11 @@
 <template>
-  <ClientOnly>
-    <footer class="footer footer-center p-10 bg-neutral text-neutral-content w-full">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 w-full max-w-7xl">
-        <!-- Logo et description -->
-        <div class="flex flex-col items-center">
-          <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-20 mb-2" />
-          <p class="font-bold text-lg">Ferme du Campeyrigoux</p>
-          <p class="opacity-80">{{ $t("footer.organic") }}</p>
+  <footer class="footer footer-center p-10 bg-neutral text-neutral-content w-full">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 w-full max-w-7xl">
+      <!-- Logo et description -->
+      <div class="flex flex-col items-center">
+        <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-20 mb-2" />
+        <p class="font-bold text-lg">Ferme du Campeyrigoux</p>
+        <p class="opacity-80">{{ $t("footer.organic") }}</p>
       </div>
 
       <!-- Horaires -->
@@ -56,7 +55,6 @@
       </div>
     </div>
   </footer>
-  </ClientOnly>
 </template>
 
 

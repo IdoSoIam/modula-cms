@@ -2,8 +2,12 @@
   <div>
     <h1 class="mb-6 text-3xl font-bold">Paramètres</h1>
 
-    <div v-if="pending" class="loading loading-spinner" />
-    <div v-else-if="data" class="space-y-8">
+    <div v-if="pending" class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-200 p-4">
+      <span class="loading loading-spinner loading-md" />
+      <span>Chargement des paramètres…</span>
+    </div>
+
+    <div v-else-if="settingsData" class="space-y-8">
       <section class="card bg-base-200 shadow">
         <div class="card-body">
           <h2 class="card-title">Email admin</h2>
@@ -52,17 +56,6 @@
 
       <section class="card bg-base-200 shadow">
         <div class="card-body">
-          <h2 class="card-title">{{ $t('admin.settingsPage.facebookSection') }}</h2>
-          <p class="text-sm opacity-70">{{ $t('admin.settingsPage.facebookHelp') }}</p>
-          <label class="label mt-2 cursor-pointer justify-start gap-2">
-            <input v-model="form.facebookFluxDeactivated" type="checkbox" class="toggle toggle-primary" />
-            <span class="label-text">{{ $t('admin.settingsPage.facebookDeactivatedLabel') }}</span>
-          </label>
-        </div>
-      </section>
-
-      <section class="card bg-base-200 shadow">
-        <div class="card-body">
           <h2 class="card-title">Fonctionnalités</h2>
           <div class="grid gap-3 md:grid-cols-2">
             <label class="label cursor-pointer justify-start gap-3">
@@ -77,7 +70,12 @@
               <input v-model="form.subscriptionsEnabled" type="checkbox" class="toggle toggle-primary" />
               <span class="label-text">Abonnements paniers actifs</span>
             </label>
+            <label class="label cursor-pointer justify-start gap-3">
+              <input v-model="form.facebookFluxDeactivated" type="checkbox" class="toggle toggle-primary" />
+              <span class="label-text">{{ $t('admin.settingsPage.facebookDeactivatedLabel') }}</span>
+            </label>
           </div>
+          <p class="mt-3 text-sm opacity-70">{{ $t('admin.settingsPage.facebookHelp') }}</p>
         </div>
       </section>
 
@@ -123,16 +121,16 @@
             La connexion Google sert à envoyer les emails de confirmation et à synchroniser les réservations confirmées dans Google Calendar.
           </p>
 
-          <div v-if="data.gmailConnectedEmail" class="alert alert-success mt-3">
+          <div v-if="settingsData.gmailConnectedEmail" class="alert alert-success mt-3">
             <Icon name="mdi:check-circle" size="20" />
-            Connecté avec <strong>{{ data.gmailConnectedEmail }}</strong>
+            Connecté avec <strong>{{ settingsData.gmailConnectedEmail }}</strong>
           </div>
           <div v-else class="alert alert-warning mt-3">
             <Icon name="mdi:alert" size="20" />
             Aucun compte Google connecté. Les emails et la synchro agenda sont désactivés.
           </div>
 
-          <div v-if="data.gmailConnectedEmail" class="mt-4 grid gap-3">
+          <div v-if="settingsData.gmailConnectedEmail" class="mt-4 grid gap-3">
             <div class="form-control">
               <label class="label">
                 <span class="label-text">Calendrier cible</span>
@@ -140,7 +138,7 @@
               <select v-model="form.googleCalendarId" class="select select-bordered w-full" @change="updateCalendarName">
                 <option value="">Ne pas synchroniser avec Google Calendar</option>
                 <option
-                  v-for="calendar in data.googleCalendars"
+                  v-for="calendar in settingsData.googleCalendars"
                   :key="calendar.id"
                   :value="calendar.id"
                 >
@@ -154,7 +152,7 @@
           </div>
 
           <div class="card-actions mt-2 justify-end">
-            <a v-if="!data.gmailConnectedEmail" href="/api/auth/gmail/start" class="btn btn-primary">
+            <a v-if="!settingsData.gmailConnectedEmail" href="/api/auth/gmail/start" class="btn btn-primary">
               <Icon name="mdi:google" size="18" />
               Connecter Google
             </a>
@@ -169,7 +167,7 @@
         <div class="card-body">
           <h2 class="card-title">Modeles d'email</h2>
           <p class="mb-2 text-sm opacity-70">
-            Chaque email peut être personnalisé en français et en anglais.
+            La liste des modèles est chargée une fois. Le contenu détaillé ne part qu'à l'ouverture du modèle.
           </p>
 
           <div class="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -179,14 +177,19 @@
                 :key="templateDef.action"
                 class="w-full rounded-xl border p-3 text-left transition"
                 :class="activeTemplateAction === templateDef.action ? 'border-primary bg-base-100' : 'border-base-300 bg-base-200/60'"
-                @click="activeTemplateAction = templateDef.action"
+                @click="selectTemplate(templateDef.action)"
               >
-                <div class="font-medium">{{ templateDef.label }}</div>
-                <div class="mt-1 text-xs opacity-70">{{ templateDef.description }}</div>
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <div class="font-medium">{{ templateDef.label }}</div>
+                    <div class="mt-1 text-xs opacity-70">{{ templateDef.description }}</div>
+                  </div>
+                  <span v-if="dirtyTemplateActions.has(templateDef.action)" class="badge badge-warning badge-sm">Modifié</span>
+                </div>
               </button>
             </div>
 
-            <div v-if="activeTemplateDefinition && currentTemplate" class="space-y-4">
+            <div v-if="activeTemplateDefinition" class="space-y-4">
               <div class="rounded-xl bg-base-300 p-4">
                 <div class="font-medium">{{ activeTemplateDefinition.label }}</div>
                 <p class="mt-1 text-sm opacity-75">{{ activeTemplateDefinition.description }}</p>
@@ -199,41 +202,56 @@
               </div>
 
               <div class="tabs tabs-border w-fit">
-                <a
+                <button
                   class="tab"
                   :class="{ 'tab-active': activeTemplateLocale === 'fr' }"
                   @click="activeTemplateLocale = 'fr'"
-                >Français</a>
-                <a
+                >
+                  Français
+                </button>
+                <button
                   class="tab"
                   :class="{ 'tab-active': activeTemplateLocale === 'en' }"
                   @click="activeTemplateLocale = 'en'"
-                >English</a>
+                >
+                  English
+                </button>
               </div>
 
-              <div class="form-control mb-2">
-                <label class="label"><span class="label-text">Sujet</span></label>
-                <input
-                  v-model="currentTemplate.subject"
-                  type="text"
-                  class="input input-bordered w-full"
-                />
+              <div v-if="templatePending" class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100 p-4">
+                <span class="loading loading-spinner loading-md" />
+                <span>Chargement du modèle…</span>
               </div>
-              <div class="form-control">
-                <label class="label"><span class="label-text">Corps du message</span></label>
-                <textarea
-                  v-model="currentTemplate.body"
-                  class="textarea textarea-bordered font-mono text-sm w-full"
-                  rows="14"
-                />
+
+              <div v-else-if="currentTemplate" class="space-y-4">
+                <div class="form-control mb-2">
+                  <label class="label"><span class="label-text">Sujet</span></label>
+                  <input
+                    v-model="currentTemplate.subject"
+                    type="text"
+                    class="input input-bordered w-full"
+                  />
+                </div>
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Corps du message</span></label>
+                  <textarea
+                    v-model="currentTemplate.body"
+                    class="textarea textarea-bordered font-mono text-sm w-full"
+                    rows="14"
+                  />
+                </div>
               </div>
+            </div>
+
+            <div v-else class="flex min-h-[18rem] items-center justify-center rounded-xl border border-dashed border-base-300 bg-base-100/70 p-6 text-center text-sm opacity-70">
+              Sélectionnez un modèle dans la liste pour charger son contenu.
             </div>
           </div>
         </div>
       </section>
 
       <div class="flex justify-end gap-2">
-        <button class="btn btn-primary" :disabled="saving" @click="save">
+        <button class="btn btn-primary" :disabled="saving || pending" @click="save">
           <span v-if="saving" class="loading loading-spinner loading-sm" />
           Enregistrer
         </button>
@@ -245,22 +263,31 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-interface Template { subject: string; body: string }
-interface TemplateTranslations { fr: Template; en: Template }
+interface Template {
+  subject: string
+  body: string
+}
+
+interface TemplateTranslations {
+  fr: Template
+  en: Template
+}
+
 interface TemplateDefinition {
   action: string
-  settingKey: string
   label: string
   description: string
   variables: string[]
 }
+
 interface GoogleCalendarOption {
   id: string
   summary: string
   primary: boolean
   accessRole: string
 }
-interface Settings {
+
+interface SettingsBase {
   adminEmail: string
   gmailConnectedEmail: string | null
   googleCalendarId: string
@@ -281,10 +308,10 @@ interface Settings {
   ordersOpenTo: string
   ordersClosedMessage: string
   templateDefinitions: TemplateDefinition[]
-  templates: Record<string, TemplateTranslations>
 }
 
-const { data, pending, refresh } = await useFetch<Settings>('/api/admin/settings')
+const settingsData = ref<SettingsBase | null>(null)
+const pending = ref(true)
 
 const form = reactive({
   adminEmail: '',
@@ -300,67 +327,115 @@ const form = reactive({
   farmPickupEndTime: '19:00',
   ordersOpenFrom: '',
   ordersOpenTo: '',
-  ordersClosedMessage: '',
-  templates: {} as Record<string, TemplateTranslations>
+  ordersClosedMessage: ''
 })
 
 const activeTemplateAction = ref('')
 const activeTemplateLocale = ref<'fr' | 'en'>('fr')
 const saving = ref(false)
+const templatePending = ref(false)
+const templateCache = reactive<Record<string, TemplateTranslations>>({})
+const templateInitialSignatures = reactive<Record<string, string>>({})
 
-const templateDefinitions = computed(() => data.value?.templateDefinitions ?? [])
+const templateDefinitions = computed(() => settingsData.value?.templateDefinitions ?? [])
 const activeTemplateDefinition = computed(() =>
   templateDefinitions.value.find((template) => template.action === activeTemplateAction.value) ?? null
 )
 const currentTemplate = computed<Template | null>(() => {
   const action = activeTemplateAction.value
-  if (!action || !form.templates[action]) return null
-  return form.templates[action][activeTemplateLocale.value]
+  if (!action || !templateCache[action]) return null
+  return templateCache[action][activeTemplateLocale.value]
+})
+
+const dirtyTemplateActions = computed(() => {
+  return new Set(
+    Object.entries(templateCache)
+      .filter(([action, translations]) => JSON.stringify(translations) !== templateInitialSignatures[action])
+      .map(([action]) => action)
+  )
 })
 
 watchEffect(() => {
-  if (data.value) {
-    form.adminEmail = data.value.adminEmail
-    form.googleCalendarId = data.value.googleCalendarId
-    form.googleCalendarName = data.value.googleCalendarName
-    form.facebookFluxDeactivated = data.value.facebookFluxDeactivated
-    form.inDevelopment = data.value.inDevelopment
-    form.registerEnabled = data.value.registerEnabled
-    form.subscriptionsEnabled = data.value.subscriptionsEnabled
-    form.farmPickupAddress = data.value.farmPickup.address
-    form.farmPickupDayOfWeek = data.value.farmPickup.dayOfWeek
-    form.farmPickupStartTime = data.value.farmPickup.startTime
-    form.farmPickupEndTime = data.value.farmPickup.endTime
-    form.ordersOpenFrom = data.value.ordersOpenFrom
-    form.ordersOpenTo = data.value.ordersOpenTo
-    form.ordersClosedMessage = data.value.ordersClosedMessage
-    form.templates = Object.fromEntries(
-      Object.entries(data.value.templates).map(([action, translations]) => [
-        action,
-        {
-          fr: { ...translations.fr },
-          en: { ...translations.en }
-        }
-      ])
-    )
-
-    if (!activeTemplateAction.value && data.value.templateDefinitions[0]) {
-      activeTemplateAction.value = data.value.templateDefinitions[0].action
-    }
+  if (!settingsData.value) {
+    return
   }
+
+  form.adminEmail = settingsData.value.adminEmail
+  form.googleCalendarId = settingsData.value.googleCalendarId
+  form.googleCalendarName = settingsData.value.googleCalendarName
+  form.facebookFluxDeactivated = settingsData.value.facebookFluxDeactivated
+  form.inDevelopment = settingsData.value.inDevelopment
+  form.registerEnabled = settingsData.value.registerEnabled
+  form.subscriptionsEnabled = settingsData.value.subscriptionsEnabled
+  form.farmPickupAddress = settingsData.value.farmPickup.address
+  form.farmPickupDayOfWeek = settingsData.value.farmPickup.dayOfWeek
+  form.farmPickupStartTime = settingsData.value.farmPickup.startTime
+  form.farmPickupEndTime = settingsData.value.farmPickup.endTime
+  form.ordersOpenFrom = settingsData.value.ordersOpenFrom
+  form.ordersOpenTo = settingsData.value.ordersOpenTo
+  form.ordersClosedMessage = settingsData.value.ordersClosedMessage
+
 })
 
+onMounted(async () => {
+  await loadSettings()
+})
+
+const loadSettings = async () => {
+  pending.value = true
+  try {
+    settingsData.value = await $fetch<SettingsBase>('/api/admin/settings')
+  } finally {
+    pending.value = false
+  }
+}
+
+const refresh = async () => {
+  await loadSettings()
+}
+
 const updateCalendarName = () => {
-  const selected = data.value?.googleCalendars.find((calendar) => calendar.id === form.googleCalendarId)
+  const selected = settingsData.value?.googleCalendars.find((calendar) => calendar.id === form.googleCalendarId)
   form.googleCalendarName = selected?.summary ?? ''
 }
 
 const formatTemplateVariable = (variable: string) => `{{${variable}}}`
 
+const ensureTemplateLoaded = async (action: string) => {
+  if (templateCache[action]) {
+    return
+  }
+
+  templatePending.value = true
+  try {
+    const response = await $fetch<{ templates: TemplateTranslations }>(`/api/admin/settings/templates/${action}` as string)
+    templateCache[action] = {
+      fr: { ...response.templates.fr },
+      en: { ...response.templates.en }
+    }
+    templateInitialSignatures[action] = JSON.stringify(templateCache[action])
+  } finally {
+    templatePending.value = false
+  }
+}
+
+const selectTemplate = async (action: string) => {
+  activeTemplateAction.value = action
+  await ensureTemplateLoaded(action)
+}
+
+const getChangedTemplatesPayload = () => {
+  return Object.fromEntries(
+    Object.entries(templateCache).filter(([action, translations]) => JSON.stringify(translations) !== templateInitialSignatures[action])
+  )
+}
+
 const save = async () => {
   saving.value = true
   try {
     updateCalendarName()
+    const changedTemplates = getChangedTemplatesPayload()
+
     await $fetch('/api/admin/settings', {
       method: 'PUT',
       body: {
@@ -378,12 +453,16 @@ const save = async () => {
         ordersOpenFrom: form.ordersOpenFrom,
         ordersOpenTo: form.ordersOpenTo,
         ordersClosedMessage: form.ordersClosedMessage,
-        templates: form.templates
+        templates: Object.keys(changedTemplates).length ? changedTemplates : undefined
       }
     })
+
+    for (const [action, translations] of Object.entries(changedTemplates)) {
+      templateInitialSignatures[action] = JSON.stringify(translations)
+    }
+
     const { $toast } = useNuxtApp()
     $toast.success('Parametres enregistres')
-    await refresh()
   } catch (e: any) {
     const { $toast } = useNuxtApp()
     $toast.error(e.statusMessage || 'Erreur lors de l enregistrement')

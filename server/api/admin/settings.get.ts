@@ -1,7 +1,7 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig } from '~/server/utils/settings'
 import { listGoogleCalendars } from '~/server/utils/gmail'
-import { TEMPLATE_DEFINITIONS, resolveReservationTemplate, ALL_TEMPLATE_SETTING_KEYS } from '~/server/utils/reservationEmailContent'
+import { TEMPLATE_DEFINITIONS } from '~/server/utils/reservationEmailContent'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -22,8 +22,7 @@ export default defineEventHandler(async (event) => {
     SETTING_KEYS.FARM_PICKUP_DAY_OF_WEEK,
     SETTING_KEYS.FARM_PICKUP_START_TIME,
     SETTING_KEYS.FARM_PICKUP_END_TIME,
-    SETTING_KEYS.FARM_PICKUP_TIME,
-    ...ALL_TEMPLATE_SETTING_KEYS
+    SETTING_KEYS.FARM_PICKUP_TIME
   ]
   const s = await getSettings(allSettingKeys)
   const [featureFlags, farmPickup] = await Promise.all([getFeatureFlags(), getFarmPickupConfig()])
@@ -34,15 +33,6 @@ export default defineEventHandler(async (event) => {
       googleCalendars = await listGoogleCalendars()
     } catch (error) {
       console.error('Unable to load Google calendars:', error)
-    }
-  }
-
-  const templates: Record<string, { fr: { subject: string; body: string }; en: { subject: string; body: string } }> = {}
-  for (const template of TEMPLATE_DEFINITIONS) {
-    const raw = s[template.settingKey]
-    templates[template.action] = {
-      fr: resolveReservationTemplate(raw, template.action, 'fr'),
-      en: resolveReservationTemplate(raw, template.action, 'en')
     }
   }
 
@@ -60,7 +50,6 @@ export default defineEventHandler(async (event) => {
     ordersOpenFrom: s[SETTING_KEYS.ORDERS_OPEN_FROM] ?? '',
     ordersOpenTo: s[SETTING_KEYS.ORDERS_OPEN_TO] ?? '',
     ordersClosedMessage: s[SETTING_KEYS.ORDERS_CLOSED_MESSAGE] ?? '',
-    templateDefinitions: TEMPLATE_DEFINITIONS,
-    templates
+    templateDefinitions: TEMPLATE_DEFINITIONS
   }
 })
