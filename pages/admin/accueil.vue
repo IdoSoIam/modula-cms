@@ -124,6 +124,14 @@
                   <label class="label"><span class="label-text">Image de fond</span></label>
                   <ImageInput v-model="content.hero.backgroundImageUrl" />
                 </div>
+                <div class="form-control gap-3 flex max-w-sm">
+                  <label class="label"><span class="label-text">Largeur du hero</span></label>
+                  <select v-model="content.hero.containerWidth" class="select select-bordered w-full">
+                    <option v-for="width in SECTION_CONTAINER_WIDTHS" :key="width" :value="width">
+                      {{ SECTION_CONTAINER_WIDTH_LABELS[width] }}
+                    </option>
+                  </select>
+                </div>
 
                 <TranslationTabs v-model="content.hero.badge" label="Badge" />
                 <TranslationTabs v-model="content.hero.title" label="Titre" />
@@ -284,10 +292,20 @@
                             <option v-for="fit in IMAGE_FITS" :key="fit" :value="fit">{{ fit }}</option>
                           </select>
                         </div>
+                        <div class="form-control gap-3 flex">
+                          <label class="label"><span class="label-text">Alignement vertical</span></label>
+                          <select v-model="column.verticalAlign" class="select select-bordered w-full">
+                            <option v-for="align in VERTICAL_ALIGNS" :key="align" :value="align">{{ align }}</option>
+                          </select>
+                        </div>
                       </div>
                       <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
                         <input v-model="column.framed" type="checkbox" class="toggle toggle-primary" />
                         <span class="label-text">Afficher l’image dans une carte</span>
+                      </label>
+                      <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+                        <input v-model="column.enlarge" type="checkbox" class="toggle toggle-primary" />
+                        <span class="label-text">Forcer un affichage plus grand</span>
                       </label>
                     </div>
                   </template>

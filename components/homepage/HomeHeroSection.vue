@@ -3,7 +3,7 @@
     class="hero min-h-[78vh] items-end overflow-hidden"
     :style="heroStyle"
   >
-    <div class="hero-content w-full max-w-6xl justify-start px-4 py-20 text-neutral-content">
+    <div class="hero-content w-full justify-start px-4 py-20 text-neutral-content" :class="heroContainerWidthClass">
       <HomePageEditable :editable="editable" label="Hero" @edit="emit('edit', { kind: 'hero', label: 'Hero', hero: content.hero })">
         <div class="max-w-3xl">
           <HomePageEditable
@@ -11,6 +11,7 @@
             inline
             :editable="editable"
             label="Badge"
+            button-position="inline-end"
             @edit="emit('edit', { kind: 'text', label: 'Badge du hero', text: content.hero.badge })"
           >
             <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm backdrop-blur">
@@ -149,6 +150,19 @@ const text = computed(() => pickLocalizedText(props.locale, props.content.hero.t
 const heroStyle = computed(() => {
   const background = props.content.hero.backgroundImageUrl || '/images/plaquette.jpg'
   return `background-image: linear-gradient(120deg, rgba(19,33,17,.68), rgba(19,33,17,.34)), url('${background}'); background-position:center; background-size:cover;`
+})
+
+const heroContainerWidthClass = computed(() => {
+  switch (props.content.hero.containerWidth) {
+    case 'narrow':
+      return 'max-w-4xl'
+    case 'wide':
+      return 'max-w-7xl'
+    case 'full':
+      return 'max-w-none'
+    default:
+      return 'max-w-6xl'
+  }
 })
 
 const buttonClass = (tone: string) => {

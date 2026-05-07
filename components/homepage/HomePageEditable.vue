@@ -3,7 +3,8 @@
     <button
       v-if="editable"
       type="button"
-      class="absolute right-2 top-2 z-20 cursor-pointer rounded-full border border-base-300 bg-base-100/85 px-2 py-1 text-[11px] font-medium shadow-sm transition hover:border-primary text-primary"
+      class="z-20 cursor-pointer rounded-full border border-base-300 bg-base-100/85 px-2 py-1 text-[11px] font-medium shadow-sm transition hover:border-primary text-primary"
+      :class="buttonPosition === 'inline-end' ? 'absolute left-full top-1/2 ml-2 -translate-y-1/2' : 'absolute right-2 top-2'"
       @click.stop="$emit('edit')"
     >
       {{ label }}
@@ -23,6 +24,7 @@ defineProps<{
   editable?: boolean
   inline?: boolean
   label: string
+  buttonPosition?: 'top-right' | 'inline-end'
 }>()
 
 defineEmits<{

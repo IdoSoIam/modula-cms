@@ -83,6 +83,8 @@ export interface HomePageImageBlock {
   alt: LocalizedText
   aspect: ImageAspect
   fit: ImageFit
+  verticalAlign: VerticalAlign
+  enlarge: boolean
   framed: boolean
 }
 
@@ -127,6 +129,7 @@ export interface HomePageOneColumnSection {
 export interface HomePageHeroSection {
   enabled: boolean
   backgroundImageUrl: string
+  containerWidth: SectionContainerWidth
   badge: LocalizedText
   title: LocalizedText
   text: LocalizedText
@@ -326,6 +329,8 @@ export function createEmptyImageBlock(): HomePageImageBlock {
     alt: createEmptyLocalizedText(),
     aspect: 'landscape',
     fit: 'cover',
+    verticalAlign: 'center',
+    enlarge: false,
     framed: true
   }
 }
@@ -409,6 +414,7 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
     hero: {
       enabled: true,
       backgroundImageUrl: '/images/plaquette.jpg',
+      containerWidth: 'default',
       badge: {
         fr: 'Production locale, bio et de saison dans les Cevennes',
         en: 'Local, organic and seasonal production in the Cevennes'
@@ -549,6 +555,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
             },
             aspect: 'square',
             fit: 'contain',
+            verticalAlign: 'center',
+            enlarge: false,
             framed: true
           }
         ]
@@ -571,6 +579,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
             },
             aspect: 'landscape',
             fit: 'cover',
+            verticalAlign: 'center',
+            enlarge: false,
             framed: true
           },
           {
@@ -697,6 +707,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
             },
             aspect: 'portrait',
             fit: 'contain',
+            verticalAlign: 'center',
+            enlarge: false,
             framed: true
           }
         ]

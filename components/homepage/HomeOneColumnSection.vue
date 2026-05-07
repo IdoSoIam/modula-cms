@@ -18,7 +18,7 @@
                 :src="section.column.imageUrl"
                 :alt="pickLocalizedText(locale, section.column.alt)"
                 class="h-full w-full"
-                :class="section.column.fit === 'contain' ? 'object-contain p-6' : 'object-cover'"
+                :class="imageClass(section.column)"
               />
             </div>
         </template>
@@ -26,7 +26,7 @@
         <template v-else>
           <div class="space-y-5" :class="contentAlignClass(section.column.align)" :style="columnTextStyle(section.column)">
             <template v-if="hasColumnHeaderContent(section.column)">
-              <HomePageEditable v-if="pickLocalizedText(locale, section.column.badge)" :editable="editable" label="Texte" @edit="emit('edit', { kind: 'text', label: 'Badge', text: section.column.badge })">
+              <HomePageEditable v-if="pickLocalizedText(locale, section.column.badge)" inline :editable="editable" label="Texte" button-position="inline-end" @edit="emit('edit', { kind: 'text', label: 'Badge', text: section.column.badge })">
               <div class="badge badge-primary badge-outline">
                 {{ pickLocalizedText(locale, section.column.badge) }}
               </div>
@@ -224,29 +224,26 @@ const imageFrameClass = (column: HomePageOneColumnSection['column'] & { type: 'i
     ? 'overflow-hidden rounded-[2rem] border border-base-300 bg-base-100 shadow-sm'
     : 'overflow-hidden rounded-[2rem]'
 
+const imageClass = (column: HomePageOneColumnSection['column'] & { type: 'image' }) => {
+  const fitClass = column.fit === 'contain' ? 'object-contain p-6' : 'object-cover'
+  const alignClass = column.verticalAlign === 'start'
+    ? 'object-top'
+    : column.verticalAlign === 'end'
+      ? 'object-bottom'
+      : 'object-center'
+  const enlargeClass = column.enlarge ? 'scale-110 md:scale-[1.16]' : ''
+
+  return [fitClass, alignClass, enlargeClass].filter(Boolean).join(' ')
+}
+
 const contentAlignClass = (align: string) => align === 'center' ? 'mx-auto text-center items-center' : ''
 
 const cardsContainerClass = (cards: HomePageCard[], align: string) => {
   if (cards.length <= 1) {
-    const card = cards[0]
-    const maxWidthClass = card ? singleCardMaxWidthClass(card.size) : 'max-w-md'
-    return align === 'center' ? `mx-auto w-full ${maxWidthClass}` : `w-full ${maxWidthClass}`
+    return 'w-full'
   }
 
   return 'grid gap-4 md:grid-cols-2 xl:grid-cols-3'
-}
-
-const singleCardMaxWidthClass = (size: HomePageCard['size']) => {
-  switch (size) {
-    case 'sm':
-      return 'max-w-sm'
-    case 'lg':
-      return 'max-w-xl'
-    case 'xl':
-      return 'max-w-2xl'
-    default:
-      return 'max-w-md'
-  }
 }
 
 const buttonClass = (tone: string) => {

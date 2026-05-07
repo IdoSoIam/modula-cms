@@ -126,6 +126,8 @@ function normalizeColumn(value: unknown): HomePageColumn | null {
       alt: normalizeLocalizedText(value.alt) || { fr: '', en: '' },
       aspect: (typeof value.aspect === 'string' ? value.aspect : 'landscape') as Extract<HomePageColumn, { type: 'image' }>['aspect'],
       fit: (typeof value.fit === 'string' ? value.fit : 'cover') as Extract<HomePageColumn, { type: 'image' }>['fit'],
+      verticalAlign: (typeof value.verticalAlign === 'string' ? value.verticalAlign : 'center') as Extract<HomePageColumn, { type: 'image' }>['verticalAlign'],
+      enlarge: typeof value.enlarge === 'boolean' ? value.enlarge : false,
       framed: typeof value.framed === 'boolean' ? value.framed : true
     }
   }
@@ -157,6 +159,7 @@ function normalizeHomePageContent(value: unknown, fallback: HomePageContent): Ho
   const normalizedHero = {
     enabled: typeof hero.enabled === 'boolean' ? hero.enabled : true,
     backgroundImageUrl: typeof hero.backgroundImageUrl === 'string' ? hero.backgroundImageUrl : fallback.hero.backgroundImageUrl,
+    containerWidth: typeof hero.containerWidth === 'string' ? hero.containerWidth as 'narrow' | 'default' | 'wide' | 'full' : 'default',
     badge: normalizeLocalizedText(hero.badge) || fallback.hero.badge,
     title: normalizeLocalizedText(hero.title) || fallback.hero.title,
     text: normalizeLocalizedText(hero.text) || fallback.hero.text,

@@ -15,6 +15,14 @@
             <label class="label"><span class="label-text">Image de fond</span></label>
             <ImageInput v-model="target.hero.backgroundImageUrl" />
           </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text">Largeur du hero</span></label>
+            <select v-model="target.hero.containerWidth" class="select select-bordered w-full">
+              <option v-for="width in SECTION_CONTAINER_WIDTHS" :key="width" :value="width">
+                {{ SECTION_CONTAINER_WIDTH_LABELS[width] }}
+              </option>
+            </select>
+          </div>
           <LocalizedTextFields v-model="target.hero.badge" label="Badge" />
           <LocalizedTextFields v-model="target.hero.title" label="Titre" />
           <LocalizedTextFields v-model="target.hero.text" label="Texte" multiline />
@@ -80,10 +88,20 @@
                   <option v-for="fit in IMAGE_FITS" :key="fit" :value="fit">{{ fit }}</option>
                 </select>
               </div>
+              <div class="form-control">
+                <label class="label"><span class="label-text">Alignement vertical</span></label>
+                <select v-model="target.column.verticalAlign" class="select select-bordered w-full">
+                  <option v-for="align in VERTICAL_ALIGNS" :key="align" :value="align">{{ align }}</option>
+                </select>
+              </div>
             </div>
             <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
               <input v-model="target.column.framed" type="checkbox" class="toggle toggle-primary" />
               <span class="label-text">Afficher l’image dans une carte</span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+              <input v-model="target.column.enlarge" type="checkbox" class="toggle toggle-primary" />
+              <span class="label-text">Forcer un affichage plus grand</span>
             </label>
           </template>
         </template>
