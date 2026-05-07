@@ -102,6 +102,7 @@ function normalizeCard(value: unknown): HomePageCard | null {
     text,
     icon: sanitizeIconName(value.icon),
     tone: (typeof value.tone === 'string' ? value.tone : 'soft') as HomePageCard['tone'],
+    size: (typeof value.size === 'string' ? value.size : 'md') as HomePageCard['size'],
     backgroundColor: normalizeThemeColorSelection(value.backgroundColor, 'base-200'),
     textColor: normalizeThemeColorSelection(value.textColor, 'base-content'),
     iconColor: normalizeThemeColorSelection(value.iconColor, 'primary'),
@@ -124,7 +125,8 @@ function normalizeColumn(value: unknown): HomePageColumn | null {
       imageUrl: typeof value.imageUrl === 'string' ? value.imageUrl : '',
       alt: normalizeLocalizedText(value.alt) || { fr: '', en: '' },
       aspect: (typeof value.aspect === 'string' ? value.aspect : 'landscape') as Extract<HomePageColumn, { type: 'image' }>['aspect'],
-      fit: (typeof value.fit === 'string' ? value.fit : 'cover') as Extract<HomePageColumn, { type: 'image' }>['fit']
+      fit: (typeof value.fit === 'string' ? value.fit : 'cover') as Extract<HomePageColumn, { type: 'image' }>['fit'],
+      framed: typeof value.framed === 'boolean' ? value.framed : true
     }
   }
 
@@ -187,6 +189,7 @@ function normalizeHomePageContent(value: unknown, fallback: HomePageContent): Ho
           type: 'two-columns' as const,
           enabled: typeof section.enabled === 'boolean' ? section.enabled : true,
           tone: (typeof section.tone === 'string' ? section.tone : 'base-100') as HomePageContent['sections'][number]['tone'],
+          containerWidth: typeof section.containerWidth === 'string' ? section.containerWidth as 'narrow' | 'default' | 'wide' | 'full' : 'default',
           backgroundColor: normalizeThemeColorSelection(section.backgroundColor, 'base-100') ?? null,
           verticalAlign: typeof section.verticalAlign === 'string' ? section.verticalAlign as 'start' | 'center' | 'end' : 'center',
           reverseOnDesktop: typeof section.reverseOnDesktop === 'boolean' ? section.reverseOnDesktop : false,
@@ -205,6 +208,7 @@ function normalizeHomePageContent(value: unknown, fallback: HomePageContent): Ho
           type: 'one-column' as const,
           enabled: typeof section.enabled === 'boolean' ? section.enabled : true,
           tone: (typeof section.tone === 'string' ? section.tone : 'base-100') as HomePageContent['sections'][number]['tone'],
+          containerWidth: typeof section.containerWidth === 'string' ? section.containerWidth as 'narrow' | 'default' | 'wide' | 'full' : 'default',
           backgroundColor: normalizeThemeColorSelection(section.backgroundColor, 'base-100') ?? null,
           verticalAlign: typeof section.verticalAlign === 'string' ? section.verticalAlign as 'start' | 'center' | 'end' : 'start',
           column
@@ -213,7 +217,7 @@ function normalizeHomePageContent(value: unknown, fallback: HomePageContent): Ho
 
       return null
     })
-    .filter((section): section is HomePageContent['sections'][number] => Boolean(section))
+    .filter((section): section is NonNullable<typeof section> => section !== null) as HomePageContent['sections']
 
   return {
     version: 1,

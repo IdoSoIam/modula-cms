@@ -12,6 +12,9 @@
         <NuxtLink to="/" target="_blank" class="btn btn-outline">
           Voir la page
         </NuxtLink>
+        <NuxtLink to="/?editPage=1" target="_blank" class="btn btn-outline btn-primary">
+          Éditer sur la page
+        </NuxtLink>
         <button class="btn btn-warning btn-outline" :disabled="saving || pending || !content" @click="resetColors">
           <span v-if="resettingColors" class="loading loading-spinner loading-sm" />
           Réinitialiser les couleurs
@@ -34,7 +37,7 @@
           <div class="card-body">
             <div class="flex items-center justify-between gap-3">
               <h2 class="card-title text-lg">Structure</h2>
-              <div class="flex gap-2">
+              <div class="flex flex-wrap gap-2">
                 <button class="btn btn-sm btn-outline" @click="addSection('one-column')">
                   <Icon name="mdi:view-agenda-outline" size="16" />
                   1 colonne
@@ -201,26 +204,32 @@
               </div>
 
                 <div class="flex flex-col gap-4">
-                <div class="flex gap-4">
-                  <div class="form-control gap-3 flex w-[180px]">
+                  <div class="form-control gap-3 flex max-w-sm">
                     <label class="label"><span class="label-text">Type</span></label>
                     <select :value="section.type" class="select select-bordered w-full" @change="onSectionTypeChange(section, $event)">
                       <option value="two-columns">2 colonnes</option>
                       <option value="one-column">1 colonne</option>
                     </select>
                   </div>
-                  <div class="form-control gap-3 flex flex-1">
+                  <div class="form-control gap-3 flex">
                     <label class="label"><span class="label-text">Identifiant technique</span></label>
                     <input v-model="section.id" class="input input-bordered w-full" />
                   </div>
-                </div>
+                  <div class="form-control gap-3 flex max-w-sm">
+                    <label class="label"><span class="label-text">Largeur du container</span></label>
+                    <select v-model="section.containerWidth" class="select select-bordered w-full">
+                      <option v-for="width in SECTION_CONTAINER_WIDTHS" :key="width" :value="width">
+                        {{ SECTION_CONTAINER_WIDTH_LABELS[width] }}
+                      </option>
+                    </select>
+                  </div>
 
-                <ThemeColorPicker
-                  v-model="section.backgroundColor"
-                  label="Fond de section"
-                  default-token="base-100"
-                />
-              </div>
+                  <ThemeColorPicker
+                    v-model="section.backgroundColor"
+                    label="Fond de section"
+                    default-token="base-100"
+                  />
+                </div>
             </div>
           </section>
 
@@ -262,39 +271,41 @@
                         <ImageInput v-model="column.imageUrl" />
                       </div>
                       <TranslationTabs v-model="column.alt" label="Alt" />
-                      <div class="flex gap-4">
-                        <div class="form-control gap-3 flex flex-1">
+                      <div class="grid gap-4 md:grid-cols-2">
+                        <div class="form-control gap-3 flex">
                           <label class="label"><span class="label-text">Ratio</span></label>
                           <select v-model="column.aspect" class="select select-bordered w-full">
                             <option v-for="aspect in IMAGE_ASPECTS" :key="aspect" :value="aspect">{{ aspect }}</option>
                           </select>
                         </div>
-                        <div class="form-control gap-3 flex flex-1">
+                        <div class="form-control gap-3 flex">
                           <label class="label"><span class="label-text">Placement</span></label>
                           <select v-model="column.fit" class="select select-bordered w-full">
                             <option v-for="fit in IMAGE_FITS" :key="fit" :value="fit">{{ fit }}</option>
                           </select>
                         </div>
                       </div>
+                      <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+                        <input v-model="column.framed" type="checkbox" class="toggle toggle-primary" />
+                        <span class="label-text">Afficher l’image dans une carte</span>
+                      </label>
                     </div>
                   </template>
 
                   <template v-else>
                     <div class="space-y-4">
                       <div class="flex flex-col gap-4">
-                        <div class="flex gap-4">
-                          <div class="form-control gap-3 flex flex-1">
-                            <label class="label"><span class="label-text">Alignement horizontal</span></label>
-                            <select v-model="column.align" class="select select-bordered w-full">
-                              <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
-                            </select>
-                          </div>
-                          <div class="form-control gap-3 flex flex-1">
-                            <label class="label"><span class="label-text">Alignement vertical</span></label>
-                            <select v-model="column.verticalAlign" class="select select-bordered w-full">
-                              <option v-for="align in VERTICAL_ALIGNS" :key="align" :value="align">{{ align }}</option>
-                            </select>
-                          </div>
+                        <div class="form-control gap-3 flex">
+                          <label class="label"><span class="label-text">Alignement horizontal</span></label>
+                          <select v-model="column.align" class="select select-bordered w-full">
+                            <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
+                          </select>
+                        </div>
+                        <div class="form-control gap-3 flex">
+                          <label class="label"><span class="label-text">Alignement vertical</span></label>
+                          <select v-model="column.verticalAlign" class="select select-bordered w-full">
+                            <option v-for="align in VERTICAL_ALIGNS" :key="align" :value="align">{{ align }}</option>
+                          </select>
                         </div>
                       </div>
 
@@ -394,7 +405,10 @@ import AdminIconPicker from '~/components/admin/IconPicker.vue'
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
 import type { HomePageButton, HomePageCard, HomePageContent, HomePageContentBlock, HomePageOneColumnSection, HomePageTwoColumnsSection, ThemeColorSelection } from '~/shared/homePage'
 import {
+  applyDefaultSectionStyling,
   BUTTON_TONES,
+  CARD_SIZE_LABELS,
+  CARD_SIZES,
   CARD_TONES,
   cloneHomePageContent,
   CONTENT_ALIGNS,
@@ -407,6 +421,8 @@ import {
   getAlternatingSectionTone,
   IMAGE_ASPECTS,
   IMAGE_FITS,
+  SECTION_CONTAINER_WIDTH_LABELS,
+  SECTION_CONTAINER_WIDTHS,
   SECTION_TONES,
   VERTICAL_ALIGNS
 } from '~/shared/homePage'
@@ -487,8 +503,8 @@ const HomePageButtonFields = defineComponent({
           onInput: (event: Event) => { props.modelValue.label[labelTab.value] = (event.target as HTMLInputElement).value }
         })
       ]),
-      h('div', { class: 'flex gap-2' }, [
-        h('div', { class: 'form-control gap-3 flex flex-1' }, [
+      h('div', { class: 'flex flex-col gap-4' }, [
+        h('div', { class: 'form-control gap-3 flex' }, [
           h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Lien')]),
           h('input', {
             class: 'input input-bordered w-full',
@@ -496,7 +512,7 @@ const HomePageButtonFields = defineComponent({
             onInput: (event: Event) => { props.modelValue.href = (event.target as HTMLInputElement).value }
           })
         ]),
-        h('div', { class: 'form-control gap-3 flex w-[180px]' }, [
+        h('div', { class: 'form-control gap-3 flex' }, [
           h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Style')]),
           h('select', {
             class: 'select select-bordered w-full',
@@ -543,8 +559,8 @@ const HomePageCardFields = defineComponent({
         modelValue: props.modelValue.icon || '',
         'onUpdate:modelValue': (val: string) => props.modelValue.icon = val
       }),
-      h('div', { class: 'flex gap-2' }, [
-        h('div', { class: 'form-control flex-1' }, [
+      h('div', { class: 'flex flex-col gap-4' }, [
+        h('div', { class: 'form-control' }, [
           h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Ton')]),
           h('select', {
             class: 'select select-bordered w-full',
@@ -552,7 +568,7 @@ const HomePageCardFields = defineComponent({
             onChange: (event: Event) => { props.modelValue.tone = (event.target as HTMLSelectElement).value as HomePageCard['tone'] }
           }, CARD_TONES.map(tone => h('option', { value: tone }, tone)))
         ]),
-        h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4' }, [
+        h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [
           h('input', {
             type: 'checkbox',
             class: 'toggle toggle-primary toggle-sm',
@@ -560,6 +576,14 @@ const HomePageCardFields = defineComponent({
             onChange: (event: Event) => { props.modelValue.backdropBlur = (event.target as HTMLInputElement).checked }
           }),
           h('span', { class: 'label-text' }, 'Background blur')
+        ]),
+        h('div', { class: 'form-control' }, [
+          h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Taille de la carte')]),
+          h('select', {
+            class: 'select select-bordered w-full',
+            value: props.modelValue.size,
+            onChange: (event: Event) => { props.modelValue.size = (event.target as HTMLSelectElement).value as HomePageCard['size'] }
+          }, CARD_SIZES.map(size => h('option', { value: size }, CARD_SIZE_LABELS[size])))
         ])
       ]),
       h(ThemeColorPicker, {
@@ -764,6 +788,7 @@ const onSectionTypeChange = (section: HomePageTwoColumnsSection | HomePageOneCol
 
   replacement.enabled = section.enabled
   replacement.tone = section.tone
+  replacement.containerWidth = section.containerWidth
   replacement.backgroundColor = section.backgroundColor
   replacement.verticalAlign = section.verticalAlign
 
@@ -798,10 +823,13 @@ const save = async () => {
 }
 
 const resetColors = async () => {
+  if (!content.value) return
   resettingColors.value = true
   try {
-    await $fetch('/api/admin/home-page/reset-colors', {
-      method: 'POST'
+    applyDefaultSectionStyling(content.value)
+    await $fetch('/api/admin/home-page', {
+      method: 'PUT',
+      body: content.value
     })
     const { $toast } = useNuxtApp() as any
     $toast?.success('Couleurs réinitialisées avec succès')

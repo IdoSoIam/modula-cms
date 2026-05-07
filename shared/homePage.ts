@@ -37,6 +37,8 @@ export type ImageAspect = 'square' | 'landscape' | 'portrait'
 export type ImageFit = 'cover' | 'contain'
 export type ContentAlign = 'start' | 'center'
 export type VerticalAlign = 'start' | 'center' | 'end'
+export type SectionContainerWidth = 'narrow' | 'default' | 'wide' | 'full'
+export type CardSize = 'sm' | 'md' | 'lg' | 'xl'
 
 export interface HomePageIconOption {
   value: string
@@ -64,6 +66,7 @@ export interface HomePageCard {
   text: LocalizedText
   icon?: string
   tone: CardTone
+  size: CardSize
   backgroundColor?: ThemeColorSelection | null
   textColor?: ThemeColorSelection | null
   iconColor?: ThemeColorSelection | null
@@ -80,6 +83,7 @@ export interface HomePageImageBlock {
   alt: LocalizedText
   aspect: ImageAspect
   fit: ImageFit
+  framed: boolean
 }
 
 export interface HomePageContentBlock {
@@ -102,6 +106,7 @@ export interface HomePageTwoColumnsSection {
   type: 'two-columns'
   enabled: boolean
   tone: SectionTone
+  containerWidth: SectionContainerWidth
   backgroundColor?: ThemeColorSelection | null
   verticalAlign: VerticalAlign
   reverseOnDesktop: boolean
@@ -113,6 +118,7 @@ export interface HomePageOneColumnSection {
   type: 'one-column'
   enabled: boolean
   tone: SectionTone
+  containerWidth: SectionContainerWidth
   backgroundColor?: ThemeColorSelection | null
   verticalAlign: VerticalAlign
   column: HomePageColumn
@@ -144,6 +150,20 @@ export const IMAGE_ASPECTS: ImageAspect[] = ['landscape', 'square', 'portrait']
 export const IMAGE_FITS: ImageFit[] = ['cover', 'contain']
 export const CONTENT_ALIGNS: ContentAlign[] = ['start', 'center']
 export const VERTICAL_ALIGNS: VerticalAlign[] = ['start', 'center', 'end']
+export const SECTION_CONTAINER_WIDTHS: SectionContainerWidth[] = ['narrow', 'default', 'wide', 'full']
+export const CARD_SIZES: CardSize[] = ['sm', 'md', 'lg', 'xl']
+export const SECTION_CONTAINER_WIDTH_LABELS: Record<SectionContainerWidth, string> = {
+  narrow: 'Étroit',
+  default: 'Standard',
+  wide: 'Large',
+  full: 'Pleine largeur'
+}
+export const CARD_SIZE_LABELS: Record<CardSize, string> = {
+  sm: 'Petite',
+  md: 'Moyenne',
+  lg: 'Grande',
+  xl: 'Très grande'
+}
 export const THEME_COLOR_TOKENS: ThemeColorToken[] = [
   'transparent',
   'base-100',
@@ -272,6 +292,7 @@ export function createEmptyCard(id: string): HomePageCard {
     text: createEmptyLocalizedText(),
     icon: '',
     tone: 'soft',
+    size: 'md',
     backgroundColor: null,
     textColor: null,
     iconColor: null,
@@ -304,7 +325,8 @@ export function createEmptyImageBlock(): HomePageImageBlock {
     imageUrl: '',
     alt: createEmptyLocalizedText(),
     aspect: 'landscape',
-    fit: 'cover'
+    fit: 'cover',
+    framed: true
   }
 }
 
@@ -314,6 +336,7 @@ export function createEmptyTwoColumnsSection(id: string): HomePageTwoColumnsSect
     type: 'two-columns',
     enabled: true,
     tone: 'base-100',
+    containerWidth: 'default',
     backgroundColor: null,
     verticalAlign: 'center',
     reverseOnDesktop: false,
@@ -327,6 +350,7 @@ export function createEmptyOneColumnSection(id: string): HomePageOneColumnSectio
     type: 'one-column',
     enabled: true,
     tone: 'base-100',
+    containerWidth: 'default',
     backgroundColor: null,
     verticalAlign: 'start',
     column: createEmptyContentBlock()
@@ -336,6 +360,47 @@ export function createEmptyOneColumnSection(id: string): HomePageOneColumnSectio
 export function getAlternatingSectionTone(index: number): SectionTone {
   // Force l'alternance base-100 / base-200 pour les sections
   return index % 2 === 0 ? 'base-100' : 'base-200'
+}
+
+function resetButtonColors(button?: HomePageButton | null) {
+  if (!button) return
+  button.backgroundColor = null
+  button.textColor = null
+  button.borderColor = null
+}
+
+function resetCardColors(card: HomePageCard) {
+  card.backgroundColor = null
+  card.textColor = null
+  card.iconColor = null
+  card.iconBackgroundColor = null
+  card.borderColor = null
+  resetButtonColors(card.primaryButton)
+  resetButtonColors(card.secondaryButton)
+}
+
+function resetColumnColors(column: HomePageColumn) {
+  if (column.type !== 'content') return
+  column.textColor = null
+  resetButtonColors(column.primaryButton)
+  resetButtonColors(column.secondaryButton)
+  column.cards.forEach(resetCardColors)
+}
+
+export function applyDefaultSectionStyling(content: HomePageContent) {
+  content.sections.forEach((section, index) => {
+    section.tone = getAlternatingSectionTone(index)
+    section.backgroundColor = null
+
+    if (section.type === 'two-columns') {
+      section.columns.forEach(resetColumnColors)
+      return
+    }
+
+    resetColumnColors(section.column)
+  })
+
+  return content
 }
 
 export function createDefaultHomePageContent(farmAddress: string): HomePageContent {
@@ -375,7 +440,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
             en: 'Market gardening and farm productions run with an organic approach.'
           },
           icon: 'mdi:leaf',
-          tone: 'soft'
+          tone: 'soft',
+          size: 'md'
         },
         {
           id: 'hero-highlight-2',
@@ -385,7 +451,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
             en: 'Vegetable baskets, direct sales and a simple relationship with the farm.'
           },
           icon: 'mdi:basket-outline',
-          tone: 'soft'
+          tone: 'soft',
+          size: 'md'
         },
         {
           id: 'hero-highlight-3',
@@ -395,7 +462,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
             en: 'A farm based in Saint-Sebastien-d\'Aigrefeuille, in the heart of the Cevennes.'
           },
           icon: 'mdi:map-marker-outline',
-          tone: 'soft'
+          tone: 'soft',
+          size: 'md'
         }
       ]
     },
@@ -405,6 +473,7 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
         type: 'two-columns',
         enabled: true,
         tone: 'base-100',
+        containerWidth: 'default',
         verticalAlign: 'center',
         reverseOnDesktop: false,
         columns: [
@@ -427,7 +496,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'Production of fresh, seasonal vegetables in organic farming.'
                 },
                 icon: 'mdi:sprout',
-                tone: 'soft'
+                tone: 'soft',
+                size: 'md'
               },
               {
                 id: 'activities-2',
@@ -437,7 +507,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'Reserve your weekly basket of fresh, organic, seasonal vegetables harvested at the farm.'
                 },
                 icon: 'mdi:basket-outline',
-                tone: 'soft'
+                tone: 'soft',
+                size: 'md'
               },
               {
                 id: 'activities-3',
@@ -447,7 +518,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'Free-range poultry farming and organic egg production.'
                 },
                 icon: 'mdi:egg-outline',
-                tone: 'soft'
+                tone: 'soft',
+                size: 'md'
               },
               {
                 id: 'activities-4',
@@ -457,7 +529,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'The farm is also developing other crops and activities to build a resilient agricultural model.'
                 },
                 icon: 'mdi:leaf-circle-outline',
-                tone: 'soft'
+                tone: 'soft',
+                size: 'md'
               }
             ],
             primaryButton: {
@@ -475,7 +548,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
               en: 'Ferme du Campeyrigoux logo'
             },
             aspect: 'square',
-            fit: 'contain'
+            fit: 'contain',
+            framed: true
           }
         ]
       },
@@ -484,6 +558,7 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
         type: 'two-columns',
         enabled: true,
         tone: 'base-200',
+        containerWidth: 'default',
         verticalAlign: 'center',
         reverseOnDesktop: true,
         columns: [
@@ -495,7 +570,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
               en: 'Vegetables and farm produce'
             },
             aspect: 'landscape',
-            fit: 'cover'
+            fit: 'cover',
+            framed: true
           },
           {
             type: 'content',
@@ -516,7 +592,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'A simple solution to come pick up your reserved basket directly at the farm, upon email confirmation.'
                 },
                 icon: 'mdi:home-outline',
-                tone: 'base'
+                tone: 'base',
+                size: 'md'
               },
               {
                 id: 'baskets-2',
@@ -526,7 +603,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'Depending on availability, you can choose a convenient pickup location.'
                 },
                 icon: 'mdi:store-marker-outline',
-                tone: 'base'
+                tone: 'base',
+                size: 'md'
               },
               {
                 id: 'baskets-3',
@@ -536,7 +614,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'For certain cities, a delivery tour may be offered.'
                 },
                 icon: 'mdi:truck-fast-outline',
-                tone: 'base'
+                tone: 'base',
+                size: 'md'
               }
             ],
             primaryButton: {
@@ -553,6 +632,7 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
         type: 'two-columns',
         enabled: true,
         tone: 'base-100',
+        containerWidth: 'default',
         verticalAlign: 'center',
         reverseOnDesktop: false,
         columns: [
@@ -575,7 +655,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: `Address: ${farmAddress}`
                 },
                 icon: 'mdi:home-heart',
-                tone: 'base'
+                tone: 'base',
+                size: 'md'
               },
               {
                 id: 'direct-sale-2',
@@ -585,7 +666,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'On the Saint Seb terrace.'
                 },
                 icon: 'mdi:storefront-outline',
-                tone: 'base'
+                tone: 'base',
+                size: 'md'
               },
               {
                 id: 'direct-sale-3',
@@ -595,7 +677,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'I can come to the farm sale for available products, or reserve a basket from the website.'
                 },
                 icon: 'mdi:calendar-check-outline',
-                tone: 'outline'
+                tone: 'outline',
+                size: 'md'
               }
             ],
             primaryButton: {
@@ -613,7 +696,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
               en: 'Farm logo'
             },
             aspect: 'portrait',
-            fit: 'contain'
+            fit: 'contain',
+            framed: true
           }
         ]
       },
@@ -622,6 +706,7 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
         type: 'two-columns',
         enabled: true,
         tone: 'base-200',
+        containerWidth: 'default',
         verticalAlign: 'end',
         reverseOnDesktop: false,
         columns: [
@@ -647,7 +732,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'The farm focuses on living soils, seasonality and practical organic production.'
                 },
                 icon: 'mdi:leaf',
-                tone: 'soft'
+                tone: 'soft',
+                size: 'md'
               },
               {
                 id: 'trust-2',
@@ -657,7 +743,8 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
                   en: 'The farm is rooted in the Cevennes with a strong local direct-sale approach.'
                 },
                 icon: 'mdi:map-marker-radius-outline',
-                tone: 'soft'
+                tone: 'soft',
+                size: 'md'
               }
             ],
             primaryButton: null,

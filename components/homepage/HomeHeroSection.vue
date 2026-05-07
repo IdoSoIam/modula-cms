@@ -4,88 +4,140 @@
     :style="heroStyle"
   >
     <div class="hero-content w-full max-w-6xl justify-start px-4 py-20 text-neutral-content">
-      <div class="max-w-3xl">
-        <div v-if="badge" class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm backdrop-blur">
-          <Icon name="mdi:leaf" size="18" />
-          {{ badge }}
-        </div>
-
-        <h1 class="mb-5 text-5xl font-bold leading-tight md:text-6xl">
-          {{ title }}
-        </h1>
-        <p v-if="text" class="mb-6 max-w-2xl text-lg text-white/90 md:text-xl">
-          {{ text }}
-        </p>
-
-        <div class="flex flex-wrap gap-3">
-          <NuxtLink
-            v-if="content.hero.primaryButton?.href"
-            :to="localePath(content.hero.primaryButton.href)"
-            class="btn btn-lg"
-            :class="buttonClass(content.hero.primaryButton.tone)"
-            :style="buttonStyle(content.hero.primaryButton)"
+      <HomePageEditable :editable="editable" label="Hero" @edit="emit('edit', { kind: 'hero', label: 'Hero', hero: content.hero })">
+        <div class="max-w-3xl">
+          <HomePageEditable
+            v-if="badge"
+            inline
+            :editable="editable"
+            label="Badge"
+            @edit="emit('edit', { kind: 'text', label: 'Badge du hero', text: content.hero.badge })"
           >
-            {{ pickLocalizedText(locale, content.hero.primaryButton.label) }}
-          </NuxtLink>
-          <NuxtLink
-            v-if="content.hero.secondaryButton?.href"
-            :to="localePath(content.hero.secondaryButton.href)"
-            class="btn btn-lg"
-            :class="buttonClass(content.hero.secondaryButton.tone)"
-            :style="buttonStyle(content.hero.secondaryButton)"
-          >
-            {{ pickLocalizedText(locale, content.hero.secondaryButton.label) }}
-          </NuxtLink>
-        </div>
-
-        <div v-if="content.hero.highlights.length" :class="highlightsGridClass">
-          <div
-            v-for="highlight in content.hero.highlights"
-            :key="highlight.id"
-            class="rounded-2xl p-4"
-            :class="highlight.backdropBlur ? 'backdrop-blur' : ''"
-            :style="highlightStyle(highlight)"
-          >
-            <div v-if="highlight.icon" class="mb-3 w-fit rounded-xl p-3" :style="iconWrapperStyle(highlight)">
-              <Icon :name="highlight.icon" size="22" />
+            <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm backdrop-blur">
+              <Icon name="mdi:leaf" size="18" />
+              {{ badge }}
             </div>
-            <div class="text-xs uppercase tracking-[0.18em]" :style="textColorStyle(highlight.textColor, 0.72)">{{ pickLocalizedText(locale, highlight.title) }}</div>
-            <div class="mt-2 text-sm" :style="textColorStyle(highlight.textColor)">{{ pickLocalizedText(locale, highlight.text) }}</div>
+          </HomePageEditable>
 
-            <div v-if="primaryHighlightButton(highlight) || secondaryHighlightButton(highlight)" class="mt-3 flex flex-wrap gap-2">
+          <HomePageEditable
+            inline
+            :editable="editable"
+            label="Titre"
+            @edit="emit('edit', { kind: 'text', label: 'Titre du hero', text: content.hero.title })"
+          >
+            <h1 class="mb-5 text-5xl font-bold leading-tight md:text-6xl">
+              {{ title }}
+            </h1>
+          </HomePageEditable>
+          <HomePageEditable
+            v-if="text"
+            inline
+            :editable="editable"
+            label="Texte"
+            @edit="emit('edit', { kind: 'text', label: 'Texte du hero', text: content.hero.text, multiline: true })"
+          >
+            <p class="mb-6 max-w-2xl text-lg text-white/90 md:text-xl">
+              {{ text }}
+            </p>
+          </HomePageEditable>
+
+          <div class="flex flex-wrap gap-3">
+            <HomePageEditable
+              v-if="content.hero.primaryButton?.href"
+              inline
+              :editable="editable"
+              label="Bouton"
+              @edit="emit('edit', { kind: 'button', label: 'Bouton principal du hero', button: content.hero.primaryButton })"
+            >
               <NuxtLink
-                v-if="primaryHighlightButton(highlight)"
-                :to="localePath(primaryHighlightButton(highlight)!.href)"
-                class="btn btn-xs"
-                :class="buttonClass(primaryHighlightButton(highlight)!.tone)"
-                :style="buttonStyle(primaryHighlightButton(highlight)!)"
+                :to="localePath(content.hero.primaryButton.href)"
+                class="btn btn-lg"
+                :class="buttonClass(content.hero.primaryButton.tone)"
+                :style="buttonStyle(content.hero.primaryButton)"
               >
-                {{ pickLocalizedText(locale, primaryHighlightButton(highlight)!.label) }}
+                {{ pickLocalizedText(locale, content.hero.primaryButton.label) }}
               </NuxtLink>
+            </HomePageEditable>
+            <HomePageEditable
+              v-if="content.hero.secondaryButton?.href"
+              inline
+              :editable="editable"
+              label="Bouton"
+              @edit="emit('edit', { kind: 'button', label: 'Bouton secondaire du hero', button: content.hero.secondaryButton })"
+            >
               <NuxtLink
-                v-if="secondaryHighlightButton(highlight)"
-                :to="localePath(secondaryHighlightButton(highlight)!.href)"
-                class="btn btn-xs"
-                :class="buttonClass(secondaryHighlightButton(highlight)!.tone)"
-                :style="buttonStyle(secondaryHighlightButton(highlight)!)"
+                :to="localePath(content.hero.secondaryButton.href)"
+                class="btn btn-lg"
+                :class="buttonClass(content.hero.secondaryButton.tone)"
+                :style="buttonStyle(content.hero.secondaryButton)"
               >
-                {{ pickLocalizedText(locale, secondaryHighlightButton(highlight)!.label) }}
+                {{ pickLocalizedText(locale, content.hero.secondaryButton.label) }}
               </NuxtLink>
-            </div>
+            </HomePageEditable>
+          </div>
+
+          <div v-if="content.hero.highlights.length" :class="highlightsGridClass">
+            <HomePageEditable
+              v-for="highlight in content.hero.highlights"
+              :key="highlight.id"
+              :editable="editable"
+              label="Carte"
+              @edit="emit('edit', { kind: 'card', label: 'Carte du hero', card: highlight })"
+            >
+              <div
+                class="rounded-2xl p-4"
+                :class="highlight.backdropBlur ? 'backdrop-blur' : ''"
+                :style="highlightStyle(highlight)"
+              >
+                <div v-if="highlight.icon" class="mb-3 w-fit rounded-xl p-3" :style="iconWrapperStyle(highlight)">
+                  <Icon :name="highlight.icon" size="22" />
+                </div>
+                <div class="text-xs uppercase tracking-[0.18em]" :style="textColorStyle(highlight.textColor, 0.72)">{{ pickLocalizedText(locale, highlight.title) }}</div>
+                <div class="mt-2 text-sm" :style="textColorStyle(highlight.textColor)">{{ pickLocalizedText(locale, highlight.text) }}</div>
+
+                <div v-if="primaryHighlightButton(highlight) || secondaryHighlightButton(highlight)" class="mt-3 flex flex-wrap gap-2">
+                  <NuxtLink
+                    v-if="primaryHighlightButton(highlight)"
+                    :to="localePath(primaryHighlightButton(highlight)!.href)"
+                    class="btn btn-xs"
+                    :class="buttonClass(primaryHighlightButton(highlight)!.tone)"
+                    :style="buttonStyle(primaryHighlightButton(highlight)!)"
+                  >
+                    {{ pickLocalizedText(locale, primaryHighlightButton(highlight)!.label) }}
+                  </NuxtLink>
+                  <NuxtLink
+                    v-if="secondaryHighlightButton(highlight)"
+                    :to="localePath(secondaryHighlightButton(highlight)!.href)"
+                    class="btn btn-xs"
+                    :class="buttonClass(secondaryHighlightButton(highlight)!.tone)"
+                    :style="buttonStyle(secondaryHighlightButton(highlight)!)"
+                  >
+                    {{ pickLocalizedText(locale, secondaryHighlightButton(highlight)!.label) }}
+                  </NuxtLink>
+                </div>
+              </div>
+            </HomePageEditable>
           </div>
         </div>
-      </div>
+      </HomePageEditable>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import type { HomePageButton, HomePageCard, HomePageContent, ThemeColorSelection } from '~/shared/homePage'
+import type { HomePageEditTarget } from '~/shared/homePageEditor'
+import HomePageEditable from '~/components/homepage/HomePageEditable.vue'
 import { pickLocalizedText } from '~/shared/homePage'
 
 const props = defineProps<{
   content: HomePageContent
   locale: string
+  editable?: boolean
+}>()
+
+const emit = defineEmits<{
+  edit: [target: HomePageEditTarget]
 }>()
 
 const localePath = useLocalePath()

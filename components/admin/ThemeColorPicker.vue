@@ -26,7 +26,7 @@
         <div
           v-if="isOpen"
           ref="panelRef"
-          class="fixed z-[100] rounded-xl border border-base-300 bg-base-100 p-3 shadow-lg"
+          class="fixed z-[100000] rounded-xl border border-base-300 bg-base-100 p-3 shadow-lg"
           :style="panelStyle"
         >
           <input
