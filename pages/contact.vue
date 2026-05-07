@@ -165,7 +165,7 @@ const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.f
                 </label>
               </div>
 
-              <div class="form-control mt-8">
+              <div class="form-control gap-3 flex mt-8">
                 <button type="submit" class="btn btn-primary w-full" :disabled="sending">
                   <span v-if="sending" class="loading loading-spinner loading-sm" />
                   <Icon v-else name="mdi:send" class="mr-2" />

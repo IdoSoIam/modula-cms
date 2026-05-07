@@ -91,7 +91,7 @@
 
           <form v-else @submit.prevent="updatePersonalInfo" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="form-control">
+              <div class="form-control gap-3 flex">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.firstName') }}</span>
                 </label>
@@ -102,7 +102,7 @@
                   required
                 />
               </div>
-              <div class="form-control">
+              <div class="form-control gap-3 flex">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.lastName') }}</span>
                 </label>
@@ -114,7 +114,7 @@
                 />
               </div>
             </div>
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label">
                 <span class="label-text">{{ $t('profile.email') }}</span>
               </label>
@@ -176,7 +176,7 @@
           </div>
 
           <form v-else @submit.prevent="updateShippingInfo" class="space-y-4">
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label">
                 <span class="label-text">{{ $t('profile.addressLine1') }}</span>
               </label>
@@ -187,7 +187,7 @@
                 required
               />
             </div>
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label">
                 <span class="label-text">{{ $t('profile.addressLine2') }}</span>
               </label>
@@ -198,7 +198,7 @@
               />
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="form-control">
+              <div class="form-control gap-3 flex">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.postalCode') }}</span>
                 </label>
@@ -209,7 +209,7 @@
                   required
                 />
               </div>
-              <div class="form-control">
+              <div class="form-control gap-3 flex">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.city') }}</span>
                 </label>
@@ -221,7 +221,7 @@
                 />
               </div>
             </div>
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label">
                 <span class="label-text">{{ $t('profile.country') }}</span>
               </label>
@@ -269,7 +269,7 @@
             </div>
             
             <form @submit.prevent="changePassword" class="space-y-4">
-              <div class="form-control">
+              <div class="form-control gap-3 flex">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.currentPassword') }}</span>
                 </label>
@@ -280,7 +280,7 @@
                   required
                 />
               </div>
-              <div class="form-control">
+              <div class="form-control gap-3 flex">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.newPassword') }}</span>
                 </label>
@@ -292,7 +292,7 @@
                   required
                 />
               </div>
-              <div class="form-control">
+              <div class="form-control gap-3 flex">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.confirmNewPassword') }}</span>
                 </label>
@@ -348,7 +348,7 @@
         <h3 class="font-bold text-lg text-error">{{ $t('profile.deleteAccount') }}</h3>
         <p class="py-4">{{ $t('profile.deleteAccountWarning') }}</p>
         
-        <div class="form-control py-4">
+        <div class="form-control gap-3 flex py-4">
           <label class="label">
             <span class="label-text">{{ $t('profile.enterPasswordToDelete') }}</span>
           </label>
@@ -360,7 +360,7 @@
           />
         </div>
 
-        <div class="form-control py-4">
+        <div class="form-control gap-3 flex py-4">
           <label class="label">
             <span class="label-text">{{ $t('profile.deleteAccountConfirm') }}</span>
           </label>

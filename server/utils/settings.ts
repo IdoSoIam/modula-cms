@@ -25,6 +25,7 @@ export const SETTING_KEYS = {
   GMAIL_CONNECTED_EMAIL: 'gmail_connected_email',
   GOOGLE_CALENDAR_ID: 'google_calendar_id',
   GOOGLE_CALENDAR_NAME: 'google_calendar_name',
+  HOME_PAGE_CONTENT: 'home_page_content_v1',
   FACEBOOK_FLUX_DEACTIVATED: 'facebook_flux_deactivated',
   IN_DEVELOPMENT: 'in_development',
   ORDERS_OPEN_FROM: 'orders_open_from',

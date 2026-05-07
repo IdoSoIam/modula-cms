@@ -69,23 +69,23 @@
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Nom</span></label>
             <input v-model="editing.name" class="input input-bordered" placeholder="Petit panier" />
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Image</span></label>
             <ImageInput v-model="editing.imageUrl" />
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Description</span></label>
             <textarea v-model="editing.description" class="textarea textarea-bordered" rows="2" />
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Quantité disponible</span></label>
             <input v-model.number="editing.available" type="number" min="0" class="input input-bordered" />
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label cursor-pointer">
               <span class="label-text">Actif (visible côté client)</span>
               <input v-model="editing.active" type="checkbox" class="checkbox" />
@@ -130,7 +130,7 @@
         <div class="divider">Prix</div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label">
               <span class="label-text">Prix calculé (auto)</span>
             </label>
@@ -138,7 +138,7 @@
               {{ $formatPrice(computedPrice) }}
             </div>
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label">
               <span class="label-text">Prix final (€) — modifiable</span>
               <button type="button" class="label-text-alt link" @click="editing.finalPrice = computedPrice">

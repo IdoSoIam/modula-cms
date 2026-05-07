@@ -14,7 +14,7 @@
           <p class="mb-2 text-sm opacity-70">
             Adresse Gmail qui recevra les notifications de nouvelles réservations.
           </p>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label">
               <span class="label-text">Adresse email</span>
             </label>
@@ -33,16 +33,16 @@
           <h2 class="card-title">{{ $t('admin.ordersWindow.section') }}</h2>
           <p class="text-sm opacity-70">{{ $t('admin.ordersWindow.help') }}</p>
           <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label"><span class="label-text">{{ $t('admin.ordersWindow.from') }}</span></label>
               <input v-model="form.ordersOpenFrom" type="date" class="input input-bordered w-full" />
             </div>
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label"><span class="label-text">{{ $t('admin.ordersWindow.to') }}</span></label>
               <input v-model="form.ordersOpenTo" type="date" class="input input-bordered w-full" />
             </div>
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">{{ $t('admin.ordersWindow.message') }}</span></label>
             <textarea
               v-model="form.ordersClosedMessage"
@@ -86,11 +86,11 @@
             Adresse et horaires d'ouverture de la ferme. Ils servent à la fois pour la vente à la ferme et comme créneau par défaut pour le retrait des paniers.
           </p>
           <div class="grid gap-3 md:grid-cols-2">
-            <div class="form-control md:col-span-2">
+            <div class="form-control gap-3 flex md:col-span-2">
               <label class="label"><span class="label-text">Adresse précise</span></label>
               <textarea v-model="form.farmPickupAddress" class="textarea textarea-bordered w-full" rows="2" />
             </div>
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label"><span class="label-text">Jour par défaut</span></label>
               <select v-model.number="form.farmPickupDayOfWeek" class="select select-bordered w-full">
                 <option :value="1">Lundi</option>
@@ -102,11 +102,11 @@
                 <option :value="0">Dimanche</option>
               </select>
             </div>
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label"><span class="label-text">Début d'ouverture</span></label>
               <input v-model="form.farmPickupStartTime" type="time" class="input input-bordered w-full" />
             </div>
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label"><span class="label-text">Fin d'ouverture</span></label>
               <input v-model="form.farmPickupEndTime" type="time" class="input input-bordered w-full" />
             </div>
@@ -131,7 +131,7 @@
           </div>
 
           <div v-if="settingsData.gmailConnectedEmail" class="mt-4 grid gap-3">
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label">
                 <span class="label-text">Calendrier cible</span>
               </label>
@@ -224,7 +224,7 @@
               </div>
 
               <div v-else-if="currentTemplate" class="space-y-4">
-                <div class="form-control mb-2">
+                <div class="form-control gap-3 flex mb-2">
                   <label class="label"><span class="label-text">Sujet</span></label>
                   <input
                     v-model="currentTemplate.subject"
@@ -232,7 +232,7 @@
                     class="input input-bordered w-full"
                   />
                 </div>
-                <div class="form-control">
+                <div class="form-control gap-3 flex">
                   <label class="label"><span class="label-text">Corps du message</span></label>
                   <textarea
                     v-model="currentTemplate.body"

@@ -62,26 +62,26 @@
           {{ editing.id ? 'Modifier le légume' : 'Nouveau légume' }}
         </h3>
         <div class="space-y-3">
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Nom</span></label>
             <input v-model="editing.name" class="input input-bordered" />
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Unité</span></label>
             <select v-model="editing.unit" class="select select-bordered">
               <option value="KG">Au kilo (€/kg)</option>
               <option value="PIECE">À la pièce (€/pièce)</option>
             </select>
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Prix (€)</span></label>
             <input v-model.number="editing.price" type="number" step="0.01" min="0" class="input input-bordered" />
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Image</span></label>
             <ImageInput v-model="editing.imageUrl" />
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label cursor-pointer">
               <span class="label-text">Actif</span>
               <input v-model="editing.active" type="checkbox" class="checkbox" />

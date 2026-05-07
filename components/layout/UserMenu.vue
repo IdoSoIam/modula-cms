@@ -19,6 +19,12 @@
         <template v-if="authStore.user?.role === 'admin'">
           <li class="menu-title mt-2">{{ $t('admin.title') }}</li>
           <li>
+            <NuxtLink :to="localePath('/admin/accueil')" no-prefetch class="text-primary">
+              <Icon name="mdi:home-edit-outline" size="16" class="mr-1" />
+              Accueil
+            </NuxtLink>
+          </li>
+          <li>
             <NuxtLink :to="localePath('/admin/paniers')" class="text-primary">
               <Icon name="mdi:basket-outline" size="16" class="mr-1" />
               {{ $t('admin.baskets') }}
