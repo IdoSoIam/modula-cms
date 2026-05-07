@@ -104,9 +104,9 @@ const router = useRouter()
 const localePath = useLocalePath()
 const showAuthModal = ref(false)
 
-const siteConfig = await useSiteConfig()
-const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated ?? false)
-const registerEnabled = computed(() => siteConfig.value?.registerEnabled ?? false)
+const siteConfig = useSiteConfigState()
+const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated === true)
+const registerEnabled = computed(() => siteConfig.value?.registerEnabled === true)
 
 const handleLogout = async () => {
   await authStore.logout()
