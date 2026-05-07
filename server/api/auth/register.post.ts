@@ -8,6 +8,7 @@ const authService = new AuthService()
 
 export default defineEventHandler(async (event: H3Event) => {
   try {
+    setResponseHeader(event, 'Cache-Control', 'no-store')
     const userCount = await prisma.user.count()
     const registerEnabled = await isRegisterEnabled()
     if (!registerEnabled && userCount > 0) {
@@ -34,6 +35,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
     const user = await authService.createUser(email, password, firstName, lastName, birthDateObj, role)
     const session = await useSession(event, getSessionConfig())
+    await session.clear()
     await session.update({
       userId: user.id
     })

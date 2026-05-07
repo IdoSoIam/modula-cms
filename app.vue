@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-const { data: siteConfig } = await useFetch('/api/site-config')
+const siteConfig = await useSiteConfig()
 const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
 
 useHead({
@@ -26,8 +26,8 @@ useHead({
     {
       innerHTML: `
         (function() {
-          const DEFAULT_THEME = 'ferme';
-          const VALID_THEMES = ['ferme','ferme-dark','prairie','recolte','lavande'];
+          const DEFAULT_THEME = 'recolte';
+          const VALID_THEMES = ['ferme','ferme-dark','recolte'];
           const VALID_LOCALES = ['fr', 'en'];
           const LOCALE_STORAGE_KEY = 'preferred-locale';
           try {

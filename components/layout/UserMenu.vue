@@ -110,7 +110,7 @@ const router = useRouter()
 const localePath = useLocalePath()
 const showAuthModal = ref(false)
 
-const { data: siteConfig } = await useFetch<{ facebookFluxDeactivated: boolean; registerEnabled: boolean }>('/api/site-config')
+const siteConfig = await useSiteConfig()
 const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated ?? false)
 const registerEnabled = computed(() => siteConfig.value?.registerEnabled ?? false)
 

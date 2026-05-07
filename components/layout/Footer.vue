@@ -1,11 +1,12 @@
 <template>
-  <footer class="footer footer-center p-10 bg-neutral text-neutral-content w-full">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 w-full max-w-7xl">
-      <!-- Logo et description -->
-      <div class="flex flex-col items-center">
-        <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-20 mb-2" />
-        <p class="font-bold text-lg">Ferme du Campeyrigoux</p>
-        <p class="opacity-80">{{ $t("footer.organic") }}</p>
+  <ClientOnly>
+    <footer class="footer footer-center p-10 bg-neutral text-neutral-content w-full">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 w-full max-w-7xl">
+        <!-- Logo et description -->
+        <div class="flex flex-col items-center">
+          <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-20 mb-2" />
+          <p class="font-bold text-lg">Ferme du Campeyrigoux</p>
+          <p class="opacity-80">{{ $t("footer.organic") }}</p>
       </div>
 
       <!-- Horaires -->
@@ -27,7 +28,7 @@
       <div class="flex flex-col items-center">
         <h4 class="footer-title">{{ $t("footer.contact") }}</h4>
         <div class="opacity-80 text-center word-wrap">
-          <p class="whitespace-pre-line">{{ siteConfig?.farmPickup.address }}</p>
+          <p class="whitespace-pre-line">{{ siteConfig?.farmPickup?.address }}</p>
           <p class="flex items-center gap-2 justify-center">
             <Icon name="mdi:phone" size="18" />
             {{ siteConfig?.adminPhone || '07 68 55 06 64' }}
@@ -55,6 +56,7 @@
       </div>
     </div>
   </footer>
+  </ClientOnly>
 </template>
 
 
@@ -71,7 +73,7 @@ interface SiteConfig {
   adminPhone: string
 }
 
-const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
+const siteConfig = await useSiteConfig()
 const { formatWeeklySchedule, marketSale } = useSalesInfo()
 
 const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))

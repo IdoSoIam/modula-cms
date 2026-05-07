@@ -8,6 +8,8 @@ export default defineNuxtPlugin(() => {
     const saved = localStorage.getItem('theme') as ThemeValue | null
     if (saved && AVAILABLE_THEMES.some(t => t.value === saved)) {
       setTheme(saved)
+    } else {
+      setTheme('recolte')
     }
   }
 })

@@ -3,6 +3,8 @@ interface ContactForm {
   name: string
   email: string
   message: string
+  website: string
+  formStartedAt: number
 }
 
 const { t, locale } = useI18n()
@@ -18,7 +20,9 @@ usePageSeo({
 const form = ref<ContactForm>({
   name: '',
   email: '',
-  message: ''
+  message: '',
+  website: '',
+  formStartedAt: Date.now()
 })
 
 const errors = ref<Partial<ContactForm>>({})
@@ -59,7 +63,13 @@ const handleSubmit = async () => {
       body: form.value
     })
     $toast?.success('Message envoyé')
-    form.value = { name: '', email: '', message: '' }
+    form.value = {
+      name: '',
+      email: '',
+      message: '',
+      website: '',
+      formStartedAt: Date.now()
+    }
     errors.value = {}
   } catch (error: any) {
     $toast?.error(error.statusMessage || 'Erreur lors de l\'envoi')
@@ -81,7 +91,7 @@ interface SiteConfig {
   adminPhone: string
 }
 
-const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
+const siteConfig = await useSiteConfig()
 const { formatWeeklySchedule } = useSalesInfo()
 const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))
 </script>
@@ -96,6 +106,18 @@ const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.f
           <div class="card-body">
             <h2 class="card-title mb-4 text-2xl">{{ $t('pages.contact.sendMessage') }}</h2>
             <form class="space-y-6" @submit.prevent="handleSubmit">
+              <div class="form-control w-full">
+                <label class="hidden" aria-hidden="true">
+                  <span>Website</span>
+                  <input
+                    v-model="form.website"
+                    type="text"
+                    tabindex="-1"
+                    autocomplete="off"
+                  />
+                </label>
+              </div>
+
               <div class="form-control w-full">
                 <label class="label pb-1">
                   <span class="label-text text-base font-semibold">{{ $t('pages.contact.name') }}</span>
@@ -164,7 +186,7 @@ const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.f
                   <Icon name="mdi:map-marker" class="mt-1 text-xl text-primary" />
                   <div>
                     <h3 class="font-medium">{{ $t('pages.contact.address') }}</h3>
-                    <p class="text-base-content/80 whitespace-pre-line">{{ siteConfig?.farmPickup.address }}</p>
+                    <p class="text-base-content/80 whitespace-pre-line">{{ siteConfig?.farmPickup?.address }}</p>
                   </div>
                 </div>
 

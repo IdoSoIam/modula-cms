@@ -28,8 +28,8 @@ usePageSeo({
     : 'Suivez les actualités, les nouveautés et les temps forts de saison de la Ferme du Campeyrigoux.')
 })
 
-const { data: config } = await useFetch<{ facebookFluxDeactivated: boolean }>('/api/site-config')
-const useArticles = computed(() => config.value?.facebookFluxDeactivated === true)
+const siteConfig = await useSiteConfig()
+const useArticles = computed(() => siteConfig.value?.facebookFluxDeactivated === true)
 
 const { data: articlesRaw, pending: articlesPending } = await useAsyncData<ArticleSummary[]>(
   'public-articles',

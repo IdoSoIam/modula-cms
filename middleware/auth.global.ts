@@ -13,8 +13,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   let inDevelopment = false
   try {
-    const siteConfig = await ensureSiteConfigState()
-    inDevelopment = siteConfig.inDevelopment === true
+    // Skip site config check if no Nuxt app context (edge case during SSR)
+    if (tryUseNuxtApp()) {
+      const siteConfig = await ensureSiteConfigState()
+      inDevelopment = siteConfig?.inDevelopment === true
+    }
   } catch (error) {
     console.debug('Site config check failed:', error)
   }

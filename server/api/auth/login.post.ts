@@ -1,11 +1,20 @@
 import { AuthService } from '../../services/auth/authService'
 import { H3Event } from 'h3'
 import { getSessionConfig } from '../../utils/session'
+import { enforceRateLimit } from '../../utils/rateLimit'
 
 const authService = new AuthService()
 
 export default defineEventHandler(async (event: H3Event) => {
   try {
+    setResponseHeader(event, 'Cache-Control', 'no-store')
+    enforceRateLimit(event, {
+      key: 'auth-login',
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+      message: 'Trop de tentatives de connexion. Réessayez plus tard.'
+    })
+
     const { email, password } = await readBody(event)
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : ''
 
@@ -25,6 +34,7 @@ export default defineEventHandler(async (event: H3Event) => {
     }
 
     const session = await useSession(event, getSessionConfig())
+    await session.clear()
     await session.update({
       userId: user.id
     })

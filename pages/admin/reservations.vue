@@ -482,7 +482,7 @@ type ReservationDetails = Reservation & {
 }
 
 const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
-const { data: siteConfig } = await useFetch<{ subscriptionsEnabled?: boolean }>('/api/site-config')
+const siteConfig = await useSiteConfig()
 const subscriptionsEnabled = computed(() => siteConfig.value?.subscriptionsEnabled ?? false)
 
 const detailsDlg = ref<HTMLDialogElement>()

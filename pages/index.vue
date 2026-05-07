@@ -49,9 +49,14 @@
           </div>
           <div>
             <div class="font-semibold">{{ $t('pages.home.schedule') }}</div>
-            <div class="text-sm opacity-70">
-              {{ farmScheduleText }}
-            </div>
+            <ClientOnly>
+              <div class="text-sm opacity-70">
+                {{ farmScheduleText }}
+              </div>
+              <template #fallback>
+                <div class="text-sm opacity-70">...</div>
+              </template>
+            </ClientOnly>
           </div>
         </div>
         <div class="flex items-center gap-3">
@@ -60,7 +65,12 @@
           </div>
           <div>
             <div class="font-semibold">{{ $t('pages.home.locationTitle') }}</div>
-            <div class="text-sm opacity-70 whitespace-pre-line">{{ siteConfig?.farmPickup.address || $t('pages.home.location') }}</div>
+            <ClientOnly>
+              <div class="text-sm opacity-70 whitespace-pre-line">{{ siteConfig?.farmPickup?.address || $t('pages.home.location') }}</div>
+              <template #fallback>
+                <div class="text-sm opacity-70 whitespace-pre-line">{{ $t('pages.home.location') }}</div>
+              </template>
+            </ClientOnly>
           </div>
         </div>
         <div class="flex items-center gap-3">
@@ -183,16 +193,28 @@
                   <Icon name="mdi:home-heart" size="20" class="text-primary" />
                   {{ $t('sales.farmTitle') }}
                 </div>
-                <p class="text-sm opacity-75">{{ farmScheduleText }}</p>
-                <p class="mt-1 text-sm opacity-75 whitespace-pre-line">{{ siteConfig?.farmPickup.address }}</p>
+                <ClientOnly>
+                  <p class="text-sm opacity-75">{{ farmScheduleText }}</p>
+                  <p class="mt-1 text-sm opacity-75 whitespace-pre-line">{{ siteConfig?.farmPickup?.address }}</p>
+                  <template #fallback>
+                    <p class="text-sm opacity-75">...</p>
+                    <p class="mt-1 text-sm opacity-75 whitespace-pre-line">...</p>
+                  </template>
+                </ClientOnly>
               </div>
               <div class="rounded-2xl bg-base-100 p-5 shadow-sm">
                 <div class="mb-2 flex items-center gap-2 font-semibold">
                   <Icon name="mdi:storefront-outline" size="20" class="text-primary" />
                   {{ marketSale.title }}
                 </div>
-                <p class="text-sm opacity-75">{{ marketSale.scheduleText }}</p>
-                <p class="mt-1 text-sm opacity-75">{{ marketSale.place }}</p>
+                <ClientOnly>
+                  <p class="text-sm opacity-75">{{ marketSale.scheduleText }}</p>
+                  <p class="mt-1 text-sm opacity-75">{{ marketSale.place }}</p>
+                  <template #fallback>
+                    <p class="text-sm opacity-75">...</p>
+                    <p class="mt-1 text-sm opacity-75">...</p>
+                  </template>
+                </ClientOnly>
               </div>
             </div>
 
@@ -281,7 +303,7 @@ interface SiteConfig {
 
 const { locale } = useI18n()
 const localePath = useLocalePath()
-const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
+const siteConfig = await useSiteConfig()
 const { formatWeeklySchedule, marketSale } = useSalesInfo()
 
 usePageSeo({

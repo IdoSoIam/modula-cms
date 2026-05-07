@@ -2,9 +2,31 @@ import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail } from '~/server/utils/reservationEmails'
 import { getSetting, SETTING_KEYS } from '~/server/utils/settings'
 import { resolveTemplateFromSettings, applyTemplateVars, getReservationEmailHtmlLang } from '~/server/utils/reservationEmailContent'
+import { enforceRateLimit } from '~/server/utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ name?: string; email?: string; message?: string }>(event)
+  enforceRateLimit(event, {
+    key: 'contact-form',
+    limit: 5,
+    windowMs: 15 * 60 * 1000,
+    message: 'Trop de messages envoyés. Réessayez plus tard.'
+  })
+
+  const body = await readBody<{ name?: string; email?: string; message?: string; website?: string; formStartedAt?: number }>(event)
+
+  if (body.website?.trim()) {
+    return {
+      success: true,
+      message: 'Message envoyé avec succès'
+    }
+  }
+
+  if (!body.formStartedAt || Date.now() - body.formStartedAt < 2000) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Envoi du formulaire refusé'
+    })
+  }
 
   if (!body.name?.trim() || !body.email?.trim() || !body.message?.trim()) {
     throw createError({

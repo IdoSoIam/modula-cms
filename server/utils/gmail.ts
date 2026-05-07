@@ -1,4 +1,5 @@
 import { deleteSettings, getSetting, setSetting, SETTING_KEYS } from './settings'
+import { getEnv } from './env'
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send'
@@ -17,9 +18,9 @@ const CALENDAR_LIST_URL = 'https://www.googleapis.com/calendar/v3/users/me/calen
 const CALENDAR_EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars'
 
 function getOAuthConfig() {
-  const clientId = process.env.GOOGLE_CLIENT_ID
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://localhost:3000/api/auth/gmail/callback'
+  const clientId = getEnv('GOOGLE_CLIENT_ID')
+  const clientSecret = getEnv('GOOGLE_CLIENT_SECRET')
+  const redirectUri = getEnv('GOOGLE_REDIRECT_URI') || 'https://localhost:3000/api/auth/gmail/callback'
   if (!clientId || !clientSecret) {
     throw createError({ statusCode: 500, statusMessage: 'Google OAuth non configure (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET manquants)' })
   }
@@ -27,10 +28,11 @@ function getOAuthConfig() {
 }
 
 export function getSiteOrigin() {
-  if (process.env.SITE_URL) {
-    return process.env.SITE_URL.replace(/\/+$/, '')
+  const siteUrl = getEnv('SITE_URL')
+  if (siteUrl) {
+    return siteUrl.replace(/\/+$/, '')
   }
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://localhost:3000/api/auth/gmail/callback'
+  const redirectUri = getEnv('GOOGLE_REDIRECT_URI') || 'https://localhost:3000/api/auth/gmail/callback'
   return new URL(redirectUri).origin
 }
 

@@ -242,7 +242,11 @@
             <Icon name="mdi:information-outline" size="18" />
             <span>{{ $t('pages.baskets.farmDefaultSlotHelp') }}</span>
           </div>
-          <div class="rounded-xl bg-base-300 p-4 text-sm">
+          <div v-if="deliveryOptionsLoading" class="flex items-center gap-2 rounded-xl bg-base-300 p-4 text-sm opacity-70">
+            <span class="loading loading-spinner loading-sm" />
+            {{ $t('common.loading') }}
+          </div>
+          <div v-else class="rounded-xl bg-base-300 p-4 text-sm">
             <div class="font-medium">{{ $t('pages.baskets.farmAddressTitle') }}</div>
             <div class="mt-1 opacity-80">{{ deliveryOptions?.farmPickup.address }}</div>
             <div class="mt-3 font-medium">{{ $t('pages.baskets.defaultSlotTitle') }}</div>
@@ -273,7 +277,11 @@
 
         <div v-if="form.deliveryType === 'PICKUP'" class="form-control mb-3">
           <label class="label"><span class="label-text">{{ $t('pages.baskets.selectPickup') }} *</span></label>
-          <select v-if="pickupPoints.length" v-model.number="form.pickupPointId" class="select select-bordered w-full">
+          <div v-if="deliveryOptionsLoading" class="flex items-center gap-2 rounded-xl bg-base-200 px-4 py-3 text-sm opacity-70">
+            <span class="loading loading-spinner loading-sm" />
+            {{ $t('common.loading') }}
+          </div>
+          <select v-else-if="pickupPoints.length" v-model.number="form.pickupPointId" class="select select-bordered w-full">
             <option :value="null" disabled>--</option>
             <option v-for="point in pickupPoints" :key="point.id" :value="point.id">{{ point.name }}</option>
           </select>
@@ -320,7 +328,7 @@
                   class="input input-bordered w-full"
                   :placeholder="$t('pages.baskets.citySearchPlaceholder')"
                   autocomplete="off"
-                  @focus="showCityDropdown = true"
+                  @focus="openCityDropdown"
                   @input="onCitySearch"
                   @blur="onCityBlur"
                   @keydown.esc="showCityDropdown = false"
@@ -502,9 +510,11 @@ interface DeliveryOptions {
 
 const { t, locale } = useI18n()
 const { data: baskets, pending, refresh } = await useFetch<PublicBasket[]>('/api/baskets')
-const { data: deliveryOptions } = await useFetch<DeliveryOptions>('/api/delivery-options')
-const { data: siteConfig } = await useFetch<SiteConfig>('/api/site-config')
-const { data: deliveryCities, pending: deliveryCitiesLoading } = await useFetch<DeliveryCity[]>('/api/delivery-cities')
+const siteConfig = await useSiteConfig()
+const deliveryOptions = ref<DeliveryOptions | null>(null)
+const deliveryOptionsLoading = ref(false)
+const deliveryCities = ref<DeliveryCity[]>([])
+const deliveryCitiesLoading = ref(false)
 
 usePageSeo({
   title: computed(() => locale.value === 'en' ? 'Reserve a vegetable basket' : 'Réserver un panier de légumes'),
@@ -513,7 +523,7 @@ usePageSeo({
     : 'Consultez les paniers de légumes disponibles, choisissez votre retrait ou votre livraison et envoyez votre réservation en ligne.')
 })
 
-const ordersOpen = computed(() => siteConfig.value?.ordersWindow.isOpen ?? true)
+const ordersOpen = computed(() => siteConfig.value?.ordersWindow?.isOpen ?? true)
 const ordersWindow = computed(() => siteConfig.value?.ordersWindow)
 const subscriptionsEnabled = computed(() => siteConfig.value?.subscriptionsEnabled ?? false)
 const singleBasket = computed(() => baskets.value?.length === 1 ? baskets.value[0] : null)
@@ -554,7 +564,7 @@ const vegetablePreview = reactive({
 })
 
 const filteredCities = computed(() => {
-  if (!deliveryCities.value) return []
+  if (!deliveryCities.value?.length) return []
   const search = citySearch.value.trim().toLowerCase()
   if (!search) return deliveryCities.value
   return deliveryCities.value.filter((city) => city.city.toLowerCase().includes(search))
@@ -631,6 +641,37 @@ const onCitySearch = () => {
   form.deliveryTourId = null
 }
 
+const ensureDeliveryOptionsLoaded = async () => {
+  if (deliveryOptions.value || deliveryOptionsLoading.value) {
+    return
+  }
+
+  deliveryOptionsLoading.value = true
+  try {
+    deliveryOptions.value = await $fetch<DeliveryOptions>('/api/delivery-options')
+  } finally {
+    deliveryOptionsLoading.value = false
+  }
+}
+
+const ensureDeliveryCitiesLoaded = async () => {
+  if (deliveryCities.value?.length || deliveryCitiesLoading.value) {
+    return
+  }
+
+  deliveryCitiesLoading.value = true
+  try {
+    deliveryCities.value = await $fetch<DeliveryCity[]>('/api/delivery-cities')
+  } finally {
+    deliveryCitiesLoading.value = false
+  }
+}
+
+const openCityDropdown = async () => {
+  showCityDropdown.value = true
+  await ensureDeliveryCitiesLoaded()
+}
+
 const onCityBlur = () => {
   setTimeout(() => {
     showCityDropdown.value = false
@@ -653,7 +694,7 @@ const selectFirstCity = () => {
   }
 }
 
-const openReservation = (basket: PublicBasket) => {
+const openReservation = async (basket: PublicBasket) => {
   selected.value = basket
   showCityDropdown.value = false
 
@@ -662,6 +703,7 @@ const openReservation = (basket: PublicBasket) => {
     form.email = authStore.user.email
   }
 
+  await ensureDeliveryOptionsLoaded()
   dlg.value?.showModal()
 }
 

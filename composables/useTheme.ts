@@ -1,14 +1,12 @@
 export const AVAILABLE_THEMES = [
-  { value: 'ferme',      label: 'Champ ensoleillé', preview: '#fbf6ec' },
-  { value: 'ferme-dark', label: "Nuit à l'étable",  preview: '#221c14' },
-  { value: 'prairie',    label: 'Prairie',          preview: '#f4f7ec' },
   { value: 'recolte',    label: 'Récolte',          preview: '#fbf1e0' },
-  { value: 'lavande',    label: 'Lavande',          preview: '#f6f2f8' }
+  { value: 'ferme',      label: 'Champ ensoleillé', preview: '#fbf6ec' },
+  { value: 'ferme-dark', label: "Nuit à l'étable",  preview: '#221c14' }
 ] as const
 
 export type ThemeValue = typeof AVAILABLE_THEMES[number]['value']
 
-const DEFAULT_THEME: ThemeValue = 'ferme'
+const DEFAULT_THEME: ThemeValue = 'recolte'
 const STORAGE_KEY = 'theme'
 
 export const useTheme = () => {

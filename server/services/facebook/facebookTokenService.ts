@@ -1,6 +1,7 @@
 import fbModule from 'fb'
 import type { FacebookPagesResponse, FacebookError, FacebookPage } from '~/types/facebook'
 import { prisma } from '../../../prisma/client'
+import { getEnv } from '~/server/utils/env'
 
 const FB = fbModule
 
@@ -9,8 +10,8 @@ export class FacebookTokenService {
 
   constructor() {
     FB.options({
-      appId: process.env.FACEBOOK_APP_ID,
-      appSecret: process.env.FACEBOOK_APP_SECRET,
+      appId: getEnv('FACEBOOK_APP_ID'),
+      appSecret: getEnv('FACEBOOK_APP_SECRET'),
       version: 'v17.0'
     })
   }
@@ -60,7 +61,8 @@ export class FacebookTokenService {
       }
 
       // Find the page we want
-      const page = (response.data as FacebookPage[]).find(p => p.id === process.env.FACEBOOK_PAGE_ID)
+      const pageId = getEnv('FACEBOOK_PAGE_ID')
+      const page = (response.data as FacebookPage[]).find(p => p.id === pageId)
 
       if (!page) {
         throw new Error('Page not found in user\'s pages')

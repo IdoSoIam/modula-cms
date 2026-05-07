@@ -6,7 +6,7 @@ export default defineNuxtPlugin(async () => {
   // Fetch site config to check if Facebook is deactivated
   let facebookDeactivated = false
   try {
-    const siteConfig = await $fetch<{ facebookFluxDeactivated: boolean }>('/api/site-config')
+    const siteConfig = await ensureSiteConfigState()
     facebookDeactivated = siteConfig.facebookFluxDeactivated === true
   } catch (e) {
     console.log('[Facebook Plugin] Failed to fetch site config, assuming enabled')

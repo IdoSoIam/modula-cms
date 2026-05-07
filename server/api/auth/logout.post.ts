@@ -5,6 +5,7 @@ import { getSessionConfig } from '../../utils/session'
 const authService = new AuthService()
 
 export default defineEventHandler(async (event: H3Event) => {
+  setResponseHeader(event, 'Cache-Control', 'no-store')
   const session = await useSession(event, getSessionConfig())
   await session.clear()
   return { success: true }
