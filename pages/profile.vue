@@ -1,58 +1,86 @@
 <template>
   <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-    <div class="max-w-4xl mx-auto">
-      <h1 class="text-3xl font-bold mb-8">{{ $t('profile.title') }}</h1>
+    <div class="mx-auto max-w-5xl">
+      <section class="mb-8 overflow-hidden rounded-[2rem] border border-base-300 bg-gradient-to-br from-base-200 via-base-100 to-base-200 shadow-xl">
+        <div class="grid gap-6 p-6 md:grid-cols-[1.2fr_.8fr] md:p-8">
+          <div>
+            <div class="badge badge-primary badge-outline mb-4">
+              {{ authStore.isAdmin ? 'Administration' : 'Espace client' }}
+            </div>
+            <h1 class="text-4xl font-black tracking-tight">{{ $t('profile.title') }}</h1>
+            <p class="mt-3 max-w-2xl opacity-70">
+              {{ authStore.isAdmin ? 'Gérez vos informations de connexion administrateur et la sécurité du compte.' : 'Retrouvez vos informations personnelles, votre adresse de livraison et la sécurité de votre compte.' }}
+            </p>
+          </div>
 
-      <!-- Tabs de navigation -->
-      <div class="tabs tabs-boxed mb-6">
-        <button 
-          class="tab" 
-          :class="{ 'tab-active': activeTab === 'personal' }"
+          <div class="grid gap-3 sm:grid-cols-2 md:grid-cols-1">
+            <div class="rounded-2xl border border-base-300 bg-base-100/80 p-4">
+              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ $t('profile.email') }}</div>
+              <div class="mt-2 font-semibold break-all">{{ personalInfo.email || '-' }}</div>
+            </div>
+            <div class="rounded-2xl border border-base-300 bg-base-100/80 p-4">
+              <div class="text-xs uppercase tracking-[0.18em] opacity-60">Rôle</div>
+              <div class="mt-2">
+                <span class="badge" :class="authStore.isAdmin ? 'badge-secondary' : 'badge-primary'">
+                  {{ authStore.isAdmin ? 'Admin' : 'Client' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="mb-6 flex flex-wrap gap-2">
+        <button
+          class="btn rounded-full"
+          :class="activeTab === 'personal' ? 'btn-primary' : 'btn-ghost border border-base-300'"
           @click="activeTab = 'personal'"
         >
           {{ $t('profile.personalInfo') }}
         </button>
-        <button 
-          class="tab" 
-          :class="{ 'tab-active': activeTab === 'shipping' }"
+        <button
+          v-if="showShippingTab"
+          class="btn rounded-full"
+          :class="activeTab === 'shipping' ? 'btn-primary' : 'btn-ghost border border-base-300'"
           @click="activeTab = 'shipping'"
         >
           {{ $t('profile.shippingAddress') }}
         </button>
-        <button 
-          class="tab" 
-          :class="{ 'tab-active': activeTab === 'security' }"
+        <button
+          class="btn rounded-full"
+          :class="activeTab === 'security' ? 'btn-primary' : 'btn-ghost border border-base-300'"
           @click="activeTab = 'security'"
         >
           {{ $t('profile.security') }}
         </button>
       </div>
 
-      <!-- Informations personnelles -->
-      <div v-if="activeTab === 'personal'" class="card bg-base-100 shadow-xl">
+      <div v-if="activeTab === 'personal'" class="card border border-base-300 bg-base-100 shadow-xl">
         <div class="card-body">
-          <h2 class="card-title">{{ $t('profile.personalInfo') }}</h2>
+          <div class="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h2 class="card-title text-2xl">{{ $t('profile.personalInfo') }}</h2>
+              <p class="text-sm opacity-65">Nom, prénom et email utilisés pour vos notifications.</p>
+            </div>
+            <div class="hidden md:block rounded-2xl bg-primary/10 p-3 text-primary">
+              <Icon name="mdi:account-circle-outline" size="28" />
+            </div>
+          </div>
           
           <div v-if="!isEditingPersonal" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="label">
-                  <span class="label-text">{{ $t('profile.firstName') }}</span>
-                </label>
-                <p class="text-lg">{{ personalInfo.firstName || '-' }}</p>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4">
+                <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ $t('profile.firstName') }}</div>
+                <p class="mt-2 text-lg font-semibold">{{ personalInfo.firstName || '-' }}</p>
               </div>
-              <div>
-                <label class="label">
-                  <span class="label-text">{{ $t('profile.lastName') }}</span>
-                </label>
-                <p class="text-lg">{{ personalInfo.lastName || '-' }}</p>
+              <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4">
+                <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ $t('profile.lastName') }}</div>
+                <p class="mt-2 text-lg font-semibold">{{ personalInfo.lastName || '-' }}</p>
               </div>
             </div>
-            <div>
-              <label class="label">
-                <span class="label-text">{{ $t('profile.email') }}</span>
-              </label>
-              <p class="text-lg">{{ personalInfo.email }}</p>
+            <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4">
+              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ $t('profile.email') }}</div>
+              <p class="mt-2 text-lg font-semibold break-all">{{ personalInfo.email }}</p>
             </div>
             <div class="card-actions justify-end">
               <button class="btn btn-primary" @click="isEditingPersonal = true">
@@ -118,19 +146,26 @@
         </div>
       </div>
 
-      <!-- Adresse de livraison -->
-      <div v-if="activeTab === 'shipping'" class="card bg-base-100 shadow-xl">
+      <div v-if="showShippingTab && activeTab === 'shipping'" class="card border border-base-300 bg-base-100 shadow-xl">
         <div class="card-body">
-          <h2 class="card-title">{{ $t('profile.shippingAddress') }}</h2>
+          <div class="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h2 class="card-title text-2xl">{{ $t('profile.shippingAddress') }}</h2>
+              <p class="text-sm opacity-65">Adresse utilisée pour les commandes nécessitant une livraison.</p>
+            </div>
+            <div class="hidden md:block rounded-2xl bg-secondary/10 p-3 text-secondary">
+              <Icon name="mdi:truck-delivery-outline" size="28" />
+            </div>
+          </div>
           
           <div v-if="!isEditingShipping" class="space-y-4">
-            <div v-if="shippingInfo.addressLine1" class="space-y-2">
-              <p class="text-lg">{{ shippingInfo.addressLine1 }}</p>
-              <p v-if="shippingInfo.addressLine2" class="text-lg">{{ shippingInfo.addressLine2 }}</p>
-              <p class="text-lg">{{ shippingInfo.postalCode }} {{ shippingInfo.city }}</p>
-              <p class="text-lg">{{ shippingInfo.country }}</p>
+            <div v-if="shippingInfo.addressLine1" class="rounded-2xl border border-base-300 bg-base-200/60 p-5 text-lg">
+              <p class="font-semibold">{{ shippingInfo.addressLine1 }}</p>
+              <p v-if="shippingInfo.addressLine2" class="mt-1">{{ shippingInfo.addressLine2 }}</p>
+              <p class="mt-3">{{ shippingInfo.postalCode }} {{ shippingInfo.city }}</p>
+              <p class="opacity-75">{{ shippingInfo.country }}</p>
             </div>
-            <div v-else class="text-gray-500">
+            <div v-else class="rounded-2xl border border-dashed border-base-300 bg-base-200/40 p-5 text-sm opacity-70">
               <p>{{ $t('profile.noShippingAddress') }}</p>
             </div>
             <div class="card-actions justify-end">
@@ -220,12 +255,18 @@
         </div>
       </div>
 
-      <!-- Sécurité -->
       <div v-if="activeTab === 'security'" class="space-y-6">
-        <!-- Changement de mot de passe -->
-        <div class="card bg-base-100 shadow-xl">
+        <div class="card border border-base-300 bg-base-100 shadow-xl">
           <div class="card-body">
-            <h2 class="card-title">{{ $t('profile.changePassword') }}</h2>
+            <div class="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h2 class="card-title text-2xl">{{ $t('profile.changePassword') }}</h2>
+                <p class="text-sm opacity-65">Mettez à jour votre mot de passe avec une valeur forte et unique.</p>
+              </div>
+              <div class="hidden md:block rounded-2xl bg-accent/10 p-3 text-accent">
+                <Icon name="mdi:shield-lock-outline" size="28" />
+              </div>
+            </div>
             
             <form @submit.prevent="changePassword" class="space-y-4">
               <div class="form-control">
@@ -277,11 +318,10 @@
           </div>
         </div>
 
-        <!-- Suppression du compte -->
-        <div class="card bg-base-100 shadow-xl border-error">
+        <div class="card border border-error/40 bg-base-100 shadow-xl">
           <div class="card-body">
             <h2 class="card-title text-error">{{ $t('profile.deleteAccount') }}</h2>
-            <p class="text-sm text-gray-600 mb-4">
+            <p class="mb-4 text-sm opacity-70">
               {{ $t('profile.deleteAccountWarning') }}
             </p>
             
@@ -297,7 +337,6 @@
         </div>
       </div>
 
-      <!-- Error/Success messages -->
       <div v-if="error" class="alert alert-error mt-4">
         {{ error }}
       </div>
@@ -364,7 +403,7 @@ const { $toast } = useNuxtApp() as any
 useNoIndexSeo('Mon compte', 'Espace personnel réservé aux clients connectés.')
 
 // State
-const activeTab = ref('personal')
+const activeTab = ref<'personal' | 'shipping' | 'security'>('personal')
 const isEditingPersonal = ref(false)
 const isEditingShipping = ref(false)
 const isUpdatingPersonal = ref(false)
@@ -400,13 +439,21 @@ const deleteForm = reactive({
   confirmText: ''
 })
 
-// Computed
+const showShippingTab = computed(() => !authStore.isAdmin)
+
 const canDelete = computed(() => {
   return deleteForm.password && deleteForm.confirmText === 'DELETE_MY_ACCOUNT'
 })
 
-// Initialize data
-watch(() => authStore.user, (user) => {
+const resetShippingFields = () => {
+  shippingInfo.addressLine1 = ''
+  shippingInfo.addressLine2 = ''
+  shippingInfo.city = ''
+  shippingInfo.postalCode = ''
+  shippingInfo.country = ''
+}
+
+const hydrateFormsFromUser = (user: typeof authStore.user.value) => {
   if (user) {
     personalInfo.firstName = user.firstName || ''
     personalInfo.lastName = user.lastName || ''
@@ -419,11 +466,24 @@ watch(() => authStore.user, (user) => {
       shippingInfo.city = user.shippingAddress.city || ''
       shippingInfo.postalCode = user.shippingAddress.postalCode || ''
       shippingInfo.country = user.shippingAddress.country || ''
+    } else {
+      resetShippingFields()
     }
+  } else {
+    resetShippingFields()
+  }
+}
+
+watch(() => authStore.user, (user) => {
+  hydrateFormsFromUser(user)
+}, { immediate: true })
+
+watch(showShippingTab, (visible) => {
+  if (!visible && activeTab.value === 'shipping') {
+    activeTab.value = 'personal'
   }
 }, { immediate: true })
 
-// Methods
 const resetError = () => {
   error.value = ''
 }
@@ -543,25 +603,12 @@ const deleteAccount = async () => {
 
 const cancelPersonalEdit = () => {
   isEditingPersonal.value = false
-  // Reset to original values
-  if (authStore.user) {
-    personalInfo.firstName = authStore.user.firstName || ''
-    personalInfo.lastName = authStore.user.lastName || ''
-    personalInfo.email = authStore.user.email || ''
-  }
+  hydrateFormsFromUser(authStore.user)
 }
 
 const cancelShippingEdit = () => {
   isEditingShipping.value = false
-  // Reset to original values
-  if (authStore.user?.shippingAddress) {
-    const address = authStore.user.shippingAddress.street?.split(', ') || ['']
-    shippingInfo.addressLine1 = address[0] || ''
-    shippingInfo.addressLine2 = address[1] || ''
-    shippingInfo.city = authStore.user.shippingAddress.city || ''
-    shippingInfo.postalCode = authStore.user.shippingAddress.postalCode || ''
-    shippingInfo.country = authStore.user.shippingAddress.country || ''
-  }
+  hydrateFormsFromUser(authStore.user)
 }
 
 const cancelDelete = () => {
