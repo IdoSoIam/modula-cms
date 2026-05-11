@@ -33,18 +33,24 @@ export type ThemeColorToken =
   | 'white-70'
   | 'white-10'
   | 'custom'
+
 export type ImageAspect = 'square' | 'landscape' | 'portrait'
 export type ImageFit = 'cover' | 'contain'
 export type ContentAlign = 'start' | 'center'
 export type VerticalAlign = 'start' | 'center' | 'end'
-export type SectionContainerWidth = 'narrow' | 'default' | 'wide' | 'full'
+export type SectionContainerWidth = 'narrow' | 'default' | 'wide' | 'xwide' | 'edge' | 'full'
+export type SectionBackgroundMode = 'none' | 'image' | 'carousel'
+export type CarouselAnimation = 'slide' | 'fade'
 export type CardSize = 'sm' | 'md' | 'lg' | 'xl'
 export type TypographySize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
+export type SectionColumnCount = 1 | 2 | 3 | 4
+export type CardsDisplay = 'stack' | 'grid-2' | 'grid-3' | 'grid-4'
 
-export interface HomePageIconOption {
-  value: string
-  label: string
+export interface ThemeColorSelection {
+  token: ThemeColorToken
+  customHex?: string
+  opacity?: number
 }
 
 export interface HomePageButton {
@@ -55,12 +61,6 @@ export interface HomePageButton {
   backgroundColor?: ThemeColorSelection | null
   textColor?: ThemeColorSelection | null
   borderColor?: ThemeColorSelection | null
-}
-
-export interface ThemeColorSelection {
-  token: ThemeColorToken
-  customHex?: string
-  opacity?: number
 }
 
 export interface HomePageCard {
@@ -82,7 +82,46 @@ export interface HomePageCard {
   secondaryButton?: HomePageButton | null
 }
 
-export interface HomePageImageBlock {
+export interface HomePageBadgeItem {
+  id: string
+  type: 'badge'
+  text: LocalizedText
+  size: TypographySize
+  backgroundColor?: ThemeColorSelection | null
+  textColor?: ThemeColorSelection | null
+  borderColor?: ThemeColorSelection | null
+}
+
+export interface HomePageTitleItem {
+  id: string
+  type: 'title'
+  text: LocalizedText
+  size: TypographySize
+}
+
+export interface HomePageTextItem {
+  id: string
+  type: 'text'
+  text: LocalizedText
+  size: TypographySize
+}
+
+export interface HomePageButtonsItem {
+  id: string
+  type: 'buttons'
+  primaryButton?: HomePageButton | null
+  secondaryButton?: HomePageButton | null
+}
+
+export interface HomePageCardsItem {
+  id: string
+  type: 'cards'
+  display: CardsDisplay
+  cards: HomePageCard[]
+}
+
+export interface HomePageImageItem {
+  id: string
   type: 'image'
   imageUrl: string
   alt: LocalizedText
@@ -93,93 +132,130 @@ export interface HomePageImageBlock {
   framed: boolean
 }
 
-export interface HomePageContentBlock {
-  type: 'content'
+export interface HomePageCarouselItem {
+  id: string
+  type: 'carousel'
+  aspect: ImageAspect
+  framed: boolean
+  slides: HomePageSectionBackgroundCarouselSlide[]
+  settings: HomePageSectionBackgroundCarouselSettings
+}
+
+export interface HomePageSectionBackgroundImage {
+  imageUrl: string
+  alt: LocalizedText
+  fit: ImageFit
+  verticalAlign: VerticalAlign
+  overlayColor?: ThemeColorSelection | null
+  overlayOpacity: number
+  blur: boolean
+}
+
+export interface HomePageSectionBackgroundCarouselSlide {
+  id: string
+  imageUrl: string
+  alt: LocalizedText
+  fit: ImageFit
+  verticalAlign: VerticalAlign
+}
+
+export interface HomePageSectionBackgroundCarouselSettings {
+  autoplay: boolean
+  infinite: boolean
+  intervalMs: number
+  showArrows: boolean
+  showDots: boolean
+  animation: CarouselAnimation
+}
+
+export type HomePageColumnItem =
+  | HomePageBadgeItem
+  | HomePageTitleItem
+  | HomePageTextItem
+  | HomePageButtonsItem
+  | HomePageCardsItem
+  | HomePageImageItem
+  | HomePageCarouselItem
+
+export interface HomePageColumn {
   align: ContentAlign
   verticalAlign: VerticalAlign
   textColor?: ThemeColorSelection | null
-  badge: LocalizedText
-  badgeSize: TypographySize
-  title: LocalizedText
-  titleSize: TypographySize
-  text: LocalizedText
-  textSize: TypographySize
-  cards: HomePageCard[]
-  primaryButton?: HomePageButton | null
-  secondaryButton?: HomePageButton | null
+  items: HomePageColumnItem[]
 }
 
-export type HomePageColumn = HomePageImageBlock | HomePageContentBlock
-
-export interface HomePageTwoColumnsSection {
+export interface HomePageSection {
   id: string
-  type: 'two-columns'
+  type: 'columns'
+  columnCount: SectionColumnCount
   enabled: boolean
   tone: SectionTone
   containerWidth: SectionContainerWidth
+  contentVerticalAlign: VerticalAlign
+  minHeightPx?: number | null
   backgroundColor?: ThemeColorSelection | null
-  verticalAlign: VerticalAlign
+  backgroundMode: SectionBackgroundMode
+  backgroundImage: HomePageSectionBackgroundImage
+  backgroundCarousel: HomePageSectionBackgroundCarouselSlide[]
+  backgroundCarouselSettings: HomePageSectionBackgroundCarouselSettings
   reverseOnDesktop: boolean
-  columns: [HomePageColumn, HomePageColumn]
-}
-
-export interface HomePageOneColumnSection {
-  id: string
-  type: 'one-column'
-  enabled: boolean
-  tone: SectionTone
-  containerWidth: SectionContainerWidth
-  backgroundColor?: ThemeColorSelection | null
-  verticalAlign: VerticalAlign
-  column: HomePageColumn
-}
-
-export interface HomePageHeroSection {
-  enabled: boolean
-  backgroundImageUrl: string
-  containerWidth: SectionContainerWidth
-  badge: LocalizedText
-  badgeSize: TypographySize
-  title: LocalizedText
-  titleSize: TypographySize
-  text: LocalizedText
-  textSize: TypographySize
-  primaryButton: HomePageButton
-  secondaryButton: HomePageButton | null
-  highlights: HomePageCard[]
+  columns: HomePageColumn[]
 }
 
 export interface HomePageContent {
   version: 1
-  hero: HomePageHeroSection
-  sections: Array<HomePageTwoColumnsSection | HomePageOneColumnSection>
+  sections: HomePageSection[]
 }
+
+export type HomePageContentBlock = HomePageColumn
+export type HomePageImageBlock = HomePageImageItem
 
 export const HOME_PAGE_SETTING_VERSION = 1 as const
 
 export const BUTTON_TONES: ButtonTone[] = ['primary', 'secondary', 'accent', 'neutral', 'outline']
-export const SECTION_TONES: SectionTone[] = ['base-100', 'base-200', 'neutral']
 export const CARD_TONES: CardTone[] = ['base', 'soft', 'outline']
 export const IMAGE_ASPECTS: ImageAspect[] = ['landscape', 'square', 'portrait']
 export const IMAGE_FITS: ImageFit[] = ['cover', 'contain']
 export const CONTENT_ALIGNS: ContentAlign[] = ['start', 'center']
 export const VERTICAL_ALIGNS: VerticalAlign[] = ['start', 'center', 'end']
-export const SECTION_CONTAINER_WIDTHS: SectionContainerWidth[] = ['narrow', 'default', 'wide', 'full']
+export const SECTION_CONTAINER_WIDTHS: SectionContainerWidth[] = ['narrow', 'default', 'wide', 'xwide', 'edge', 'full']
+export const SECTION_BACKGROUND_MODES: SectionBackgroundMode[] = ['none', 'image', 'carousel']
+export const SECTION_COLUMN_COUNTS: SectionColumnCount[] = [1, 2, 3, 4]
 export const CARD_SIZES: CardSize[] = ['sm', 'md', 'lg', 'xl']
 export const TYPOGRAPHY_SIZES: TypographySize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl']
 export const BUTTON_SIZES: ButtonSize[] = ['xs', 'sm', 'md', 'lg']
+export const CARDS_DISPLAYS: CardsDisplay[] = ['stack', 'grid-2', 'grid-3', 'grid-4']
+export const CAROUSEL_ANIMATIONS: CarouselAnimation[] = ['slide', 'fade']
+
 export const SECTION_CONTAINER_WIDTH_LABELS: Record<SectionContainerWidth, string> = {
-  narrow: 'Étroit',
+  narrow: 'Etroit',
   default: 'Standard',
   wide: 'Large',
+  xwide: 'Tres large',
+  edge: 'Quasi pleine largeur',
   full: 'Pleine largeur'
 }
+
+export const SECTION_COLUMN_COUNT_LABELS: Record<SectionColumnCount, string> = {
+  1: '1 colonne',
+  2: '2 colonnes',
+  3: '3 colonnes',
+  4: '4 colonnes'
+}
+
+export const SECTION_BACKGROUND_MODE_LABELS: Record<SectionBackgroundMode, string> = {
+  none: 'Aucun',
+  image: 'Image',
+  carousel: 'Carousel'
+}
+
 export const CARD_SIZE_LABELS: Record<CardSize, string> = {
   sm: 'Petite',
   md: 'Moyenne',
   lg: 'Grande',
-  xl: 'Très grande'
+  xl: 'Tres grande'
 }
+
 export const TYPOGRAPHY_SIZE_LABELS: Record<TypographySize, string> = {
   xs: 'XS',
   sm: 'S',
@@ -188,12 +264,26 @@ export const TYPOGRAPHY_SIZE_LABELS: Record<TypographySize, string> = {
   xl: 'XL',
   '2xl': '2XL'
 }
+
 export const BUTTON_SIZE_LABELS: Record<ButtonSize, string> = {
   xs: 'XS',
   sm: 'S',
   md: 'M',
   lg: 'L'
 }
+
+export const CARDS_DISPLAY_LABELS: Record<CardsDisplay, string> = {
+  stack: 'Pleine largeur',
+  'grid-2': 'Grille 2 colonnes',
+  'grid-3': 'Grille 3 colonnes',
+  'grid-4': 'Grille 4 colonnes'
+}
+
+export const CAROUSEL_ANIMATION_LABELS: Record<CarouselAnimation, string> = {
+  slide: 'Slide',
+  fade: 'Fade'
+}
+
 export const THEME_COLOR_TOKENS: ThemeColorToken[] = [
   'transparent',
   'base-100',
@@ -222,6 +312,7 @@ export const THEME_COLOR_TOKENS: ThemeColorToken[] = [
   'white-10',
   'custom'
 ]
+
 export const THEME_COLOR_LABELS: Record<ThemeColorToken, string> = {
   transparent: 'Transparent',
   'base-100': 'Base 100',
@@ -250,32 +341,6 @@ export const THEME_COLOR_LABELS: Record<ThemeColorToken, string> = {
   'white-10': 'White 10%',
   custom: 'Custom'
 }
-export const HOME_PAGE_ICON_OPTIONS: HomePageIconOption[] = [
-  { value: '', label: 'Aucune icone' },
-  { value: 'mdi:leaf', label: 'Feuille' },
-  { value: 'mdi:sprout', label: 'Pousse' },
-  { value: 'mdi:basket-outline', label: 'Panier' },
-  { value: 'mdi:food-apple-outline', label: 'Pomme' },
-  { value: 'mdi:carrot', label: 'Carotte' },
-  { value: 'mdi:egg-outline', label: 'Oeuf' },
-  { value: 'mdi:flower-outline', label: 'Fleur' },
-  { value: 'mdi:calendar-check-outline', label: 'Calendrier' },
-  { value: 'mdi:clock-outline', label: 'Horloge' },
-  { value: 'mdi:truck-fast-outline', label: 'Camion' },
-  { value: 'mdi:storefront-outline', label: 'Boutique' },
-  { value: 'mdi:store-marker-outline', label: 'Point relais' },
-  { value: 'mdi:home-outline', label: 'Maison' },
-  { value: 'mdi:home-heart', label: 'Ferme / maison' },
-  { value: 'mdi:map-marker-outline', label: 'Localisation' },
-  { value: 'mdi:map-marker-radius-outline', label: 'Territoire' },
-  { value: 'mdi:information-outline', label: 'Information' },
-  { value: 'mdi:check-circle-outline', label: 'Validation' },
-  { value: 'mdi:heart-outline', label: 'Coeur' },
-  { value: 'mdi:account-group-outline', label: 'Groupe' },
-  { value: 'mdi:weather-sunny', label: 'Soleil' },
-  { value: 'mdi:water-outline', label: 'Eau' },
-  { value: 'mdi:star-outline', label: 'Etoile' }
-]
 
 const ICONIFY_NAME_PATTERN = /^(?:@[a-z0-9]+:)?[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$/
 
@@ -309,11 +374,7 @@ export function createEmptyButton(): HomePageButton {
 }
 
 export function createThemeColorSelection(token: ThemeColorToken = 'primary', customHex = '#3b4d28', opacity = 100): ThemeColorSelection {
-  return {
-    token,
-    customHex,
-    opacity
-  }
+  return { token, customHex, opacity }
 }
 
 export function createEmptyCard(id: string): HomePageCard {
@@ -337,26 +398,37 @@ export function createEmptyCard(id: string): HomePageCard {
   }
 }
 
-export function createEmptyContentBlock(): HomePageContentBlock {
+export function createBadgeItem(id: string): HomePageBadgeItem {
   return {
-    type: 'content',
-    align: 'start',
-    verticalAlign: 'center',
-    textColor: null,
-    badge: createEmptyLocalizedText(),
-    badgeSize: 'sm',
-    title: createEmptyLocalizedText(),
-    titleSize: 'xl',
+    id,
+    type: 'badge',
     text: createEmptyLocalizedText(),
-    textSize: 'md',
-    cards: [],
-    primaryButton: null,
-    secondaryButton: null
+    size: 'sm',
+    backgroundColor: null,
+    textColor: null,
+    borderColor: null
   }
 }
 
-export function createEmptyImageBlock(): HomePageImageBlock {
+export function createTitleItem(id: string): HomePageTitleItem {
+  return { id, type: 'title', text: createEmptyLocalizedText(), size: 'xl' }
+}
+
+export function createTextItem(id: string): HomePageTextItem {
+  return { id, type: 'text', text: createEmptyLocalizedText(), size: 'md' }
+}
+
+export function createButtonsItem(id: string): HomePageButtonsItem {
+  return { id, type: 'buttons', primaryButton: createEmptyButton(), secondaryButton: null }
+}
+
+export function createCardsItem(id: string): HomePageCardsItem {
+  return { id, type: 'cards', display: 'stack', cards: [createEmptyCard(`${id}-card-1`)] }
+}
+
+export function createImageItem(id: string): HomePageImageItem {
   return {
+    id,
     type: 'image',
     imageUrl: '',
     alt: createEmptyLocalizedText(),
@@ -368,35 +440,80 @@ export function createEmptyImageBlock(): HomePageImageBlock {
   }
 }
 
-export function createEmptyTwoColumnsSection(id: string): HomePageTwoColumnsSection {
+export function createCarouselItem(id: string): HomePageCarouselItem {
   return {
     id,
-    type: 'two-columns',
-    enabled: true,
-    tone: 'base-100',
-    containerWidth: 'default',
-    backgroundColor: null,
-    verticalAlign: 'center',
-    reverseOnDesktop: false,
-    columns: [createEmptyContentBlock(), createEmptyImageBlock()]
+    type: 'carousel',
+    aspect: 'landscape',
+    framed: true,
+    slides: [createEmptySectionBackgroundSlide(`${id}-slide-1`)],
+    settings: createEmptySectionBackgroundCarouselSettings()
   }
 }
 
-export function createEmptyOneColumnSection(id: string): HomePageOneColumnSection {
+export function createEmptySectionBackgroundImage(): HomePageSectionBackgroundImage {
+  return {
+    imageUrl: '',
+    alt: createEmptyLocalizedText(),
+    fit: 'cover',
+    verticalAlign: 'center',
+    overlayColor: null,
+    overlayOpacity: 35,
+    blur: false
+  }
+}
+
+export function createEmptySectionBackgroundSlide(id: string): HomePageSectionBackgroundCarouselSlide {
   return {
     id,
-    type: 'one-column',
+    imageUrl: '',
+    alt: createEmptyLocalizedText(),
+    fit: 'cover',
+    verticalAlign: 'center'
+  }
+}
+
+export function createEmptySectionBackgroundCarouselSettings(): HomePageSectionBackgroundCarouselSettings {
+  return {
+    autoplay: false,
+    infinite: true,
+    intervalMs: 5000,
+    showArrows: true,
+    showDots: true,
+    animation: 'slide'
+  }
+}
+
+export function createEmptyContentBlock(): HomePageContentBlock {
+  return {
+    align: 'start',
+    verticalAlign: 'center',
+    textColor: null,
+    items: []
+  }
+}
+
+export function createEmptyColumnsSection(id: string, columnCount: SectionColumnCount): HomePageSection {
+  return {
+    id,
+    type: 'columns',
+    columnCount,
     enabled: true,
     tone: 'base-100',
     containerWidth: 'default',
+    contentVerticalAlign: 'center',
+    minHeightPx: null,
     backgroundColor: null,
-    verticalAlign: 'start',
-    column: createEmptyContentBlock()
+    backgroundMode: 'none',
+    backgroundImage: createEmptySectionBackgroundImage(),
+    backgroundCarousel: [createEmptySectionBackgroundSlide(`${id}-slide-1`)],
+    backgroundCarouselSettings: createEmptySectionBackgroundCarouselSettings(),
+    reverseOnDesktop: false,
+    columns: Array.from({ length: columnCount }, () => createEmptyContentBlock())
   }
 }
 
 export function getAlternatingSectionTone(index: number): SectionTone {
-  // Force l'alternance base-100 / base-200 pour les sections
   return index % 2 === 0 ? 'base-100' : 'base-200'
 }
 
@@ -418,465 +535,132 @@ function resetCardColors(card: HomePageCard) {
 }
 
 function resetColumnColors(column: HomePageColumn) {
-  if (column.type !== 'content') return
   column.textColor = null
-  resetButtonColors(column.primaryButton)
-  resetButtonColors(column.secondaryButton)
-  column.cards.forEach(resetCardColors)
+  column.items.forEach((item) => {
+    if (item.type === 'badge') {
+      item.backgroundColor = null
+      item.textColor = null
+      item.borderColor = null
+    }
+    if (item.type === 'buttons') {
+      resetButtonColors(item.primaryButton)
+      resetButtonColors(item.secondaryButton)
+    }
+    if (item.type === 'cards') {
+      item.cards.forEach(resetCardColors)
+    }
+  })
 }
 
 export function applyDefaultSectionStyling(content: HomePageContent) {
   content.sections.forEach((section, index) => {
     section.tone = getAlternatingSectionTone(index)
     section.backgroundColor = null
-
-    if (section.type === 'two-columns') {
-      section.columns.forEach(resetColumnColors)
-      return
-    }
-
-    resetColumnColors(section.column)
+    section.columns.forEach(resetColumnColors)
   })
-
   return content
 }
 
 export function createDefaultHomePageContent(farmAddress: string): HomePageContent {
+  const intro = createEmptyColumnsSection('intro', 1)
+  intro.backgroundMode = 'image'
+  intro.backgroundImage.imageUrl = '/images/plaquette.jpg'
+  intro.backgroundImage.alt = { fr: 'Production de la ferme', en: 'Farm production' }
+  intro.backgroundImage.overlayColor = { token: 'neutral', opacity: 100 }
+  intro.backgroundImage.overlayOpacity = 55
+  intro.columns[0]?.items.push(
+    createBadgeItem('intro-badge'),
+    createTitleItem('intro-title'),
+    createTextItem('intro-text'),
+    createButtonsItem('intro-buttons')
+  )
+  const introItems = intro.columns[0]?.items || []
+  const introBadge = introItems[0] as HomePageBadgeItem
+  const introTitle = introItems[1] as HomePageTitleItem
+  const introText = introItems[2] as HomePageTextItem
+  const introButtons = introItems[3] as HomePageButtonsItem
+  introBadge.text = { fr: 'Ferme du Campeyrigoux', en: 'Ferme du Campeyrigoux' }
+  intro.columns[0]!.textColor = { token: 'white', opacity: 100 }
+  introTitle.text = { fr: 'Production locale, bio et de saison', en: 'Local, organic and seasonal production' }
+  introText.text = {
+    fr: 'Micro-ferme agroecologique en agriculture biologique. Legumes, vente directe et reservation de paniers au plus proche de la ferme.',
+    en: 'Micro ecological organic farm. Vegetables, direct sales and basket reservations close to the farm.'
+  }
+  introButtons.primaryButton = {
+    label: { fr: 'Voir les paniers', en: 'View baskets' },
+    href: '/paniers',
+    tone: 'primary',
+    size: 'lg'
+  }
+  introButtons.secondaryButton = {
+    label: { fr: 'Nous rencontrer', en: 'Meet us' },
+    href: '/contact',
+    tone: 'outline',
+    size: 'lg'
+  }
+
+  const activities = createEmptyColumnsSection('activities', 2)
+  const col1 = activities.columns[0]
+  const col2 = activities.columns[1]
+  col1?.items.push(createBadgeItem('activities-badge'), createTitleItem('activities-title'), createTextItem('activities-text'), createCardsItem('activities-cards'), createButtonsItem('activities-buttons'))
+  col2?.items.push(createImageItem('activities-image'))
+
+  const aBadge = col1?.items[0] as HomePageBadgeItem
+  const aTitle = col1?.items[1] as HomePageTitleItem
+  const aText = col1?.items[2] as HomePageTextItem
+  const aCards = col1?.items[3] as HomePageCardsItem
+  const aButtons = col1?.items[4] as HomePageButtonsItem
+  const aImage = col2?.items[0] as HomePageImageItem
+
+  aBadge.text = { fr: 'Nos Activites', en: 'Our Activities' }
+  aTitle.text = { fr: 'Une ferme a taille humaine', en: 'A human-scale farm' }
+  aText.text = {
+    fr: 'Une ferme a taille humaine qui combine production maraichere, paniers, vente directe et autres ateliers agricoles de maniere progressive et coherente.',
+    en: 'A human-scale farm combining vegetable production, baskets, direct sales and other agricultural activities in a coherent way.'
+  }
+  aCards.display = 'grid-2'
+  aCards.cards = [
+    { ...createEmptyCard('activities-1'), title: { fr: 'Maraichage Bio', en: 'Organic Market Gardening' }, text: { fr: 'Production de legumes frais et de saison en agriculture biologique.', en: 'Fresh seasonal vegetables grown organically.' }, icon: 'mdi:sprout' },
+    { ...createEmptyCard('activities-2'), title: { fr: 'Paniers de legumes', en: 'Vegetable baskets' }, text: { fr: 'Reservez votre panier hebdomadaire de legumes frais, bio et de saison, recoltes a la ferme.', en: 'Reserve your weekly basket of fresh, organic seasonal vegetables harvested at the farm.' }, icon: 'mdi:basket-outline' },
+    { ...createEmptyCard('activities-3'), title: { fr: 'Oeufs & Volailles', en: 'Eggs & Poultry' }, text: { fr: 'Elevage de poules en plein air et production d oeufs bio.', en: 'Free-range poultry and organic egg production.' }, icon: 'mdi:egg-outline' },
+    { ...createEmptyCard('activities-4'), title: { fr: 'Diversification de la ferme', en: 'Farm diversification' }, text: { fr: 'La ferme developpe aussi d autres ateliers et cultures pour construire un modele agricole resilient.', en: 'The farm is also developing other activities and crops to build a resilient model.' }, icon: 'mdi:leaf-circle-outline' }
+  ]
+  aButtons.primaryButton = { label: { fr: 'Voir les paniers', en: 'View baskets' }, href: '/paniers', tone: 'primary', size: 'md' }
+  aImage.imageUrl = '/images/erasebg-transformed.png'
+  aImage.alt = { fr: 'Logo de la Ferme du Campeyrigoux', en: 'Ferme du Campeyrigoux logo' }
+  aImage.aspect = 'square'
+  aImage.fit = 'contain'
+
+  const directSale = createEmptyColumnsSection('direct-sale', 2)
+  directSale.tone = 'base-200'
+  directSale.reverseOnDesktop = true
+  const dImageColumn = directSale.columns[0]
+  const dTextColumn = directSale.columns[1]
+  dImageColumn?.items.push(createImageItem('sale-image'))
+  dTextColumn?.items.push(createBadgeItem('sale-badge'), createTitleItem('sale-title'), createTextItem('sale-text'), createCardsItem('sale-cards'), createButtonsItem('sale-buttons'))
+  const dImage = dImageColumn?.items[0] as HomePageImageItem
+  const dBadge = dTextColumn?.items[0] as HomePageBadgeItem
+  const dTitle = dTextColumn?.items[1] as HomePageTitleItem
+  const dText = dTextColumn?.items[2] as HomePageTextItem
+  const dCards = dTextColumn?.items[3] as HomePageCardsItem
+  const dButtons = dTextColumn?.items[4] as HomePageButtonsItem
+  dImage.imageUrl = '/images/plaquette.jpg'
+  dImage.alt = { fr: 'Legumes et productions de la ferme', en: 'Vegetables and farm produce' }
+  dBadge.text = { fr: 'Le rendez-vous de la semaine', en: 'This week appointment' }
+  dTitle.text = { fr: 'Vente Directe', en: 'Direct sales' }
+  dText.text = {
+    fr: 'Deux rendez-vous simples et reguliers pour retrouver les produits de la ferme, poser vos questions et choisir le format qui vous convient.',
+    en: 'Two regular appointments to discover the farm products, ask questions and choose the format that suits you.'
+  }
+  dCards.display = 'stack'
+  dCards.cards = [
+    { ...createEmptyCard('sale-1'), title: { fr: 'Vente directe a la ferme', en: 'Farm direct sale' }, text: { fr: 'Tous les lundi de 16h00 a 19h00\n' + farmAddress, en: 'Every Monday from 4pm to 7pm\n' + farmAddress }, icon: 'mdi:home-heart' },
+    { ...createEmptyCard('sale-2'), title: { fr: 'Marche de Saint-Sebastien', en: 'Saint-Sebastien market' }, text: { fr: 'Tous les samedi de 9h30 a 12h00\nSur la terrasse du Saint Seb', en: 'Every Saturday from 9:30am to 12pm\nOn the Saint Seb terrace' }, icon: 'mdi:storefront-outline' }
+  ]
+  dButtons.primaryButton = { label: { fr: 'Nous trouver', en: 'Find us' }, href: '/contact', tone: 'primary', size: 'md' }
+
   return {
     version: HOME_PAGE_SETTING_VERSION,
-    hero: {
-      enabled: true,
-      backgroundImageUrl: '/images/plaquette.jpg',
-      containerWidth: 'default',
-      badge: {
-        fr: 'Production locale, bio et de saison dans les Cevennes',
-        en: 'Local, organic and seasonal production in the Cevennes'
-      },
-      badgeSize: 'sm',
-      title: {
-        fr: 'Ferme du Campeyrigoux',
-        en: 'Ferme du Campeyrigoux'
-      },
-      titleSize: '2xl',
-      text: {
-        fr: 'Micro-ferme agroécologique en agriculture biologique',
-        en: 'Micro-ecological organic farm'
-      },
-      textSize: 'lg',
-      primaryButton: {
-        label: { fr: 'Voir les paniers', en: 'View baskets' },
-        href: '/paniers',
-        tone: 'primary',
-        size: 'lg'
-      },
-      secondaryButton: {
-        label: { fr: 'Nous rencontrer', en: 'Meet us' },
-        href: '/contact',
-        tone: 'outline',
-        size: 'lg'
-      },
-      highlights: [
-        {
-          id: 'hero-highlight-1',
-          title: { fr: 'Production bio', en: 'Organic production' },
-          text: {
-            fr: 'Maraîchage et productions fermières conduits dans une logique agricole biologique.',
-            en: 'Market gardening and farm productions run with an organic approach.'
-          },
-          icon: 'mdi:leaf',
-          tone: 'soft',
-          size: 'md',
-          titleSize: 'xs',
-          textSize: 'sm'
-        },
-        {
-          id: 'hero-highlight-2',
-          title: { fr: 'Circuit court', en: 'Short supply chain' },
-          text: {
-            fr: 'Paniers de légumes, vente directe et relation simple avec la ferme.',
-            en: 'Vegetable baskets, direct sales and a simple relationship with the farm.'
-          },
-          icon: 'mdi:basket-outline',
-          tone: 'soft',
-          size: 'md',
-          titleSize: 'xs',
-          textSize: 'sm'
-        },
-        {
-          id: 'hero-highlight-3',
-          title: { fr: 'Ancrage local', en: 'Local roots' },
-          text: {
-            fr: 'Ferme installée à Saint-Sebastien-d\'Aigrefeuille, au cœur des Cévennes.',
-            en: 'A farm based in Saint-Sebastien-d\'Aigrefeuille, in the heart of the Cevennes.'
-          },
-          icon: 'mdi:map-marker-outline',
-          tone: 'soft',
-          size: 'md',
-          titleSize: 'xs',
-          textSize: 'sm'
-        }
-      ]
-    },
-    sections: [
-      {
-        id: 'activities',
-        type: 'two-columns',
-        enabled: true,
-        tone: 'base-100',
-        containerWidth: 'default',
-        verticalAlign: 'center',
-        reverseOnDesktop: false,
-        columns: [
-          {
-            type: 'content',
-            align: 'start',
-            verticalAlign: 'center',
-            badge: { fr: 'Nos Activités', en: 'Our Activities' },
-            badgeSize: 'sm',
-            title: { fr: 'Une ferme à taille humaine', en: 'A human-scale farm' },
-            titleSize: 'xl',
-            text: {
-              fr: 'Une ferme à taille humaine qui combine production maraîchère, paniers, vente directe et autres ateliers agricoles de manière progressive et cohérente.',
-              en: 'A human-scale farm combining vegetable production, baskets, direct sales and other agricultural workshops in a progressive and coherent way.'
-            },
-            textSize: 'md',
-            cards: [
-              {
-                id: 'activities-1',
-                title: { fr: 'Maraîchage Bio', en: 'Organic Market Gardening' },
-                text: {
-                  fr: 'Production de légumes frais et de saison en agriculture biologique.',
-                  en: 'Production of fresh, seasonal vegetables in organic farming.'
-                },
-                icon: 'mdi:sprout',
-                tone: 'soft',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              },
-              {
-                id: 'activities-2',
-                title: { fr: 'Paniers de légumes', en: 'Vegetable baskets' },
-                text: {
-                  fr: 'Réservez votre panier hebdomadaire de légumes frais, bio et de saison, récoltés à la ferme.',
-                  en: 'Reserve your weekly basket of fresh, organic, seasonal vegetables harvested at the farm.'
-                },
-                icon: 'mdi:basket-outline',
-                tone: 'soft',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              },
-              {
-                id: 'activities-3',
-                title: { fr: 'Œufs & Volailles', en: 'Eggs & Poultry' },
-                text: {
-                  fr: 'Élevage de poules en plein air et production d\'œufs bio.',
-                  en: 'Free-range poultry farming and organic egg production.'
-                },
-                icon: 'mdi:egg-outline',
-                tone: 'soft',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              },
-              {
-                id: 'activities-4',
-                title: { fr: 'Diversification de la ferme', en: 'Farm diversification' },
-                text: {
-                  fr: 'La ferme développe aussi d\'autres ateliers et cultures pour construire un modèle agricole résilient.',
-                  en: 'The farm is also developing other crops and activities to build a resilient agricultural model.'
-                },
-                icon: 'mdi:leaf-circle-outline',
-                tone: 'soft',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              }
-            ],
-            primaryButton: {
-              label: { fr: 'Voir les paniers', en: 'View baskets' },
-              href: '/paniers',
-              tone: 'primary',
-              size: 'md'
-            },
-            secondaryButton: null
-          },
-          {
-            type: 'image',
-            imageUrl: '/images/erasebg-transformed.png',
-            alt: {
-              fr: 'Logo de la Ferme du Campeyrigoux',
-              en: 'Ferme du Campeyrigoux logo'
-            },
-            aspect: 'square',
-            fit: 'contain',
-            verticalAlign: 'center',
-            enlarge: false,
-            framed: true
-          }
-        ]
-      },
-      {
-        id: 'baskets',
-        type: 'two-columns',
-        enabled: true,
-        tone: 'base-200',
-        containerWidth: 'default',
-        verticalAlign: 'center',
-        reverseOnDesktop: true,
-        columns: [
-          {
-            type: 'image',
-            imageUrl: '/images/plaquette.jpg',
-            alt: {
-              fr: 'Légumes et productions de la ferme',
-              en: 'Vegetables and farm produce'
-            },
-            aspect: 'landscape',
-            fit: 'cover',
-            verticalAlign: 'center',
-            enlarge: false,
-            framed: true
-          },
-          {
-            type: 'content',
-            align: 'start',
-            verticalAlign: 'center',
-            badge: { fr: 'Des paniers simples à réserver', en: 'Simple baskets to reserve' },
-            badgeSize: 'sm',
-            title: { fr: 'Choisissez votre mode de retrait ou livraison', en: 'Choose your pickup or delivery method' },
-            titleSize: 'xl',
-            text: {
-              fr: 'L\'objectif est de rendre la commande facile à comprendre : vous choisissez votre panier, puis votre mode de retrait ou livraison. Le retrait à la ferme concerne les paniers réservés sur le site.',
-              en: 'The goal is to make ordering easy to understand: you choose your basket, then your pickup or delivery method. Farm pickup is for baskets reserved on the website.'
-            },
-            textSize: 'md',
-            cards: [
-              {
-                id: 'baskets-1',
-                title: { fr: 'Retrait à la ferme', en: 'Farm pickup' },
-                text: {
-                  fr: 'Une solution simple pour venir récupérer votre panier réservé directement à la ferme, sur confirmation par email.',
-                  en: 'A simple solution to come pick up your reserved basket directly at the farm, upon email confirmation.'
-                },
-                icon: 'mdi:home-outline',
-                tone: 'base',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              },
-              {
-                id: 'baskets-2',
-                title: { fr: 'Point relais', en: 'Pickup point' },
-                text: {
-                  fr: 'Selon les disponibilités, vous pouvez choisir un point de retrait pratique.',
-                  en: 'Depending on availability, you can choose a convenient pickup location.'
-                },
-                icon: 'mdi:store-marker-outline',
-                tone: 'base',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              },
-              {
-                id: 'baskets-3',
-                title: { fr: 'Livraison tournée', en: 'Delivery tour' },
-                text: {
-                  fr: 'Pour certaines villes, une tournée de livraison peut être proposée.',
-                  en: 'For certain cities, a delivery tour may be offered.'
-                },
-                icon: 'mdi:truck-fast-outline',
-                tone: 'base',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              }
-            ],
-            primaryButton: {
-              label: { fr: 'Voir les paniers', en: 'View baskets' },
-              href: '/paniers',
-              tone: 'primary',
-              size: 'md'
-            },
-            secondaryButton: null
-          }
-        ]
-      },
-      {
-        id: 'direct-sale',
-        type: 'two-columns',
-        enabled: true,
-        tone: 'base-100',
-        containerWidth: 'default',
-        verticalAlign: 'center',
-        reverseOnDesktop: false,
-        columns: [
-          {
-            type: 'content',
-            align: 'start',
-            verticalAlign: 'center',
-            badge: { fr: 'Le rendez-vous de la semaine', en: 'The weekly meeting point' },
-            badgeSize: 'sm',
-            title: { fr: 'Vente directe', en: 'Direct Sale' },
-            titleSize: 'xl',
-            text: {
-              fr: 'Deux rendez-vous simples et réguliers pour retrouver les produits de la ferme, poser vos questions et choisir le format qui vous convient.',
-              en: 'Two simple weekly meetings to find farm products, ask questions and choose the format that suits you best.'
-            },
-            textSize: 'md',
-            cards: [
-              {
-                id: 'direct-sale-1',
-                title: { fr: 'Vente directe à la ferme', en: 'Direct sale at the farm' },
-                text: {
-                  fr: `Adresse : ${farmAddress}`,
-                  en: `Address: ${farmAddress}`
-                },
-                icon: 'mdi:home-heart',
-                tone: 'base',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              },
-              {
-                id: 'direct-sale-2',
-                title: { fr: 'Marché de Saint-Sébastien-d\'Aigrefeuille', en: 'Saint-Sebastien-d\'Aigrefeuille market' },
-                text: {
-                  fr: 'Sur la terrasse du Saint Seb.',
-                  en: 'On the Saint Seb terrace.'
-                },
-                icon: 'mdi:storefront-outline',
-                tone: 'base',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              },
-              {
-                id: 'direct-sale-3',
-                title: { fr: 'Comment ça marche ?', en: 'How does it work?' },
-                text: {
-                  fr: 'Je peux venir à la vente à la ferme pour les produits disponibles, ou réserver un panier depuis le site.',
-                  en: 'I can come to the farm sale for available products, or reserve a basket from the website.'
-                },
-                icon: 'mdi:calendar-check-outline',
-                tone: 'outline',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              }
-            ],
-            primaryButton: {
-              label: { fr: 'Nous trouver', en: 'Find us' },
-              href: '/contact',
-              tone: 'primary',
-              size: 'md'
-            },
-            secondaryButton: null
-          },
-          {
-            type: 'image',
-            imageUrl: '/images/erasebg-transformed.png',
-            alt: {
-              fr: 'Logo de la ferme',
-              en: 'Farm logo'
-            },
-            aspect: 'portrait',
-            fit: 'contain',
-            verticalAlign: 'center',
-            enlarge: false,
-            framed: true
-          }
-        ]
-      },
-      {
-        id: 'trust-and-cta',
-        type: 'two-columns',
-        enabled: true,
-        tone: 'base-200',
-        containerWidth: 'default',
-        verticalAlign: 'end',
-        reverseOnDesktop: false,
-        columns: [
-          {
-            type: 'content',
-            align: 'start',
-            verticalAlign: 'center',
-            badge: { fr: 'Repères utiles', en: 'Useful landmarks' },
-            badgeSize: 'sm',
-            title: {
-              fr: 'Une ferme jeune, concrète et en développement',
-              en: 'A young, practical farm project'
-            },
-            titleSize: 'xl',
-            text: {
-              fr: 'Le projet s\'appuie sur une installation agricole locale, une démarche biologique et une volonté de rendre des produits fermiers accessibles dans la durée.',
-              en: 'The project is built around local farming, an organic approach and the desire to make farm products accessible over time.'
-            },
-            textSize: 'md',
-            cards: [
-              {
-                id: 'trust-1',
-                title: { fr: 'Agriculture biologique', en: 'Organic approach' },
-                text: {
-                  fr: 'La ferme est engagée dans une production centrée sur le vivant et la saisonnalité.',
-                  en: 'The farm focuses on living soils, seasonality and practical organic production.'
-                },
-                icon: 'mdi:leaf',
-                tone: 'soft',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              },
-              {
-                id: 'trust-2',
-                title: { fr: 'Projet de territoire', en: 'Territorial project' },
-                text: {
-                  fr: 'Le développement de la ferme s\'inscrit dans un ancrage local fort autour des Cévennes et de la vente en proximité.',
-                  en: 'The farm is rooted in the Cevennes with a strong local direct-sale approach.'
-                },
-                icon: 'mdi:map-marker-radius-outline',
-                tone: 'soft',
-                size: 'md',
-                titleSize: 'md',
-                textSize: 'sm'
-              }
-            ],
-            primaryButton: null,
-            secondaryButton: null
-          },
-          {
-            type: 'content',
-            align: 'start',
-            verticalAlign: 'center',
-            badge: { fr: 'Prochaine étape', en: 'Next step' },
-            badgeSize: 'sm',
-            title: {
-              fr: 'Commander un panier ou prendre contact',
-              en: 'Reserve a basket or get in touch'
-            },
-            titleSize: 'xl',
-            text: {
-              fr: 'Si vous souhaitez suivre les disponibilités, réserver un panier ou simplement en savoir plus sur la ferme, les prochaines étapes sont ici.',
-              en: 'If you want to follow availability, reserve a basket or simply learn more about the farm, start here.'
-            },
-            textSize: 'md',
-            cards: [],
-            primaryButton: {
-              label: { fr: 'Réserver un panier', en: 'Reserve a basket' },
-              href: '/paniers',
-              tone: 'primary',
-              size: 'md'
-            },
-            secondaryButton: {
-              label: { fr: 'Nous écrire', en: 'Contact us' },
-              href: '/contact',
-              tone: 'outline',
-              size: 'md'
-            }
-          }
-        ]
-      }
-    ]
+    sections: [intro, activities, directSale]
   }
 }

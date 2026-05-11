@@ -1,23 +1,16 @@
-import type { Ref } from 'vue'
 import type {
   HomePageButton,
   HomePageCard,
-  HomePageContentBlock,
-  HomePageHeroSection,
-  HomePageImageBlock,
-  HomePageOneColumnSection,
-  HomePageTwoColumnsSection,
-  LocalizedText,
-  TypographySize
+  HomePageColumn,
+  HomePageColumnItem,
+  HomePageSection,
+  LocalizedText
 } from '~/shared/homePage'
 
-export type EditableSection = HomePageTwoColumnsSection | HomePageOneColumnSection
-export type EditableColumn = HomePageContentBlock | HomePageImageBlock
-
 export type HomePageEditTarget =
-  | { kind: 'hero'; label: string; hero: HomePageHeroSection }
-  | { kind: 'section'; label: string; section: EditableSection }
-  | { kind: 'column'; label: string; column: EditableColumn }
-  | { kind: 'card'; label: string; card: HomePageCard }
+  | { kind: 'section'; label: string; section: HomePageSection; sections: HomePageSection[]; sectionIndex: number }
+  | { kind: 'column'; label: string; column: HomePageColumn; section: HomePageSection; columnIndex: number }
+  | { kind: 'item'; label: string; item: HomePageColumnItem; parentItems: HomePageColumnItem[]; itemIndex: number }
+  | { kind: 'card'; label: string; card: HomePageCard; parentCards: HomePageCard[]; cardIndex: number }
   | { kind: 'button'; label: string; button: HomePageButton }
-  | { kind: 'text'; label: string; text: LocalizedText; multiline?: boolean; fontSize?: TypographySize }
+  | { kind: 'text'; label: string; text: LocalizedText; multiline?: boolean; fontSize?: any }

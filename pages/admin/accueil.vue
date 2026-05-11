@@ -4,20 +4,16 @@
       <div>
         <h1 class="text-3xl font-bold">Accueil</h1>
         <p class="mt-1 text-sm opacity-70">
-          Personnalisez le hero et les sections de la page d'accueil sans casser le rendu SEO.
+          Personnalisez la page d'accueil par sections, colonnes et éléments.
         </p>
       </div>
 
       <div class="flex flex-wrap gap-2">
-        <NuxtLink to="/" target="_blank" class="btn btn-outline">
-          Voir la page
-        </NuxtLink>
-        <NuxtLink to="/?editPage=1" target="_blank" class="btn btn-outline btn-primary">
-          Éditer sur la page
-        </NuxtLink>
+        <NuxtLink to="/" target="_blank" class="btn btn-outline">Voir la page</NuxtLink>
+        <NuxtLink to="/?editPage=1" target="_blank" class="btn btn-outline btn-primary">Editer sur la page</NuxtLink>
         <button class="btn btn-warning btn-outline" :disabled="saving || pending || !content" @click="resetColors">
           <span v-if="resettingColors" class="loading loading-spinner loading-sm" />
-          Réinitialiser les couleurs
+          Reinitialiser les couleurs
         </button>
         <button class="btn btn-primary" :disabled="saving || pending || !content" @click="save">
           <span v-if="saving" class="loading loading-spinner loading-sm" />
@@ -28,52 +24,45 @@
 
     <div v-if="pending" class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-200 p-4">
       <span class="loading loading-spinner loading-md" />
-      <span>Chargement de la page d'accueil…</span>
+      <span>Chargement de la page d'accueil...</span>
     </div>
 
     <div v-else-if="content" class="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <aside class="space-y-4">
+      <aside class="space-y-4 xl:sticky xl:top-24 xl:self-start">
         <div class="card border border-base-300 bg-base-200 shadow">
           <div class="card-body">
-            <div class="flex items-center justify-between gap-3">
-              <h2 class="card-title text-lg">Structure</h2>
-              <div class="flex flex-wrap gap-2">
-                <button class="btn btn-sm btn-outline" @click="addSection('one-column')">
-                  <Icon name="mdi:view-agenda-outline" size="16" />
-                  1 colonne
-                </button>
-                <button class="btn btn-sm btn-primary" @click="addSection('two-columns')">
-                  <Icon name="mdi:view-column-outline" size="16" />
-                  2 colonnes
-                </button>
-              </div>
+            <h2 class="card-title text-lg">Structure</h2>
+
+            <div class="mt-3 grid gap-2">
+              <button
+                v-for="count in SECTION_COLUMN_COUNTS"
+                :key="count"
+                class="btn btn-sm btn-outline justify-start"
+                @click="addSection(count)"
+              >
+                <Icon name="mdi:plus" size="16" />
+                {{ SECTION_COLUMN_COUNT_LABELS[count] }}
+              </button>
             </div>
 
-            <div class="menu mt-2 rounded-box bg-base-100 p-2">
-              <button
-                class="rounded-xl px-3 py-3 text-left"
-                :class="selectedPanel === 'hero' ? 'bg-primary text-primary-content' : 'hover:bg-base-200'"
-                @click="selectedPanel = 'hero'"
-              >
-                <div class="font-medium">Hero</div>
-                <div class="text-xs opacity-80">Image de fond, titre, CTA, points clés</div>
-              </button>
-
-              <div class="mt-2 space-y-2">
+            <div class="menu mt-4 rounded-box bg-base-100 p-2">
+              <div class="space-y-2">
                 <div
                   v-for="(section, index) in content.sections"
                   :key="section.id"
                   class="rounded-xl border border-base-300 bg-base-100 p-3"
-                  :class="selectedPanel === section.id ? 'ring-2 ring-primary' : ''"
+                  :class="selectedSectionId === section.id ? 'ring-2 ring-primary' : ''"
                 >
-                  <button class="w-full text-left" @click="selectedPanel = section.id">
+                  <button class="w-full text-left" @click="selectSection(section.id)">
                     <div class="flex items-center justify-between gap-2">
                       <div class="font-medium">Section {{ index + 1 }}</div>
                       <span class="badge badge-sm" :class="section.enabled ? 'badge-success' : 'badge-ghost'">
-                        {{ section.enabled ? 'Active' : 'Masquée' }}
+                        {{ section.enabled ? 'Active' : 'Masquee' }}
                       </span>
                     </div>
-                    <div class="mt-1 text-xs opacity-70">{{ section.type === 'one-column' ? '1 colonne' : '2 colonnes' }}</div>
+                    <div class="mt-1 text-xs opacity-70">
+                      {{ SECTION_COLUMN_COUNT_LABELS[section.columnCount] }}
+                    </div>
                   </button>
 
                   <div class="mt-3 flex flex-wrap gap-2">
@@ -88,675 +77,330 @@
         </div>
       </aside>
 
-      <div class="space-y-6">
-        <template v-if="selectedPanel === 'hero'">
-          <div class="tabs tabs-box mb-4">
-            <button
-              class="tab"
-              :class="heroTab === 'content' ? 'tab-active' : ''"
-              @click="heroTab = 'content'"
-            >
-              <Icon name="mdi:home-edit" size="16" class="mr-1" />
-              Hero
-            </button>
-            <button
-              class="tab"
-              :class="heroTab === 'highlights' ? 'tab-active' : ''"
-              @click="heroTab = 'highlights'"
-            >
-              <Icon name="mdi:star-box-multiple" size="16" class="mr-1" />
-              Points clés
-            </button>
-          </div>
+      <div v-if="selectedSection" class="space-y-6">
+        <div class="tabs tabs-box flex-wrap">
+          <button class="tab" :class="editorTab === 'section' ? 'tab-active' : ''" @click="editorTab = 'section'">
+            Section
+          </button>
+          <button class="tab" :class="editorTab === 'columns' ? 'tab-active' : ''" @click="editorTab = 'columns'">
+            Colonnes
+          </button>
+        </div>
 
-          <section v-if="heroTab === 'content'" class="card border border-base-300 bg-base-200 shadow">
-            <div class="card-body">
-              <div class="flex items-center justify-between gap-3">
-                <h2 class="card-title">Hero</h2>
+        <section v-if="editorTab === 'section'" class="card border border-base-300 bg-base-200 shadow">
+          <div class="card-body space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <h2 class="card-title">Section</h2>
+              <div class="flex flex-wrap gap-4">
                 <label class="label cursor-pointer justify-start gap-2">
-                  <input v-model="content.hero.enabled" type="checkbox" class="toggle toggle-primary" />
+                  <input v-model="selectedSection.enabled" type="checkbox" class="toggle toggle-primary" />
                   <span class="label-text">Afficher</span>
                 </label>
+                <label v-if="selectedSection.columnCount === 2" class="label cursor-pointer justify-start gap-2">
+                  <input v-model="selectedSection.reverseOnDesktop" type="checkbox" class="toggle toggle-primary" />
+                  <span class="label-text">Inverser sur desktop</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="grid gap-4 lg:grid-cols-2">
+              <div class="form-control">
+                <label class="label"><span class="label-text">Type de section</span></label>
+                <select
+                  :value="String(selectedSection.columnCount)"
+                  class="select select-bordered w-full"
+                  @change="onSectionColumnCountChange($event)"
+                >
+                  <option v-for="count in SECTION_COLUMN_COUNTS" :key="count" :value="String(count)">
+                    {{ SECTION_COLUMN_COUNT_LABELS[count] }}
+                  </option>
+                </select>
               </div>
 
-              <div class="space-y-4">
+              <div class="form-control">
+                <label class="label"><span class="label-text">Identifiant technique</span></label>
+                <input v-model="selectedSection.id" class="input input-bordered w-full" />
+              </div>
+
+              <div class="form-control">
+                <label class="label"><span class="label-text">Largeur du container</span></label>
+                <select v-model="selectedSection.containerWidth" class="select select-bordered w-full">
+                  <option v-for="width in SECTION_CONTAINER_WIDTHS" :key="width" :value="width">
+                    {{ SECTION_CONTAINER_WIDTH_LABELS[width] }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-control">
+                <label class="label"><span class="label-text">Alignement vertical des colonnes dans la section</span></label>
+                <select v-model="selectedSection.contentVerticalAlign" class="select select-bordered w-full">
+                  <option v-for="align in VERTICAL_ALIGNS" :key="align" :value="align">{{ align }}</option>
+                </select>
+              </div>
+            </div>
+
+            <ThemeColorPicker v-model="selectedSection.backgroundColor" label="Fond de section" default-token="base-100" />
+            <AdminHomepageSectionBackgroundFields :section="selectedSection" />
+          </div>
+        </section>
+
+        <section v-else class="card border border-base-300 bg-base-200 shadow">
+          <div class="card-body space-y-4">
+            <div class="tabs tabs-box flex-wrap">
+              <button
+                v-for="(_, columnIndex) in selectedSection.columns.slice(0, selectedSection.columnCount)"
+                :key="columnIndex"
+                class="tab"
+                :class="sectionColumnTab === columnIndex ? 'tab-active' : ''"
+                @click="sectionColumnTab = columnIndex"
+              >
+                Colonne {{ columnIndex + 1 }}
+              </button>
+            </div>
+
+            <template v-if="selectedColumn">
+              <div class="grid gap-4 md:grid-cols-2">
                 <div class="form-control">
-                  <label class="label"><span class="label-text">Image de fond</span></label>
-                  <ImageInput v-model="content.hero.backgroundImageUrl" />
-                </div>
-                <div class="form-control gap-3 flex max-w-sm">
-                  <label class="label"><span class="label-text">Largeur du hero</span></label>
-                  <select v-model="content.hero.containerWidth" class="select select-bordered w-full">
-                    <option v-for="width in SECTION_CONTAINER_WIDTHS" :key="width" :value="width">
-                      {{ SECTION_CONTAINER_WIDTH_LABELS[width] }}
-                    </option>
+                  <label class="label"><span class="label-text">Alignement horizontal</span></label>
+                  <select v-model="selectedColumn.align" class="select select-bordered w-full">
+                    <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
                   </select>
                 </div>
 
-                <TranslationTabs v-model="content.hero.badge" v-model:size="content.hero.badgeSize" label="Badge" />
-                <TranslationTabs v-model="content.hero.title" v-model:size="content.hero.titleSize" label="Titre" />
-                <TranslationTabs v-model="content.hero.text" v-model:size="content.hero.textSize" label="Texte" multiline />
-
-                <div class="rounded-xl border border-base-300 bg-base-100 p-4">
-                  <div class="mb-3 font-medium">Bouton principal</div>
-                  <HomePageButtonFields :model-value="content.hero.primaryButton" />
-                </div>
-
-                <div class="rounded-xl border border-base-300 bg-base-100 p-4">
-                  <div class="mb-3 flex items-center justify-between gap-2">
-                    <div class="font-medium">Bouton secondaire</div>
-                    <button
-                      v-if="!content.hero.secondaryButton"
-                      class="btn btn-xs btn-outline"
-                      @click="content.hero.secondaryButton = createEmptyButton()"
-                    >
-                      Ajouter
-                    </button>
-                    <button
-                      v-else
-                      class="btn btn-xs btn-outline btn-error"
-                      @click="content.hero.secondaryButton = null"
-                    >
-                      Retirer
-                    </button>
-                  </div>
-                  <HomePageButtonFields v-if="content.hero.secondaryButton" :model-value="content.hero.secondaryButton" />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section v-else class="card border border-base-300 bg-base-200 shadow">
-            <div class="card-body">
-              <div class="mb-3 flex items-center justify-between gap-3">
-                <h2 class="card-title">Points clés du hero</h2>
-                <button class="btn btn-sm btn-primary" @click="addHeroHighlight">
-                  <Icon name="mdi:plus" size="16" />
-                  Carte
-                </button>
-              </div>
-
-              <div class="space-y-4">
-                <div
-                  v-for="(card, index) in content.hero.highlights"
-                  :key="card.id"
-                  class="rounded-xl border border-base-300 bg-base-100 p-4"
-                >
-                  <div class="mb-3 flex items-center justify-between gap-2">
-                    <div class="font-medium">Carte {{ index + 1 }}</div>
-                    <button class="btn btn-xs btn-outline btn-error" @click="removeHeroHighlight(index)">Supprimer</button>
-                  </div>
-                  <HomePageCardFields :model-value="card" />
-                </div>
-              </div>
-            </div>
-          </section>
-        </template>
-
-        <template v-else-if="selectedSection">
-          <div v-for="section in [selectedSection]" :key="section.id" class="space-y-6">
-          <section class="card border border-base-300 bg-base-200 shadow">
-            <div class="card-body">
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 class="card-title">Section</h2>
-                <div class="flex flex-wrap gap-4">
-                  <label class="label cursor-pointer justify-start gap-2">
-                    <input v-model="section.enabled" type="checkbox" class="toggle toggle-primary" />
-                    <span class="label-text">Afficher</span>
-                  </label>
-                  <label v-if="section.type === 'two-columns'" class="label cursor-pointer justify-start gap-2">
-                    <input v-model="section.reverseOnDesktop" type="checkbox" class="toggle toggle-primary" />
-                    <span class="label-text">Inverser sur desktop</span>
-                  </label>
+                <div class="form-control">
+                  <label class="label"><span class="label-text">Alignement vertical du contenu de la colonne</span></label>
+                  <select v-model="selectedColumn.verticalAlign" class="select select-bordered w-full">
+                    <option v-for="align in VERTICAL_ALIGNS" :key="align" :value="align">{{ align }}</option>
+                  </select>
                 </div>
               </div>
 
-                <div class="flex flex-col gap-4">
-                  <div class="form-control gap-3 flex max-w-sm">
-                    <label class="label"><span class="label-text">Type</span></label>
-                    <select :value="section.type" class="select select-bordered w-full" @change="onSectionTypeChange(section, $event)">
-                      <option value="two-columns">2 colonnes</option>
-                      <option value="one-column">1 colonne</option>
-                    </select>
-                  </div>
-                  <div class="form-control gap-3 flex">
-                    <label class="label"><span class="label-text">Identifiant technique</span></label>
-                    <input v-model="section.id" class="input input-bordered w-full" />
-                  </div>
-                  <div class="form-control gap-3 flex max-w-sm">
-                    <label class="label"><span class="label-text">Largeur du container</span></label>
-                    <select v-model="section.containerWidth" class="select select-bordered w-full">
-                      <option v-for="width in SECTION_CONTAINER_WIDTHS" :key="width" :value="width">
-                        {{ SECTION_CONTAINER_WIDTH_LABELS[width] }}
-                      </option>
-                    </select>
-                  </div>
+              <ThemeColorPicker
+                v-model="selectedColumn.textColor"
+                label="Couleur du texte de la colonne"
+                default-token="base-content"
+              />
 
-                  <ThemeColorPicker
-                    v-model="section.backgroundColor"
-                    label="Fond de section"
-                    default-token="base-100"
-                  />
+              <div class="rounded-xl border border-base-300 bg-base-100 p-4">
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div class="font-medium">Elements de la colonne</div>
+                  <div class="flex flex-wrap gap-2">
+                    <button class="btn btn-xs btn-outline" @click="addColumnItem('badge')">Badge</button>
+                    <button class="btn btn-xs btn-outline" @click="addColumnItem('title')">Titre</button>
+                    <button class="btn btn-xs btn-outline" @click="addColumnItem('text')">Texte</button>
+                    <button class="btn btn-xs btn-outline" @click="addColumnItem('buttons')">Boutons</button>
+                    <button class="btn btn-xs btn-outline" @click="addColumnItem('cards')">Cartes</button>
+                    <button class="btn btn-xs btn-outline" @click="addColumnItem('image')">Image</button>
+                    <button class="btn btn-xs btn-outline" @click="addColumnItem('carousel')">Carousel</button>
+                  </div>
                 </div>
-            </div>
-          </section>
 
-          <section class="card border border-base-300 bg-base-200 shadow">
-            <div class="card-body">
-              <div v-if="section.type === 'two-columns'" class="tabs tabs-box mb-4">
-                <button
-                  class="tab"
-                  :class="sectionColumnTab === 0 ? 'tab-active' : ''"
-                  @click="sectionColumnTab = 0"
-                >
-                  <Icon name="mdi:numeric-1-circle" size="16" class="mr-1" />
-                  Colonne 1
-                </button>
-                <button
-                  class="tab"
-                  :class="sectionColumnTab === 1 ? 'tab-active' : ''"
-                  @click="sectionColumnTab = 1"
-                >
-                  <Icon name="mdi:numeric-2-circle" size="16" class="mr-1" />
-                  Colonne 2
-                </button>
-              </div>
-
-              <div v-for="(column, columnIndex) in section.type === 'two-columns' ? section.columns : [section.column]" :key="`${section.id}-${columnIndex}`">
-                <template v-if="sectionColumnTab === columnIndex">
-                  <div class="flex items-center gap-3 mb-4">
-                    <h3 class="font-medium">Colonne {{ columnIndex + 1 }}</h3>
-                    <select class="select select-bordered select-sm" :value="column.type" @change="onColumnTypeChange(section, columnIndex, $event)">
-                      <option value="content">Contenu</option>
-                      <option value="image">Image</option>
-                    </select>
-                  </div>
-
-                  <template v-if="column.type === 'image'">
-                    <div class="space-y-4">
-                      <div class="form-control gap-3 flex">
-                        <label class="label"><span class="label-text">Image</span></label>
-                        <ImageInput v-model="column.imageUrl" />
+                <div class="space-y-4">
+                  <div
+                    v-for="(item, itemIndex) in selectedColumn.items"
+                    :key="item.id"
+                    class="rounded-xl border border-base-300 bg-base-200 p-4"
+                  >
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div class="font-medium">{{ itemLabel(item) }}</div>
+                      <div class="flex flex-wrap gap-2">
+                        <button class="btn btn-xs" :disabled="itemIndex === 0" @click="moveItem(selectedColumn.items, itemIndex, -1)">Monter</button>
+                        <button class="btn btn-xs" :disabled="itemIndex === selectedColumn.items.length - 1" @click="moveItem(selectedColumn.items, itemIndex, 1)">Descendre</button>
+                        <button class="btn btn-xs btn-outline btn-error" @click="selectedColumn.items.splice(itemIndex, 1)">Supprimer</button>
                       </div>
-                      <TranslationTabs v-model="column.alt" label="Alt" />
-                      <div class="grid gap-4 md:grid-cols-2">
-                        <div class="form-control gap-3 flex">
-                          <label class="label"><span class="label-text">Ratio</span></label>
-                          <select v-model="column.aspect" class="select select-bordered w-full">
-                            <option v-for="aspect in IMAGE_ASPECTS" :key="aspect" :value="aspect">{{ aspect }}</option>
-                          </select>
-                        </div>
-                        <div class="form-control gap-3 flex">
-                          <label class="label"><span class="label-text">Placement</span></label>
-                          <select v-model="column.fit" class="select select-bordered w-full">
-                            <option v-for="fit in IMAGE_FITS" :key="fit" :value="fit">{{ fit }}</option>
-                          </select>
-                        </div>
-                        <div class="form-control gap-3 flex">
-                          <label class="label"><span class="label-text">Alignement vertical</span></label>
-                          <select v-model="column.verticalAlign" class="select select-bordered w-full">
-                            <option v-for="align in VERTICAL_ALIGNS" :key="align" :value="align">{{ align }}</option>
-                          </select>
-                        </div>
-                      </div>
-                      <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
-                        <input v-model="column.framed" type="checkbox" class="toggle toggle-primary" />
-                        <span class="label-text">Afficher l’image dans une carte</span>
-                      </label>
-                      <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
-                        <input v-model="column.enlarge" type="checkbox" class="toggle toggle-primary" />
-                        <span class="label-text">Forcer un affichage plus grand</span>
-                      </label>
                     </div>
-                  </template>
 
-                  <template v-else>
-                    <div class="space-y-4">
-                      <div class="flex flex-col gap-4">
-                        <div class="form-control gap-3 flex">
-                          <label class="label"><span class="label-text">Alignement horizontal</span></label>
-                          <select v-model="column.align" class="select select-bordered w-full">
-                            <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
-                          </select>
-                        </div>
-                        <div class="form-control gap-3 flex">
-                          <label class="label"><span class="label-text">Alignement vertical</span></label>
-                          <select v-model="column.verticalAlign" class="select select-bordered w-full">
-                            <option v-for="align in VERTICAL_ALIGNS" :key="align" :value="align">{{ align }}</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <ThemeColorPicker
-                        v-model="column.textColor"
-                        label="Couleur du texte de la colonne"
-                        default-token="base-content"
+                    <div v-if="item.type === 'badge' || item.type === 'title' || item.type === 'text'" class="space-y-4">
+                      <AdminHomepageTranslationTabs
+                        :model-value="item.text"
+                        :label="item.type === 'badge' ? 'Badge' : item.type === 'title' ? 'Titre' : 'Texte'"
+                        :size="item.size"
+                        :multiline="item.type === 'text'"
+                        @update:size="item.size = $event as typeof item.size"
                       />
+                      <template v-if="item.type === 'badge'">
+                        <ThemeColorPicker v-model="item.backgroundColor" label="Fond du badge" default-token="primary" />
+                        <ThemeColorPicker v-model="item.textColor" label="Texte du badge" default-token="primary-content" />
+                        <ThemeColorPicker v-model="item.borderColor" label="Bordure du badge" default-token="primary" />
+                      </template>
+                    </div>
 
-                      <TranslationTabs v-model="column.badge" v-model:size="column.badgeSize" label="Badge" />
-                      <TranslationTabs v-model="column.title" v-model:size="column.titleSize" label="Titre" />
-                      <TranslationTabs v-model="column.text" v-model:size="column.textSize" label="Texte" multiline />
-
+                    <div v-else-if="item.type === 'buttons'" class="space-y-4">
                       <div class="rounded-xl border border-base-300 bg-base-100 p-4">
                         <div class="mb-3 flex items-center justify-between gap-2">
                           <div class="font-medium">Bouton principal</div>
-                          <button
-                            v-if="!column.primaryButton"
-                            class="btn btn-xs btn-outline"
-                            @click="column.primaryButton = createEmptyButton()"
-                          >
+                          <button v-if="!item.primaryButton" class="btn btn-xs btn-outline" @click="item.primaryButton = createEmptyButton()">
                             Ajouter
                           </button>
-                          <button
-                            v-else
-                            class="btn btn-xs btn-outline btn-error"
-                            @click="column.primaryButton = null"
-                          >
+                          <button v-else class="btn btn-xs btn-outline btn-error" @click="item.primaryButton = null">
                             Retirer
                           </button>
                         </div>
-                        <HomePageButtonFields v-if="column.primaryButton" :model-value="column.primaryButton" />
+                        <AdminHomepageButtonFields v-if="item.primaryButton" :button="item.primaryButton" />
                       </div>
 
                       <div class="rounded-xl border border-base-300 bg-base-100 p-4">
                         <div class="mb-3 flex items-center justify-between gap-2">
                           <div class="font-medium">Bouton secondaire</div>
-                          <button
-                            v-if="!column.secondaryButton"
-                            class="btn btn-xs btn-outline"
-                            @click="column.secondaryButton = createEmptyButton()"
-                          >
+                          <button v-if="!item.secondaryButton" class="btn btn-xs btn-outline" @click="item.secondaryButton = createEmptyButton()">
                             Ajouter
                           </button>
-                          <button
-                            v-else
-                            class="btn btn-xs btn-outline btn-error"
-                            @click="column.secondaryButton = null"
-                          >
+                          <button v-else class="btn btn-xs btn-outline btn-error" @click="item.secondaryButton = null">
                             Retirer
                           </button>
                         </div>
-                        <HomePageButtonFields v-if="column.secondaryButton" :model-value="column.secondaryButton" />
+                        <AdminHomepageButtonFields v-if="item.secondaryButton" :button="item.secondaryButton" />
+                      </div>
+                    </div>
+
+                    <div v-else-if="item.type === 'image'" class="space-y-4">
+                      <div class="form-control">
+                        <label class="label"><span class="label-text">Image</span></label>
+                        <ImageInput v-model="item.imageUrl" />
                       </div>
 
-                      <div class="rounded-xl border border-base-300 bg-base-100 p-4">
-                        <div class="mb-3 flex items-center justify-between gap-3">
-                          <div class="font-medium">Cartes</div>
-                          <button class="btn btn-xs btn-primary" @click="addColumnCard(column)">
-                            <Icon name="mdi:plus" size="14" />
-                            Carte
-                          </button>
+                      <AdminHomepageTranslationTabs :model-value="item.alt" label="Alt" />
+
+                      <div class="grid gap-4 md:grid-cols-2">
+                        <div class="form-control">
+                          <label class="label"><span class="label-text">Ratio</span></label>
+                          <select v-model="item.aspect" class="select select-bordered w-full">
+                            <option v-for="aspect in IMAGE_ASPECTS" :key="aspect" :value="aspect">{{ aspect }}</option>
+                          </select>
                         </div>
 
-                        <div class="space-y-4">
-                          <div
-                            v-for="(card, cardIndex) in column.cards"
-                            :key="card.id"
-                            class="rounded-xl border border-base-300 bg-base-200 p-4"
-                          >
-                            <div class="mb-3 flex items-center justify-between gap-2">
-                              <div class="font-medium">Carte {{ cardIndex + 1 }}</div>
-                              <button class="btn btn-xs btn-outline btn-error" @click="removeColumnCard(column, cardIndex)">
-                                Supprimer
-                              </button>
+                        <div class="form-control">
+                          <label class="label"><span class="label-text">Placement</span></label>
+                          <select v-model="item.fit" class="select select-bordered w-full">
+                            <option v-for="fit in IMAGE_FITS" :key="fit" :value="fit">{{ fit }}</option>
+                          </select>
+                        </div>
+
+                        <div class="form-control">
+                          <label class="label"><span class="label-text">Alignement vertical</span></label>
+                          <select v-model="item.verticalAlign" class="select select-bordered w-full">
+                            <option v-for="align in VERTICAL_ALIGNS" :key="align" :value="align">{{ align }}</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+                        <input v-model="item.framed" type="checkbox" class="toggle toggle-primary" />
+                        <span class="label-text">Afficher l'image dans une carte</span>
+                      </label>
+
+                      <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+                        <input v-model="item.enlarge" type="checkbox" class="toggle toggle-primary" />
+                        <span class="label-text">Forcer un affichage plus grand</span>
+                      </label>
+                    </div>
+
+                    <div v-else-if="item.type === 'cards'" class="space-y-4">
+                      <div class="form-control">
+                        <label class="label"><span class="label-text">Affichage des cartes</span></label>
+                        <select v-model="item.display" class="select select-bordered w-full">
+                          <option v-for="display in CARDS_DISPLAYS" :key="display" :value="display">
+                            {{ CARDS_DISPLAY_LABELS[display] }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div class="flex justify-end">
+                        <button class="btn btn-sm btn-primary" @click="item.cards.push(createEmptyCard(createId('card')))">
+                          Ajouter une carte
+                        </button>
+                      </div>
+
+                      <div class="space-y-4">
+                        <div
+                          v-for="(card, cardIndex) in item.cards"
+                          :key="card.id"
+                          class="rounded-xl border border-base-300 bg-base-100 p-4"
+                        >
+                          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <div class="font-medium">Carte {{ cardIndex + 1 }}</div>
+                            <div class="flex flex-wrap gap-2">
+                              <button class="btn btn-xs" :disabled="cardIndex === 0" @click="moveItem(item.cards, cardIndex, -1)">Monter</button>
+                              <button class="btn btn-xs" :disabled="cardIndex === item.cards.length - 1" @click="moveItem(item.cards, cardIndex, 1)">Descendre</button>
+                              <button class="btn btn-xs btn-outline btn-error" @click="item.cards.splice(cardIndex, 1)">Supprimer</button>
                             </div>
-                            <HomePageCardFields :model-value="card" />
                           </div>
+                          <AdminHomepageCardFields :card="card" />
                         </div>
                       </div>
                     </div>
-                  </template>
-                </template>
+
+                    <div v-else-if="item.type === 'carousel'" class="space-y-4">
+                      <AdminHomepageCarouselFields :carousel="item" />
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </section>
+            </template>
           </div>
-        </template>
+        </section>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineComponent, h, type PropType } from 'vue'
-import AdminIconPicker from '~/components/admin/IconPicker.vue'
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import type { HomePageButton, HomePageCard, HomePageContent, HomePageContentBlock, HomePageOneColumnSection, HomePageTwoColumnsSection, ThemeColorSelection } from '~/shared/homePage'
+import AdminHomepageButtonFields from '~/components/admin/homepage/ButtonFields.vue'
+import AdminHomepageCarouselFields from '~/components/admin/homepage/CarouselFields.vue'
+import AdminHomepageCardFields from '~/components/admin/homepage/CardFields.vue'
+import AdminHomepageSectionBackgroundFields from '~/components/admin/homepage/SectionBackgroundFields.vue'
+import AdminHomepageTranslationTabs from '~/components/admin/homepage/TranslationTabs.vue'
+import type {
+  HomePageColumn,
+  HomePageColumnItem,
+  HomePageContent,
+  SectionColumnCount
+} from '~/shared/homePage'
 import {
-  BUTTON_SIZE_LABELS,
-  BUTTON_SIZES,
   applyDefaultSectionStyling,
-  BUTTON_TONES,
-  CARD_SIZE_LABELS,
-  CARD_SIZES,
-  CARD_TONES,
-  cloneHomePageContent,
+  CARDS_DISPLAY_LABELS,
+  CARDS_DISPLAYS,
   CONTENT_ALIGNS,
+  cloneHomePageContent,
+  createBadgeItem,
+  createButtonsItem,
+  createCarouselItem,
+  createCardsItem,
   createEmptyButton,
   createEmptyCard,
+  createEmptyColumnsSection,
   createEmptyContentBlock,
-  createEmptyImageBlock,
-  createEmptyOneColumnSection,
-  createEmptyTwoColumnsSection,
-  getAlternatingSectionTone,
+  createImageItem,
+  createTextItem,
+  createTitleItem,
   IMAGE_ASPECTS,
   IMAGE_FITS,
+  SECTION_COLUMN_COUNTS,
+  SECTION_COLUMN_COUNT_LABELS,
   SECTION_CONTAINER_WIDTH_LABELS,
   SECTION_CONTAINER_WIDTHS,
-  SECTION_TONES,
-  TYPOGRAPHY_SIZE_LABELS,
-  TYPOGRAPHY_SIZES,
   VERTICAL_ALIGNS
 } from '~/shared/homePage'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-const TranslationTabs = defineComponent({
-  props: {
-    modelValue: { type: Object as PropType<{ fr: string; en: string }>, required: true },
-    label: { type: String, required: true },
-    size: { type: String as PropType<any>, default: undefined },
-    multiline: { type: Boolean, default: false }
-  },
-  emits: ['update:size'],
-  setup(props, { emit }) {
-    const activeLang = ref<'fr' | 'en'>('fr')
-
-    return () => h('div', { class: 'form-control' }, [
-      h('div', { class: 'flex items-center justify-between mb-2 gap-2' }, [
-        h('div', { class: 'flex items-center gap-2' }, [
-          h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, props.label)]),
-          props.size !== undefined
-            ? h('select', {
-                class: 'select select-xs select-bordered w-auto min-w-20',
-                value: props.size,
-                onChange: (event: Event) => emit('update:size', (event.target as HTMLSelectElement).value)
-              }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size])))
-            : null
-        ]),
-        h('div', { class: 'tabs tabs-box tabs-xs' }, [
-          h('button', {
-            class: ['tab', activeLang.value === 'fr' ? 'tab-active' : ''],
-            onClick: () => activeLang.value = 'fr'
-          }, 'FR'),
-          h('button', {
-            class: ['tab', activeLang.value === 'en' ? 'tab-active' : ''],
-            onClick: () => activeLang.value = 'en'
-          }, 'EN')
-        ])
-      ]),
-      props.multiline
-        ? h('textarea', {
-            class: 'textarea textarea-bordered w-full',
-            rows: 3,
-            value: props.modelValue[activeLang.value],
-            onInput: (event: Event) => {
-              props.modelValue[activeLang.value] = (event.target as HTMLTextAreaElement).value
-            }
-          })
-        : h('input', {
-            class: 'input input-bordered w-full',
-            value: props.modelValue[activeLang.value],
-            onInput: (event: Event) => {
-              props.modelValue[activeLang.value] = (event.target as HTMLInputElement).value
-            }
-          })
-    ])
-  }
-})
-
-const HomePageButtonFields = defineComponent({
-  props: {
-    modelValue: {
-      type: Object as PropType<HomePageButton>,
-      required: true
-    }
-  },
-  setup(props) {
-    const labelTab = ref<'fr' | 'en'>('fr')
-
-    return () => h('div', { class: 'space-y-4' }, [
-      h('div', { class: 'form-control' }, [
-        h('div', { class: 'flex items-center justify-between mb-2' }, [
-          h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, 'Label')]),
-          h('div', { class: 'tabs tabs-box tabs-xs' }, [
-            h('button', {
-              class: ['tab', labelTab.value === 'fr' ? 'tab-active' : ''],
-              onClick: () => labelTab.value = 'fr'
-            }, 'FR'),
-            h('button', {
-              class: ['tab', labelTab.value === 'en' ? 'tab-active' : ''],
-              onClick: () => labelTab.value = 'en'
-            }, 'EN')
-          ])
-        ]),
-        h('input', {
-          class: 'input input-bordered w-full',
-          value: props.modelValue.label[labelTab.value],
-          onInput: (event: Event) => { props.modelValue.label[labelTab.value] = (event.target as HTMLInputElement).value }
-        })
-      ]),
-      h('div', { class: 'flex flex-col gap-4' }, [
-        h('div', { class: 'form-control gap-3 flex' }, [
-          h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Lien')]),
-          h('input', {
-            class: 'input input-bordered w-full',
-            value: props.modelValue.href,
-            onInput: (event: Event) => { props.modelValue.href = (event.target as HTMLInputElement).value }
-          })
-        ]),
-        h('div', { class: 'form-control gap-3 flex' }, [
-          h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Style')]),
-          h('select', {
-            class: 'select select-bordered w-full',
-            value: props.modelValue.tone,
-            onChange: (event: Event) => { props.modelValue.tone = (event.target as HTMLSelectElement).value as HomePageButton['tone'] }
-          }, BUTTON_TONES.map(tone => h('option', { value: tone }, tone)))
-        ]),
-        h('div', { class: 'form-control gap-3 flex' }, [
-          h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Taille du bouton')]),
-          h('select', {
-            class: 'select select-bordered w-full',
-            value: props.modelValue.size,
-            onChange: (event: Event) => { props.modelValue.size = (event.target as HTMLSelectElement).value as HomePageButton['size'] }
-          }, BUTTON_SIZES.map(size => h('option', { value: size }, BUTTON_SIZE_LABELS[size])))
-        ])
-      ]),
-      h(ThemeColorPicker, {
-        label: 'Fond du bouton',
-        modelValue: props.modelValue.backgroundColor || null,
-        defaultToken: 'primary',
-        'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.modelValue.backgroundColor = val }
-      }),
-      h(ThemeColorPicker, {
-        label: 'Texte du bouton',
-        modelValue: props.modelValue.textColor || null,
-        defaultToken: 'primary-content',
-        'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.modelValue.textColor = val }
-      }),
-      h(ThemeColorPicker, {
-        label: 'Bordure du bouton',
-        modelValue: props.modelValue.borderColor || null,
-        defaultToken: 'transparent',
-        'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.modelValue.borderColor = val }
-      })
-    ])
-  }
-})
-
-const HomePageCardFields = defineComponent({
-  props: {
-    modelValue: {
-      type: Object as PropType<HomePageCard>,
-      required: true
-    }
-  },
-  setup(props) {
-    const titleTab = ref<'fr' | 'en'>('fr')
-    const textTab = ref<'fr' | 'en'>('fr')
-
-    return () => h('div', { class: 'space-y-4' }, [
-      h(AdminIconPicker, {
-        modelValue: props.modelValue.icon || '',
-        'onUpdate:modelValue': (val: string) => props.modelValue.icon = val
-      }),
-      h('div', { class: 'flex flex-col gap-4' }, [
-        h('div', { class: 'form-control' }, [
-          h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Ton')]),
-          h('select', {
-            class: 'select select-bordered w-full',
-            value: props.modelValue.tone,
-            onChange: (event: Event) => { props.modelValue.tone = (event.target as HTMLSelectElement).value as HomePageCard['tone'] }
-          }, CARD_TONES.map(tone => h('option', { value: tone }, tone)))
-        ]),
-        h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [
-          h('input', {
-            type: 'checkbox',
-            class: 'toggle toggle-primary toggle-sm',
-            checked: props.modelValue.backdropBlur === true,
-            onChange: (event: Event) => { props.modelValue.backdropBlur = (event.target as HTMLInputElement).checked }
-          }),
-          h('span', { class: 'label-text' }, 'Background blur')
-        ]),
-        h('div', { class: 'form-control' }, [
-          h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Taille de la carte')]),
-          h('select', {
-            class: 'select select-bordered w-full',
-            value: props.modelValue.size,
-            onChange: (event: Event) => { props.modelValue.size = (event.target as HTMLSelectElement).value as HomePageCard['size'] }
-          }, CARD_SIZES.map(size => h('option', { value: size }, CARD_SIZE_LABELS[size])))
-        ])
-      ]),
-      h(ThemeColorPicker, {
-        label: 'Fond de la carte',
-        modelValue: props.modelValue.backgroundColor || null,
-        defaultToken: 'primary',
-        'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.modelValue.backgroundColor = val }
-      }),
-      h(ThemeColorPicker, {
-        label: 'Texte de la carte',
-        modelValue: props.modelValue.textColor || null,
-        defaultToken: 'base-content',
-        'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.modelValue.textColor = val }
-      }),
-      h(ThemeColorPicker, {
-        label: 'Couleur de l’icône',
-        modelValue: props.modelValue.iconColor || null,
-        defaultToken: 'primary',
-        'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.modelValue.iconColor = val }
-      }),
-      h(ThemeColorPicker, {
-        label: 'Fond de l’icône',
-        modelValue: props.modelValue.iconBackgroundColor || null,
-        defaultToken: 'transparent',
-        'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.modelValue.iconBackgroundColor = val }
-      }),
-      h(ThemeColorPicker, {
-        label: 'Bordure de la carte',
-        modelValue: props.modelValue.borderColor || null,
-        defaultToken: 'base-300',
-        'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.modelValue.borderColor = val }
-      }),
-      h('div', { class: 'form-control' }, [
-        h('div', { class: 'flex items-center justify-between mb-2' }, [
-          h('div', { class: 'flex items-center gap-2' }, [
-            h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, 'Titre')]),
-            h('select', {
-              class: 'select select-xs select-bordered w-auto min-w-20',
-              value: props.modelValue.titleSize,
-              onChange: (event: Event) => { props.modelValue.titleSize = (event.target as HTMLSelectElement).value as HomePageCard['titleSize'] }
-            }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size])))
-          ]),
-          h('div', { class: 'tabs tabs-box tabs-xs' }, [
-            h('button', {
-              class: ['tab', titleTab.value === 'fr' ? 'tab-active' : ''],
-              onClick: () => titleTab.value = 'fr'
-            }, 'FR'),
-            h('button', {
-              class: ['tab', titleTab.value === 'en' ? 'tab-active' : ''],
-              onClick: () => titleTab.value = 'en'
-            }, 'EN')
-          ])
-        ]),
-        h('input', {
-          class: 'input input-bordered w-full',
-          value: props.modelValue.title[titleTab.value],
-          onInput: (event: Event) => { props.modelValue.title[titleTab.value] = (event.target as HTMLInputElement).value }
-        })
-      ]),
-      h('div', { class: 'form-control' }, [
-        h('div', { class: 'flex items-center justify-between mb-2' }, [
-          h('div', { class: 'flex items-center gap-2' }, [
-            h('label', { class: 'label py-0' }, [h('span', { class: 'label-text' }, 'Texte')]),
-            h('select', {
-              class: 'select select-xs select-bordered w-auto min-w-20',
-              value: props.modelValue.textSize,
-              onChange: (event: Event) => { props.modelValue.textSize = (event.target as HTMLSelectElement).value as HomePageCard['textSize'] }
-            }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size])))
-          ]),
-          h('div', { class: 'tabs tabs-box tabs-xs' }, [
-            h('button', {
-              class: ['tab', textTab.value === 'fr' ? 'tab-active' : ''],
-              onClick: () => textTab.value = 'fr'
-            }, 'FR'),
-            h('button', {
-              class: ['tab', textTab.value === 'en' ? 'tab-active' : ''],
-              onClick: () => textTab.value = 'en'
-            }, 'EN')
-          ])
-        ]),
-        h('textarea', {
-          class: 'textarea textarea-bordered w-full',
-          rows: 3,
-          value: props.modelValue.text[textTab.value],
-          onInput: (event: Event) => { props.modelValue.text[textTab.value] = (event.target as HTMLTextAreaElement).value }
-        })
-      ]),
-      h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [
-        h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [
-          h('div', { class: 'font-medium' }, 'Bouton principal'),
-          !props.modelValue.primaryButton
-            ? h('button', {
-                class: 'btn btn-xs btn-outline',
-                onClick: () => props.modelValue.primaryButton = createEmptyButton()
-              }, 'Ajouter')
-            : h('button', {
-                class: 'btn btn-xs btn-outline btn-error',
-                onClick: () => props.modelValue.primaryButton = null
-              }, 'Retirer')
-        ]),
-        props.modelValue.primaryButton ? h(HomePageButtonFields, { modelValue: props.modelValue.primaryButton }) : null
-      ]),
-      h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [
-        h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [
-          h('div', { class: 'font-medium' }, 'Bouton secondaire'),
-          !props.modelValue.secondaryButton
-            ? h('button', {
-                class: 'btn btn-xs btn-outline',
-                onClick: () => props.modelValue.secondaryButton = createEmptyButton()
-              }, 'Ajouter')
-            : h('button', {
-                class: 'btn btn-xs btn-outline btn-error',
-                onClick: () => props.modelValue.secondaryButton = null
-              }, 'Retirer')
-        ]),
-        props.modelValue.secondaryButton ? h(HomePageButtonFields, { modelValue: props.modelValue.secondaryButton }) : null
-      ])
-    ])
-  }
-})
-
 const content = ref<HomePageContent | null>(null)
 const pending = ref(true)
 const saving = ref(false)
 const resettingColors = ref(false)
-const selectedPanel = ref<'hero' | string>('hero')
-const heroTab = ref<'content' | 'highlights'>('content')
+const selectedSectionId = ref('')
 const sectionColumnTab = ref(0)
+const editorTab = ref<'section' | 'columns'>('section')
 
 const selectedSection = computed(() =>
-  content.value?.sections.find(section => section.id === selectedPanel.value) ?? null
+  content.value?.sections.find(section => section.id === selectedSectionId.value) ?? null
 )
+
+const selectedColumn = computed<HomePageColumn | null>(() => {
+  if (!selectedSection.value) return null
+  return selectedSection.value.columns[sectionColumnTab.value] ?? null
+})
 
 onMounted(async () => {
   await load()
@@ -767,6 +411,10 @@ const load = async () => {
   try {
     const response = await $fetch<HomePageContent>('/api/admin/home-page')
     content.value = cloneHomePageContent(response)
+    if (content.value.sections.length) {
+      selectedSectionId.value = content.value.sections[0]?.id || ''
+      sectionColumnTab.value = 0
+    }
   } finally {
     pending.value = false
   }
@@ -774,25 +422,30 @@ const load = async () => {
 
 const createId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 8)}`
 
-const addSection = (type: 'one-column' | 'two-columns') => {
-  if (!content.value) return
-  const tone = getAlternatingSectionTone(content.value.sections.length)
-  const section = type === 'one-column'
-    ? createEmptyOneColumnSection(createId('section'))
-    : createEmptyTwoColumnsSection(createId('section'))
-  section.tone = tone
-  content.value.sections.push(section)
-  selectedPanel.value = section.id
+const selectSection = (id: string) => {
+  selectedSectionId.value = id
   sectionColumnTab.value = 0
+  editorTab.value = 'section'
+}
+
+const addSection = (count: SectionColumnCount) => {
+  if (!content.value) return
+  const section = createEmptyColumnsSection(createId('section'), count)
+  content.value.sections.push(section)
+  selectSection(section.id)
+}
+
+const moveItem = <T,>(list: T[], index: number, direction: -1 | 1) => {
+  const nextIndex = index + direction
+  if (nextIndex < 0 || nextIndex >= list.length) return
+  const [item] = list.splice(index, 1)
+  if (!item) return
+  list.splice(nextIndex, 0, item)
 }
 
 const moveSection = (index: number, direction: -1 | 1) => {
   if (!content.value) return
-  const nextIndex = index + direction
-  if (nextIndex < 0 || nextIndex >= content.value.sections.length) return
-  const [section] = content.value.sections.splice(index, 1)
-  if (!section) return
-  content.value.sections.splice(nextIndex, 0, section)
+  moveItem(content.value.sections, index, direction)
 }
 
 const removeSection = (index: number) => {
@@ -800,63 +453,71 @@ const removeSection = (index: number) => {
   const removed = content.value.sections[index]
   if (!removed) return
   content.value.sections.splice(index, 1)
-  if (selectedPanel.value === removed.id) {
-    selectedPanel.value = 'hero'
-  }
-}
-
-const addHeroHighlight = () => {
-  if (!content.value) return
-  content.value.hero.highlights.push(createEmptyCard(createId('hero-card')))
-}
-
-const removeHeroHighlight = (index: number) => {
-  content.value?.hero.highlights.splice(index, 1)
-}
-
-const setColumnType = (section: HomePageTwoColumnsSection | HomePageOneColumnSection, index: number, type: string) => {
-  const nextColumn = type === 'image' ? createEmptyImageBlock() : createEmptyContentBlock()
-  if (section.type === 'two-columns') {
-    section.columns[index] = nextColumn
+  if (!content.value.sections.length) {
+    selectedSectionId.value = ''
     return
   }
-
-  section.column = nextColumn
+  if (selectedSectionId.value === removed.id) {
+    selectedSectionId.value = content.value.sections[Math.max(0, index - 1)]?.id || content.value.sections[0]?.id || ''
+    sectionColumnTab.value = 0
+  }
 }
 
-const onColumnTypeChange = (section: HomePageTwoColumnsSection | HomePageOneColumnSection, index: number, event: Event) => {
-  const value = (event.target as HTMLSelectElement).value
-  setColumnType(section, index, value)
+const onSectionColumnCountChange = (event: Event) => {
+  if (!selectedSection.value) return
+  const count = Number((event.target as HTMLSelectElement).value) as SectionColumnCount
+  selectedSection.value.columnCount = count
+  while (selectedSection.value.columns.length < count) {
+    selectedSection.value.columns.push(createEmptyContentBlock())
+  }
+  selectedSection.value.columns = selectedSection.value.columns.slice(0, count)
+  sectionColumnTab.value = Math.min(sectionColumnTab.value, count - 1)
 }
 
-const onSectionTypeChange = (section: HomePageTwoColumnsSection | HomePageOneColumnSection, event: Event) => {
-  if (!content.value) return
-  const nextType = (event.target as HTMLSelectElement).value as 'one-column' | 'two-columns'
-  if (section.type === nextType) return
-
-  const index = content.value.sections.findIndex(item => item.id === section.id)
-  if (index === -1) return
-
-  const replacement = nextType === 'one-column'
-    ? createEmptyOneColumnSection(section.id)
-    : createEmptyTwoColumnsSection(section.id)
-
-  replacement.enabled = section.enabled
-  replacement.tone = section.tone
-  replacement.containerWidth = section.containerWidth
-  replacement.backgroundColor = section.backgroundColor
-  replacement.verticalAlign = section.verticalAlign
-
-  content.value.sections.splice(index, 1, replacement)
-  sectionColumnTab.value = 0
+const addColumnItem = (type: HomePageColumnItem['type']) => {
+  if (!selectedColumn.value) return
+  switch (type) {
+    case 'badge':
+      selectedColumn.value.items.push(createBadgeItem(createId('badge')))
+      break
+    case 'title':
+      selectedColumn.value.items.push(createTitleItem(createId('title')))
+      break
+    case 'text':
+      selectedColumn.value.items.push(createTextItem(createId('text')))
+      break
+    case 'buttons':
+      selectedColumn.value.items.push(createButtonsItem(createId('buttons')))
+      break
+    case 'cards':
+      selectedColumn.value.items.push(createCardsItem(createId('cards')))
+      break
+    case 'image':
+      selectedColumn.value.items.push(createImageItem(createId('image')))
+      break
+    case 'carousel':
+      selectedColumn.value.items.push(createCarouselItem(createId('carousel')))
+      break
+  }
 }
 
-const addColumnCard = (column: HomePageContentBlock) => {
-  column.cards.push(createEmptyCard(createId('section-card')))
-}
-
-const removeColumnCard = (column: HomePageContentBlock, index: number) => {
-  column.cards.splice(index, 1)
+const itemLabel = (item: HomePageColumnItem) => {
+  switch (item.type) {
+    case 'badge':
+      return 'Badge'
+    case 'title':
+      return 'Titre'
+    case 'text':
+      return 'Texte'
+    case 'buttons':
+      return 'Boutons'
+    case 'cards':
+      return 'Cartes'
+    case 'image':
+      return 'Image'
+    case 'carousel':
+      return 'Carousel'
+  }
 }
 
 const save = async () => {
@@ -868,7 +529,7 @@ const save = async () => {
       body: content.value
     })
     const { $toast } = useNuxtApp() as any
-    $toast?.success('Page d accueil enregistrée')
+    $toast?.success('Page d accueil enregistree')
   } catch (error: any) {
     const { $toast } = useNuxtApp() as any
     $toast?.error(error.statusMessage || 'Erreur lors de l enregistrement')
@@ -887,11 +548,11 @@ const resetColors = async () => {
       body: content.value
     })
     const { $toast } = useNuxtApp() as any
-    $toast?.success('Couleurs réinitialisées avec succès')
+    $toast?.success('Couleurs reinitialisees avec succes')
     await load()
   } catch (error: any) {
     const { $toast } = useNuxtApp() as any
-    $toast?.error(error.statusMessage || 'Erreur lors de la réinitialisation')
+    $toast?.error(error.statusMessage || 'Erreur lors de la reinitialisation')
   } finally {
     resettingColors.value = false
   }

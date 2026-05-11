@@ -15,11 +15,7 @@
       @edit="activeTarget = $event"
     />
 
-    <HomePageEditModal
-      :open="Boolean(activeTarget)"
-      :target="activeTarget"
-      @close="activeTarget = null"
-    />
+    <HomePageEditModal :open="Boolean(activeTarget)" :target="activeTarget" @close="activeTarget = null" />
   </div>
 </template>
 

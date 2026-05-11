@@ -34,7 +34,6 @@ export default defineEventHandler(async (event) => {
       url,
       mimeType: mime,
       size: filePart.data.length,
-      data: null,
       uploadedById: user.id
     }
   })
