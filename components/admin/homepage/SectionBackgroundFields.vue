@@ -81,6 +81,7 @@
           <label class="label">
             <span class="label-text">Vitesse</span>
             <span class="label-text-alt">{{ section.backgroundCarouselSettings.intervalMs }} ms</span>
+            &nbsp;
           </label>
           <input
             :value="section.backgroundCarouselSettings.intervalMs"
