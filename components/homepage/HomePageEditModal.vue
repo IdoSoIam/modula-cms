@@ -210,8 +210,8 @@ const TranslationFields = defineComponent({
           }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size]))) : null
         ]),
         h('div', { class: 'tabs tabs-box tabs-xs' }, [
-          h('button', { class: ['tab', lang.value === 'fr' ? 'tab-active' : ''], onClick: () => { lang.value = 'fr' } }, 'FR'),
-          h('button', { class: ['tab', lang.value === 'en' ? 'tab-active' : ''], onClick: () => { lang.value = 'en' } }, 'EN')
+          h('button', { class: ['tab', lang.value === 'fr' ? 'tab-active' : 'border-0'], onClick: () => { lang.value = 'fr' } }, 'FR'),
+          h('button', { class: ['tab', lang.value === 'en' ? 'tab-active' : 'border-0'], onClick: () => { lang.value = 'en' } }, 'EN')
         ])
       ]),
       props.multiline
@@ -248,17 +248,21 @@ const CardEditor = defineComponent({
         h('button', { class: 'btn btn-xs', disabled: currentCardIndex(props.target) === props.target.parentCards.length - 1, onClick: () => moveItem(props.target.parentCards, currentCardIndex(props.target), 1) }, 'Descendre'),
         h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => removeAt(props.target.parentCards, currentCardIndex(props.target)) }, 'Supprimer')
       ]),
-      h('div', { class: 'tabs tabs-box flex-wrap' }, [
-        h('button', { class: ['tab', tab.value === 'content' ? 'tab-active' : ''], onClick: () => { tab.value = 'content' } }, 'Contenu'),
-        h('button', { class: ['tab', tab.value === 'style' ? 'tab-active' : ''], onClick: () => { tab.value = 'style' } }, 'Style'),
-        h('button', { class: ['tab', tab.value === 'buttons' ? 'tab-active' : ''], onClick: () => { tab.value = 'buttons' } }, 'Boutons')
-      ]),
-      tab.value === 'content' ? h('div', { class: 'space-y-4' }, [
+      h('div', { class: 'space-y-0' }, [
+        h('div', { class: 'tabs tabs-lift flex-wrap' }, [
+        h('button', { class: ['tab', tab.value === 'content' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'content' } }, 'Contenu'),
+        h('button', { class: ['tab', tab.value === 'style' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'style' } }, 'Style'),
+        h('button', { class: ['tab', tab.value === 'buttons' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'buttons' } }, 'Boutons')
+        ]),
+      tab.value === 'content' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
+        h('div', { class: 'space-y-4' }, [
         h(AdminIconPicker, { modelValue: props.target.card.icon || '', 'onUpdate:modelValue': (val: string) => { props.target.card.icon = val } }),
         h(TranslationFields, { modelValue: props.target.card.title, label: 'Titre', size: props.target.card.titleSize, 'onUpdate:size': (val: string) => { props.target.card.titleSize = val as any } }),
         h(TranslationFields, { modelValue: props.target.card.text, label: 'Texte', size: props.target.card.textSize, multiline: true, 'onUpdate:size': (val: string) => { props.target.card.textSize = val as any } })
+        ])
       ]) : null,
-      tab.value === 'style' ? h('div', { class: 'space-y-4' }, [
+      tab.value === 'style' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
+        h('div', { class: 'space-y-4' }, [
         h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
           h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Taille de la carte')]), h('select', { class: 'select select-bordered w-full', value: props.target.card.size, onChange: (e: Event) => { props.target.card.size = (e.target as HTMLSelectElement).value as any } }, CARD_SIZES.map(s => h('option', { value: s }, CARD_SIZE_LABELS[s])))]),
           h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary toggle-sm', checked: props.target.card.backdropBlur === true, onChange: (e: Event) => { props.target.card.backdropBlur = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Background blur')])
@@ -268,8 +272,10 @@ const CardEditor = defineComponent({
         h(ThemeColorPicker, { label: 'Couleur de l icone', modelValue: props.target.card.iconColor || null, defaultToken: 'primary', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconColor = val } }),
         h(ThemeColorPicker, { label: 'Fond de l icone', modelValue: props.target.card.iconBackgroundColor || null, defaultToken: 'transparent', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconBackgroundColor = val } }),
         h(ThemeColorPicker, { label: 'Bordure de la carte', modelValue: props.target.card.borderColor || null, defaultToken: 'base-300', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.borderColor = val } })
+        ])
       ]) : null,
-      tab.value === 'buttons' ? h('div', { class: 'space-y-4' }, [
+      tab.value === 'buttons' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
+        h('div', { class: 'space-y-4' }, [
         h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [
           h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton principal'), !props.target.card.primaryButton ? h('button', { class: 'btn btn-xs btn-outline', onClick: () => { props.target.card.primaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => { props.target.card.primaryButton = null } }, 'Retirer')]),
           props.target.card.primaryButton ? h(ButtonEditor, { button: props.target.card.primaryButton }) : null
@@ -278,7 +284,9 @@ const CardEditor = defineComponent({
           h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton secondaire'), !props.target.card.secondaryButton ? h('button', { class: 'btn btn-xs btn-outline', onClick: () => { props.target.card.secondaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => { props.target.card.secondaryButton = null } }, 'Retirer')]),
           props.target.card.secondaryButton ? h(ButtonEditor, { button: props.target.card.secondaryButton }) : null
         ])
+        ])
       ]) : null
+      ])
     ])
   }
 })
@@ -378,40 +386,46 @@ const SectionEditor = defineComponent({
   setup(props) {
     const tab = ref<'structure' | 'background' | 'insert'>('structure')
     return () => h('div', { class: 'space-y-4' }, [
-      h('div', { class: 'tabs tabs-box flex-wrap' }, [
-        h('button', { class: ['tab', tab.value === 'structure' ? 'tab-active' : ''], onClick: () => { tab.value = 'structure' } }, 'Structure'),
-        h('button', { class: ['tab', tab.value === 'background' ? 'tab-active' : ''], onClick: () => { tab.value = 'background' } }, 'Fond'),
-        h('button', { class: ['tab', tab.value === 'insert' ? 'tab-active' : ''], onClick: () => { tab.value = 'insert' } }, 'Insertion')
-      ]),
-      tab.value === 'insert' ? h('div', { class: 'rounded-2xl border border-base-300 bg-base-200 p-4' }, [
-        h('div', { class: 'mb-3 font-medium' }, 'Ajouter une section'),
-        h('div', { class: 'grid gap-3 md:grid-cols-2' }, [
-          h('div', { class: 'space-y-2' }, [h('div', { class: 'text-sm opacity-70' }, 'Au-dessus'), h('div', { class: 'flex flex-wrap gap-2' }, SECTION_COLUMN_COUNTS.map(count => h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.sections.splice(currentSectionIndex(props.target), 0, createEmptyColumnsSection(createId('section'), count as SectionColumnCount)) }, `${count} colonne${count > 1 ? 's' : ''}`)))]),
-          h('div', { class: 'space-y-2' }, [h('div', { class: 'text-sm opacity-70' }, 'En-dessous'), h('div', { class: 'flex flex-wrap gap-2' }, SECTION_COLUMN_COUNTS.map(count => h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.sections.splice(currentSectionIndex(props.target) + 1, 0, createEmptyColumnsSection(createId('section'), count as SectionColumnCount)) }, `${count} colonne${count > 1 ? 's' : ''}`)))])
-        ])
-      ]) : null,
       h('div', { class: 'flex justify-end gap-2' }, [
         h('button', { class: 'btn btn-xs', disabled: currentSectionIndex(props.target) === 0, onClick: () => moveItem(props.target.sections, currentSectionIndex(props.target), -1) }, 'Monter'),
         h('button', { class: 'btn btn-xs', disabled: currentSectionIndex(props.target) === props.target.sections.length - 1, onClick: () => moveItem(props.target.sections, currentSectionIndex(props.target), 1) }, 'Descendre'),
         h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => removeAt(props.target.sections, currentSectionIndex(props.target)) }, 'Supprimer')
       ]),
-      tab.value === 'structure' ? h('div', { class: 'space-y-4' }, [
-        h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Type de section')]), h('select', { class: 'select select-bordered w-full', value: String(props.target.section.columnCount), onChange: (e: Event) => {
-        const next = Number((e.target as HTMLSelectElement).value) as SectionColumnCount
-        props.target.section.columnCount = next
-        while (props.target.section.columns.length < next) props.target.section.columns.push(createEmptyContentBlock())
-        props.target.section.columns = props.target.section.columns.slice(0, next)
-      } }, SECTION_COLUMN_COUNTS.map(count => h('option', { value: String(count) }, SECTION_COLUMN_COUNT_LABELS[count])))]),
-        h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
-          h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Largeur du container')]), h('select', { class: 'select select-bordered w-full', value: props.target.section.containerWidth, onChange: (e: Event) => { props.target.section.containerWidth = (e.target as HTMLSelectElement).value as any } }, SECTION_CONTAINER_WIDTHS.map(w => h('option', { value: w }, SECTION_CONTAINER_WIDTH_LABELS[w])))]),
-          h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement vertical des colonnes dans la section')]), h('select', { class: 'select select-bordered w-full', value: props.target.section.contentVerticalAlign, onChange: (e: Event) => { props.target.section.contentVerticalAlign = (e.target as HTMLSelectElement).value as any } }, VERTICAL_ALIGNS.map(a => h('option', { value: a }, a)))])
+      h('div', { class: 'space-y-0' }, [
+        h('div', { class: 'tabs tabs-lift flex-wrap' }, [
+          h('button', { class: ['tab', tab.value === 'structure' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'structure' } }, 'Structure'),
+          h('button', { class: ['tab', tab.value === 'background' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'background' } }, 'Fond'),
+          h('button', { class: ['tab', tab.value === 'insert' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'insert' } }, 'Insertion')
         ]),
-        props.target.section.columnCount === 2 ? h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: props.target.section.reverseOnDesktop, onChange: (e: Event) => { props.target.section.reverseOnDesktop = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Inverser sur desktop')]) : null
-      ]) : null,
-      tab.value === 'background' ? h('div', { class: 'space-y-4' }, [
-        h(ThemeColorPicker, { label: 'Fond de section', modelValue: props.target.section.backgroundColor || null, defaultToken: 'base-100', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.section.backgroundColor = val } }),
-        h(AdminHomepageSectionBackgroundFields, { section: props.target.section })
-      ]) : null
+        tab.value === 'insert' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
+          h('div', { class: 'mb-3 font-medium' }, 'Ajouter une section'),
+          h('div', { class: 'grid gap-3 md:grid-cols-2' }, [
+            h('div', { class: 'space-y-2' }, [h('div', { class: 'text-sm opacity-70' }, 'Au-dessus'), h('div', { class: 'flex flex-wrap gap-2' }, SECTION_COLUMN_COUNTS.map(count => h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.sections.splice(currentSectionIndex(props.target), 0, createEmptyColumnsSection(createId('section'), count as SectionColumnCount)) }, `${count} colonne${count > 1 ? 's' : ''}`)))]),
+            h('div', { class: 'space-y-2' }, [h('div', { class: 'text-sm opacity-70' }, 'En-dessous'), h('div', { class: 'flex flex-wrap gap-2' }, SECTION_COLUMN_COUNTS.map(count => h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.sections.splice(currentSectionIndex(props.target) + 1, 0, createEmptyColumnsSection(createId('section'), count as SectionColumnCount)) }, `${count} colonne${count > 1 ? 's' : ''}`)))])
+          ])
+        ]) : null,
+        tab.value === 'structure' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
+          h('div', { class: 'space-y-4' }, [
+            h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Type de section')]), h('select', { class: 'select select-bordered w-full', value: String(props.target.section.columnCount), onChange: (e: Event) => {
+              const next = Number((e.target as HTMLSelectElement).value) as SectionColumnCount
+              props.target.section.columnCount = next
+              while (props.target.section.columns.length < next) props.target.section.columns.push(createEmptyContentBlock())
+              props.target.section.columns = props.target.section.columns.slice(0, next)
+            } }, SECTION_COLUMN_COUNTS.map(count => h('option', { value: String(count) }, SECTION_COLUMN_COUNT_LABELS[count])))]),
+            h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
+              h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Largeur du container')]), h('select', { class: 'select select-bordered w-full', value: props.target.section.containerWidth, onChange: (e: Event) => { props.target.section.containerWidth = (e.target as HTMLSelectElement).value as any } }, SECTION_CONTAINER_WIDTHS.map(w => h('option', { value: w }, SECTION_CONTAINER_WIDTH_LABELS[w])))]),
+              h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement vertical des colonnes dans la section')]), h('select', { class: 'select select-bordered w-full', value: props.target.section.contentVerticalAlign, onChange: (e: Event) => { props.target.section.contentVerticalAlign = (e.target as HTMLSelectElement).value as any } }, VERTICAL_ALIGNS.map(a => h('option', { value: a }, a)))])
+            ]),
+            props.target.section.columnCount === 2 ? h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: props.target.section.reverseOnDesktop, onChange: (e: Event) => { props.target.section.reverseOnDesktop = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Inverser sur desktop')]) : null
+          ])
+        ]) : null,
+        tab.value === 'background' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
+          h('div', { class: 'space-y-4' }, [
+            h(ThemeColorPicker, { label: 'Fond de section', modelValue: props.target.section.backgroundColor || null, defaultToken: 'base-100', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.section.backgroundColor = val } }),
+            h(AdminHomepageSectionBackgroundFields, { section: props.target.section })
+          ])
+        ]) : null
+      ])
     ])
   }
 })

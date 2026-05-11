@@ -77,18 +77,18 @@
         </div>
       </aside>
 
-      <div v-if="selectedSection" class="space-y-6">
-        <div class="tabs tabs-box flex-wrap">
-          <button class="tab" :class="editorTab === 'section' ? 'tab-active' : ''" @click="editorTab = 'section'">
+      <div v-if="selectedSection">
+        <div role="tablist" class="tabs tabs-lift flex-wrap">
+          <button class="tab" :class="editorTab === 'section' ? 'tab-active' : 'border-0'" @click="editorTab = 'section'">
             Section
           </button>
-          <button class="tab" :class="editorTab === 'columns' ? 'tab-active' : ''" @click="editorTab = 'columns'">
+          <button class="tab" :class="editorTab === 'columns' ? 'tab-active' : 'border-0'" @click="editorTab = 'columns'">
             Colonnes
           </button>
         </div>
 
-        <section v-if="editorTab === 'section'" class="card border border-base-300 bg-base-200 shadow">
-          <div class="card-body space-y-4">
+        <section v-if="editorTab === 'section'" class="rounded-b-box rounded-tr-box border border-base-300 bg-base-200 p-6 shadow">
+          <div class="space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <h2 class="card-title">Section</h2>
               <div class="flex flex-wrap gap-4">
@@ -144,9 +144,9 @@
           </div>
         </section>
 
-        <section v-else class="card border border-base-300 bg-base-200 shadow">
-          <div class="card-body space-y-4">
-            <div class="tabs tabs-box flex-wrap">
+        <section v-else class="rounded-b-box rounded-tr-box border border-base-300 bg-base-200 p-6 shadow">
+          <div class="space-y-4">
+            <div role="tablist" class="tabs tabs-lift flex-wrap">
               <button
                 v-for="(_, columnIndex) in selectedSection.columns.slice(0, selectedSection.columnCount)"
                 :key="columnIndex"
