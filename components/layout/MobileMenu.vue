@@ -3,14 +3,16 @@
     <label for="drawer-toggle" class="drawer-overlay"></label>
     <ul class="menu p-4 w-80 min-h-full bg-base-100">
       <li class="mb-4">
-        <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-24 mx-auto" />
+        <img :src="logoSrc" :alt="logoAlt" class="h-24 w-auto mx-auto" />
       </li>
-      <li v-for="item in menuItems" :key="item.path">
+      <li v-for="item in menuItems" :key="`${item.href}-${item.position}`">
         <NuxtLink
-          :to="localePath(item.path)"
-          :class="{ active: $route.path === localePath(item.path) }"
+          :to="resolveHref(item)"
+          :target="item.newTab ? '_blank' : undefined"
+          :rel="item.newTab ? 'noopener noreferrer' : undefined"
+          :class="{ active: isActiveItem(item) }"
         >
-          {{ $t(item.label) }}
+          {{ resolveLabel(item) }}
         </NuxtLink>
       </li>
     </ul>
@@ -18,17 +20,34 @@
 </template>
 
 <script setup lang="ts">
+import type { ResolvedCmsNavigationItem } from '~/shared/cms'
 import { useAuthStore } from '~/stores/auth'
 
 const localePath = useLocalePath();
+const { locale } = useI18n()
+const route = useRoute()
 const authStore = useAuthStore()
 const siteConfig = useSiteConfigState()
 const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
 const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated))
+const cms = computed(() => siteConfig.value?.cms)
 
-const menuItems = [
-  { path: '/', label: 'menu.home' },
-  { path: '/news', label: 'menu.news' },
-  { path: '/paniers', label: 'menu.baskets' },
-  { path: '/contact', label: 'menu.contact' }
-];</script>
+const logoSrc = computed(() => cms.value?.settings.logo.src || '/images/logo-removebg-preview.png')
+const logoAlt = computed(() => locale.value === 'en'
+  ? cms.value?.settings.logo.alt.en || 'Logo'
+  : cms.value?.settings.logo.alt.fr || 'Logo')
+
+const menuItems = computed(() => cms.value?.navigation.primary ?? [])
+
+const resolveLabel = (item: ResolvedCmsNavigationItem) =>
+  locale.value === 'en' ? item.labels.en || item.label : item.labels.fr || item.label
+
+const resolveHref = (item: ResolvedCmsNavigationItem) =>
+  item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)
+
+const isActiveItem = (item: ResolvedCmsNavigationItem) => {
+  if (item.itemType === 'EXTERNAL_URL') return false
+  const href = localePath(item.href)
+  return route.path === href || (item.href !== '/' && route.path.startsWith(`${href}/`))
+}
+</script>

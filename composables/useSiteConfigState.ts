@@ -1,3 +1,5 @@
+import type { PublicSiteShell } from '~/shared/cms'
+
 interface PublicSiteConfigState {
   facebookFluxDeactivated: boolean
   inDevelopment: boolean
@@ -19,6 +21,7 @@ interface PublicSiteConfigState {
   contactEmail?: string | null
   adminEmail?: string | null
   adminPhone?: string | null
+  cms?: PublicSiteShell
 }
 
 interface SiteConfigNuxtApp {

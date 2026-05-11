@@ -27,52 +27,82 @@
                 <span :class="sidebarCollapsed ? 'hidden' : ''">Dashboard</span>
               </NuxtLink>
             </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/accueil')" :class="getLinkClass('/admin/accueil')" no-prefetch>
-                <Icon name="mdi:home-edit-outline" size="16" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Accueil</span>
-              </NuxtLink>
+            <li class="menu-title" :class="sidebarCollapsed ? 'px-2' : ''">
+              <span :class="sidebarCollapsed ? 'hidden' : ''">Contenu</span>
             </li>
             <li>
-              <NuxtLink :to="localePath('/admin/legumes')" :class="getLinkClass('/admin/legumes')">
-                <Icon name="mdi:carrot" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">{{ $t('admin.vegetables') }}</span>
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/paniers')" :class="getLinkClass('/admin/paniers')">
-                <Icon name="mdi:basket-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">{{ $t('admin.baskets') }}</span>
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/reservations')" :class="getLinkClass('/admin/reservations')">
-                <Icon name="mdi:calendar-check" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">{{ $t('admin.reservations') }}</span>
+              <NuxtLink :to="localePath('/admin/pages')" :class="getLinkClass('/admin/pages')" no-prefetch>
+                <Icon name="mdi:file-document-edit-outline" size="16" />
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Pages</span>
               </NuxtLink>
             </li>
             <li>
               <NuxtLink :to="localePath('/admin/articles')" :class="getLinkClass('/admin/articles')">
                 <Icon name="mdi:newspaper-variant-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">{{ $t('admin.articles') }}</span>
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Actualités</span>
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/admin/accueil')" :class="getLinkClass('/admin/accueil')" no-prefetch>
+                <Icon name="mdi:home-edit-outline" size="16" />
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Accueil legacy</span>
+              </NuxtLink>
+            </li>
+            <li class="menu-title" :class="sidebarCollapsed ? 'px-2' : ''">
+              <span :class="sidebarCollapsed ? 'hidden' : ''">Boutique</span>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/admin/legumes')" :class="getLinkClass('/admin/legumes')">
+                <Icon name="mdi:carrot" size="18" />
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Légumes</span>
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/admin/paniers')" :class="getLinkClass('/admin/paniers')">
+                <Icon name="mdi:basket-outline" size="18" />
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Paniers</span>
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/admin/reservations')" :class="getLinkClass('/admin/reservations')">
+                <Icon name="mdi:calendar-check" size="18" />
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Commandes</span>
               </NuxtLink>
             </li>
             <li>
               <NuxtLink :to="localePath('/admin/livraison')" :class="getLinkClass('/admin/livraison')">
                 <Icon name="mdi:truck-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">{{ $t('admin.delivery') }}</span>
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Livraison</span>
               </NuxtLink>
+            </li>
+            <li class="menu-title" :class="sidebarCollapsed ? 'px-2' : ''">
+              <span :class="sidebarCollapsed ? 'hidden' : ''">Médias</span>
             </li>
             <li>
               <NuxtLink :to="localePath('/admin/images')" :class="getLinkClass('/admin/images')">
                 <Icon name="mdi:image-multiple-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">{{ $t('admin.images') }}</span>
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Images</span>
+              </NuxtLink>
+            </li>
+            <li class="menu-title" :class="sidebarCollapsed ? 'px-2' : ''">
+              <span :class="sidebarCollapsed ? 'hidden' : ''">Réglages</span>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/admin/site-shell')" :class="getLinkClass('/admin/site-shell')" no-prefetch>
+                <Icon name="mdi:monitor-dashboard" size="16" />
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Global</span>
               </NuxtLink>
             </li>
             <li>
               <NuxtLink :to="localePath('/admin/parametres')" :class="getLinkClass('/admin/parametres')">
-                <Icon name="mdi:cog-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">{{ $t('admin.settings') }}</span>
+                <Icon name="mdi:email-cog-outline" size="18" />
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Emails et connecteurs</span>
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/admin/fonctionnalites')" :class="getLinkClass('/admin/fonctionnalites')">
+                <Icon name="mdi:toggle-switch-outline" size="18" />
+                <span :class="sidebarCollapsed ? 'hidden' : ''">Fonctionnalités</span>
               </NuxtLink>
             </li>
           </div>

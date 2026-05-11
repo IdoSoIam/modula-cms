@@ -282,3 +282,67 @@ model Image {
 
   @@index([createdAt])
 }
+
+enum CmsPageType {
+  CMS
+  APPLICATION
+  HYBRID
+}
+
+enum CmsPageStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum CmsApplicationPosition {
+  BEFORE_CONTENT
+  AFTER_CONTENT
+}
+
+enum CmsNavigationMenu {
+  PRIMARY
+  FOOTER
+}
+
+enum CmsNavigationItemType {
+  CMS_PAGE
+  APPLICATION_ROUTE
+  EXTERNAL_URL
+}
+
+model CmsPage {
+  id                  Int                    @id @default(autoincrement())
+  path                String                 @unique
+  slug                String                 @unique
+  title               String
+  pageType            CmsPageType            @default(CMS)
+  status              CmsPageStatus          @default(DRAFT)
+  templateKey         String                 @default("default")
+  rendererKey         String?
+  applicationPosition CmsApplicationPosition @default(AFTER_CONTENT)
+  translationsJson    String
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  navigationItems     CmsNavigationItem[]
+
+  @@index([status, pageType])
+}
+
+model CmsNavigationItem {
+  id            Int                   @id @default(autoincrement())
+  menu          CmsNavigationMenu     @default(PRIMARY)
+  itemType      CmsNavigationItemType @default(CMS_PAGE)
+  title         String
+  labelsJson    String
+  href          String
+  newTab        Boolean               @default(false)
+  visible       Boolean               @default(true)
+  position      Int                   @default(0)
+  pageId        Int?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  page          CmsPage?              @relation(fields: [pageId], references: [id], onDelete: SetNull)
+
+  @@index([menu, visible, position])
+  @@index([pageId])
+}

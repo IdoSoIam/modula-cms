@@ -1,0 +1,615 @@
+import { prisma } from '~/prisma/client'
+import type { CmsNavigationItem, CmsPage } from '@prisma/client'
+import type {
+  CmsApplicationPosition,
+  CmsLocale,
+  CmsNavigationItemPayload,
+  CmsNavigationMenu,
+  CmsNavigationItemType,
+  CmsPagePayload,
+  CmsPageSeo,
+  CmsPageStatus,
+  CmsPageTranslation,
+  CmsPageType,
+  CmsSiteSettings,
+  PublicSiteShell,
+  ResolvedCmsNavigationItem,
+  ResolvedCmsPage
+} from '~/shared/cms'
+import {
+  CMS_LOCALES,
+  createDefaultCmsPagePayload,
+  createDefaultCmsPageTranslation,
+  createDefaultCmsSiteSettings,
+  createEmptyHomePageContent,
+  createEmptyCmsLocalizedText
+} from '~/shared/cms'
+import { getHomePageContent } from '~/server/utils/homePage'
+import { getSetting, setSetting, SETTING_KEYS } from '~/server/utils/settings'
+
+const DEFAULT_PRIMARY_NAV = [
+  { path: '/', labels: { fr: 'Accueil', en: 'Home' } },
+  { path: '/news', labels: { fr: 'Actualités', en: 'News' } },
+  { path: '/paniers', labels: { fr: 'Paniers', en: 'Baskets' } },
+  { path: '/contact', labels: { fr: 'Contact', en: 'Contact' } }
+] as const
+
+const DEFAULT_FOOTER_NAV = [
+  { path: '/privacy', labels: { fr: 'Confidentialité', en: 'Privacy' } },
+  { path: '/terms', labels: { fr: 'Mentions légales', en: 'Terms' } }
+] as const
+
+function isMissingCmsTableError(error: unknown) {
+  return Boolean(
+    error
+    && typeof error === 'object'
+    && 'code' in error
+    && (error as { code?: string }).code === 'P2021'
+    && 'meta' in error
+    && typeof (error as { meta?: { modelName?: string } }).meta?.modelName === 'string'
+    && String((error as { meta?: { modelName?: string } }).meta?.modelName).startsWith('Cms')
+  )
+}
+
+async function withCmsTableFallback<T>(action: () => Promise<T>, fallback: () => T | Promise<T>): Promise<T> {
+  try {
+    return await action()
+  } catch (error) {
+    if (isMissingCmsTableError(error)) {
+      return await fallback()
+    }
+    throw error
+  }
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function normalizeLocalizedText(value: unknown) {
+  if (!isObject(value)) return createEmptyCmsLocalizedText()
+  return {
+    fr: typeof value.fr === 'string' ? value.fr : '',
+    en: typeof value.en === 'string' ? value.en : ''
+  }
+}
+
+function normalizeSeo(value: unknown): CmsPageSeo {
+  if (!isObject(value)) {
+    return {
+      metaTitle: '',
+      metaDescription: '',
+      ogImage: '',
+      noindex: false
+    }
+  }
+
+  return {
+    metaTitle: typeof value.metaTitle === 'string' ? value.metaTitle : '',
+    metaDescription: typeof value.metaDescription === 'string' ? value.metaDescription : '',
+    ogImage: typeof value.ogImage === 'string' ? value.ogImage : '',
+    noindex: typeof value.noindex === 'boolean' ? value.noindex : false
+  }
+}
+
+function normalizeTranslation(value: unknown): CmsPageTranslation {
+  const fallback = createDefaultCmsPageTranslation()
+  if (!isObject(value)) return fallback
+
+  return {
+    title: typeof value.title === 'string' ? value.title : '',
+    navigationLabel: typeof value.navigationLabel === 'string' ? value.navigationLabel : '',
+    seo: normalizeSeo(value.seo),
+    content: isObject(value.content) && value.content.version === 1 && Array.isArray(value.content.sections)
+      ? {
+          version: 1,
+          sections: value.content.sections
+        }
+      : fallback.content
+  }
+}
+
+function normalizeTranslations(value: unknown, path = '/'): Record<CmsLocale, CmsPageTranslation> {
+  const fallback = createDefaultCmsPagePayload(path).translations
+  if (!isObject(value)) return fallback
+
+  return {
+    fr: normalizeTranslation(value.fr),
+    en: normalizeTranslation(value.en)
+  }
+}
+
+function parseJson<T>(value: string | null | undefined): T | null {
+  if (!value) return null
+
+  try {
+    return JSON.parse(value) as T
+  } catch {
+    return null
+  }
+}
+
+function normalizePath(path: string) {
+  if (!path) return '/'
+  const trimmed = path.trim()
+  if (!trimmed || trimmed === '/') return '/'
+  return `/${trimmed.replace(/^\/+|\/+$/g, '')}`
+}
+
+function isCmsPageType(value: unknown): value is CmsPageType {
+  return typeof value === 'string' && CMS_PAGE_TYPES.has(value as CmsPageType)
+}
+
+function isCmsPageStatus(value: unknown): value is CmsPageStatus {
+  return typeof value === 'string' && CMS_PAGE_STATUSES.has(value as CmsPageStatus)
+}
+
+function isCmsApplicationPosition(value: unknown): value is CmsApplicationPosition {
+  return typeof value === 'string' && CMS_APPLICATION_POSITIONS.has(value as CmsApplicationPosition)
+}
+
+function isCmsNavigationMenu(value: unknown): value is CmsNavigationMenu {
+  return typeof value === 'string' && CMS_NAVIGATION_MENUS.has(value as CmsNavigationMenu)
+}
+
+function isCmsNavigationItemType(value: unknown): value is CmsNavigationItemType {
+  return typeof value === 'string' && CMS_NAVIGATION_ITEM_TYPES.has(value as CmsNavigationItemType)
+}
+
+function pageRowToPayload(row: CmsPage): CmsPagePayload {
+  return {
+    path: normalizePath(row.path),
+    slug: row.slug,
+    pageType: row.pageType as CmsPageType,
+    status: row.status as CmsPageStatus,
+    templateKey: row.templateKey,
+    rendererKey: row.rendererKey || '',
+    applicationPosition: row.applicationPosition as CmsApplicationPosition,
+    title: row.title,
+    translations: normalizeTranslations(parseJson(row.translationsJson), row.path)
+  }
+}
+
+function pickTranslation(locale: string, translations: Record<CmsLocale, CmsPageTranslation>) {
+  return locale === 'en' ? translations.en : translations.fr
+}
+
+function navigationRowToPayload(row: CmsNavigationItem): CmsNavigationItemPayload {
+  return {
+    menu: row.menu as CmsNavigationMenu,
+    itemType: row.itemType as CmsNavigationItemType,
+    title: row.title,
+    labels: normalizeLocalizedText(parseJson(row.labelsJson)),
+    href: row.href,
+    pageId: row.pageId ?? null,
+    newTab: row.newTab,
+    visible: row.visible,
+    position: row.position
+  }
+}
+
+function navigationPayloadToResolved(id: number, payload: CmsNavigationItemPayload, locale: string): ResolvedCmsNavigationItem {
+  return {
+    id,
+    menu: payload.menu,
+    itemType: payload.itemType,
+    labels: payload.labels,
+    label: locale === 'en' ? payload.labels.en : payload.labels.fr,
+    href: payload.href,
+    newTab: payload.newTab,
+    visible: payload.visible,
+    position: payload.position
+  }
+}
+
+function createLegacyHomeResolvedPage(locale: string): Promise<ResolvedCmsPage> {
+  return getHomePageContent().then((content) => ({
+    id: null,
+    path: '/',
+    slug: 'home',
+    pageType: 'CMS',
+    status: 'PUBLISHED',
+    templateKey: 'default',
+    rendererKey: '',
+    applicationPosition: 'AFTER_CONTENT',
+    title: locale === 'en' ? 'Home' : 'Accueil',
+    navigationLabel: locale === 'en' ? 'Home' : 'Accueil',
+    seo: {
+      metaTitle: locale === 'en' ? 'Organic vegetables, baskets and farm pickup' : 'Légumes bio, paniers et vente à la ferme',
+      metaDescription: locale === 'en'
+        ? 'Discover seasonal organic vegetables, farm pickup and local basket reservations at Ferme du Campeyrigoux.'
+        : 'Découvrez les légumes bio de saison, la vente à la ferme et la réservation de paniers à la Ferme du Campeyrigoux.',
+      ogImage: '',
+      noindex: false
+    },
+    content
+  }))
+}
+
+function createLegacyBasketsResolvedPage(locale: string): ResolvedCmsPage {
+  return {
+    id: null,
+    path: '/paniers',
+    slug: 'paniers',
+    pageType: 'APPLICATION',
+    status: 'PUBLISHED',
+    templateKey: 'default',
+    rendererKey: 'baskets',
+    applicationPosition: 'AFTER_CONTENT',
+    title: locale === 'en' ? 'Baskets' : 'Paniers',
+    navigationLabel: locale === 'en' ? 'Baskets' : 'Paniers',
+    seo: {
+      metaTitle: locale === 'en' ? 'Reserve a vegetable basket' : 'Réserver un panier de légumes',
+      metaDescription: locale === 'en'
+        ? 'Browse available vegetable baskets, choose pickup or delivery, and send your reservation online.'
+        : 'Consultez les paniers de légumes disponibles, choisissez votre retrait ou votre livraison et envoyez votre réservation en ligne.',
+      ogImage: '',
+      noindex: false
+    },
+    content: createEmptyHomePageContent()
+  }
+}
+
+export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
+  const raw = await getSetting(SETTING_KEYS.CMS_SITE_SETTINGS)
+  const parsed = parseJson<CmsSiteSettings>(raw)
+  if (!parsed || !isObject(parsed)) {
+    return createDefaultCmsSiteSettings()
+  }
+
+  const fallback = createDefaultCmsSiteSettings()
+
+  return {
+    siteName: normalizeLocalizedText(parsed.siteName),
+    siteTagline: normalizeLocalizedText(parsed.siteTagline),
+    logo: {
+      src: typeof parsed.logo?.src === 'string' ? parsed.logo.src : fallback.logo.src,
+      alt: normalizeLocalizedText(parsed.logo?.alt)
+    },
+    favicon: {
+      src: typeof parsed.favicon?.src === 'string' ? parsed.favicon.src : fallback.favicon.src,
+      alt: normalizeLocalizedText(parsed.favicon?.alt)
+    },
+    footerDescription: normalizeLocalizedText(parsed.footerDescription),
+    socialLinks: Array.isArray(parsed.socialLinks)
+      ? parsed.socialLinks
+          .filter(isObject)
+          .map((link, index) => ({
+            id: typeof link.id === 'string' ? link.id : `social-${index + 1}`,
+            label: normalizeLocalizedText(link.label),
+            href: typeof link.href === 'string' ? link.href : '',
+            icon: typeof link.icon === 'string' ? link.icon : ''
+          }))
+          .filter((link) => Boolean(link.href))
+      : fallback.socialLinks
+  }
+}
+
+export async function saveCmsSiteSettings(settings: CmsSiteSettings) {
+  await setSetting(SETTING_KEYS.CMS_SITE_SETTINGS, JSON.stringify(settings))
+}
+
+export async function listCmsPages() {
+  const rows = await withCmsTableFallback(() => prisma.cmsPage.findMany({
+    orderBy: [
+      { path: 'asc' }
+    ]
+  }), async () => [])
+
+  return rows.map((row) => ({
+    id: row.id,
+    ...pageRowToPayload(row)
+  }))
+}
+
+export async function getCmsPageById(id: number) {
+  const row = await withCmsTableFallback(
+    () => prisma.cmsPage.findUnique({ where: { id } }),
+    async () => null
+  )
+  return row ? { id: row.id, ...pageRowToPayload(row) } : null
+}
+
+export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
+  const normalizedPath = normalizePath(payload.path)
+  const data = {
+    path: normalizedPath,
+    slug: payload.slug,
+    title: payload.title,
+    pageType: payload.pageType,
+    status: payload.status,
+    templateKey: payload.templateKey || 'default',
+    rendererKey: payload.rendererKey || null,
+    applicationPosition: payload.applicationPosition,
+    translationsJson: JSON.stringify(payload.translations)
+  }
+
+  if (id) {
+    const existing = await withCmsTableFallback(
+      () => prisma.cmsPage.findUnique({ where: { id } }),
+      async () => null
+    )
+    if (!existing) return null
+
+    return await withCmsTableFallback(
+      () => prisma.cmsPage.update({
+        where: { id },
+        data
+      }),
+      async () => null
+    )
+  }
+
+  return await withCmsTableFallback(
+    () => prisma.cmsPage.create({
+      data
+    }),
+    async () => null
+  )
+}
+
+export async function deleteCmsPage(id: number) {
+  await withCmsTableFallback(async () => {
+    await prisma.cmsNavigationItem.updateMany({
+      where: { pageId: id },
+      data: { pageId: null }
+    })
+
+    await prisma.cmsPage.delete({
+      where: { id }
+    })
+  }, async () => undefined)
+}
+
+export async function listCmsNavigationItems(menu?: CmsNavigationMenu) {
+  const rows = await withCmsTableFallback(() => prisma.cmsNavigationItem.findMany({
+    where: menu ? { menu } : undefined,
+    orderBy: [
+      { menu: 'asc' },
+      { position: 'asc' },
+      { id: 'asc' }
+    ]
+  }), async () => [])
+
+  return rows.map((row) => ({
+    id: row.id,
+    ...navigationRowToPayload(row)
+  }))
+}
+
+export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPayload & { id?: number | null }>) {
+  const cmsTablesAvailable = await withCmsTableFallback(
+    async () => {
+      await prisma.cmsNavigationItem.findFirst({ select: { id: true } })
+      return true
+    },
+    async () => false
+  )
+
+  if (!cmsTablesAvailable) {
+    return
+  }
+
+  const existingIds = new Set<number>()
+
+  for (const [index, item] of items.entries()) {
+    const data = {
+      menu: item.menu,
+      itemType: item.itemType,
+      title: item.title,
+      labelsJson: JSON.stringify(item.labels),
+      href: item.href,
+      pageId: item.pageId,
+      newTab: item.newTab,
+      visible: item.visible,
+      position: item.position ?? index
+    }
+
+    if (item.id) {
+      existingIds.add(item.id)
+      await prisma.cmsNavigationItem.update({
+        where: { id: item.id },
+        data
+      })
+    } else {
+      const created = await prisma.cmsNavigationItem.create({ data })
+      existingIds.add(created.id)
+    }
+  }
+
+  const allRows = await prisma.cmsNavigationItem.findMany({
+    select: { id: true }
+  })
+  const staleIds = allRows.map((row) => row.id).filter((id) => !existingIds.has(id))
+  if (staleIds.length) {
+    await prisma.cmsNavigationItem.deleteMany({
+      where: { id: { in: staleIds } }
+    })
+  }
+}
+
+async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string) {
+  const rows = await withCmsTableFallback(() => prisma.cmsNavigationItem.findMany({
+    where: {
+      menu,
+      visible: true
+    },
+    orderBy: [
+      { position: 'asc' },
+      { id: 'asc' }
+    ]
+  }), async () => [])
+
+  if (!rows.length) {
+    const fallback = menu === 'PRIMARY' ? DEFAULT_PRIMARY_NAV : DEFAULT_FOOTER_NAV
+    return fallback.map((item, index) => ({
+      id: -(index + 1),
+      menu,
+      itemType: 'APPLICATION_ROUTE' as CmsNavigationItemType,
+      labels: item.labels,
+      label: locale === 'en' ? item.labels.en : item.labels.fr,
+      href: item.path,
+      newTab: false,
+      visible: true,
+      position: index
+    }))
+  }
+
+  return rows.map((row) => navigationPayloadToResolved(row.id, navigationRowToPayload(row), locale))
+}
+
+export async function getPublicSiteShell(locale: string): Promise<PublicSiteShell> {
+  const [settings, primary, footer] = await Promise.all([
+    getCmsSiteSettings(),
+    getResolvedNavigation('PRIMARY', locale),
+    getResolvedNavigation('FOOTER', locale)
+  ])
+
+  return {
+    settings,
+    navigation: {
+      primary: primary.sort((a, b) => a.position - b.position),
+      footer: footer.sort((a, b) => a.position - b.position)
+    }
+  }
+}
+
+export async function resolvePublicCmsPage(path: string, locale: string, includeDraft = false): Promise<ResolvedCmsPage | null> {
+  const normalizedPath = normalizePath(path)
+  const where = includeDraft
+    ? { path: normalizedPath }
+    : { path: normalizedPath, status: 'PUBLISHED' as const }
+
+  const row = await withCmsTableFallback(
+    () => prisma.cmsPage.findFirst({ where }),
+    async () => null
+  )
+
+  if (row) {
+    const payload = pageRowToPayload(row)
+    const localized = pickTranslation(locale, payload.translations)
+
+    return {
+      id: row.id,
+      path: payload.path,
+      slug: payload.slug,
+      pageType: payload.pageType,
+      status: payload.status,
+      templateKey: payload.templateKey,
+      rendererKey: payload.rendererKey,
+      applicationPosition: payload.applicationPosition,
+      title: localized.title || payload.title,
+      navigationLabel: localized.navigationLabel || localized.title || payload.title,
+      seo: localized.seo,
+      content: localized.content
+    }
+  }
+
+  if (normalizedPath === '/') {
+    return await createLegacyHomeResolvedPage(locale)
+  }
+
+  if (normalizedPath === '/paniers') {
+    return createLegacyBasketsResolvedPage(locale)
+  }
+
+  return null
+}
+
+export function validateCmsPagePayload(value: unknown): CmsPagePayload {
+  if (!isObject(value)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Payload CMS invalide'
+    })
+  }
+
+  const path = normalizePath(typeof value.path === 'string' ? value.path : '/')
+  const fallback = createDefaultCmsPagePayload(path, typeof value.title === 'string' ? value.title : '')
+
+  const pageType = typeof value.pageType === 'string' ? value.pageType : fallback.pageType
+  const status = typeof value.status === 'string' ? value.status : fallback.status
+  const applicationPosition = typeof value.applicationPosition === 'string'
+    ? value.applicationPosition
+    : fallback.applicationPosition
+
+  return {
+    path,
+    slug: typeof value.slug === 'string' ? value.slug.trim() : fallback.slug,
+    pageType: isCmsPageType(pageType) ? pageType : fallback.pageType,
+    status: isCmsPageStatus(status) ? status : fallback.status,
+    templateKey: typeof value.templateKey === 'string' && value.templateKey.trim() ? value.templateKey.trim() : fallback.templateKey,
+    rendererKey: typeof value.rendererKey === 'string' ? value.rendererKey.trim() : '',
+    applicationPosition: isCmsApplicationPosition(applicationPosition) ? applicationPosition : fallback.applicationPosition,
+    title: typeof value.title === 'string' && value.title.trim() ? value.title.trim() : fallback.title,
+    translations: normalizeTranslations(value.translations, path)
+  }
+}
+
+export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings {
+  if (!isObject(value)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Configuration du site invalide'
+    })
+  }
+
+  const fallback = createDefaultCmsSiteSettings()
+  const logoValue = isObject(value.logo) ? value.logo : {}
+  const faviconValue = isObject(value.favicon) ? value.favicon : {}
+
+  return {
+    siteName: normalizeLocalizedText(value.siteName),
+    siteTagline: normalizeLocalizedText(value.siteTagline),
+    logo: {
+      src: typeof logoValue.src === 'string' && logoValue.src.trim() ? logoValue.src.trim() : fallback.logo.src,
+      alt: normalizeLocalizedText(logoValue.alt)
+    },
+    favicon: {
+      src: typeof faviconValue.src === 'string' && faviconValue.src.trim() ? faviconValue.src.trim() : fallback.favicon.src,
+      alt: normalizeLocalizedText(faviconValue.alt)
+    },
+    footerDescription: normalizeLocalizedText(value.footerDescription),
+    socialLinks: Array.isArray(value.socialLinks)
+      ? value.socialLinks
+          .filter(isObject)
+          .map((link, index) => ({
+            id: typeof link.id === 'string' ? link.id : `social-${index + 1}`,
+            label: normalizeLocalizedText(link.label),
+            href: typeof link.href === 'string' ? link.href.trim() : '',
+            icon: typeof link.icon === 'string' ? link.icon.trim() : ''
+          }))
+          .filter((link) => Boolean(link.href))
+      : fallback.socialLinks
+  }
+}
+
+export function validateCmsNavigationItemsPayload(value: unknown): Array<CmsNavigationItemPayload & { id?: number | null }> {
+  if (!Array.isArray(value)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Navigation CMS invalide'
+    })
+  }
+
+  return value
+    .filter(isObject)
+    .map((item, index) => ({
+      id: typeof item.id === 'number' ? item.id : null,
+      menu: isCmsNavigationMenu(item.menu) ? item.menu : 'PRIMARY',
+      itemType: isCmsNavigationItemType(item.itemType) ? item.itemType : 'APPLICATION_ROUTE',
+      title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : `Lien ${index + 1}`,
+      labels: normalizeLocalizedText(item.labels),
+      href: typeof item.href === 'string' && item.href.trim() ? item.href.trim() : '/',
+      pageId: typeof item.pageId === 'number' ? item.pageId : null,
+      newTab: typeof item.newTab === 'boolean' ? item.newTab : false,
+      visible: typeof item.visible === 'boolean' ? item.visible : true,
+      position: typeof item.position === 'number' ? item.position : index
+    }))
+}
+
+const CMS_PAGE_TYPES = new Set<CmsPageType>(['CMS', 'APPLICATION', 'HYBRID'])
+const CMS_PAGE_STATUSES = new Set<CmsPageStatus>(['DRAFT', 'PUBLISHED'])
+const CMS_APPLICATION_POSITIONS = new Set<CmsApplicationPosition>(['BEFORE_CONTENT', 'AFTER_CONTENT'])
+const CMS_NAVIGATION_MENUS = new Set<CmsNavigationMenu>(['PRIMARY', 'FOOTER'])
+const CMS_NAVIGATION_ITEM_TYPES = new Set<CmsNavigationItemType>(['CMS_PAGE', 'APPLICATION_ROUTE', 'EXTERNAL_URL'])

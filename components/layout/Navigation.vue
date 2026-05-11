@@ -9,21 +9,23 @@
       </div>
       <!-- Logo et nom -->
       <NuxtLink :to="localePath('/')" class="flex items-center gap-2">
-        <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-12" />
-        <span class="text-xl font-bold hidden sm:inline">Ferme du Campeyrigoux</span>
+        <img :src="logoSrc" :alt="logoAlt" class="h-12 w-auto" />
+        <span class="text-xl font-bold hidden sm:inline">{{ siteName }}</span>
       </NuxtLink>
     </div>
 
     <!-- Menu desktop -->
     <div class="navbar-center hidden md:flex">
       <ul v-if="showNavigation" class="menu menu-horizontal px-1 gap-2">
-        <li v-for="item in menuItems" :key="item.path">
+        <li v-for="item in menuItems" :key="`${item.href}-${item.position}`">
           <NuxtLink
-            :to="localePath(item.path)"
+            :to="resolveHref(item)"
             class="btn btn-ghost"
-            :class="{ 'btn-active': $route.path === localePath(item.path) }"
+            :target="item.newTab ? '_blank' : undefined"
+            :rel="item.newTab ? 'noopener noreferrer' : undefined"
+            :class="{ 'btn-active': isActiveItem(item) }"
           >
-            {{ $t(item.label) }}
+            {{ resolveLabel(item) }}
           </NuxtLink>
         </li>
       </ul>
@@ -37,17 +39,38 @@
 </template>
 
 <script setup lang="ts">
+import type { ResolvedCmsNavigationItem } from '~/shared/cms'
 import { useAuthStore } from '~/stores/auth'
 
 const localePath = useLocalePath();
+const { locale } = useI18n()
+const route = useRoute()
 const authStore = useAuthStore()
 const siteConfig = useSiteConfigState()
 const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
 const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated))
+const cms = computed(() => siteConfig.value?.cms)
 
-const menuItems = [
-  { path: '/', label: 'menu.home' },
-  { path: '/news', label: 'menu.news' },
-  { path: '/paniers', label: 'menu.baskets' },
-  { path: '/contact', label: 'menu.contact' }
-];</script>
+const siteName = computed(() => locale.value === 'en'
+  ? cms.value?.settings.siteName.en || 'Ferme du Campeyrigoux'
+  : cms.value?.settings.siteName.fr || 'Ferme du Campeyrigoux')
+
+const logoSrc = computed(() => cms.value?.settings.logo.src || '/images/logo-removebg-preview.png')
+const logoAlt = computed(() => locale.value === 'en'
+  ? cms.value?.settings.logo.alt.en || 'Logo'
+  : cms.value?.settings.logo.alt.fr || 'Logo')
+
+const menuItems = computed(() => cms.value?.navigation.primary ?? [])
+
+const resolveLabel = (item: ResolvedCmsNavigationItem) =>
+  locale.value === 'en' ? item.labels.en || item.label : item.labels.fr || item.label
+
+const resolveHref = (item: ResolvedCmsNavigationItem) =>
+  item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)
+
+const isActiveItem = (item: ResolvedCmsNavigationItem) => {
+  if (item.itemType === 'EXTERNAL_URL') return false
+  const href = localePath(item.href)
+  return route.path === href || (item.href !== '/' && route.path.startsWith(`${href}/`))
+}
+</script>

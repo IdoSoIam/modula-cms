@@ -20,6 +20,13 @@
       </div>
     </div>
 
+    <OrdersWindowSettings
+      v-model="ordersWindowForm"
+      class="mb-6"
+      :saving="savingOrdersWindow"
+      @save="saveOrdersWindow"
+    />
+
     <div v-if="viewMode === 'list'" class="mb-4 flex flex-wrap gap-2">
       <button
         v-for="filter in statusFilters"
@@ -380,11 +387,32 @@
 <script setup lang="ts">
 import { defineComponent, h } from 'vue'
 import type { PropType } from 'vue'
+import OrdersWindowSettings from '~/components/admin/OrdersWindowSettings.vue'
 import ReservationsCalendar from '~/components/admin/ReservationsCalendar.vue'
 import ReservationsList from '~/components/admin/ReservationsList.vue'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 const route = useRoute()
+const savingOrdersWindow = ref(false)
+const { data: settingsData, refresh: refreshSettings } = await useFetch<{
+  ordersOpenFrom: string
+  ordersOpenTo: string
+  ordersClosedMessage: string
+}>('/api/admin/settings')
+const ordersWindowForm = ref({
+  ordersOpenFrom: '',
+  ordersOpenTo: '',
+  ordersClosedMessage: ''
+})
+
+watchEffect(() => {
+  if (!settingsData.value) return
+  ordersWindowForm.value = {
+    ordersOpenFrom: settingsData.value.ordersOpenFrom,
+    ordersOpenTo: settingsData.value.ordersOpenTo,
+    ordersClosedMessage: settingsData.value.ordersClosedMessage
+  }
+})
 
 interface Reservation {
   id: number
@@ -924,6 +952,26 @@ const syncReservationCalendar = async () => {
     $toast.error(e.statusMessage || 'Synchronisation Google Calendar impossible')
   } finally {
     syncingCalendar.value = false
+  }
+}
+
+const saveOrdersWindow = async () => {
+  savingOrdersWindow.value = true
+  try {
+    await $fetch('/api/admin/settings', {
+      method: 'PUT',
+      body: {
+        ordersOpenFrom: ordersWindowForm.value.ordersOpenFrom,
+        ordersOpenTo: ordersWindowForm.value.ordersOpenTo,
+        ordersClosedMessage: ordersWindowForm.value.ordersClosedMessage
+      }
+    })
+    $toast.success('Période de commandes enregistrée')
+    await refreshSettings()
+  } catch (e: any) {
+    $toast.error(e.statusMessage || 'Impossible d enregistrer la période de commandes')
+  } finally {
+    savingOrdersWindow.value = false
   }
 }
 

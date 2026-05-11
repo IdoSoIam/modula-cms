@@ -7,11 +7,18 @@
 <script setup lang="ts">
 const siteConfig = await useSiteConfig()
 const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
+const faviconHref = computed(() => siteConfig.value?.cms?.settings.favicon.src || '/favicon.ico')
 
 useHead({
   htmlAttrs: {
     'data-theme': 'ferme'
   },
+  link: [
+    {
+      rel: 'icon',
+      href: faviconHref
+    }
+  ],
   meta: inDevelopment.value ? [
     {
       name: 'robots',

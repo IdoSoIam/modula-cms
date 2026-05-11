@@ -7,7 +7,7 @@ export default defineNuxtPlugin(async () => {
   let facebookDeactivated = false
   try {
     const siteConfig = await ensureSiteConfigState()
-    facebookDeactivated = siteConfig.facebookFluxDeactivated === true
+    facebookDeactivated = siteConfig?.facebookFluxDeactivated === true
   } catch (e) {
     console.log('[Facebook Plugin] Failed to fetch site config, assuming enabled')
   }

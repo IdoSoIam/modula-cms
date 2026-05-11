@@ -3,9 +3,9 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-8 w-full max-w-7xl">
       <!-- Logo et description -->
       <div class="flex flex-col items-center">
-        <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-20 mb-2" />
-        <p class="font-bold text-lg">Ferme du Campeyrigoux</p>
-        <p class="opacity-80">{{ $t("footer.organic") }}</p>
+        <img :src="logoSrc" :alt="logoAlt" class="h-20 w-auto mb-2" />
+        <p class="font-bold text-lg">{{ siteName }}</p>
+        <p class="opacity-80">{{ footerDescription }}</p>
       </div>
 
       <!-- Horaires -->
@@ -44,12 +44,15 @@
         <h4 class="footer-title">{{ $t("footer.followUs") }}</h4>
         <div class="flex gap-4">
           <a
-            href="https://www.facebook.com/profile.php?id=61571709076079"
+            v-for="link in socialLinks"
+            :key="link.id"
+            :href="link.href"
             target="_blank"
+            rel="noopener noreferrer"
             class="btn btn-circle btn-outline"
-            aria-label="Facebook"
+            :aria-label="socialLinkLabel(link)"
           >
-            <Icon name="mdi:facebook" size="24" />
+            <Icon :name="link.icon || 'mdi:link-variant'" size="24" />
           </a>
         </div>
       </div>
@@ -59,6 +62,8 @@
 
 
 <script setup lang="ts">
+import type { CmsSocialLink } from '~/shared/cms'
+
 interface SiteConfig {
   farmPickup: {
     address: string
@@ -73,6 +78,7 @@ interface SiteConfig {
 }
 
 const siteConfigState = useSiteConfigState()
+const { locale } = useI18n()
 
 if (process.server && !siteConfigState.value) {
   await ensureSiteConfigState()
@@ -80,7 +86,21 @@ if (process.server && !siteConfigState.value) {
 
 const { formatWeeklySchedule, marketSale } = useSalesInfo()
 const siteConfig = computed(() => siteConfigState.value as SiteConfig | null)
+const cms = computed(() => siteConfigState.value?.cms)
 
 const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))
+const siteName = computed(() => locale.value === 'en'
+  ? cms.value?.settings.siteName.en || 'Ferme du Campeyrigoux'
+  : cms.value?.settings.siteName.fr || 'Ferme du Campeyrigoux')
+const logoSrc = computed(() => cms.value?.settings.logo.src || '/images/logo-removebg-preview.png')
+const logoAlt = computed(() => locale.value === 'en'
+  ? cms.value?.settings.logo.alt.en || 'Logo'
+  : cms.value?.settings.logo.alt.fr || 'Logo')
+const footerDescription = computed(() => locale.value === 'en'
+  ? cms.value?.settings.footerDescription.en || ''
+  : cms.value?.settings.footerDescription.fr || '')
+const socialLinks = computed(() => cms.value?.settings.socialLinks || [])
+
+const socialLinkLabel = (link: CmsSocialLink) => locale.value === 'en' ? link.label.en || link.href : link.label.fr || link.href
 </script>
 
