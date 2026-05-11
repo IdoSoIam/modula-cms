@@ -44,13 +44,13 @@
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">
-            <div class="form-control gap-3 flex">
+            <div class="form-control gap-3">
               <label class="label"><span class="label-text">Nom du fichier</span></label>
               <input v-model="editForm.filename" class="input input-bordered" />
               <p class="mt-1 text-xs opacity-60">L'extension sera conservée ou adaptée si tu remplaces le fichier.</p>
             </div>
 
-            <div class="form-control gap-3 flex">
+            <div class="form-control gap-3">
               <label class="label"><span class="label-text">Remplacer l'image</span></label>
               <input type="file" accept="image/*" class="file-input file-input-bordered" @change="onReplacementSelected" />
               <p v-if="replacementFile" class="mt-1 text-xs opacity-60">{{ replacementFile.name }}</p>
@@ -64,6 +64,15 @@
               <div>Paniers : {{ editing.references.baskets }}</div>
               <div>Articles couverture : {{ editing.references.articles }}</div>
               <div>Articles contenu : {{ editing.references.articleContent }}</div>
+              <div>Page d'accueil : {{ editing.references.homepage.count }}</div>
+            </div>
+            <div v-if="editing.references.homepage.items.length" class="mt-3">
+              <div class="font-medium">Utilisations sur la page d'accueil</div>
+              <ul class="mt-2 space-y-1 text-xs opacity-80">
+                <li v-for="item in editing.references.homepage.items" :key="`${item.kind}-${item.sectionId}-${item.columnIndex ?? 0}-${item.itemId ?? ''}-${item.label}`">
+                  {{ item.label }}
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -93,6 +102,17 @@ interface ImageReferences {
   baskets: number
   articles: number
   articleContent: number
+  homepage: {
+    count: number
+    items: Array<{
+      kind: 'section-background-image' | 'section-background-carousel' | 'column-image' | 'column-carousel'
+      sectionId: string
+      sectionLabel: string
+      columnIndex?: number
+      itemId?: string
+      label: string
+    }>
+  }
 }
 
 interface ImageRow {
@@ -119,7 +139,7 @@ const editForm = reactive({ filename: '' })
 const displayedImageUrl = computed(() => replacementPreviewUrl.value || editing.value?.url || '')
 
 const totalReferences = (references: ImageReferences) =>
-  references.vegetables + references.baskets + references.articles + references.articleContent
+  references.vegetables + references.baskets + references.articles + references.articleContent + references.homepage.count
 
 const onFileChange = async (e: Event) => {
   const input = e.target as HTMLInputElement

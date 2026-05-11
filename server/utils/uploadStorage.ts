@@ -41,6 +41,33 @@ export async function getUploadObject(key: string) {
   return await bucket.get(key)
 }
 
+export async function listUploadObjects() {
+  const bucket = requireUploadsBucket()
+  const objects: Array<{
+    key: string
+    size: number
+    uploaded?: Date
+    httpMetadata?: { contentType?: string }
+  }> = []
+
+  let cursor: string | undefined
+  do {
+    const result = await bucket.list({ cursor })
+    for (const object of result.objects) {
+      const head = await bucket.head(object.key)
+      objects.push({
+        key: object.key,
+        size: object.size,
+        uploaded: object.uploaded,
+        httpMetadata: head?.httpMetadata ? { contentType: head.httpMetadata.contentType } : undefined
+      })
+    }
+    cursor = result.truncated ? result.cursor : undefined
+  } while (cursor)
+
+  return objects
+}
+
 export async function deleteUploadObject(key: string) {
   const bucket = requireUploadsBucket()
   await bucket.delete(key)
