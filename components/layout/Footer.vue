@@ -1,68 +1,104 @@
 <template>
-  <footer class="footer footer-center p-10 bg-neutral text-neutral-content w-full">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 w-full max-w-7xl">
-      <!-- Logo et description -->
-      <div class="flex flex-col items-center">
-        <img :src="logoSrc" :alt="logoAlt" class="h-20 w-auto mb-2" />
-        <p class="font-bold text-lg">{{ siteName }}</p>
-        <p class="opacity-80">{{ footerDescription }}</p>
-      </div>
+  <footer class="bg-neutral text-neutral-content">
+    <div class="mx-auto grid w-full max-w-7xl gap-8 px-6 py-12 md:grid-cols-2 xl:grid-cols-4">
+      <section
+        v-for="column in footerColumns"
+        :key="column.id"
+        class="space-y-4"
+      >
+        <div v-if="hasImage(column)" class="max-w-[220px]">
+          <img
+            :src="column.image!.src"
+            :alt="pickText(column.image!.alt)"
+            class="h-auto max-h-24 w-auto"
+          />
+        </div>
 
-      <!-- Horaires -->
-      <div class="flex flex-col items-center">
-        <h4 class="footer-title">{{ $t("footer.hours") }}</h4>
-        <div class="space-y-3 opacity-80 text-center">
-          <div>
-            <p>{{ $t("sales.farmTitle") }}</p>
-            <p>{{ farmScheduleText }}</p>
+        <div v-if="pickText(column.title)" class="text-sm font-semibold uppercase tracking-[0.16em] opacity-80">
+          {{ pickText(column.title) }}
+        </div>
+
+        <p v-if="pickText(column.text)" class="whitespace-pre-line text-sm leading-6 opacity-85">
+          {{ pickText(column.text) }}
+        </p>
+
+        <div v-if="column.links.length" class="space-y-2">
+          <template v-for="link in column.links" :key="link.id">
+            <a
+              v-if="isExternalLink(link.href)"
+              :href="link.href"
+              :target="link.newTab ? '_blank' : undefined"
+              :rel="link.newTab ? 'noopener noreferrer' : undefined"
+              class="block text-sm transition hover:text-white"
+            >
+              {{ pickText(link.label) || link.href }}
+            </a>
+            <NuxtLink
+              v-else
+              :to="localePath(link.href)"
+              class="block text-sm transition hover:text-white"
+            >
+              {{ pickText(link.label) || link.href }}
+            </NuxtLink>
+          </template>
+        </div>
+
+        <div v-if="column.showFooterNavigation && footerNavigation.length" class="space-y-2">
+          <NuxtLink
+            v-for="item in footerNavigation"
+            :key="item.id"
+            :to="item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)"
+            :target="item.newTab ? '_blank' : undefined"
+            :rel="item.newTab ? 'noopener noreferrer' : undefined"
+            class="block text-sm transition hover:text-white"
+          >
+            {{ pickText(item.labels) || item.label }}
+          </NuxtLink>
+        </div>
+
+        <div v-if="column.showOpeningHours" class="space-y-2 text-sm opacity-85">
+          <div class="font-medium">{{ openingHoursLabel }}</div>
+          <div>{{ farmScheduleText }}</div>
+        </div>
+
+        <div v-if="column.showContactDetails" class="space-y-2 text-sm opacity-85">
+          <div v-if="siteConfig?.farmPickup?.address" class="whitespace-pre-line">
+            {{ siteConfig.farmPickup.address }}
           </div>
-          <div>
-            <p>{{ marketSale.title }}</p>
-            <p>{{ marketSale.scheduleText }}</p>
+          <div v-if="siteConfig?.adminPhone" class="flex items-start gap-2">
+            <Icon name="mdi:phone" size="18" class="mt-0.5 shrink-0" />
+            <span>{{ siteConfig.adminPhone }}</span>
+          </div>
+          <div v-if="siteConfig?.contactEmail || siteConfig?.adminEmail" class="flex items-start gap-2">
+            <Icon name="mdi:email" size="18" class="mt-0.5 shrink-0" />
+            <span>{{ siteConfig?.contactEmail || siteConfig?.adminEmail }}</span>
           </div>
         </div>
-      </div>
 
-      <!-- Contact -->
-      <div class="flex flex-col items-center">
-        <h4 class="footer-title">{{ $t("footer.contact") }}</h4>
-        <div class="opacity-80 text-center word-wrap">
-          <p class="whitespace-pre-line">{{ siteConfig?.farmPickup?.address }}</p>
-          <p class="flex items-center gap-2 justify-center">
-            <Icon name="mdi:phone" size="18" />
-            {{ siteConfig?.adminPhone || '07 68 55 06 64' }}
-          </p>
-          <p class="flex items-center gap-2 justify-center">
-            <Icon name="mdi:email" size="18" />
-            {{ siteConfig?.contactEmail || siteConfig?.adminEmail }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Réseaux sociaux -->
-      <div class="flex flex-col items-center">
-        <h4 class="footer-title">{{ $t("footer.followUs") }}</h4>
-        <div class="flex gap-4">
+        <div v-if="column.showSocialLinks && socialLinks.length" class="flex flex-wrap gap-3">
           <a
             v-for="link in socialLinks"
             :key="link.id"
             :href="link.href"
             target="_blank"
             rel="noopener noreferrer"
-            class="btn btn-circle btn-outline"
-            :aria-label="socialLinkLabel(link)"
+            class="btn btn-circle btn-outline btn-sm border-neutral-content/25 text-neutral-content hover:bg-neutral-content hover:text-neutral"
+            :aria-label="pickText(link.label) || link.href"
           >
-            <Icon :name="link.icon || 'mdi:link-variant'" size="24" />
+            <Icon :name="link.icon || 'mdi:link-variant'" size="20" />
           </a>
         </div>
-      </div>
+      </section>
+    </div>
+
+    <div class="border-t border-neutral-content/15 px-6 py-4 text-center text-xs opacity-70">
+      {{ copyrightText }}
     </div>
   </footer>
 </template>
 
-
 <script setup lang="ts">
-import type { CmsSocialLink } from '~/shared/cms'
+import type { CmsFooterColumn, CmsLocalizedText, CmsSocialLink, PublicSiteShell, ResolvedCmsNavigationItem } from '~/shared/cms'
 
 interface SiteConfig {
   farmPickup: {
@@ -71,36 +107,41 @@ interface SiteConfig {
     startTime: string
     endTime: string
     slotLabel: string
-  },
+  }
   contactEmail?: string | null
   adminEmail?: string | null
-  adminPhone: string
+  adminPhone?: string | null
+  cms?: PublicSiteShell
 }
 
 const siteConfigState = useSiteConfigState()
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 
 if (process.server && !siteConfigState.value) {
   await ensureSiteConfigState()
 }
 
-const { formatWeeklySchedule, marketSale } = useSalesInfo()
+const { formatWeeklySchedule } = useSalesInfo()
 const siteConfig = computed(() => siteConfigState.value as SiteConfig | null)
 const cms = computed(() => siteConfigState.value?.cms)
-
+const socialLinks = computed<CmsSocialLink[]>(() => cms.value?.settings.socialLinks || [])
+const footerNavigation = computed<ResolvedCmsNavigationItem[]>(() => cms.value?.navigation.footer || [])
+const footerColumns = computed<CmsFooterColumn[]>(() => cms.value?.settings.footer.columns || [])
 const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))
-const siteName = computed(() => locale.value === 'en'
-  ? cms.value?.settings.siteName.en || 'Ferme du Campeyrigoux'
-  : cms.value?.settings.siteName.fr || 'Ferme du Campeyrigoux')
-const logoSrc = computed(() => cms.value?.settings.logo.src || '/images/logo-removebg-preview.png')
-const logoAlt = computed(() => locale.value === 'en'
-  ? cms.value?.settings.logo.alt.en || 'Logo'
-  : cms.value?.settings.logo.alt.fr || 'Logo')
-const footerDescription = computed(() => locale.value === 'en'
-  ? cms.value?.settings.footerDescription.en || ''
-  : cms.value?.settings.footerDescription.fr || '')
-const socialLinks = computed(() => cms.value?.settings.socialLinks || [])
+const openingHoursLabel = computed(() => t('footer.hours'))
+const copyrightText = computed(() => {
+  const value = cms.value?.settings.footer.copyright
+  return locale.value === 'en'
+    ? value?.en || ''
+    : value?.fr || ''
+})
 
-const socialLinkLabel = (link: CmsSocialLink) => locale.value === 'en' ? link.label.en || link.href : link.label.fr || link.href
+const pickText = (value: CmsLocalizedText | null | undefined) => {
+  if (!value) return ''
+  return locale.value === 'en' ? value.en : value.fr
+}
+
+const hasImage = (column: CmsFooterColumn) => Boolean(column.image?.src)
+const isExternalLink = (href: string) => href.startsWith('http://') || href.startsWith('https://')
+const localePath = useLocalePath()
 </script>
-

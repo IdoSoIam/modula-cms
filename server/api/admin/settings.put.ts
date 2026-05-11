@@ -7,6 +7,7 @@ interface Body {
   resendSenderEmail?: string
   reservationNotificationEmail?: string
   contactEmail?: string
+  adminPhone?: string
   resendApiKey?: string
   mailPrimaryProvider?: 'gmail' | 'resend'
   mailSecondaryProvider?: 'gmail' | 'resend'
@@ -43,6 +44,9 @@ export default defineEventHandler(async (event) => {
   }
   if (typeof body.contactEmail === 'string') {
     await setSetting(SETTING_KEYS.CONTACT_EMAIL, body.contactEmail.trim())
+  }
+  if (typeof body.adminPhone === 'string') {
+    await setSetting(SETTING_KEYS.ADMIN_PHONE, body.adminPhone.trim())
   }
   if (typeof body.resendApiKey === 'string') {
     await setSetting(SETTING_KEYS.RESEND_API_KEY, body.resendApiKey.trim())

@@ -6,6 +6,7 @@ export const SETTING_KEYS = {
   GMAIL_SENDER_EMAIL: 'gmail_sender_email',
   RESERVATION_NOTIFICATION_EMAIL: 'reservation_notification_email',
   CONTACT_EMAIL: 'contact_email',
+  ADMIN_PHONE: 'admin_phone',
   RESERVATION_TEMPLATE_CONFIRMED: 'reservation_template_confirmed',
   RESERVATION_TEMPLATE_REJECTED: 'reservation_template_rejected',
   RESERVATION_TEMPLATE_CANCELLED: 'reservation_template_cancelled',
@@ -93,6 +94,14 @@ export async function getContactEmail(): Promise<string | null> {
     || settings[SETTING_KEYS.RESERVATION_NOTIFICATION_EMAIL]?.trim()
     || settings[SETTING_KEYS.ADMIN_EMAIL]?.trim()
     || null
+}
+
+export async function getAdminPhone(): Promise<string | null> {
+  const settings = await getSettings([
+    SETTING_KEYS.ADMIN_PHONE
+  ])
+
+  return settings[SETTING_KEYS.ADMIN_PHONE]?.trim() || null
 }
 
 export interface FeatureFlags {

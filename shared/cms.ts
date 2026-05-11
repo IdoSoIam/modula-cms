@@ -27,12 +27,46 @@ export interface CmsSocialLink {
   icon?: string
 }
 
+export interface CmsShellLink {
+  id: string
+  label: CmsLocalizedText
+  href: string
+  newTab?: boolean
+}
+
+export interface CmsHeaderSettings {
+  heightPx: number
+  logoHeightPx: number
+  mobileLogoHeightPx: number
+  showSiteName: boolean
+  showSiteTagline: boolean
+  sticky: boolean
+}
+
+export interface CmsFooterColumn {
+  id: string
+  title: CmsLocalizedText
+  text: CmsLocalizedText
+  image?: CmsImageAsset | null
+  links: CmsShellLink[]
+  showOpeningHours: boolean
+  showContactDetails: boolean
+  showSocialLinks: boolean
+  showFooterNavigation: boolean
+}
+
+export interface CmsFooterSettings {
+  columns: CmsFooterColumn[]
+  copyright: CmsLocalizedText
+}
+
 export interface CmsSiteSettings {
   siteName: CmsLocalizedText
   siteTagline: CmsLocalizedText
   logo: CmsImageAsset
   favicon: CmsImageAsset
-  footerDescription: CmsLocalizedText
+  header: CmsHeaderSettings
+  footer: CmsFooterSettings
   socialLinks: CmsSocialLink[]
 }
 
@@ -153,9 +187,20 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
         en: 'Ferme du Campeyrigoux site icon'
       }
     },
-    footerDescription: {
-      fr: 'Agriculture biologique depuis 2024',
-      en: 'Organic farming since 2024'
+    header: {
+      heightPx: 84,
+      logoHeightPx: 48,
+      mobileLogoHeightPx: 40,
+      showSiteName: true,
+      showSiteTagline: false,
+      sticky: true
+    },
+    footer: {
+      columns: createDefaultCmsFooterColumns(),
+      copyright: {
+        fr: 'Ferme du Campeyrigoux. Tous droits réservés.',
+        en: 'Ferme du Campeyrigoux. All rights reserved.'
+      }
     },
     socialLinks: [
       {
@@ -169,6 +214,58 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
       }
     ]
   }
+}
+
+export function createDefaultCmsShellLink(id: string): CmsShellLink {
+  return {
+    id,
+    label: createEmptyCmsLocalizedText(),
+    href: '',
+    newTab: false
+  }
+}
+
+export function createDefaultCmsFooterColumn(id: string, title = ''): CmsFooterColumn {
+  return {
+    id,
+    title: {
+      fr: title,
+      en: title
+    },
+    text: createEmptyCmsLocalizedText(),
+    image: null,
+    links: [],
+    showOpeningHours: false,
+    showContactDetails: false,
+    showSocialLinks: false,
+    showFooterNavigation: false
+  }
+}
+
+export function createDefaultCmsFooterColumns(): CmsFooterColumn[] {
+  const column1 = createDefaultCmsFooterColumn('footer-col-1', 'La ferme')
+  column1.text = {
+    fr: 'Production locale, bio et de saison.',
+    en: 'Local, organic and seasonal production.'
+  }
+  column1.image = {
+    src: '/images/logo-removebg-preview.png',
+    alt: {
+      fr: 'Logo de la Ferme du Campeyrigoux',
+      en: 'Ferme du Campeyrigoux logo'
+    }
+  }
+
+  const column2 = createDefaultCmsFooterColumn('footer-col-2', 'Horaires')
+  column2.showOpeningHours = true
+
+  const column3 = createDefaultCmsFooterColumn('footer-col-3', 'Contact')
+  column3.showContactDetails = true
+
+  const column4 = createDefaultCmsFooterColumn('footer-col-4', 'Suivre la ferme')
+  column4.showSocialLinks = true
+
+  return [column1, column2, column3, column4]
 }
 
 export function createDefaultCmsPageTranslation(): CmsPageTranslation {

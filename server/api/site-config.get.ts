@@ -1,13 +1,14 @@
 import { getPublicSiteShell } from '~/server/utils/cms'
-import { getContactEmail, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSetting, SETTING_KEYS } from '~/server/utils/settings'
+import { getAdminPhone, getContactEmail, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSetting, SETTING_KEYS } from '~/server/utils/settings'
 
 export default defineEventHandler(async () => {
-  const [fb, ordersWindow, featureFlags, farmPickup, contactEmail, siteShell] = await Promise.all([
+  const [fb, ordersWindow, featureFlags, farmPickup, contactEmail, adminPhone, siteShell] = await Promise.all([
     getSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED),
     getOrdersWindow(),
     getFeatureFlags(),
     getFarmPickupConfig(),
     getContactEmail(),
+    getAdminPhone(),
     getPublicSiteShell('fr'),
   ])
   return {
@@ -19,6 +20,7 @@ export default defineEventHandler(async () => {
     farmPickup,
     contactEmail,
     adminEmail: contactEmail,
+    adminPhone,
     cms: siteShell
   }
 })

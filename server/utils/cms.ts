@@ -20,6 +20,9 @@ import {
   CMS_LOCALES,
   createDefaultCmsPagePayload,
   createDefaultCmsPageTranslation,
+  createDefaultCmsFooterColumn,
+  createDefaultCmsFooterColumns,
+  createDefaultCmsShellLink,
   createDefaultCmsSiteSettings,
   createEmptyHomePageContent,
   createEmptyCmsLocalizedText
@@ -72,6 +75,55 @@ function normalizeLocalizedText(value: unknown) {
     fr: typeof value.fr === 'string' ? value.fr : '',
     en: typeof value.en === 'string' ? value.en : ''
   }
+}
+
+function normalizeImageAsset(value: unknown, fallback: { src: string; alt: { fr: string; en: string } }) {
+  const source = isObject(value) ? value : {}
+  return {
+    src: typeof source.src === 'string' && source.src.trim() ? source.src.trim() : fallback.src,
+    alt: normalizeLocalizedText(source.alt)
+  }
+}
+
+function normalizeShellLink(value: unknown, index: number) {
+  const fallback = createDefaultCmsShellLink(`link-${index + 1}`)
+  if (!isObject(value)) return fallback
+  return {
+    id: typeof value.id === 'string' && value.id.trim() ? value.id.trim() : fallback.id,
+    label: normalizeLocalizedText(value.label),
+    href: typeof value.href === 'string' ? value.href.trim() : '',
+    newTab: typeof value.newTab === 'boolean' ? value.newTab : false
+  }
+}
+
+function normalizeFooterColumn(value: unknown, index: number) {
+  const fallback = createDefaultCmsFooterColumn(`footer-col-${index + 1}`)
+  if (!isObject(value)) return fallback
+  const image = value.image === null
+    ? null
+    : normalizeImageAsset(value.image, fallback.image || createDefaultCmsSiteSettings().logo)
+
+  return {
+    id: typeof value.id === 'string' && value.id.trim() ? value.id.trim() : fallback.id,
+    title: normalizeLocalizedText(value.title),
+    text: normalizeLocalizedText(value.text),
+    image,
+    links: Array.isArray(value.links)
+      ? value.links
+          .map((link, linkIndex) => normalizeShellLink(link, linkIndex))
+          .filter((link) => Boolean(link.href))
+      : [],
+    showOpeningHours: typeof value.showOpeningHours === 'boolean' ? value.showOpeningHours : false,
+    showContactDetails: typeof value.showContactDetails === 'boolean' ? value.showContactDetails : false,
+    showSocialLinks: typeof value.showSocialLinks === 'boolean' ? value.showSocialLinks : false,
+    showFooterNavigation: typeof value.showFooterNavigation === 'boolean' ? value.showFooterNavigation : false
+  }
+}
+
+function normalizeFooterColumns(value: unknown) {
+  const defaults = createDefaultCmsFooterColumns()
+  const source = Array.isArray(value) ? value.slice(0, 4) : []
+  return defaults.map((fallback, index) => normalizeFooterColumn(source[index] ?? fallback, index))
 }
 
 function normalizeSeo(value: unknown): CmsPageSeo {
@@ -262,15 +314,24 @@ export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
   return {
     siteName: normalizeLocalizedText(parsed.siteName),
     siteTagline: normalizeLocalizedText(parsed.siteTagline),
-    logo: {
-      src: typeof parsed.logo?.src === 'string' ? parsed.logo.src : fallback.logo.src,
-      alt: normalizeLocalizedText(parsed.logo?.alt)
-    },
-    favicon: {
-      src: typeof parsed.favicon?.src === 'string' ? parsed.favicon.src : fallback.favicon.src,
-      alt: normalizeLocalizedText(parsed.favicon?.alt)
-    },
-    footerDescription: normalizeLocalizedText(parsed.footerDescription),
+    logo: normalizeImageAsset(parsed.logo, fallback.logo),
+    favicon: normalizeImageAsset(parsed.favicon, fallback.favicon),
+    header: isObject(parsed.header)
+      ? {
+          heightPx: typeof parsed.header.heightPx === 'number' ? Math.max(56, Math.min(180, Math.round(parsed.header.heightPx))) : fallback.header.heightPx,
+          logoHeightPx: typeof parsed.header.logoHeightPx === 'number' ? Math.max(24, Math.min(140, Math.round(parsed.header.logoHeightPx))) : fallback.header.logoHeightPx,
+          mobileLogoHeightPx: typeof parsed.header.mobileLogoHeightPx === 'number' ? Math.max(24, Math.min(120, Math.round(parsed.header.mobileLogoHeightPx))) : fallback.header.mobileLogoHeightPx,
+          showSiteName: typeof parsed.header.showSiteName === 'boolean' ? parsed.header.showSiteName : fallback.header.showSiteName,
+          showSiteTagline: typeof parsed.header.showSiteTagline === 'boolean' ? parsed.header.showSiteTagline : fallback.header.showSiteTagline,
+          sticky: typeof parsed.header.sticky === 'boolean' ? parsed.header.sticky : fallback.header.sticky
+        }
+      : fallback.header,
+    footer: isObject(parsed.footer)
+      ? {
+          columns: normalizeFooterColumns(parsed.footer.columns),
+          copyright: normalizeLocalizedText(parsed.footer.copyright)
+        }
+      : fallback.footer,
     socialLinks: Array.isArray(parsed.socialLinks)
       ? parsed.socialLinks
           .filter(isObject)
@@ -557,19 +618,26 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
   const fallback = createDefaultCmsSiteSettings()
   const logoValue = isObject(value.logo) ? value.logo : {}
   const faviconValue = isObject(value.favicon) ? value.favicon : {}
+  const headerValue = isObject(value.header) ? value.header : {}
+  const footerValue = isObject(value.footer) ? value.footer : {}
 
   return {
     siteName: normalizeLocalizedText(value.siteName),
     siteTagline: normalizeLocalizedText(value.siteTagline),
-    logo: {
-      src: typeof logoValue.src === 'string' && logoValue.src.trim() ? logoValue.src.trim() : fallback.logo.src,
-      alt: normalizeLocalizedText(logoValue.alt)
+    logo: normalizeImageAsset(logoValue, fallback.logo),
+    favicon: normalizeImageAsset(faviconValue, fallback.favicon),
+    header: {
+      heightPx: typeof headerValue.heightPx === 'number' ? Math.max(56, Math.min(180, Math.round(headerValue.heightPx))) : fallback.header.heightPx,
+      logoHeightPx: typeof headerValue.logoHeightPx === 'number' ? Math.max(24, Math.min(140, Math.round(headerValue.logoHeightPx))) : fallback.header.logoHeightPx,
+      mobileLogoHeightPx: typeof headerValue.mobileLogoHeightPx === 'number' ? Math.max(24, Math.min(120, Math.round(headerValue.mobileLogoHeightPx))) : fallback.header.mobileLogoHeightPx,
+      showSiteName: typeof headerValue.showSiteName === 'boolean' ? headerValue.showSiteName : fallback.header.showSiteName,
+      showSiteTagline: typeof headerValue.showSiteTagline === 'boolean' ? headerValue.showSiteTagline : fallback.header.showSiteTagline,
+      sticky: typeof headerValue.sticky === 'boolean' ? headerValue.sticky : fallback.header.sticky
     },
-    favicon: {
-      src: typeof faviconValue.src === 'string' && faviconValue.src.trim() ? faviconValue.src.trim() : fallback.favicon.src,
-      alt: normalizeLocalizedText(faviconValue.alt)
+    footer: {
+      columns: normalizeFooterColumns(footerValue.columns),
+      copyright: normalizeLocalizedText(footerValue.copyright)
     },
-    footerDescription: normalizeLocalizedText(value.footerDescription),
     socialLinks: Array.isArray(value.socialLinks)
       ? value.socialLinks
           .filter(isObject)

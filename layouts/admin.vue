@@ -1,134 +1,88 @@
 <template>
-  <div class="min-h-screen flex flex-col">
-    <LayoutNavigation />
-    <div
-      id="toast"
-      popover="manual"
-      class="fixed inset-auto right-4 m-0 w-[min(26rem,calc(100vw-2rem))] max-w-full border-0 bg-transparent p-0 text-inherit shadow-none outline-none backdrop:bg-transparent"
-      style="top: 5rem"
-    ></div>
-    <div class="mx-auto flex-1 w-full max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row gap-6">
-        <aside class="shrink-0 transition-all duration-300" :class="sidebarCollapsed ? 'md:w-16' : 'md:w-64'">
-          <div class="menu bg-base-200 rounded-box w-full relative">
-            <button
-              class="absolute -right-3 top-2 btn btn-circle btn-xs btn-ghost bg-base-200"
-              @click="sidebarCollapsed = !sidebarCollapsed"
-              :title="sidebarCollapsed ? 'Développer' : 'Réduire'"
-            >
-              <Icon :name="sidebarCollapsed ? 'mdi:chevron-right' : 'mdi:chevron-left'" size="16" />
-            </button>
-            <li class="menu-title" :class="sidebarCollapsed ? 'px-2' : ''">
-              <span :class="sidebarCollapsed ? 'hidden' : ''">{{ $t('admin.title') }}</span>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin')" :class="getLinkClass('/admin')">
-                <Icon name="mdi:view-dashboard-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Dashboard</span>
-              </NuxtLink>
-            </li>
-            <li class="menu-title" :class="sidebarCollapsed ? 'px-2' : ''">
-              <span :class="sidebarCollapsed ? 'hidden' : ''">Contenu</span>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/pages')" :class="getLinkClass('/admin/pages')" no-prefetch>
-                <Icon name="mdi:file-document-edit-outline" size="16" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Pages</span>
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/articles')" :class="getLinkClass('/admin/articles')">
-                <Icon name="mdi:newspaper-variant-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Actualités</span>
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/accueil')" :class="getLinkClass('/admin/accueil')" no-prefetch>
-                <Icon name="mdi:home-edit-outline" size="16" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Accueil legacy</span>
-              </NuxtLink>
-            </li>
-            <li class="menu-title" :class="sidebarCollapsed ? 'px-2' : ''">
-              <span :class="sidebarCollapsed ? 'hidden' : ''">Boutique</span>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/legumes')" :class="getLinkClass('/admin/legumes')">
-                <Icon name="mdi:carrot" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Légumes</span>
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/paniers')" :class="getLinkClass('/admin/paniers')">
-                <Icon name="mdi:basket-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Paniers</span>
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/reservations')" :class="getLinkClass('/admin/reservations')">
-                <Icon name="mdi:calendar-check" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Commandes</span>
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/livraison')" :class="getLinkClass('/admin/livraison')">
-                <Icon name="mdi:truck-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Livraison</span>
-              </NuxtLink>
-            </li>
-            <li class="menu-title" :class="sidebarCollapsed ? 'px-2' : ''">
-              <span :class="sidebarCollapsed ? 'hidden' : ''">Médias</span>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/images')" :class="getLinkClass('/admin/images')">
-                <Icon name="mdi:image-multiple-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Images</span>
-              </NuxtLink>
-            </li>
-            <li class="menu-title" :class="sidebarCollapsed ? 'px-2' : ''">
-              <span :class="sidebarCollapsed ? 'hidden' : ''">Réglages</span>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/site-shell')" :class="getLinkClass('/admin/site-shell')" no-prefetch>
-                <Icon name="mdi:monitor-dashboard" size="16" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Global</span>
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/parametres')" :class="getLinkClass('/admin/parametres')">
-                <Icon name="mdi:email-cog-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Emails et connecteurs</span>
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink :to="localePath('/admin/fonctionnalites')" :class="getLinkClass('/admin/fonctionnalites')">
-                <Icon name="mdi:toggle-switch-outline" size="18" />
-                <span :class="sidebarCollapsed ? 'hidden' : ''">Fonctionnalités</span>
-              </NuxtLink>
-            </li>
+  <div class="min-h-screen bg-base-100 text-base-content">
+    <aside
+      class="fixed inset-y-0 left-0 z-50 flex flex-col border-r border-base-300 bg-base-100 transition-all duration-300"
+      :class="[
+        sidebarCollapsed ? 'w-20' : 'w-72',
+        mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      ]"
+    >
+      <div class="flex min-h-18 items-center gap-3 border-b border-base-300 px-4">
+        <NuxtLink :to="localePath('/admin')" class="flex min-w-0 items-center gap-3">
+          <div class="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+            <Icon name="mdi:storefront-outline" size="22" />
           </div>
-        </aside>
-        <main class="flex-1 min-w-0">
-          <slot />
-        </main>
+          <div v-if="!sidebarCollapsed" class="min-w-0">
+            <div class="truncate text-sm font-semibold">Administration</div>
+            <div class="truncate text-xs opacity-60">Ferme du Campeyrigoux</div>
+          </div>
+        </NuxtLink>
       </div>
+
+      <div class="flex-1 overflow-y-auto px-3 py-4">
+        <AdminNavigationMenu :sections="adminSections" :collapsed="sidebarCollapsed" variant="sidebar" />
+      </div>
+
+      <div class="border-t border-base-300 p-3">
+        <button class="btn btn-block btn-ghost justify-start" :class="sidebarCollapsed ? 'justify-center' : ''" @click="sidebarCollapsed = !sidebarCollapsed">
+          <Icon :name="sidebarCollapsed ? 'mdi:chevron-right' : 'mdi:chevron-left'" size="18" />
+          <span v-if="!sidebarCollapsed">Rétracter</span>
+        </button>
+      </div>
+    </aside>
+
+    <div
+      v-if="mobileSidebarOpen"
+      class="fixed inset-0 z-40 bg-neutral/45 lg:hidden"
+      @click="mobileSidebarOpen = false"
+    />
+
+    <div class="transition-all duration-300" :class="sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'">
+      <header class="sticky top-0 z-30 border-b border-base-300 bg-base-200/90 backdrop-blur">
+        <div class="flex min-h-18 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center gap-3">
+            <button class="btn btn-ghost lg:hidden" @click="mobileSidebarOpen = !mobileSidebarOpen">
+              <Icon name="mdi:menu" size="22" />
+            </button>
+            <NuxtLink :to="localePath('/')" class="text-sm font-medium text-primary">
+              Retour au site
+            </NuxtLink>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <ThemeSelector />
+            <LanguageSelector />
+            <LayoutUserMenu />
+          </div>
+        </div>
+      </header>
+
+      <main class="px-4 py-6 sm:px-6 lg:px-8">
+        <div
+          id="toast"
+          popover="manual"
+          class="fixed inset-auto right-4 m-0 w-[min(26rem,calc(100vw-2rem))] max-w-full border-0 bg-transparent p-0 text-inherit shadow-none outline-none backdrop:bg-transparent"
+          style="top: 5rem"
+        ></div>
+        <slot />
+      </main>
     </div>
-    <LayoutFooter />
   </div>
 </template>
 
 <script setup lang="ts">
-const localePath = useLocalePath()
-const route = useRoute()
+import AdminNavigationMenu from '~/components/admin/AdminNavigationMenu.vue'
+import { getAdminNavigationSections } from '~/shared/adminNavigation'
 
 useNoIndexSeo('Administration')
 
-const sidebarCollapsed = ref(false)
+const localePath = useLocalePath()
+const siteConfig = useSiteConfigState()
+const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated === true)
+const adminSections = computed(() => getAdminNavigationSections({
+  facebookSyncEnabled: !facebookFluxDeactivated.value
+}))
 
-const getLinkClass = (path: string) => {
-  const isActive = route.path === path || route.path.startsWith(`${path}/`)
-  return {
-    'justify-center': sidebarCollapsed.value,
-    'text-primary': isActive
-  }
-}
+const sidebarCollapsed = useState('admin-sidebar-collapsed', () => false)
+const mobileSidebarOpen = ref(false)
 </script>
