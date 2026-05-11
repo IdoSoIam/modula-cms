@@ -1,6 +1,7 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail } from '~/server/utils/reservationEmails'
+import { formatDateTimeLabel, getDefaultTimeZone } from '~/server/utils/dateFormat'
 import { getReservationNotificationEmail, getSettings, SETTING_KEYS } from '~/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
@@ -29,15 +30,13 @@ export default defineEventHandler(async (event) => {
   const gmailSenderEmail = settings[SETTING_KEYS.GMAIL_SENDER_EMAIL] || 'non défini'
   const resendSenderEmail = settings[SETTING_KEYS.RESEND_FROM_EMAIL] || 'non défini'
   const contactEmail = settings[SETTING_KEYS.CONTACT_EMAIL] || 'non défini'
-  const sentAt = new Date().toLocaleString('fr-FR', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  })
+  const sentAt = formatDateTimeLabel(new Date(), 'fr-FR')
 
   const body = [
     'Ceci est un email de test envoyé depuis la page Paramètres.',
     '',
     `Date : ${sentAt}`,
+    `Timezone serveur : ${getDefaultTimeZone()}`,
     `Provider principal : ${primaryProvider}`,
     `Provider secondaire : ${secondaryProvider}`,
     `Email expéditeur Gmail : ${gmailSenderEmail}`,

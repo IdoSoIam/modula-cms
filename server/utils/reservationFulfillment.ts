@@ -1,4 +1,5 @@
 import type { DeliveryTour, DeliveryType, PickupPoint, Reservation } from '@prisma/client'
+import { getDefaultTimeZone } from './dateFormat'
 import type { FarmPickupConfig } from './settings'
 
 function normalizeReservationLocale(value: string | null | undefined) {
@@ -89,6 +90,7 @@ export function getReservationFulfillment(input: FulfillmentInput) {
 export function formatFulfillmentDate(date: Date | null | undefined, locale = 'fr-FR') {
   if (!date) return ''
   return new Intl.DateTimeFormat(locale, {
+    timeZone: getDefaultTimeZone(),
     weekday: 'long',
     day: '2-digit',
     month: 'long',

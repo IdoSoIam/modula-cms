@@ -1,4 +1,5 @@
 import { prisma } from '../../../../../prisma/client'
+import { formatDateLabel } from '~/server/utils/dateFormat'
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
 import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
@@ -70,7 +71,7 @@ export default defineEventHandler(async (event) => {
       customerPhone: reservation.phone ?? '-',
       customerMessage: reservation.message ?? '-',
       deliveryMethod: 'Retrait à la ferme',
-      fulfillmentDate: proposalDate.toLocaleDateString('fr-FR'),
+      fulfillmentDate: formatDateLabel(proposalDate, 'fr-FR'),
       fulfillmentTime: proposalTime,
       fulfillmentLocation: reservation.fulfillmentLocation ?? 'à confirmer',
       adminReservationUrl: getAdminReservationUrl(reservation.id)

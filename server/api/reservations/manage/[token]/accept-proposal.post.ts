@@ -1,4 +1,5 @@
 import { prisma } from '../../../../../prisma/client'
+import { formatDateLabel } from '~/server/utils/dateFormat'
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationDecisionEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
 import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
@@ -62,7 +63,9 @@ export default defineEventHandler(async (event) => {
   const customerTemplate = await resolveTemplateFromSettings('accepted_proposal', updated.language)
   const customerEmailDraft = applyTemplateVars(customerTemplate, {
     customerName: updated.customerName,
-    fulfillmentDate: updated.fulfillmentDate?.toLocaleDateString(updated.language === 'en' ? 'en-US' : 'fr-FR') ?? (updated.language === 'en' ? 'to be confirmed' : 'à confirmer'),
+    fulfillmentDate: updated.fulfillmentDate
+      ? formatDateLabel(updated.fulfillmentDate, updated.language === 'en' ? 'en-US' : 'fr-FR')
+      : (updated.language === 'en' ? 'to be confirmed' : 'à confirmer'),
     fulfillmentTime: updated.fulfillmentTime ?? (updated.language === 'en' ? 'to be confirmed' : 'à confirmer'),
     fulfillmentLocation: updated.fulfillmentLocation ?? 'Ferme du Campeyrigoux'
   })
@@ -105,7 +108,7 @@ export default defineEventHandler(async (event) => {
       customerPhone: updated.phone ?? '-',
       customerMessage: updated.message ?? '-',
       deliveryMethod: getDeliveryMethodLabel(updated.deliveryType, 'fr'),
-      fulfillmentDate: updated.fulfillmentDate?.toLocaleDateString('fr-FR') ?? 'à confirmer',
+      fulfillmentDate: updated.fulfillmentDate ? formatDateLabel(updated.fulfillmentDate, 'fr-FR') : 'à confirmer',
       fulfillmentTime: updated.fulfillmentTime ?? 'à confirmer',
       fulfillmentLocation: updated.fulfillmentLocation ?? 'à confirmer',
       adminReservationUrl: getAdminReservationUrl(updated.id)

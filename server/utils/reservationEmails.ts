@@ -1,5 +1,6 @@
 import type { Basket, DeliveryTour, PickupPoint, Reservation } from '@prisma/client'
 import { buildReservationIcs } from './calendarInvite'
+import { formatDateLabel } from './dateFormat'
 import { buildEmailHtml } from './emailTemplates'
 import {
   getReservationActionLinkLabel,
@@ -70,7 +71,7 @@ export function buildAdminReservationSummary(options: {
 - Email : ${options.customerEmail}
 - Telephone : ${options.customerPhone ?? '-'}
 - Mode : ${options.deliveryLabel}
-- Date : ${options.fulfillmentDate ? options.fulfillmentDate.toLocaleDateString('fr-FR') : 'a confirmer'}
+- Date : ${options.fulfillmentDate ? formatDateLabel(options.fulfillmentDate, 'fr-FR') : 'a confirmer'}
 - Heure : ${options.fulfillmentTime ?? 'a confirmer'}
 - Lieu : ${options.fulfillmentLocation ?? 'a confirmer'}
 - Message : ${options.customerMessage ?? '-'}

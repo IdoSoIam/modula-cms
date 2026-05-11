@@ -1,4 +1,5 @@
 import { prisma } from '../../../../../../../prisma/client'
+import { formatDateForTimeZone } from '~/server/utils/dateFormat'
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationOccurrenceEmail } from '~/server/utils/reservationEmails'
 import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
@@ -7,7 +8,7 @@ import { getReservationNotificationEmail, isSubscriptionsEnabled } from '~/serve
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 
 function formatOccurrenceDate(value: Date) {
-  return value.toLocaleDateString('fr-FR', {
+  return formatDateForTimeZone(value, 'fr-FR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
