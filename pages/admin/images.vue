@@ -44,13 +44,13 @@
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label"><span class="label-text">Nom du fichier</span></label>
               <input v-model="editForm.filename" class="input input-bordered" />
               <p class="mt-1 text-xs opacity-60">L'extension sera conservée ou adaptée si tu remplaces le fichier.</p>
             </div>
 
-            <div class="form-control">
+            <div class="form-control gap-3 flex">
               <label class="label"><span class="label-text">Remplacer l'image</span></label>
               <input type="file" accept="image/*" class="file-input file-input-bordered" @change="onReplacementSelected" />
               <p v-if="replacementFile" class="mt-1 text-xs opacity-60">{{ replacementFile.name }}</p>

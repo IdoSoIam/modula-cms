@@ -10,20 +10,161 @@
     <div v-else-if="settingsData" class="space-y-8">
       <section class="card bg-base-200 shadow">
         <div class="card-body">
-          <h2 class="card-title">Email admin</h2>
-          <p class="mb-2 text-sm opacity-70">
-            Adresse Gmail qui recevra les notifications de nouvelles réservations.
+          <h2 class="card-title">Connexion Google</h2>
+          <p class="text-sm opacity-70">
+            La connexion Google sert à envoyer les emails de confirmation et à synchroniser les réservations confirmées dans Google Calendar.
           </p>
-          <div class="form-control">
-            <label class="label">
-              <span class="label-text">Adresse email</span>
-            </label>
-            <input
-              v-model="form.adminEmail"
-              type="email"
-              class="input input-bordered w-full"
-              placeholder="ferme.campeyrigoux@gmail.com"
-            />
+
+          <div v-if="settingsData.gmailConnectedEmail" class="alert alert-success mt-3">
+            <Icon name="mdi:check-circle" size="20" />
+            Connecté avec <strong>{{ settingsData.gmailConnectedEmail }}</strong>
+          </div>
+          <div v-else class="alert alert-warning mt-3">
+            <Icon name="mdi:alert" size="20" />
+            Aucun compte Google connecté. Les emails et la synchro agenda depuis google sont désactivés.
+          </div>
+
+          <div v-if="settingsData.gmailConnectedEmail" class="mt-4 grid gap-3">
+            <div class="form-control gap-3 flex">
+              <label class="label">
+                <span class="label-text">Calendrier cible</span>
+              </label>
+              <select v-model="form.googleCalendarId" class="select select-bordered w-full" @change="updateCalendarName">
+                <option value="">Ne pas synchroniser avec Google Calendar</option>
+                <option
+                  v-for="calendar in settingsData.googleCalendars"
+                  :key="calendar.id"
+                  :value="calendar.id"
+                >
+                  {{ calendar.summary }}{{ calendar.primary ? ' (principal)' : '' }}
+                </option>
+              </select>
+              <span class="mt-1 text-xs opacity-60">
+                Les nouvelles réservations confirmées seront ajoutées dans ce calendrier.
+              </span>
+            </div>
+          </div>
+
+          <div class="card-actions mt-2 justify-end">
+            <a v-if="!settingsData.gmailConnectedEmail" href="/api/auth/gmail/start" class="btn btn-primary">
+              <Icon name="mdi:google" size="18" />
+              Connecter Google
+            </a>
+            <button v-else class="btn btn-outline btn-error" @click="disconnectGmail">
+              Deconnecter
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card bg-base-200 shadow">
+        <div class="card-body">
+          <h2 class="card-title">Envoi des emails</h2>
+          <p class="mb-2 text-sm opacity-70">
+            Définissez les adresses utilisées par le site, puis choisissez le provider principal et le provider de secours. En cas d'échec du principal, l'email est renvoyé via le secondaire et un rapport part à l'adresse de notification des réservations.
+          </p>
+
+          <div class="grid gap-3 lg:grid-cols-2">
+            <div class="form-control gap-3 lg:col-span-2">
+              <label class="label">
+                <span class="label-text">Email expéditeur Gmail</span>
+              </label>
+              <input
+                v-model="form.gmailSenderEmail"
+                type="email"
+                class="input input-bordered w-full"
+                placeholder="Ferme du Campeyrigoux <ferme.campeyrigoux@gmail.com>"
+              />
+              <span class="text-xs opacity-70">
+                Exemple: Ferme du Campeyrigoux &lt;ferme.campeyrigoux@gmail.com&gt;.
+              </span>
+            </div>
+
+            <div class="form-control gap-3 lg:col-span-2">
+              <label class="label">
+                <span class="label-text">Email expéditeur Resend</span>
+              </label>
+              <input
+                v-model="form.resendSenderEmail"
+                type="email"
+                class="input input-bordered w-full"
+                placeholder="Ferme du Campeyrigoux <onboarding@resend.dev>"
+              />
+              <span class="text-xs opacity-70">
+                Exemple de test: Ferme du Campeyrigoux &lt;onboarding@resend.dev&gt;.
+              </span>
+            </div>
+
+            <div class="form-control gap-3">
+              <label class="label">
+                <span class="label-text">Email notifications réservations</span>
+              </label>
+              <input
+                v-model="form.reservationNotificationEmail"
+                type="email"
+                class="input input-bordered w-full"
+                placeholder="reservations@votredomaine.fr"
+              />
+            </div>
+
+            <div class="form-control gap-3">
+              <label class="label">
+                <span class="label-text">Email de contact public</span>
+              </label>
+              <input
+                v-model="form.contactEmail"
+                type="email"
+                class="input input-bordered w-full"
+                placeholder="contact@votredomaine.fr"
+              />
+            </div>
+
+            <div class="form-control gap-3">
+              <label class="label">
+                <span class="label-text">Provider principal</span>
+              </label>
+              <select v-model="form.mailPrimaryProvider" class="select select-bordered w-full">
+                <option value="gmail">Gmail</option>
+                <option value="resend">Resend</option>
+              </select>
+            </div>
+
+            <div class="form-control gap-3">
+              <label class="label">
+                <span class="label-text">Provider secondaire</span>
+              </label>
+              <select v-model="form.mailSecondaryProvider" class="select select-bordered w-full">
+                <option value="resend">Resend</option>
+                <option value="gmail">Gmail</option>
+              </select>
+            </div>
+
+            <div class="form-control gap-3 lg:col-span-2">
+              <label class="label">
+                <span class="label-text">Clé API Resend</span>
+              </label>
+              <input
+                v-model="form.resendApiKey"
+                type="password"
+                class="input input-bordered w-full"
+                placeholder="re_..."
+                autocomplete="off"
+              />
+            </div>
+
+          </div>
+
+          <div class="alert alert-warning mt-3">
+            <Icon name="mdi:alert-circle-outline" size="20" />
+            <span>Si le provider principal et le secondaire sont identiques, aucun fallback ne sera possible.</span>
+          </div>
+
+          <div class="card-actions mt-4 justify-end">
+            <button class="btn btn-outline" :disabled="saving || testingEmail || pending" @click="testEmail">
+              <span v-if="testingEmail" class="loading loading-spinner loading-sm" />
+              <Icon v-else name="mdi:email-fast-outline" size="18" />
+              Tester l'envoi
+            </button>
           </div>
         </div>
       </section>
@@ -33,16 +174,16 @@
           <h2 class="card-title">{{ $t('admin.ordersWindow.section') }}</h2>
           <p class="text-sm opacity-70">{{ $t('admin.ordersWindow.help') }}</p>
           <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div class="form-control">
+            <div class="form-control gap-3">
               <label class="label"><span class="label-text">{{ $t('admin.ordersWindow.from') }}</span></label>
               <input v-model="form.ordersOpenFrom" type="date" class="input input-bordered w-full" />
             </div>
-            <div class="form-control">
+            <div class="form-control gap-3">
               <label class="label"><span class="label-text">{{ $t('admin.ordersWindow.to') }}</span></label>
               <input v-model="form.ordersOpenTo" type="date" class="input input-bordered w-full" />
             </div>
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3">
             <label class="label"><span class="label-text">{{ $t('admin.ordersWindow.message') }}</span></label>
             <textarea
               v-model="form.ordersClosedMessage"
@@ -86,11 +227,11 @@
             Adresse et horaires d'ouverture de la ferme. Ils servent à la fois pour la vente à la ferme et comme créneau par défaut pour le retrait des paniers.
           </p>
           <div class="grid gap-3 md:grid-cols-2">
-            <div class="form-control md:col-span-2">
+            <div class="form-control gap-3 md:col-span-2">
               <label class="label"><span class="label-text">Adresse précise</span></label>
               <textarea v-model="form.farmPickupAddress" class="textarea textarea-bordered w-full" rows="2" />
             </div>
-            <div class="form-control">
+            <div class="form-control gap-3">
               <label class="label"><span class="label-text">Jour par défaut</span></label>
               <select v-model.number="form.farmPickupDayOfWeek" class="select select-bordered w-full">
                 <option :value="1">Lundi</option>
@@ -102,11 +243,12 @@
                 <option :value="0">Dimanche</option>
               </select>
             </div>
-            <div class="form-control">
+            <div class="md:col-span-2"></div>
+            <div class="form-control gap-3">
               <label class="label"><span class="label-text">Début d'ouverture</span></label>
               <input v-model="form.farmPickupStartTime" type="time" class="input input-bordered w-full" />
             </div>
-            <div class="form-control">
+            <div class="form-control gap-3">
               <label class="label"><span class="label-text">Fin d'ouverture</span></label>
               <input v-model="form.farmPickupEndTime" type="time" class="input input-bordered w-full" />
             </div>
@@ -114,54 +256,6 @@
         </div>
       </section>
 
-      <section class="card bg-base-200 shadow">
-        <div class="card-body">
-          <h2 class="card-title">Connexion Google</h2>
-          <p class="text-sm opacity-70">
-            La connexion Google sert à envoyer les emails de confirmation et à synchroniser les réservations confirmées dans Google Calendar.
-          </p>
-
-          <div v-if="settingsData.gmailConnectedEmail" class="alert alert-success mt-3">
-            <Icon name="mdi:check-circle" size="20" />
-            Connecté avec <strong>{{ settingsData.gmailConnectedEmail }}</strong>
-          </div>
-          <div v-else class="alert alert-warning mt-3">
-            <Icon name="mdi:alert" size="20" />
-            Aucun compte Google connecté. Les emails et la synchro agenda sont désactivés.
-          </div>
-
-          <div v-if="settingsData.gmailConnectedEmail" class="mt-4 grid gap-3">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text">Calendrier cible</span>
-              </label>
-              <select v-model="form.googleCalendarId" class="select select-bordered w-full" @change="updateCalendarName">
-                <option value="">Ne pas synchroniser avec Google Calendar</option>
-                <option
-                  v-for="calendar in settingsData.googleCalendars"
-                  :key="calendar.id"
-                  :value="calendar.id"
-                >
-                  {{ calendar.summary }}{{ calendar.primary ? ' (principal)' : '' }}
-                </option>
-              </select>
-              <span class="mt-1 text-xs opacity-60">
-                Les nouvelles réservations confirmées seront ajoutées dans ce calendrier.
-              </span>
-            </div>
-          </div>
-
-          <div class="card-actions mt-2 justify-end">
-            <a v-if="!settingsData.gmailConnectedEmail" href="/api/auth/gmail/start" class="btn btn-primary">
-              <Icon name="mdi:google" size="18" />
-              Connecter Google
-            </a>
-            <button v-else class="btn btn-outline btn-error" @click="disconnectGmail">
-              Deconnecter
-            </button>
-          </div>
-        </div>
-      </section>
 
       <section class="card bg-base-200 shadow">
         <div class="card-body">
@@ -224,7 +318,7 @@
               </div>
 
               <div v-else-if="currentTemplate" class="space-y-4">
-                <div class="form-control mb-2">
+                <div class="form-control gap-3 mb-2">
                   <label class="label"><span class="label-text">Sujet</span></label>
                   <input
                     v-model="currentTemplate.subject"
@@ -232,7 +326,7 @@
                     class="input input-bordered w-full"
                   />
                 </div>
-                <div class="form-control">
+                <div class="form-control gap-3">
                   <label class="label"><span class="label-text">Corps du message</span></label>
                   <textarea
                     v-model="currentTemplate.body"
@@ -288,8 +382,14 @@ interface GoogleCalendarOption {
 }
 
 interface SettingsBase {
-  adminEmail: string
+  gmailSenderEmail: string
+  resendSenderEmail: string
+  reservationNotificationEmail: string
+  contactEmail: string
   gmailConnectedEmail: string | null
+  resendApiKey: string
+  mailPrimaryProvider: 'gmail' | 'resend'
+  mailSecondaryProvider: 'gmail' | 'resend'
   googleCalendarId: string
   googleCalendarName: string
   googleCalendars: GoogleCalendarOption[]
@@ -314,7 +414,13 @@ const settingsData = ref<SettingsBase | null>(null)
 const pending = ref(true)
 
 const form = reactive({
-  adminEmail: '',
+  gmailSenderEmail: '',
+  resendSenderEmail: '',
+  reservationNotificationEmail: '',
+  contactEmail: '',
+  resendApiKey: '',
+  mailPrimaryProvider: 'gmail' as 'gmail' | 'resend',
+  mailSecondaryProvider: 'resend' as 'gmail' | 'resend',
   googleCalendarId: '',
   googleCalendarName: '',
   facebookFluxDeactivated: false,
@@ -333,6 +439,7 @@ const form = reactive({
 const activeTemplateAction = ref('')
 const activeTemplateLocale = ref<'fr' | 'en'>('fr')
 const saving = ref(false)
+const testingEmail = ref(false)
 const templatePending = ref(false)
 const templateCache = reactive<Record<string, TemplateTranslations>>({})
 const templateInitialSignatures = reactive<Record<string, string>>({})
@@ -360,7 +467,13 @@ watchEffect(() => {
     return
   }
 
-  form.adminEmail = settingsData.value.adminEmail
+  form.gmailSenderEmail = settingsData.value.gmailSenderEmail
+  form.resendSenderEmail = settingsData.value.resendSenderEmail
+  form.reservationNotificationEmail = settingsData.value.reservationNotificationEmail
+  form.contactEmail = settingsData.value.contactEmail
+  form.resendApiKey = settingsData.value.resendApiKey
+  form.mailPrimaryProvider = settingsData.value.mailPrimaryProvider
+  form.mailSecondaryProvider = settingsData.value.mailSecondaryProvider
   form.googleCalendarId = settingsData.value.googleCalendarId
   form.googleCalendarName = settingsData.value.googleCalendarName
   form.facebookFluxDeactivated = settingsData.value.facebookFluxDeactivated
@@ -430,7 +543,7 @@ const getChangedTemplatesPayload = () => {
   )
 }
 
-const save = async () => {
+const persistSettings = async (showSuccessToast = true) => {
   saving.value = true
   try {
     updateCalendarName()
@@ -439,7 +552,13 @@ const save = async () => {
     await $fetch('/api/admin/settings', {
       method: 'PUT',
       body: {
-        adminEmail: form.adminEmail,
+        gmailSenderEmail: form.gmailSenderEmail,
+        resendSenderEmail: form.resendSenderEmail,
+        reservationNotificationEmail: form.reservationNotificationEmail,
+        contactEmail: form.contactEmail,
+        resendApiKey: form.resendApiKey,
+        mailPrimaryProvider: form.mailPrimaryProvider,
+        mailSecondaryProvider: form.mailSecondaryProvider,
         googleCalendarId: form.googleCalendarId,
         googleCalendarName: form.googleCalendarName,
         facebookFluxDeactivated: form.facebookFluxDeactivated,
@@ -461,13 +580,43 @@ const save = async () => {
       templateInitialSignatures[action] = JSON.stringify(translations)
     }
 
-    const { $toast } = useNuxtApp()
-    $toast.success('Parametres enregistres')
+    if (showSuccessToast) {
+      const { $toast } = useNuxtApp()
+      $toast.success('Paramètres enregistrés')
+    }
+    return true
   } catch (e: any) {
     const { $toast } = useNuxtApp()
-    $toast.error(e.statusMessage || 'Erreur lors de l enregistrement')
+    $toast.error(e.statusMessage || 'Erreur lors de l’enregistrement')
+    return false
   } finally {
     saving.value = false
+  }
+}
+
+const save = async () => {
+  await persistSettings(true)
+}
+
+const testEmail = async () => {
+  testingEmail.value = true
+  try {
+    const saved = await persistSettings(false)
+    if (!saved) {
+      return
+    }
+
+    await $fetch('/api/admin/settings/test-email', {
+      method: 'POST'
+    })
+
+    const { $toast } = useNuxtApp()
+    $toast.success('Email de test envoyé')
+  } catch (e: any) {
+    const { $toast } = useNuxtApp()
+    $toast.error(e.statusMessage || 'Erreur lors du test email')
+  } finally {
+    testingEmail.value = false
   }
 }
 

@@ -8,7 +8,7 @@
     </div>
 
     <form @submit.prevent="handleLogin" class="space-y-4">
-      <div class="form-control">
+      <div class="form-control gap-3 flex">
         <label class="label">
           <span class="label-text">Email</span>
         </label>
@@ -21,7 +21,7 @@
         />
       </div>
 
-      <div class="form-control">
+      <div class="form-control gap-3 flex">
         <label class="label">
           <span class="label-text">Mot de passe</span>
         </label>

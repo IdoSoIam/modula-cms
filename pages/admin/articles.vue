@@ -59,27 +59,27 @@
         </h3>
 
         <div class="space-y-4">
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">{{ $t('admin.articlesPage.fieldTitle') }} *</span></label>
             <input v-model="form.title" class="input input-bordered w-full" />
           </div>
 
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">{{ $t('admin.articlesPage.fieldSlug') }}</span></label>
             <input v-model="form.slug" class="input input-bordered w-full" :placeholder="$t('admin.articlesPage.slugPlaceholder')" />
           </div>
 
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">{{ $t('admin.articlesPage.fieldCover') }}</span></label>
             <ImageInput v-model="form.coverUrl" />
           </div>
 
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">{{ $t('admin.articlesPage.fieldExcerpt') }}</span></label>
             <textarea v-model="form.excerpt" class="textarea textarea-bordered w-full" rows="2" />
           </div>
 
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">{{ $t('admin.articlesPage.fieldContent') }} *</span></label>
             <RichTextEditor v-model="form.content" />
           </div>

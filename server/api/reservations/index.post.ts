@@ -1,4 +1,5 @@
-import { getSetting, SETTING_KEYS, getOrdersWindow, getFarmPickupConfig, isSubscriptionsEnabled } from '~/server/utils/settings'
+import { getReservationNotificationEmail, getOrdersWindow, getFarmPickupConfig, isSubscriptionsEnabled } from '~/server/utils/settings'
+import { formatDateLabel } from '~/server/utils/dateFormat'
 import { sendGmail } from '~/server/utils/gmail'
 import { appendReservationManageLink, buildGenericEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
 import { getReservationEmailHtmlLang, normalizeReservationLocale, resolveTemplateFromSettings, applyTemplateVars } from '~/server/utils/reservationEmailContent'
@@ -192,7 +193,9 @@ export default defineEventHandler(async (event) => {
       basketName: basket.name,
       deliveryMethod: getDeliveryMethodLabel(deliveryType, reservation.language),
       fulfillmentLocation: fulfillment.fulfillmentLocation ?? (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
-      fulfillmentDate: (deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)?.toLocaleDateString(localeCode) ?? (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
+      fulfillmentDate: (deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)
+        ? formatDateLabel(deliveryType === 'FARM' ? farmRequestedDate! : fulfillment.fulfillmentDate!, localeCode)
+        : (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
       fulfillmentTime: (deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime) ?? (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
       basketPrice: new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'EUR' }).format(Number(basket.finalPrice))
     })
@@ -219,8 +222,8 @@ export default defineEventHandler(async (event) => {
       console.warn('[reservation] customer ack failed:', error)
     }
 
-    const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
-    if (adminEmail) {
+    const reservationNotificationEmail = await getReservationNotificationEmail()
+    if (reservationNotificationEmail) {
       const adminTemplate = await resolveTemplateFromSettings('admin_new_reservation', 'fr')
       const adminDraft = applyTemplateVars(adminTemplate, {
         contextLine: deliveryType === 'FARM' && body.farmAlternateDate
@@ -233,14 +236,16 @@ export default defineEventHandler(async (event) => {
         customerPhone: reservation.phone ?? '-',
         customerMessage: reservation.message ?? '-',
         deliveryMethod: deliveryLabel,
-        fulfillmentDate: (deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)?.toLocaleDateString('fr-FR') ?? 'à confirmer',
+        fulfillmentDate: (deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)
+          ? formatDateLabel(deliveryType === 'FARM' ? farmRequestedDate! : fulfillment.fulfillmentDate!, 'fr-FR')
+          : 'à confirmer',
         fulfillmentTime: (deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime) ?? 'à confirmer',
         fulfillmentLocation: fulfillment.fulfillmentLocation ?? 'à confirmer',
         adminReservationUrl: getAdminReservationUrl(reservation.id)
       })
 
       await sendGmail({
-        to: adminEmail,
+        to: reservationNotificationEmail,
         subject: adminDraft.subject,
         body: adminDraft.body,
         htmlBody: buildGenericEmail({

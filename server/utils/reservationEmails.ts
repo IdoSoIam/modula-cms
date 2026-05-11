@@ -1,13 +1,13 @@
 import type { Basket, DeliveryTour, PickupPoint, Reservation } from '@prisma/client'
 import { buildReservationIcs } from './calendarInvite'
+import { formatDateLabel } from './dateFormat'
 import { buildEmailHtml } from './emailTemplates'
 import {
   getReservationActionLinkLabel,
   getReservationEmailHtmlLang,
   normalizeReservationLocale
 } from './reservationEmailContent'
-import { getSetting, SETTING_KEYS } from './settings'
-import { getSiteOrigin, type GmailCalendarInvite } from './gmail'
+import { getSiteOrigin, getPreferredSenderEmail, type GmailCalendarInvite } from './gmail'
 
 type ReservationWithRelations = Reservation & {
   basket: Basket
@@ -71,7 +71,7 @@ export function buildAdminReservationSummary(options: {
 - Email : ${options.customerEmail}
 - Telephone : ${options.customerPhone ?? '-'}
 - Mode : ${options.deliveryLabel}
-- Date : ${options.fulfillmentDate ? options.fulfillmentDate.toLocaleDateString('fr-FR') : 'a confirmer'}
+- Date : ${options.fulfillmentDate ? formatDateLabel(options.fulfillmentDate, 'fr-FR') : 'a confirmer'}
 - Heure : ${options.fulfillmentTime ?? 'a confirmer'}
 - Lieu : ${options.fulfillmentLocation ?? 'a confirmer'}
 - Message : ${options.customerMessage ?? '-'}
@@ -103,7 +103,7 @@ export async function buildReservationDecisionEmail(options: {
   subscriptionsEnabled: boolean
   manageLinkMode?: CustomerManageLinkMode
 }) {
-  const organizerEmail = await getSetting(SETTING_KEYS.GMAIL_CONNECTED_EMAIL)
+  const organizerEmail = await getPreferredSenderEmail()
   const textBody = appendReservationManageLink({
     body: options.body,
     reservation: options.reservation,
@@ -141,10 +141,10 @@ export async function buildReservationDecisionEmail(options: {
       })
     }
   } else if (options.action === 'CONFIRMED' || options.action === 'CANCELLED') {
-    console.warn('[reservation-email] ICS non genere: email Gmail connecte introuvable', {
-      reservationId: options.reservation.id,
-      action: options.action
-    })
+      console.warn('[reservation-email] ICS non genere: email expediteur introuvable', {
+        reservationId: options.reservation.id,
+        action: options.action
+      })
   }
 
   return {
@@ -172,7 +172,7 @@ export async function buildReservationOccurrenceEmail(options: {
   subscriptionsEnabled?: boolean
   manageLinkMode?: CustomerManageLinkMode
 }) {
-  const organizerEmail = await getSetting(SETTING_KEYS.GMAIL_CONNECTED_EMAIL)
+  const organizerEmail = await getPreferredSenderEmail()
   const textBody = appendReservationManageLink({
     body: options.body,
     reservation: options.reservation,
@@ -214,7 +214,7 @@ export async function buildReservationOccurrenceEmail(options: {
       })
     }
   } else {
-    console.warn('[reservation-email] ICS occurrence non genere: email Gmail connecte introuvable', {
+    console.warn('[reservation-email] ICS occurrence non genere: email expediteur introuvable', {
       reservationId: options.reservation.id,
       occurrenceId: options.occurrence.id,
       action: options.action

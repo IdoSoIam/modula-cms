@@ -1,8 +1,9 @@
 import { prisma } from '../../../../../prisma/client'
+import { formatDateLabel } from '~/server/utils/dateFormat'
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
 import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
-import { getSetting, SETTING_KEYS } from '~/server/utils/settings'
+import { getReservationNotificationEmail } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { createReservationScheduleProposal, normalizeProposalDate, normalizeProposalTime } from '~/server/utils/reservationScheduleProposals'
 
@@ -58,8 +59,8 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
-  if (adminEmail) {
+  const reservationNotificationEmail = await getReservationNotificationEmail()
+  if (reservationNotificationEmail) {
     const adminTemplate = await resolveTemplateFromSettings('admin_customer_proposed_slot', 'fr')
     const adminDraft = applyTemplateVars(adminTemplate, {
       contextLine: `${reservation.customerName} a proposé un autre créneau pour son retrait à la ferme.`,
@@ -70,14 +71,14 @@ export default defineEventHandler(async (event) => {
       customerPhone: reservation.phone ?? '-',
       customerMessage: reservation.message ?? '-',
       deliveryMethod: 'Retrait à la ferme',
-      fulfillmentDate: proposalDate.toLocaleDateString('fr-FR'),
+      fulfillmentDate: formatDateLabel(proposalDate, 'fr-FR'),
       fulfillmentTime: proposalTime,
       fulfillmentLocation: reservation.fulfillmentLocation ?? 'à confirmer',
       adminReservationUrl: getAdminReservationUrl(reservation.id)
     })
 
     await sendGmail({
-      to: adminEmail,
+      to: reservationNotificationEmail,
       subject: adminDraft.subject,
       body: adminDraft.body,
       htmlBody: buildGenericEmail({
@@ -91,7 +92,7 @@ export default defineEventHandler(async (event) => {
     await logReservationNotification({
       reservationId: reservation.id,
       kind: 'CUSTOMER_PROPOSED_NEW_SLOT',
-      recipientEmail: adminEmail,
+      recipientEmail: reservationNotificationEmail,
       subject: adminDraft.subject,
       summary: adminDraft.body
     })

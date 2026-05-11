@@ -21,14 +21,14 @@
         <option :value="3">3 colonnes</option>
       </select>
 
-      <div class="form-control">
+      <div class="form-control gap-3 flex">
         <label class="label cursor-pointer">
           <span class="label-text mr-2">Afficher l'en-tête</span>
           <input type="checkbox" v-model="options.showHeader" class="checkbox" />
         </label>
       </div>
 
-      <div class="form-control">
+      <div class="form-control gap-3 flex">
         <label class="label cursor-pointer">
           <span class="label-text mr-2">Afficher les likes</span>
           <input type="checkbox" v-model="options.showLikes" class="checkbox" />

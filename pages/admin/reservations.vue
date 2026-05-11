@@ -8,7 +8,7 @@
         </p>
       </div>
 
-      <div class="tabs tabs-boxed">
+      <div class="tabs tabs-box">
         <button class="tab" :class="{ 'tab-active': viewMode === 'list' }" @click="viewMode = 'list'">
           <Icon name="mdi:format-list-bulleted" size="18" />
           Liste
@@ -260,28 +260,28 @@
         </p>
 
         <div v-if="decisionAction === 'confirmed'" class="mb-4 grid gap-3 md:grid-cols-3">
-          <div v-if="current?.deliveryType === 'FARM'" class="form-control md:col-span-3">
+          <div v-if="current?.deliveryType === 'FARM'" class="form-control gap-3 flex md:col-span-3">
             <label class="label"><span class="label-text">Action sur le créneau ferme</span></label>
             <select v-model="scheduleMode" class="select select-bordered w-full">
               <option value="CONFIRM">Confirmer ce créneau</option>
               <option value="PROPOSE">Envoyer une contre-proposition</option>
             </select>
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Date</span></label>
             <input v-model="fulfillmentForm.date" type="date" class="input input-bordered" />
           </div>
-          <div class="form-control md:col-span-2">
+          <div class="form-control gap-3 flex md:col-span-2">
             <label class="label"><span class="label-text">Heure précise</span></label>
             <input v-model="fulfillmentForm.time" type="time" step="300" class="input input-bordered" />
           </div>
-          <div v-if="current?.deliveryType === 'TOUR' && current?.deliveryTour" class="form-control md:col-span-3">
+          <div v-if="current?.deliveryType === 'TOUR' && current?.deliveryTour" class="form-control gap-3 flex md:col-span-3">
             <label class="label"><span class="label-text">Fenêtre de tournée</span></label>
             <div class="input input-bordered flex items-center bg-base-200/60">
               {{ current.deliveryTour.startTime }}-{{ current.deliveryTour.endTime }}
             </div>
           </div>
-          <div class="form-control md:col-span-3">
+          <div class="form-control gap-3 flex md:col-span-3">
             <label class="label"><span class="label-text">Lieu</span></label>
             <textarea v-model="fulfillmentForm.location" rows="2" class="textarea textarea-bordered w-full" />
           </div>
@@ -292,7 +292,7 @@
           </p>
         </div>
 
-        <div v-if="decisionAction !== 'confirmed'" class="form-control mb-3">
+        <div v-if="decisionAction !== 'confirmed'" class="form-control gap-3 flex mb-3">
           <label class="label">
             <span class="label-text">
               {{ decisionAction === 'cancelled' ? "Raison visible dans l'email d'annulation" : "Raison visible dans l'email" }}
@@ -302,7 +302,7 @@
         </div>
 
         <div class="grid grid-cols-1 gap-4">
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label">
               <span class="label-text">Sujet</span>
               <button type="button" class="label-text-alt link" @click="reloadPreview">Recharger le modèle</button>
@@ -310,7 +310,7 @@
             <input v-model="emailDraft.subject" class="input input-bordered w-full" />
           </div>
 
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Message</span></label>
             <textarea v-model="emailDraft.body" rows="14" class="textarea textarea-bordered w-full font-mono text-sm" />
           </div>
@@ -339,26 +339,26 @@
         </div>
 
         <div class="grid gap-3 md:grid-cols-4">
-          <div class="form-control md:col-span-2">
+          <div class="form-control gap-3 flex md:col-span-2">
             <label class="label"><span class="label-text">Date</span></label>
             <input v-model="occurrenceForm.date" type="date" class="input input-bordered" />
           </div>
-          <div class="form-control md:col-span-2">
+          <div class="form-control gap-3 flex md:col-span-2">
             <label class="label"><span class="label-text">Heure</span></label>
             <input v-model="occurrenceForm.time" type="time" step="300" class="input input-bordered" />
           </div>
-          <div class="form-control md:col-span-4">
+          <div class="form-control gap-3 flex md:col-span-4">
             <label class="label"><span class="label-text">Lieu</span></label>
             <input v-model="occurrenceForm.location" class="input input-bordered w-full" />
           </div>
         </div>
 
         <div class="mt-4 grid gap-4">
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Sujet</span></label>
             <input v-model="occurrenceEmailDraft.subject" class="input input-bordered w-full" />
           </div>
-          <div class="form-control">
+          <div class="form-control gap-3 flex">
             <label class="label"><span class="label-text">Message</span></label>
             <textarea v-model="occurrenceEmailDraft.body" rows="10" class="textarea textarea-bordered w-full font-mono text-sm" />
           </div>

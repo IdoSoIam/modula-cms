@@ -19,6 +19,12 @@
         <template v-if="authStore.user?.role === 'admin'">
           <li class="menu-title mt-2">{{ $t('admin.title') }}</li>
           <li>
+            <NuxtLink :to="localePath('/admin/accueil')" no-prefetch class="text-primary">
+              <Icon name="mdi:home-edit-outline" size="16" class="mr-1" />
+              Accueil
+            </NuxtLink>
+          </li>
+          <li>
             <NuxtLink :to="localePath('/admin/paniers')" class="text-primary">
               <Icon name="mdi:basket-outline" size="16" class="mr-1" />
               {{ $t('admin.baskets') }}
@@ -98,9 +104,9 @@ const router = useRouter()
 const localePath = useLocalePath()
 const showAuthModal = ref(false)
 
-const siteConfig = await useSiteConfig()
-const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated ?? false)
-const registerEnabled = computed(() => siteConfig.value?.registerEnabled ?? false)
+const siteConfig = useSiteConfigState()
+const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated === true)
+const registerEnabled = computed(() => siteConfig.value?.registerEnabled === true)
 
 const handleLogout = async () => {
   await authStore.logout()

@@ -1,5 +1,5 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig } from '~/server/utils/settings'
+import { getContactEmail, getGmailSenderEmail, getReservationNotificationEmail, getResendSenderEmail, getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig } from '~/server/utils/settings'
 import { listGoogleCalendars } from '~/server/utils/gmail'
 import { TEMPLATE_DEFINITIONS } from '~/server/utils/reservationEmailContent'
 
@@ -8,7 +8,15 @@ export default defineEventHandler(async (event) => {
 
   const allSettingKeys = [
     SETTING_KEYS.ADMIN_EMAIL,
+    SETTING_KEYS.MAIL_SENDER_EMAIL,
+    SETTING_KEYS.GMAIL_SENDER_EMAIL,
+    SETTING_KEYS.RESERVATION_NOTIFICATION_EMAIL,
+    SETTING_KEYS.CONTACT_EMAIL,
     SETTING_KEYS.GMAIL_CONNECTED_EMAIL,
+    SETTING_KEYS.RESEND_API_KEY,
+    SETTING_KEYS.RESEND_FROM_EMAIL,
+    SETTING_KEYS.MAIL_PRIMARY_PROVIDER,
+    SETTING_KEYS.MAIL_SECONDARY_PROVIDER,
     SETTING_KEYS.GOOGLE_CALENDAR_ID,
     SETTING_KEYS.GOOGLE_CALENDAR_NAME,
     SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED,
@@ -25,7 +33,14 @@ export default defineEventHandler(async (event) => {
     SETTING_KEYS.FARM_PICKUP_TIME
   ]
   const s = await getSettings(allSettingKeys)
-  const [featureFlags, farmPickup] = await Promise.all([getFeatureFlags(), getFarmPickupConfig()])
+  const [featureFlags, farmPickup, gmailSenderEmail, resendSenderEmail, reservationNotificationEmail, contactEmail] = await Promise.all([
+    getFeatureFlags(),
+    getFarmPickupConfig(),
+    getGmailSenderEmail(),
+    getResendSenderEmail(),
+    getReservationNotificationEmail(),
+    getContactEmail()
+  ])
 
   let googleCalendars: Array<{ id: string; summary: string; primary: boolean; accessRole: string }> = []
   if (s[SETTING_KEYS.GMAIL_CONNECTED_EMAIL]) {
@@ -37,8 +52,14 @@ export default defineEventHandler(async (event) => {
   }
 
   return {
-    adminEmail: s[SETTING_KEYS.ADMIN_EMAIL] ?? '',
+    gmailSenderEmail: gmailSenderEmail ?? '',
+    resendSenderEmail: resendSenderEmail ?? '',
+    reservationNotificationEmail: reservationNotificationEmail ?? '',
+    contactEmail: contactEmail ?? '',
     gmailConnectedEmail: s[SETTING_KEYS.GMAIL_CONNECTED_EMAIL] ?? null,
+    resendApiKey: s[SETTING_KEYS.RESEND_API_KEY] ?? '',
+    mailPrimaryProvider: s[SETTING_KEYS.MAIL_PRIMARY_PROVIDER] ?? 'gmail',
+    mailSecondaryProvider: s[SETTING_KEYS.MAIL_SECONDARY_PROVIDER] ?? 'resend',
     googleCalendarId: s[SETTING_KEYS.GOOGLE_CALENDAR_ID] ?? '',
     googleCalendarName: s[SETTING_KEYS.GOOGLE_CALENDAR_NAME] ?? '',
     googleCalendars,

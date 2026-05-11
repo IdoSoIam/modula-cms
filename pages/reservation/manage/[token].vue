@@ -45,11 +45,11 @@
             <div class="rounded-2xl border border-base-300 bg-base-100 p-4">
               <h2 class="text-lg font-semibold">{{ t('pages.reservationManage.counterProposalTitle') }}</h2>
               <div class="mt-4 grid gap-3 md:grid-cols-2">
-                <div class="form-control">
+                <div class="form-control gap-3 flex">
                   <label class="label"><span class="label-text">{{ t('pages.reservationManage.dateLabel') }}</span></label>
                   <input v-model="proposalForm.date" type="date" class="input input-bordered" />
                 </div>
-                <div class="form-control">
+                <div class="form-control gap-3 flex">
                   <label class="label"><span class="label-text">{{ t('pages.reservationManage.timeLabel') }}</span></label>
                   <input v-model="proposalForm.time" type="time" class="input input-bordered" />
                 </div>

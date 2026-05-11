@@ -16,6 +16,7 @@ interface PublicSiteConfigState {
     endTime: string
     slotLabel: string
   }
+  contactEmail?: string | null
   adminEmail?: string | null
   adminPhone?: string | null
 }

@@ -34,7 +34,7 @@
           </p>
           <p class="flex items-center gap-2 justify-center">
             <Icon name="mdi:email" size="18" />
-            {{ siteConfig?.adminEmail }}
+            {{ siteConfig?.contactEmail || siteConfig?.adminEmail }}
           </p>
         </div>
       </div>
@@ -67,12 +67,19 @@ interface SiteConfig {
     endTime: string
     slotLabel: string
   },
-  adminEmail: string
+  contactEmail?: string | null
+  adminEmail?: string | null
   adminPhone: string
 }
 
-const siteConfig = await useSiteConfig()
+const siteConfigState = useSiteConfigState()
+
+if (process.server && !siteConfigState.value) {
+  await ensureSiteConfigState()
+}
+
 const { formatWeeklySchedule, marketSale } = useSalesInfo()
+const siteConfig = computed(() => siteConfigState.value as SiteConfig | null)
 
 const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))
 </script>

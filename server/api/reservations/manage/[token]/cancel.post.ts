@@ -3,7 +3,7 @@ import { removeReservationFromGoogleCalendar } from '~/server/utils/googleCalend
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
 import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
-import { getSetting, SETTING_KEYS, isSubscriptionsEnabled } from '~/server/utils/settings'
+import { getReservationNotificationEmail, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 
 export default defineEventHandler(async (event) => {
@@ -96,8 +96,8 @@ export default defineEventHandler(async (event) => {
     summary: customerDraft.body
   })
 
-  const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
-  if (adminEmail) {
+  const reservationNotificationEmail = await getReservationNotificationEmail()
+  if (reservationNotificationEmail) {
     const adminTemplate = await resolveTemplateFromSettings(
       subscriptionsEnabled && updated.monthlySubscription ? 'admin_customer_stopped_subscription' : 'admin_customer_cancelled',
       'fr'
@@ -112,7 +112,7 @@ export default defineEventHandler(async (event) => {
     })
 
     await sendGmail({
-      to: adminEmail,
+      to: reservationNotificationEmail,
       subject: adminDraft.subject,
       body: adminDraft.body,
       htmlBody: buildGenericEmail({
@@ -126,7 +126,7 @@ export default defineEventHandler(async (event) => {
     await logReservationNotification({
       reservationId: updated.id,
       kind: subscriptionsEnabled && updated.monthlySubscription ? 'ADMIN_NOTIFIED_CUSTOMER_STOP' : 'ADMIN_NOTIFIED_CUSTOMER_CANCEL',
-      recipientEmail: adminEmail,
+      recipientEmail: reservationNotificationEmail,
       subject: adminDraft.subject,
       summary: adminDraft.body
     })

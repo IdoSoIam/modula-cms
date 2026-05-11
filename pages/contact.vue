@@ -87,12 +87,19 @@ interface SiteConfig {
     endTime: string
     slotLabel: string
   },
-  adminEmail: string
+  contactEmail?: string | null
+  adminEmail?: string | null
   adminPhone: string
 }
 
-const siteConfig = await useSiteConfig()
+const siteConfigState = useSiteConfigState()
+
+if (process.server && !siteConfigState.value) {
+  await ensureSiteConfigState()
+}
+
 const { formatWeeklySchedule } = useSalesInfo()
+const siteConfig = computed(() => siteConfigState.value as SiteConfig | null)
 const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))
 </script>
 
@@ -165,7 +172,7 @@ const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.f
                 </label>
               </div>
 
-              <div class="form-control mt-8">
+              <div class="form-control gap-3 flex mt-8">
                 <button type="submit" class="btn btn-primary w-full" :disabled="sending">
                   <span v-if="sending" class="loading loading-spinner loading-sm" />
                   <Icon v-else name="mdi:send" class="mr-2" />
@@ -202,7 +209,7 @@ const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.f
                   <Icon name="mdi:email" class="mt-1 text-xl text-primary" />
                   <div>
                     <h3 class="font-medium">Email</h3>
-                    <p class="text-base-content/80">{{ siteConfig?.adminEmail || 'ferme.campeyrigoux@gmail.com' }}</p>
+                    <p class="text-base-content/80">{{ siteConfig?.contactEmail || siteConfig?.adminEmail || 'ferme.campeyrigoux@gmail.com' }}</p>
                   </div>
                 </div>
 

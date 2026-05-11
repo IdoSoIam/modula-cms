@@ -1,4 +1,5 @@
 import { prisma } from '../../../../../prisma/client'
+import { formatDateLabel } from '~/server/utils/dateFormat'
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationDecisionEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
 import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
@@ -7,7 +8,7 @@ import { ensureReservationOccurrences } from '~/server/utils/reservationOccurren
 import { markReservationProposalAccepted } from '~/server/utils/reservationScheduleProposals'
 import { syncReservationToGoogleCalendar } from '~/server/utils/googleCalendarSync'
 import { getDeliveryMethodLabel } from '~/server/utils/reservationFulfillment'
-import { getSetting, isSubscriptionsEnabled, SETTING_KEYS } from '~/server/utils/settings'
+import { getReservationNotificationEmail, isSubscriptionsEnabled } from '~/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   const token = String(getRouterParam(event, 'token') ?? '')
@@ -62,7 +63,9 @@ export default defineEventHandler(async (event) => {
   const customerTemplate = await resolveTemplateFromSettings('accepted_proposal', updated.language)
   const customerEmailDraft = applyTemplateVars(customerTemplate, {
     customerName: updated.customerName,
-    fulfillmentDate: updated.fulfillmentDate?.toLocaleDateString(updated.language === 'en' ? 'en-US' : 'fr-FR') ?? (updated.language === 'en' ? 'to be confirmed' : 'à confirmer'),
+    fulfillmentDate: updated.fulfillmentDate
+      ? formatDateLabel(updated.fulfillmentDate, updated.language === 'en' ? 'en-US' : 'fr-FR')
+      : (updated.language === 'en' ? 'to be confirmed' : 'à confirmer'),
     fulfillmentTime: updated.fulfillmentTime ?? (updated.language === 'en' ? 'to be confirmed' : 'à confirmer'),
     fulfillmentLocation: updated.fulfillmentLocation ?? 'Ferme du Campeyrigoux'
   })
@@ -93,8 +96,8 @@ export default defineEventHandler(async (event) => {
     summary: customerEmailDraft.body
   })
 
-  const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
-  if (adminEmail) {
+  const reservationNotificationEmail = await getReservationNotificationEmail()
+  if (reservationNotificationEmail) {
     const adminTemplate = await resolveTemplateFromSettings('admin_customer_accepted_proposal', 'fr')
     const adminDraft = applyTemplateVars(adminTemplate, {
       contextLine: 'Le client a accepté la proposition de créneau envoyée par la ferme.',
@@ -105,14 +108,14 @@ export default defineEventHandler(async (event) => {
       customerPhone: updated.phone ?? '-',
       customerMessage: updated.message ?? '-',
       deliveryMethod: getDeliveryMethodLabel(updated.deliveryType, 'fr'),
-      fulfillmentDate: updated.fulfillmentDate?.toLocaleDateString('fr-FR') ?? 'à confirmer',
+      fulfillmentDate: updated.fulfillmentDate ? formatDateLabel(updated.fulfillmentDate, 'fr-FR') : 'à confirmer',
       fulfillmentTime: updated.fulfillmentTime ?? 'à confirmer',
       fulfillmentLocation: updated.fulfillmentLocation ?? 'à confirmer',
       adminReservationUrl: getAdminReservationUrl(updated.id)
     })
 
     await sendGmail({
-      to: adminEmail,
+      to: reservationNotificationEmail,
       subject: adminDraft.subject,
       body: adminDraft.body,
       htmlBody: buildGenericEmail({
@@ -126,7 +129,7 @@ export default defineEventHandler(async (event) => {
     await logReservationNotification({
       reservationId: updated.id,
       kind: 'ADMIN_NOTIFIED_CUSTOMER_ACCEPTED_SCHEDULE_PROPOSAL',
-      recipientEmail: adminEmail,
+      recipientEmail: reservationNotificationEmail,
       subject: adminDraft.subject,
       summary: adminDraft.body
     })

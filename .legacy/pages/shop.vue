@@ -37,7 +37,7 @@ const filteredProducts = computed(() => {
 
     <!-- Filtres -->
     <div class="flex flex-col md:flex-row gap-4 mb-8">
-      <div class="form-control flex-1">
+      <div class="form-control gap-3 flex flex-1">
         <input
           v-model="searchQuery"
           type="text"

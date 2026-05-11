@@ -1,4 +1,5 @@
 import type { Reservation } from '@prisma/client'
+import { formatDateLabel } from './dateFormat'
 import { formatFulfillmentDate } from './reservationFulfillment'
 import { SETTING_KEYS } from './settings'
 
@@ -740,7 +741,7 @@ export function buildReservationCreatedCustomerEmail(options: {
 }) {
   const normalized = normalizeReservationLocale(options.locale)
   const localeCode = getReservationDateLocale(normalized)
-  const dateLabel = options.fulfillmentDate?.toLocaleDateString(localeCode) ?? (normalized === 'en' ? 'to be confirmed' : 'à confirmer')
+  const dateLabel = options.fulfillmentDate ? formatDateLabel(options.fulfillmentDate, localeCode) : (normalized === 'en' ? 'to be confirmed' : 'à confirmer')
   const timeLabel = options.fulfillmentTime ?? (normalized === 'en' ? 'to be confirmed' : 'à confirmer')
   const locationLabel = options.fulfillmentLocation ?? '-'
   const priceLabel = new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'EUR' }).format(options.basketPrice)
@@ -804,7 +805,7 @@ export function buildReservationAcceptedProposalCustomerEmail(options: {
   fulfillmentLocation: string | null
 }) {
   const normalized = normalizeReservationLocale(options.locale)
-  const dateLabel = options.fulfillmentDate?.toLocaleDateString(getReservationDateLocale(normalized)) ?? (normalized === 'en' ? 'to be confirmed' : 'à confirmer')
+  const dateLabel = options.fulfillmentDate ? formatDateLabel(options.fulfillmentDate, getReservationDateLocale(normalized)) : (normalized === 'en' ? 'to be confirmed' : 'à confirmer')
   const timeLabel = options.fulfillmentTime ?? (normalized === 'en' ? 'to be confirmed' : 'à confirmer')
   const locationLabel = options.fulfillmentLocation ?? 'Ferme du Campeyrigoux'
 
