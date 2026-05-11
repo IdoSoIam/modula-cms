@@ -7,7 +7,7 @@ import { ensureReservationOccurrences } from '~/server/utils/reservationOccurren
 import { markReservationProposalAccepted } from '~/server/utils/reservationScheduleProposals'
 import { syncReservationToGoogleCalendar } from '~/server/utils/googleCalendarSync'
 import { getDeliveryMethodLabel } from '~/server/utils/reservationFulfillment'
-import { getSetting, isSubscriptionsEnabled, SETTING_KEYS } from '~/server/utils/settings'
+import { getReservationNotificationEmail, isSubscriptionsEnabled } from '~/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   const token = String(getRouterParam(event, 'token') ?? '')
@@ -93,8 +93,8 @@ export default defineEventHandler(async (event) => {
     summary: customerEmailDraft.body
   })
 
-  const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
-  if (adminEmail) {
+  const reservationNotificationEmail = await getReservationNotificationEmail()
+  if (reservationNotificationEmail) {
     const adminTemplate = await resolveTemplateFromSettings('admin_customer_accepted_proposal', 'fr')
     const adminDraft = applyTemplateVars(adminTemplate, {
       contextLine: 'Le client a accepté la proposition de créneau envoyée par la ferme.',
@@ -112,7 +112,7 @@ export default defineEventHandler(async (event) => {
     })
 
     await sendGmail({
-      to: adminEmail,
+      to: reservationNotificationEmail,
       subject: adminDraft.subject,
       body: adminDraft.body,
       htmlBody: buildGenericEmail({
@@ -126,7 +126,7 @@ export default defineEventHandler(async (event) => {
     await logReservationNotification({
       reservationId: updated.id,
       kind: 'ADMIN_NOTIFIED_CUSTOMER_ACCEPTED_SCHEDULE_PROPOSAL',
-      recipientEmail: adminEmail,
+      recipientEmail: reservationNotificationEmail,
       subject: adminDraft.subject,
       summary: adminDraft.body
     })

@@ -34,7 +34,7 @@
           </p>
           <p class="flex items-center gap-2 justify-center">
             <Icon name="mdi:email" size="18" />
-            {{ siteConfig?.adminEmail }}
+            {{ siteConfig?.contactEmail || siteConfig?.adminEmail }}
           </p>
         </div>
       </div>
@@ -67,7 +67,8 @@ interface SiteConfig {
     endTime: string
     slotLabel: string
   },
-  adminEmail: string
+  contactEmail?: string | null
+  adminEmail?: string | null
   adminPhone: string
 }
 

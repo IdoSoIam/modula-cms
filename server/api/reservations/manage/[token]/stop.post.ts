@@ -2,7 +2,7 @@ import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/reservationEmails'
 import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
 import { removeReservationFromGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { getSetting, SETTING_KEYS, isSubscriptionsEnabled } from '~/server/utils/settings'
+import { getReservationNotificationEmail, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 import { prisma } from '../../../../../prisma/client'
 
@@ -87,8 +87,8 @@ export default defineEventHandler(async (event) => {
     summary: customerDraft.body
   })
 
-  const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
-  if (adminEmail) {
+  const reservationNotificationEmail = await getReservationNotificationEmail()
+  if (reservationNotificationEmail) {
     const adminTemplate = await resolveTemplateFromSettings('admin_customer_stopped_subscription', 'fr')
     const adminDraft = applyTemplateVars(adminTemplate, {
       contextLine: 'Le client a arrêté son abonnement.',
@@ -98,7 +98,7 @@ export default defineEventHandler(async (event) => {
     })
 
     await sendGmail({
-      to: adminEmail,
+      to: reservationNotificationEmail,
       subject: adminDraft.subject,
       body: adminDraft.body,
       htmlBody: buildGenericEmail({ title: adminDraft.subject, body: adminDraft.body, accent: '#d97706', lang: getReservationEmailHtmlLang('fr') })
@@ -107,7 +107,7 @@ export default defineEventHandler(async (event) => {
     await logReservationNotification({
       reservationId: updated.id,
       kind: 'ADMIN_NOTIFIED_CUSTOMER_STOP',
-      recipientEmail: adminEmail,
+      recipientEmail: reservationNotificationEmail,
       subject: adminDraft.subject,
       summary: adminDraft.body
     })

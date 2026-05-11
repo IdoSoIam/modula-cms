@@ -87,7 +87,8 @@ interface SiteConfig {
     endTime: string
     slotLabel: string
   },
-  adminEmail: string
+  contactEmail?: string | null
+  adminEmail?: string | null
   adminPhone: string
 }
 
@@ -202,7 +203,7 @@ const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.f
                   <Icon name="mdi:email" class="mt-1 text-xl text-primary" />
                   <div>
                     <h3 class="font-medium">Email</h3>
-                    <p class="text-base-content/80">{{ siteConfig?.adminEmail || 'ferme.campeyrigoux@gmail.com' }}</p>
+                    <p class="text-base-content/80">{{ siteConfig?.contactEmail || siteConfig?.adminEmail || 'ferme.campeyrigoux@gmail.com' }}</p>
                   </div>
                 </div>
 

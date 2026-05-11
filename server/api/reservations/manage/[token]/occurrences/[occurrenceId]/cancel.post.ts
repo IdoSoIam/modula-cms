@@ -3,7 +3,7 @@ import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail, buildReservationOccurrenceEmail } from '~/server/utils/reservationEmails'
 import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/reservationEmailContent'
 import { cancelReservationOccurrenceInGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { getSetting, SETTING_KEYS, isSubscriptionsEnabled } from '~/server/utils/settings'
+import { getReservationNotificationEmail, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { logReservationNotification } from '~/server/utils/reservationNotifications'
 
 function formatOccurrenceDate(value: Date) {
@@ -90,8 +90,8 @@ export default defineEventHandler(async (event) => {
     summary: customerDraft.body
   })
 
-  const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
-  if (adminEmail) {
+  const reservationNotificationEmail = await getReservationNotificationEmail()
+  if (reservationNotificationEmail) {
     const adminTemplate = await resolveTemplateFromSettings('admin_customer_cancelled_occurrence', 'fr')
     const adminDraft = applyTemplateVars(adminTemplate, {
       contextLine: 'Le client a annulé une occurrence de son abonnement.',
@@ -104,7 +104,7 @@ export default defineEventHandler(async (event) => {
     })
 
     await sendGmail({
-      to: adminEmail,
+      to: reservationNotificationEmail,
       subject: adminDraft.subject,
       body: adminDraft.body,
       htmlBody: buildGenericEmail({ title: adminDraft.subject, body: adminDraft.body, accent: '#d97706', lang: getReservationEmailHtmlLang('fr') })

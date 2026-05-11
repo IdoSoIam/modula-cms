@@ -2,6 +2,10 @@ import { prisma } from '../../prisma/client'
 
 export const SETTING_KEYS = {
   ADMIN_EMAIL: 'admin_email',
+  MAIL_SENDER_EMAIL: 'mail_sender_email',
+  GMAIL_SENDER_EMAIL: 'gmail_sender_email',
+  RESERVATION_NOTIFICATION_EMAIL: 'reservation_notification_email',
+  CONTACT_EMAIL: 'contact_email',
   RESERVATION_TEMPLATE_CONFIRMED: 'reservation_template_confirmed',
   RESERVATION_TEMPLATE_REJECTED: 'reservation_template_rejected',
   RESERVATION_TEMPLATE_CANCELLED: 'reservation_template_cancelled',
@@ -23,6 +27,10 @@ export const SETTING_KEYS = {
   GMAIL_ACCESS_TOKEN: 'gmail_access_token',
   GMAIL_TOKEN_EXPIRY: 'gmail_token_expiry',
   GMAIL_CONNECTED_EMAIL: 'gmail_connected_email',
+  RESEND_API_KEY: 'resend_api_key',
+  RESEND_FROM_EMAIL: 'resend_from_email',
+  MAIL_PRIMARY_PROVIDER: 'mail_primary_provider',
+  MAIL_SECONDARY_PROVIDER: 'mail_secondary_provider',
   GOOGLE_CALENDAR_ID: 'google_calendar_id',
   GOOGLE_CALENDAR_NAME: 'google_calendar_name',
   HOME_PAGE_CONTENT: 'home_page_content_v1',
@@ -39,6 +47,52 @@ export const SETTING_KEYS = {
   FARM_PICKUP_END_TIME: 'farm_pickup_end_time',
   FARM_PICKUP_TIME: 'farm_pickup_time'
 } as const
+
+export async function getGmailSenderEmail(): Promise<string | null> {
+  const settings = await getSettings([
+    SETTING_KEYS.GMAIL_SENDER_EMAIL,
+    SETTING_KEYS.GMAIL_CONNECTED_EMAIL
+  ])
+
+  return settings[SETTING_KEYS.GMAIL_SENDER_EMAIL]?.trim()
+    || settings[SETTING_KEYS.GMAIL_CONNECTED_EMAIL]?.trim()
+    || null
+}
+
+export async function getResendSenderEmail(): Promise<string | null> {
+  const settings = await getSettings([
+    SETTING_KEYS.RESEND_FROM_EMAIL,
+    SETTING_KEYS.MAIL_SENDER_EMAIL
+  ])
+
+  return settings[SETTING_KEYS.RESEND_FROM_EMAIL]?.trim()
+    || settings[SETTING_KEYS.MAIL_SENDER_EMAIL]?.trim()
+    || null
+}
+
+export async function getReservationNotificationEmail(): Promise<string | null> {
+  const settings = await getSettings([
+    SETTING_KEYS.RESERVATION_NOTIFICATION_EMAIL,
+    SETTING_KEYS.ADMIN_EMAIL
+  ])
+
+  return settings[SETTING_KEYS.RESERVATION_NOTIFICATION_EMAIL]?.trim()
+    || settings[SETTING_KEYS.ADMIN_EMAIL]?.trim()
+    || null
+}
+
+export async function getContactEmail(): Promise<string | null> {
+  const settings = await getSettings([
+    SETTING_KEYS.CONTACT_EMAIL,
+    SETTING_KEYS.RESERVATION_NOTIFICATION_EMAIL,
+    SETTING_KEYS.ADMIN_EMAIL
+  ])
+
+  return settings[SETTING_KEYS.CONTACT_EMAIL]?.trim()
+    || settings[SETTING_KEYS.RESERVATION_NOTIFICATION_EMAIL]?.trim()
+    || settings[SETTING_KEYS.ADMIN_EMAIL]?.trim()
+    || null
+}
 
 export interface FeatureFlags {
   inDevelopment: boolean

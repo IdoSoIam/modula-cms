@@ -1,6 +1,6 @@
 import { sendGmail } from '~/server/utils/gmail'
 import { buildGenericEmail } from '~/server/utils/reservationEmails'
-import { getSetting, SETTING_KEYS } from '~/server/utils/settings'
+import { getContactEmail } from '~/server/utils/settings'
 import { resolveTemplateFromSettings, applyTemplateVars, getReservationEmailHtmlLang } from '~/server/utils/reservationEmailContent'
 import { enforceRateLimit } from '~/server/utils/rateLimit'
 
@@ -42,11 +42,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
-  if (!adminEmail) {
+  const contactEmail = await getContactEmail()
+  if (!contactEmail) {
     throw createError({
       statusCode: 503,
-      statusMessage: 'Adresse email admin non configurée'
+      statusMessage: 'Adresse email de contact non configurée'
     })
   }
 
@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
   })
 
   await sendGmail({
-    to: adminEmail,
+    to: contactEmail,
     subject: email.subject,
     body: email.body,
     htmlBody: buildGenericEmail({

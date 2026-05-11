@@ -1,12 +1,12 @@
-import { getSetting, SETTING_KEYS, getOrdersWindow, getFeatureFlags, getFarmPickupConfig } from '~/server/utils/settings'
+import { getContactEmail, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSetting, SETTING_KEYS } from '~/server/utils/settings'
 
 export default defineEventHandler(async () => {
-  const [fb, ordersWindow, featureFlags, farmPickup, adminEmail] = await Promise.all([
+  const [fb, ordersWindow, featureFlags, farmPickup, contactEmail] = await Promise.all([
     getSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED),
     getOrdersWindow(),
     getFeatureFlags(),
     getFarmPickupConfig(),
-    getSetting(SETTING_KEYS.ADMIN_EMAIL),
+    getContactEmail(),
   ])
   return {
     facebookFluxDeactivated: fb === 'true',
@@ -15,6 +15,7 @@ export default defineEventHandler(async () => {
     registerEnabled: featureFlags.registerEnabled,
     subscriptionsEnabled: featureFlags.subscriptionsEnabled,
     farmPickup,
-    adminEmail
+    contactEmail,
+    adminEmail: contactEmail
   }
 })

@@ -3,7 +3,13 @@ import { setSetting, SETTING_KEYS } from '~/server/utils/settings'
 import { TEMPLATE_DEFINITIONS } from '~/server/utils/reservationEmailContent'
 
 interface Body {
-  adminEmail?: string
+  gmailSenderEmail?: string
+  resendSenderEmail?: string
+  reservationNotificationEmail?: string
+  contactEmail?: string
+  resendApiKey?: string
+  mailPrimaryProvider?: 'gmail' | 'resend'
+  mailSecondaryProvider?: 'gmail' | 'resend'
   googleCalendarId?: string
   googleCalendarName?: string
   facebookFluxDeactivated?: boolean
@@ -24,8 +30,28 @@ export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const body = await readBody<Body>(event)
 
-  if (typeof body.adminEmail === 'string') {
-    await setSetting(SETTING_KEYS.ADMIN_EMAIL, body.adminEmail.trim())
+  if (typeof body.gmailSenderEmail === 'string') {
+    await setSetting(SETTING_KEYS.GMAIL_SENDER_EMAIL, body.gmailSenderEmail.trim())
+  }
+  if (typeof body.resendSenderEmail === 'string') {
+    await setSetting(SETTING_KEYS.RESEND_FROM_EMAIL, body.resendSenderEmail.trim())
+    await setSetting(SETTING_KEYS.MAIL_SENDER_EMAIL, body.resendSenderEmail.trim())
+  }
+  if (typeof body.reservationNotificationEmail === 'string') {
+    await setSetting(SETTING_KEYS.RESERVATION_NOTIFICATION_EMAIL, body.reservationNotificationEmail.trim())
+    await setSetting(SETTING_KEYS.ADMIN_EMAIL, body.reservationNotificationEmail.trim())
+  }
+  if (typeof body.contactEmail === 'string') {
+    await setSetting(SETTING_KEYS.CONTACT_EMAIL, body.contactEmail.trim())
+  }
+  if (typeof body.resendApiKey === 'string') {
+    await setSetting(SETTING_KEYS.RESEND_API_KEY, body.resendApiKey.trim())
+  }
+  if (body.mailPrimaryProvider === 'gmail' || body.mailPrimaryProvider === 'resend') {
+    await setSetting(SETTING_KEYS.MAIL_PRIMARY_PROVIDER, body.mailPrimaryProvider)
+  }
+  if (body.mailSecondaryProvider === 'gmail' || body.mailSecondaryProvider === 'resend') {
+    await setSetting(SETTING_KEYS.MAIL_SECONDARY_PROVIDER, body.mailSecondaryProvider)
   }
   if (typeof body.googleCalendarId === 'string') {
     await setSetting(SETTING_KEYS.GOOGLE_CALENDAR_ID, body.googleCalendarId.trim())

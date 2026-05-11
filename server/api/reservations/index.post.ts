@@ -1,4 +1,4 @@
-import { getSetting, SETTING_KEYS, getOrdersWindow, getFarmPickupConfig, isSubscriptionsEnabled } from '~/server/utils/settings'
+import { getReservationNotificationEmail, getOrdersWindow, getFarmPickupConfig, isSubscriptionsEnabled } from '~/server/utils/settings'
 import { sendGmail } from '~/server/utils/gmail'
 import { appendReservationManageLink, buildGenericEmail, getAdminReservationUrl } from '~/server/utils/reservationEmails'
 import { getReservationEmailHtmlLang, normalizeReservationLocale, resolveTemplateFromSettings, applyTemplateVars } from '~/server/utils/reservationEmailContent'
@@ -219,8 +219,8 @@ export default defineEventHandler(async (event) => {
       console.warn('[reservation] customer ack failed:', error)
     }
 
-    const adminEmail = await getSetting(SETTING_KEYS.ADMIN_EMAIL)
-    if (adminEmail) {
+    const reservationNotificationEmail = await getReservationNotificationEmail()
+    if (reservationNotificationEmail) {
       const adminTemplate = await resolveTemplateFromSettings('admin_new_reservation', 'fr')
       const adminDraft = applyTemplateVars(adminTemplate, {
         contextLine: deliveryType === 'FARM' && body.farmAlternateDate
@@ -240,7 +240,7 @@ export default defineEventHandler(async (event) => {
       })
 
       await sendGmail({
-        to: adminEmail,
+        to: reservationNotificationEmail,
         subject: adminDraft.subject,
         body: adminDraft.body,
         htmlBody: buildGenericEmail({

@@ -1,5 +1,6 @@
-import { deleteSettings, getSetting, setSetting, SETTING_KEYS } from './settings'
+import { deleteSettings, getGmailSenderEmail, getReservationNotificationEmail, getSetting, setSetting, SETTING_KEYS } from './settings'
 import { getEnv } from './env'
+import { getResendConfig, sendResend } from './resend'
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send'
@@ -34,6 +35,25 @@ export function getSiteOrigin() {
   }
   const redirectUri = getEnv('GOOGLE_REDIRECT_URI') || 'https://localhost:3000/api/auth/gmail/callback'
   return new URL(redirectUri).origin
+}
+
+function extractEmailAddress(value: string | null | undefined): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  const match = trimmed.match(/<([^>]+)>/)
+  if (match?.[1]) {
+    return match[1].trim()
+  }
+  return trimmed.includes('@') ? trimmed : null
+}
+
+export async function getPreferredSenderEmail(): Promise<string | null> {
+  const [gmailSenderEmail, resendConfig] = await Promise.all([
+    getGmailSenderEmail(),
+    getResendConfig()
+  ])
+
+  return extractEmailAddress(resendConfig.from) || extractEmailAddress(gmailSenderEmail) || null
 }
 
 export function buildAuthUrl(state: string): string {
@@ -129,7 +149,8 @@ function encodeHeader(value: string) {
 }
 
 function buildMessageId(from: string) {
-  const domain = from.includes('@') ? from.split('@')[1] : 'ferme-campeyrigoux.local'
+  const email = extractEmailAddress(from)
+  const domain = email?.includes('@') ? email.split('@')[1] : 'ferme-campeyrigoux.local'
   return `<${Date.now()}.${Math.random().toString(36).slice(2)}@${domain}>`
 }
 
@@ -269,7 +290,7 @@ function buildMimeMessage(options: {
   return lines.join('\r\n')
 }
 
-export async function sendGmail(opts: {
+async function sendGmailDirect(opts: {
   to: string
   subject: string
   body: string
@@ -278,7 +299,7 @@ export async function sendGmail(opts: {
   attachments?: GmailAttachment[]
 }) {
   const accessToken = await getValidAccessToken()
-  const from = await getSetting(SETTING_KEYS.GMAIL_CONNECTED_EMAIL)
+  const from = await getGmailSenderEmail()
   if (!from) throw createError({ statusCode: 503, statusMessage: 'Gmail non connecte' })
 
   const raw = base64UrlEncode(buildMimeMessage({
@@ -299,6 +320,132 @@ export async function sendGmail(opts: {
     },
     body: { raw }
   })
+}
+
+type MailProvider = 'gmail' | 'resend'
+
+function normalizeMailProvider(value: string | null | undefined, fallback: MailProvider): MailProvider {
+  return value === 'resend' || value === 'gmail' ? value : fallback
+}
+
+async function getMailProviderRouting() {
+  const [primarySetting, secondarySetting, notificationEmail] = await Promise.all([
+    getSetting(SETTING_KEYS.MAIL_PRIMARY_PROVIDER),
+    getSetting(SETTING_KEYS.MAIL_SECONDARY_PROVIDER),
+    getReservationNotificationEmail()
+  ])
+
+  const primary = normalizeMailProvider(primarySetting, 'gmail')
+  const secondary = normalizeMailProvider(
+    secondarySetting,
+    primary === 'gmail' ? 'resend' : 'gmail'
+  )
+
+  return {
+    primary,
+    secondary: secondary === primary ? null : secondary,
+    notificationEmail: notificationEmail?.trim() || null
+  }
+}
+
+async function sendWithProvider(provider: MailProvider, opts: {
+  to: string
+  subject: string
+  body: string
+  htmlBody?: string
+  calendarInvite?: GmailCalendarInvite
+  attachments?: GmailAttachment[]
+}) {
+  if (provider === 'resend') {
+    await sendResend(opts)
+    return
+  }
+
+  await sendGmailDirect(opts)
+}
+
+function formatProviderError(provider: MailProvider, error: any) {
+  const message = error?.statusMessage || error?.message || 'Erreur inconnue'
+  const status = error?.statusCode || error?.status
+  return status ? `[${provider}] ${status} - ${message}` : `[${provider}] ${message}`
+}
+
+async function sendFallbackReport(options: {
+  failedProvider: MailProvider
+  fallbackProvider: MailProvider
+  originalEmail: {
+    to: string
+    subject: string
+  }
+  primaryError: any
+  notificationEmail: string | null
+}) {
+  if (!options.notificationEmail) return
+
+  const body = [
+    'Bascule automatique du provider email.',
+    '',
+    `Provider principal en erreur : ${options.failedProvider}`,
+    `Provider de secours utilisé : ${options.fallbackProvider}`,
+    `Destinataire initial : ${options.originalEmail.to}`,
+    `Sujet initial : ${options.originalEmail.subject}`,
+    '',
+    'Erreur du provider principal :',
+    formatProviderError(options.failedProvider, options.primaryError)
+  ].join('\n')
+
+  try {
+    await sendWithProvider(options.fallbackProvider, {
+      to: options.notificationEmail,
+      subject: `[Mail fallback] ${options.failedProvider} -> ${options.fallbackProvider}`,
+      body
+    })
+  } catch (reportError) {
+    console.error('Unable to send fallback email report:', reportError)
+  }
+}
+
+export async function sendGmail(opts: {
+  to: string
+  subject: string
+  body: string
+  htmlBody?: string
+  calendarInvite?: GmailCalendarInvite
+  attachments?: GmailAttachment[]
+}) {
+  const routing = await getMailProviderRouting()
+
+  try {
+    await sendWithProvider(routing.primary, opts)
+    return
+  } catch (primaryError) {
+    if (!routing.secondary) {
+      throw primaryError
+    }
+
+    console.error(`Primary mail provider failed (${routing.primary}), attempting fallback to ${routing.secondary}:`, primaryError)
+
+    try {
+      await sendWithProvider(routing.secondary, opts)
+      await sendFallbackReport({
+        failedProvider: routing.primary,
+        fallbackProvider: routing.secondary,
+        originalEmail: {
+          to: opts.to,
+          subject: opts.subject
+        },
+        primaryError,
+        notificationEmail: routing.notificationEmail
+      })
+      return
+    } catch (secondaryError) {
+      console.error(`Secondary mail provider failed (${routing.secondary}) after primary failure:`, secondaryError)
+      throw createError({
+        statusCode: 503,
+        statusMessage: `Echec envoi email. ${formatProviderError(routing.primary, primaryError)} | ${formatProviderError(routing.secondary, secondaryError)}`
+      })
+    }
+  }
 }
 
 export async function disconnectGmail() {
