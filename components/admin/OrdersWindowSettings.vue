@@ -8,21 +8,21 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-2">
-      <label class="form-control">
+      <label class="form-control flex flex-col">
         <span class="label-text">Ouverture</span>
         <input :value="modelValue.ordersOpenFrom" type="date" class="input input-bordered" @input="update('ordersOpenFrom', ($event.target as HTMLInputElement).value)" />
       </label>
-      <label class="form-control">
+      <label class="form-control flex flex-col">
         <span class="label-text">Fermeture</span>
         <input :value="modelValue.ordersOpenTo" type="date" class="input input-bordered" @input="update('ordersOpenTo', ($event.target as HTMLInputElement).value)" />
       </label>
     </div>
 
-    <label class="form-control">
+    <label class="form-control flex flex-col">
       <span class="label-text">Message hors période</span>
       <textarea
         :value="modelValue.ordersClosedMessage"
-        class="textarea textarea-bordered"
+        class="textarea textarea-bordered w-full"
         rows="3"
         @input="update('ordersClosedMessage', ($event.target as HTMLTextAreaElement).value)"
       />

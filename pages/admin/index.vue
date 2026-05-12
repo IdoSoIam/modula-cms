@@ -2,7 +2,7 @@
   <div>
     <h1 class="mb-6 text-3xl font-bold">Tableau de bord</h1>
 
-    <div class="card bg-base-100 p-6">
+    <div class="card bg-base-100 p-8">
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div class="stat rounded-box bg-base-200">
           <div class="stat-title">À traiter</div>

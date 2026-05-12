@@ -14,17 +14,17 @@
         <li class="menu"><button @click="showAuthModal = true">{{ $t('auth.login') }}</button></li>
       </template>
       <template v-else>
-        <div class="px-3 py-2">
+        <div class="px-3 py-2 hover:bg-base-200">
           <div class="text-sm font-semibold">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</div>
-          <NuxtLink :to="localePath('/profile')" class="mt-2 inline-flex text-sm text-primary">{{ $t('auth.profile') }}</NuxtLink>
+          <NuxtLink :to="localePath('/profile')" class="inline-flex text-sm text-primary">{{ $t('auth.profile') }}</NuxtLink>
         </div>
         <template v-if="authStore.user?.role === 'admin'">
-          <div class="menu px-3 py-2">
+          <div class="px-3 py-2 hover:bg-base-200">
             <NuxtLink to="/admin" class="inline-flex text-sm text-primary">{{ $t('admin.title') }}</NuxtLink>
           </div>
         </template>
-        <div class="menu border-t border-base-200 px-3 py-2 hover:bg-base-200">
-          <button class="text-error cursor-pointer" @click="handleLogout">{{ $t('auth.logout') }}</button>
+        <div class="px-3 py-2 hover:bg-base-200">
+          <a class="inline-flex text-sm text-primary cursor-pointer" @click="handleLogout">{{ $t('auth.logout') }}</a>
         </div>
       </template>
     </ul>
@@ -47,8 +47,6 @@
 </template>
 
 <script setup lang="ts">
-import AdminNavigationMenu from '~/components/admin/AdminNavigationMenu.vue'
-import { getAdminNavigationSections } from '~/shared/adminNavigation'
 import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
@@ -57,11 +55,7 @@ const localePath = useLocalePath()
 const showAuthModal = ref(false)
 
 const siteConfig = useSiteConfigState()
-const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated === true)
 const registerEnabled = computed(() => siteConfig.value?.registerEnabled === true)
-const adminSections = computed(() => getAdminNavigationSections({
-  facebookSyncEnabled: !facebookFluxDeactivated.value
-}))
 
 const handleLogout = async () => {
   await authStore.logout()

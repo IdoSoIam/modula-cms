@@ -23,19 +23,19 @@
         <section class="rounded-box border border-base-300 bg-base-100 p-5">
           <h2 class="text-lg font-semibold">Configuration</h2>
           <div class="mt-4 grid gap-4 md:grid-cols-2">
-            <label class="form-control">
+            <label class="form-control flex flex-col">
               <span class="label-text">Titre interne</span>
               <input v-model="page.title" class="input input-bordered" />
             </label>
-            <label class="form-control">
+            <label class="form-control flex flex-col">
               <span class="label-text">Slug</span>
               <input v-model="page.slug" class="input input-bordered" />
             </label>
-            <label class="form-control md:col-span-2">
+            <label class="form-control flex flex-col md:col-span-2">
               <span class="label-text">Chemin public</span>
               <input v-model="page.path" class="input input-bordered" placeholder="/exemple" />
             </label>
-            <label class="form-control">
+            <label class="form-control flex flex-col">
               <span class="label-text">Type</span>
               <select v-model="page.pageType" class="select select-bordered">
                 <option value="CMS">CMS</option>
@@ -43,18 +43,18 @@
                 <option value="APPLICATION">APPLICATION</option>
               </select>
             </label>
-            <label class="form-control">
+            <label class="form-control flex flex-col">
               <span class="label-text">Statut</span>
               <select v-model="page.status" class="select select-bordered">
                 <option value="DRAFT">DRAFT</option>
                 <option value="PUBLISHED">PUBLISHED</option>
               </select>
             </label>
-            <label class="form-control">
+            <label class="form-control flex flex-col">
               <span class="label-text">Template</span>
               <input v-model="page.templateKey" class="input input-bordered" />
             </label>
-            <label class="form-control">
+            <label class="form-control flex flex-col">
               <span class="label-text">Renderer applicatif</span>
               <input v-model="page.rendererKey" class="input input-bordered" placeholder="baskets" />
             </label>

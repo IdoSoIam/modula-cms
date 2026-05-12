@@ -2,9 +2,9 @@
   <div>
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 class="text-3xl font-bold">Réservations</h1>
+        <h1 class="text-3xl font-bold">Commande</h1>
         <p class="text-sm opacity-70">
-          Les réservations passées ne sont plus affichées ici, mais restent comptabilisées dans le tableau de bord.
+          Les commande passées ne sont plus affichées ici, mais restent comptabilisées dans le tableau de bord.
         </p>
       </div>
 
