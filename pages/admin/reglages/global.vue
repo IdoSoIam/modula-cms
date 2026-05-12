@@ -24,18 +24,18 @@
         <div class="space-y-3">
           <div class="text-sm font-medium">Logo principal</div>
           <ImageInput v-model="model.settings.logo.src" />
-          <AdminHomepageTranslationTabs :model-value="model.settings.logo.alt" label="Texte alternatif du logo" />
+          <AdminPageBuilderTranslationTabs :model-value="model.settings.logo.alt" label="Texte alternatif du logo" />
         </div>
 
         <div class="space-y-3">
           <div class="text-sm font-medium">Favicon</div>
           <ImageInput v-model="model.settings.favicon.src" />
-          <AdminHomepageTranslationTabs :model-value="model.settings.favicon.alt" label="Texte alternatif du favicon" />
+          <AdminPageBuilderTranslationTabs :model-value="model.settings.favicon.alt" label="Texte alternatif du favicon" />
         </div>
       </div>
 
-      <AdminHomepageTranslationTabs :model-value="model.settings.siteName" label="Nom du site" />
-      <AdminHomepageTranslationTabs :model-value="model.settings.siteTagline" label="Baseline" />
+      <AdminPageBuilderTranslationTabs :model-value="model.settings.siteName" label="Nom du site" />
+      <AdminPageBuilderTranslationTabs :model-value="model.settings.siteTagline" label="Baseline" />
     </section>
 
     <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5">
@@ -101,7 +101,7 @@
 
 <script setup lang="ts">
 import ImageInput from '~/components/ImageInput.vue'
-import AdminHomepageTranslationTabs from '~/components/admin/homepage/TranslationTabs.vue'
+import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
 import type { CmsNavigationItemPayload, CmsSiteSettings } from '~/shared/cms'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })

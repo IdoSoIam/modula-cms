@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const img = await prisma.image.findUnique({ where: { id } })
   if (!img) throw createError({ statusCode: 404, statusMessage: 'Image introuvable' })
   const references = await countImageReferences(img.url)
-  const linkedCount = references.vegetables + references.baskets + references.articles + references.articleContent + references.homepage.count
+  const linkedCount = references.vegetables + references.baskets + references.articles + references.articleContent + references.rootPage.count
   if (linkedCount > 0) {
     throw createError({ statusCode: 409, statusMessage: 'Image encore utilisee, remplacez-la ou retirez les associations avant suppression' })
   }

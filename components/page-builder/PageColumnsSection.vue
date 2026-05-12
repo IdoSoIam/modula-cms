@@ -1,11 +1,11 @@
 <template>
-  <HomePageEditable
+  <PageEditable
     :editable="editable"
     label="Section"
     @edit="emit('edit', { kind: 'section', label: `Section ${section.id}`, section, sections, sectionIndex })"
   >
     <section class="relative overflow-hidden py-12 md:py-16" :class="sectionToneClass" :style="sectionStyle">
-      <HomeSectionBackground
+      <PageSectionBackground
         v-if="hasBackgroundMedia"
         :section="section"
         :locale="locale"
@@ -18,7 +18,7 @@
             :key="`${section.id}-${columnIndex}`"
             class="relative flex w-full"
           >
-            <HomePageEditable
+            <PageEditable
               :editable="editable"
               label="Colonne"
               button-position="top-center-outside"
@@ -26,7 +26,7 @@
             >
             <div class="flex min-h-full w-full flex-col gap-5" :class="[contentAlignClass(column.align), columnJustifyClass(column.verticalAlign)]" :style="columnTextStyle(column)">
               <template v-for="(item, itemIndex) in column.items" :key="item.id">
-                <HomePageEditable
+                <PageEditable
                   v-if="item.type === 'badge' && (editable || hasLocalizedText(item.text))"
                   inline
                   :editable="editable"
@@ -37,9 +37,9 @@
                   <div class="badge badge-outline" :class="badgeSizeClass(item.size)" :style="badgeStyle(item)">
                     {{ pickLocalizedText(locale, item.text) || 'Badge vide' }}
                   </div>
-                </HomePageEditable>
+                </PageEditable>
 
-                <HomePageEditable
+                <PageEditable
                   v-else-if="item.type === 'title' && (editable || hasLocalizedText(item.text))"
                   :editable="editable"
                   label="Titre"
@@ -48,9 +48,9 @@
                   <h2 class="font-bold" :class="titleSizeClass(item.size)">
                     {{ pickLocalizedText(locale, item.text) || 'Titre vide' }}
                   </h2>
-                </HomePageEditable>
+                </PageEditable>
 
-                <HomePageEditable
+                <PageEditable
                   v-else-if="item.type === 'text' && (editable || hasLocalizedText(item.text))"
                   :editable="editable"
                   label="Texte"
@@ -59,9 +59,9 @@
                   <p class="opacity-80" :class="textSizeClass(item.size)">
                     {{ pickLocalizedText(locale, item.text) || 'Texte vide' }}
                   </p>
-                </HomePageEditable>
+                </PageEditable>
 
-                <HomePageEditable
+                <PageEditable
                   v-else-if="item.type === 'buttons' && (editable || hasButton(item.primaryButton) || hasButton(item.secondaryButton))"
                   :editable="editable"
                   label="Boutons"
@@ -69,7 +69,7 @@
                   @edit="emit('edit', { kind: 'item', label: `Boutons colonne ${columnIndex + 1}`, item, parentItems: column.items, itemIndex })"
                 >
                   <div class="flex flex-wrap gap-3 pt-1">
-                    <HomePageEditable
+                    <PageEditable
                       v-if="hasButton(item.primaryButton)"
                       inline
                       :editable="editable"
@@ -85,8 +85,8 @@
                       >
                         {{ pickLocalizedText(locale, item.primaryButton!.label) }}
                       </NuxtLink>
-                    </HomePageEditable>
-                    <HomePageEditable
+                    </PageEditable>
+                    <PageEditable
                       v-if="hasButton(item.secondaryButton)"
                       inline
                       :editable="editable"
@@ -102,14 +102,14 @@
                       >
                         {{ pickLocalizedText(locale, item.secondaryButton!.label) }}
                       </NuxtLink>
-                    </HomePageEditable>
+                    </PageEditable>
                     <div v-if="editable && !hasButton(item.primaryButton) && !hasButton(item.secondaryButton)" class="rounded-2xl border border-dashed border-primary/40 px-4 py-3 text-sm opacity-60">
                       Aucun bouton configure
                     </div>
                   </div>
-                </HomePageEditable>
+                </PageEditable>
 
-                <HomePageEditable
+                <PageEditable
                   v-else-if="item.type === 'image' && (editable || item.imageUrl)"
                   :editable="editable"
                   label="Image"
@@ -126,9 +126,9 @@
                     </template>
                     <div v-else class="px-4 text-sm opacity-60">Image vide</div>
                   </div>
-                </HomePageEditable>
+                </PageEditable>
 
-                <HomePageEditable
+                <PageEditable
                   v-else-if="item.type === 'cards' && (editable || item.cards.length)"
                   :editable="editable"
                   label="Cartes"
@@ -136,7 +136,7 @@
                   @edit="emit('edit', { kind: 'item', label: `Cartes colonne ${columnIndex + 1}`, item, parentItems: column.items, itemIndex })"
                 >
                   <div :class="cardsContainerClass(item.display)">
-                    <HomePageEditable
+                    <PageEditable
                       v-for="(card, cardIndex) in item.cards"
                       :key="card.id"
                       :editable="editable"
@@ -158,7 +158,7 @@
                           {{ pickLocalizedText(locale, card.text) }}
                         </p>
                         <div v-if="hasButton(card.primaryButton) || hasButton(card.secondaryButton)" class="mt-4 flex flex-wrap gap-2">
-                          <HomePageEditable
+                          <PageEditable
                             v-if="hasButton(card.primaryButton)"
                             inline
                             :editable="editable"
@@ -174,8 +174,8 @@
                             >
                               {{ pickLocalizedText(locale, card.primaryButton!.label) }}
                             </NuxtLink>
-                          </HomePageEditable>
-                          <HomePageEditable
+                          </PageEditable>
+                          <PageEditable
                             v-if="hasButton(card.secondaryButton)"
                             inline
                             :editable="editable"
@@ -191,17 +191,17 @@
                             >
                               {{ pickLocalizedText(locale, card.secondaryButton!.label) }}
                             </NuxtLink>
-                          </HomePageEditable>
+                          </PageEditable>
                         </div>
                       </div>
-                    </HomePageEditable>
+                    </PageEditable>
                     <div v-if="editable && !item.cards.length" class="rounded-2xl border border-dashed border-primary/40 px-4 py-6 text-sm opacity-60">
                       Aucune carte
                     </div>
                   </div>
-                </HomePageEditable>
+                </PageEditable>
 
-                <HomePageEditable
+                <PageEditable
                   v-else-if="item.type === 'carousel' && (editable || item.slides.some(slide => slide.imageUrl.trim()))"
                   :editable="editable"
                   label="Carousel"
@@ -209,7 +209,7 @@
                   @edit="emit('edit', { kind: 'item', label: `Carousel colonne ${columnIndex + 1}`, item, parentItems: column.items, itemIndex })"
                 >
                   <div class="w-full" :class="[imageAspectClass(item.aspect), imageFrameClass(item), !item.slides.some(slide => slide.imageUrl.trim()) ? 'grid place-items-center border-dashed' : '']">
-                    <HomeMediaCarousel
+                    <PageMediaCarousel
                       v-if="item.slides.some(slide => slide.imageUrl.trim())"
                       :slides="item.slides.filter(slide => slide.imageUrl.trim())"
                       :settings="item.settings"
@@ -217,44 +217,44 @@
                     />
                     <div v-else class="px-4 text-sm opacity-60">Carousel vide</div>
                   </div>
-                </HomePageEditable>
+                </PageEditable>
               </template>
             </div>
-            </HomePageEditable>
+            </PageEditable>
           </div>
         </div>
       </div>
     </section>
-  </HomePageEditable>
+  </PageEditable>
 </template>
 
 <script setup lang="ts">
 import type {
-  HomePageButton,
-  HomePageCarouselItem,
-  HomePageCard,
-  HomePageColumn,
-  HomePageImageItem,
-  HomePageSection,
+  PageBuilderButton,
+  PageBuilderCarouselItem,
+  PageBuilderCard,
+  PageBuilderColumn,
+  PageBuilderImageItem,
+  PageBuilderSection,
   ThemeColorToken,
   ThemeColorSelection
-} from '~/shared/homePage'
-import type { HomePageEditTarget } from '~/shared/homePageEditor'
-import HomePageEditable from '~/components/homepage/HomePageEditable.vue'
-import HomeMediaCarousel from '~/components/homepage/HomeMediaCarousel.vue'
-import HomeSectionBackground from '~/components/homepage/HomeSectionBackground.vue'
-import { pickLocalizedText } from '~/shared/homePage'
+} from '~/shared/pageBuilder'
+import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
+import PageEditable from '~/components/page-builder/PageEditable.vue'
+import PageMediaCarousel from '~/components/page-builder/PageMediaCarousel.vue'
+import PageSectionBackground from '~/components/page-builder/PageSectionBackground.vue'
+import { pickLocalizedText } from '~/shared/pageBuilder'
 
 const props = defineProps<{
-  section: HomePageSection
-  sections: HomePageSection[]
+  section: PageBuilderSection
+  sections: PageBuilderSection[]
   sectionIndex: number
   locale: string
   editable?: boolean
 }>()
 
 const emit = defineEmits<{
-  edit: [target: HomePageEditTarget]
+  edit: [target: PageBuilderEditTarget]
 }>()
 
 const localePath = useLocalePath()
@@ -491,7 +491,7 @@ const colorToCss = (selection?: ThemeColorSelection | null, opacity = 1) => {
   }
 }
 
-const columnTextStyle = (column: HomePageColumn) => {
+const columnTextStyle = (column: PageBuilderColumn) => {
   const color = colorToCss(column.textColor)
   return color ? { color } : {}
 }
@@ -512,7 +512,7 @@ const badgeStyle = (item: { backgroundColor?: ThemeColorSelection | null; textCo
   return style
 }
 
-const buttonStyle = (button: HomePageButton) => {
+const buttonStyle = (button: PageBuilderButton) => {
   const style: Record<string, string> = {}
   const background = colorToCss(button.backgroundColor)
   const color = colorToCss(button.textColor)
@@ -524,7 +524,7 @@ const buttonStyle = (button: HomePageButton) => {
   return style
 }
 
-const cardStyle = (card: HomePageCard) => {
+const cardStyle = (card: PageBuilderCard) => {
   const style: Record<string, string> = {}
   const defaultBackground: ThemeColorSelection = {
     token: (props.section.tone === 'base-200' ? 'base-100' : 'base-200') as ThemeColorToken,
@@ -539,15 +539,15 @@ const cardStyle = (card: HomePageCard) => {
   return style
 }
 
-const iconWrapperStyle = (card: HomePageCard) => {
+const iconWrapperStyle = (card: PageBuilderCard) => {
   const style: Record<string, string> = {}
   style.backgroundColor = colorToCss(card.iconBackgroundColor) || colorToCss({ token: 'primary', opacity: 10 })
   style.color = colorToCss(card.iconColor) || 'var(--color-primary)'
   return style
 }
 
-const cardClass = (card: HomePageCard) => card.backdropBlur ? 'backdrop-blur' : ''
-const cardSizeClass = (card: HomePageCard, display: 'stack' | 'grid-2' | 'grid-3' | 'grid-4') => {
+const cardClass = (card: PageBuilderCard) => card.backdropBlur ? 'backdrop-blur' : ''
+const cardSizeClass = (card: PageBuilderCard, display: 'stack' | 'grid-2' | 'grid-3' | 'grid-4') => {
   const base = display === 'stack' ? 'w-full' : ''
   const height =
     card.size === 'xl' ? 'min-h-[22rem]' :
@@ -574,8 +574,8 @@ const imageAspectClass = (aspect: string) => {
   }
 }
 
-const imageFrameClass = (item: HomePageImageItem | HomePageCarouselItem) => item.framed ? 'overflow-hidden rounded-[2rem] border border-base-300 bg-base-100 shadow-sm' : 'overflow-hidden rounded-[2rem]'
-const imageClass = (item: HomePageImageItem) => {
+const imageFrameClass = (item: PageBuilderImageItem | PageBuilderCarouselItem) => item.framed ? 'overflow-hidden rounded-[2rem] border border-base-300 bg-base-100 shadow-sm' : 'overflow-hidden rounded-[2rem]'
+const imageClass = (item: PageBuilderImageItem) => {
   const fitClass = item.fit === 'contain' ? 'object-contain p-6' : 'object-cover'
   const alignClass = item.verticalAlign === 'start' ? 'object-top' : item.verticalAlign === 'end' ? 'object-bottom' : 'object-center'
   const enlargeClass = item.enlarge ? 'scale-110 md:scale-[1.16]' : ''

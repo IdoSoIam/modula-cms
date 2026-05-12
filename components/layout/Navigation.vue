@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import type { ResolvedCmsNavigationItem } from '~/shared/cms'
-import type { ThemeColorSelection } from '~/shared/homePage'
+import type { ThemeColorSelection } from '~/shared/pageBuilder'
 import { useAuthStore } from '~/stores/auth'
 
 const localePath = useLocalePath();

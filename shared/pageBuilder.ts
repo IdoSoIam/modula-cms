@@ -53,7 +53,7 @@ export interface ThemeColorSelection {
   opacity?: number
 }
 
-export interface HomePageButton {
+export interface PageBuilderButton {
   label: LocalizedText
   href: string
   tone: ButtonTone
@@ -63,7 +63,7 @@ export interface HomePageButton {
   borderColor?: ThemeColorSelection | null
 }
 
-export interface HomePageCard {
+export interface PageBuilderCard {
   id: string
   title: LocalizedText
   text: LocalizedText
@@ -78,11 +78,11 @@ export interface HomePageCard {
   iconBackgroundColor?: ThemeColorSelection | null
   borderColor?: ThemeColorSelection | null
   backdropBlur?: boolean
-  primaryButton?: HomePageButton | null
-  secondaryButton?: HomePageButton | null
+  primaryButton?: PageBuilderButton | null
+  secondaryButton?: PageBuilderButton | null
 }
 
-export interface HomePageBadgeItem {
+export interface PageBuilderBadgeItem {
   id: string
   type: 'badge'
   text: LocalizedText
@@ -92,35 +92,35 @@ export interface HomePageBadgeItem {
   borderColor?: ThemeColorSelection | null
 }
 
-export interface HomePageTitleItem {
+export interface PageBuilderTitleItem {
   id: string
   type: 'title'
   text: LocalizedText
   size: TypographySize
 }
 
-export interface HomePageTextItem {
+export interface PageBuilderTextItem {
   id: string
   type: 'text'
   text: LocalizedText
   size: TypographySize
 }
 
-export interface HomePageButtonsItem {
+export interface PageBuilderButtonsItem {
   id: string
   type: 'buttons'
-  primaryButton?: HomePageButton | null
-  secondaryButton?: HomePageButton | null
+  primaryButton?: PageBuilderButton | null
+  secondaryButton?: PageBuilderButton | null
 }
 
-export interface HomePageCardsItem {
+export interface PageBuilderCardsItem {
   id: string
   type: 'cards'
   display: CardsDisplay
-  cards: HomePageCard[]
+  cards: PageBuilderCard[]
 }
 
-export interface HomePageImageItem {
+export interface PageBuilderImageItem {
   id: string
   type: 'image'
   imageUrl: string
@@ -132,16 +132,16 @@ export interface HomePageImageItem {
   framed: boolean
 }
 
-export interface HomePageCarouselItem {
+export interface PageBuilderCarouselItem {
   id: string
   type: 'carousel'
   aspect: ImageAspect
   framed: boolean
-  slides: HomePageSectionBackgroundCarouselSlide[]
-  settings: HomePageSectionBackgroundCarouselSettings
+  slides: PageBuilderSectionBackgroundCarouselSlide[]
+  settings: PageBuilderSectionBackgroundCarouselSettings
 }
 
-export interface HomePageSectionBackgroundImage {
+export interface PageBuilderSectionBackgroundImage {
   imageUrl: string
   alt: LocalizedText
   fit: ImageFit
@@ -151,7 +151,7 @@ export interface HomePageSectionBackgroundImage {
   blur: boolean
 }
 
-export interface HomePageSectionBackgroundCarouselSlide {
+export interface PageBuilderSectionBackgroundCarouselSlide {
   id: string
   imageUrl: string
   alt: LocalizedText
@@ -159,7 +159,7 @@ export interface HomePageSectionBackgroundCarouselSlide {
   verticalAlign: VerticalAlign
 }
 
-export interface HomePageSectionBackgroundCarouselSettings {
+export interface PageBuilderSectionBackgroundCarouselSettings {
   autoplay: boolean
   infinite: boolean
   intervalMs: number
@@ -168,23 +168,23 @@ export interface HomePageSectionBackgroundCarouselSettings {
   animation: CarouselAnimation
 }
 
-export type HomePageColumnItem =
-  | HomePageBadgeItem
-  | HomePageTitleItem
-  | HomePageTextItem
-  | HomePageButtonsItem
-  | HomePageCardsItem
-  | HomePageImageItem
-  | HomePageCarouselItem
+export type PageBuilderColumnItem =
+  | PageBuilderBadgeItem
+  | PageBuilderTitleItem
+  | PageBuilderTextItem
+  | PageBuilderButtonsItem
+  | PageBuilderCardsItem
+  | PageBuilderImageItem
+  | PageBuilderCarouselItem
 
-export interface HomePageColumn {
+export interface PageBuilderColumn {
   align: ContentAlign
   verticalAlign: VerticalAlign
   textColor?: ThemeColorSelection | null
-  items: HomePageColumnItem[]
+  items: PageBuilderColumnItem[]
 }
 
-export interface HomePageSection {
+export interface PageBuilderSection {
   id: string
   type: 'columns'
   columnCount: SectionColumnCount
@@ -195,22 +195,22 @@ export interface HomePageSection {
   minHeightPx?: number | null
   backgroundColor?: ThemeColorSelection | null
   backgroundMode: SectionBackgroundMode
-  backgroundImage: HomePageSectionBackgroundImage
-  backgroundCarousel: HomePageSectionBackgroundCarouselSlide[]
-  backgroundCarouselSettings: HomePageSectionBackgroundCarouselSettings
+  backgroundImage: PageBuilderSectionBackgroundImage
+  backgroundCarousel: PageBuilderSectionBackgroundCarouselSlide[]
+  backgroundCarouselSettings: PageBuilderSectionBackgroundCarouselSettings
   reverseOnDesktop: boolean
-  columns: HomePageColumn[]
+  columns: PageBuilderColumn[]
 }
 
-export interface HomePageContent {
+export interface PageBuilderContent {
   version: 1
-  sections: HomePageSection[]
+  sections: PageBuilderSection[]
 }
 
-export type HomePageContentBlock = HomePageColumn
-export type HomePageImageBlock = HomePageImageItem
+export type PageBuilderContentBlock = PageBuilderColumn
+export type PageBuilderImageBlock = PageBuilderImageItem
 
-export const HOME_PAGE_SETTING_VERSION = 1 as const
+export const PAGE_BUILDER_SETTING_VERSION = 1 as const
 
 export const BUTTON_TONES: ButtonTone[] = ['primary', 'secondary', 'accent', 'neutral', 'outline']
 export const CARD_TONES: CardTone[] = ['base', 'soft', 'outline']
@@ -353,15 +353,23 @@ export function isValidIconifyName(value: string) {
   return ICONIFY_NAME_PATTERN.test(value)
 }
 
-export function cloneHomePageContent(content: HomePageContent): HomePageContent {
-  return JSON.parse(JSON.stringify(content)) as HomePageContent
+export function clonePageBuilderContent(content: PageBuilderContent): PageBuilderContent {
+  return JSON.parse(JSON.stringify(content)) as PageBuilderContent
+}
+
+function cloneBuilderData<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+function createBuilderId(prefix: string) {
+  return `${prefix}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 export function createEmptyLocalizedText(): LocalizedText {
   return { fr: '', en: '' }
 }
 
-export function createEmptyButton(): HomePageButton {
+export function createEmptyButton(): PageBuilderButton {
   return {
     label: createEmptyLocalizedText(),
     href: '',
@@ -377,7 +385,7 @@ export function createThemeColorSelection(token: ThemeColorToken = 'primary', cu
   return { token, customHex, opacity }
 }
 
-export function createEmptyCard(id: string): HomePageCard {
+export function createEmptyCard(id: string): PageBuilderCard {
   return {
     id,
     title: createEmptyLocalizedText(),
@@ -398,7 +406,7 @@ export function createEmptyCard(id: string): HomePageCard {
   }
 }
 
-export function createBadgeItem(id: string): HomePageBadgeItem {
+export function createBadgeItem(id: string): PageBuilderBadgeItem {
   return {
     id,
     type: 'badge',
@@ -410,23 +418,23 @@ export function createBadgeItem(id: string): HomePageBadgeItem {
   }
 }
 
-export function createTitleItem(id: string): HomePageTitleItem {
+export function createTitleItem(id: string): PageBuilderTitleItem {
   return { id, type: 'title', text: createEmptyLocalizedText(), size: 'xl' }
 }
 
-export function createTextItem(id: string): HomePageTextItem {
+export function createTextItem(id: string): PageBuilderTextItem {
   return { id, type: 'text', text: createEmptyLocalizedText(), size: 'md' }
 }
 
-export function createButtonsItem(id: string): HomePageButtonsItem {
+export function createButtonsItem(id: string): PageBuilderButtonsItem {
   return { id, type: 'buttons', primaryButton: createEmptyButton(), secondaryButton: null }
 }
 
-export function createCardsItem(id: string): HomePageCardsItem {
+export function createCardsItem(id: string): PageBuilderCardsItem {
   return { id, type: 'cards', display: 'stack', cards: [createEmptyCard(`${id}-card-1`)] }
 }
 
-export function createImageItem(id: string): HomePageImageItem {
+export function createImageItem(id: string): PageBuilderImageItem {
   return {
     id,
     type: 'image',
@@ -440,7 +448,7 @@ export function createImageItem(id: string): HomePageImageItem {
   }
 }
 
-export function createCarouselItem(id: string): HomePageCarouselItem {
+export function createCarouselItem(id: string): PageBuilderCarouselItem {
   return {
     id,
     type: 'carousel',
@@ -451,7 +459,7 @@ export function createCarouselItem(id: string): HomePageCarouselItem {
   }
 }
 
-export function createEmptySectionBackgroundImage(): HomePageSectionBackgroundImage {
+export function createEmptySectionBackgroundImage(): PageBuilderSectionBackgroundImage {
   return {
     imageUrl: '',
     alt: createEmptyLocalizedText(),
@@ -463,7 +471,7 @@ export function createEmptySectionBackgroundImage(): HomePageSectionBackgroundIm
   }
 }
 
-export function createEmptySectionBackgroundSlide(id: string): HomePageSectionBackgroundCarouselSlide {
+export function createEmptySectionBackgroundSlide(id: string): PageBuilderSectionBackgroundCarouselSlide {
   return {
     id,
     imageUrl: '',
@@ -473,7 +481,7 @@ export function createEmptySectionBackgroundSlide(id: string): HomePageSectionBa
   }
 }
 
-export function createEmptySectionBackgroundCarouselSettings(): HomePageSectionBackgroundCarouselSettings {
+export function createEmptySectionBackgroundCarouselSettings(): PageBuilderSectionBackgroundCarouselSettings {
   return {
     autoplay: false,
     infinite: true,
@@ -484,7 +492,7 @@ export function createEmptySectionBackgroundCarouselSettings(): HomePageSectionB
   }
 }
 
-export function createEmptyContentBlock(): HomePageContentBlock {
+export function createEmptyContentBlock(): PageBuilderContentBlock {
   return {
     align: 'start',
     verticalAlign: 'center',
@@ -493,7 +501,7 @@ export function createEmptyContentBlock(): HomePageContentBlock {
   }
 }
 
-export function createEmptyColumnsSection(id: string, columnCount: SectionColumnCount): HomePageSection {
+export function createEmptyColumnsSection(id: string, columnCount: SectionColumnCount): PageBuilderSection {
   return {
     id,
     type: 'columns',
@@ -517,14 +525,14 @@ export function getAlternatingSectionTone(index: number): SectionTone {
   return index % 2 === 0 ? 'base-100' : 'base-200'
 }
 
-function resetButtonColors(button?: HomePageButton | null) {
+function resetButtonColors(button?: PageBuilderButton | null) {
   if (!button) return
   button.backgroundColor = null
   button.textColor = null
   button.borderColor = null
 }
 
-function resetCardColors(card: HomePageCard) {
+function resetCardColors(card: PageBuilderCard) {
   card.backgroundColor = null
   card.textColor = null
   card.iconColor = null
@@ -534,7 +542,7 @@ function resetCardColors(card: HomePageCard) {
   resetButtonColors(card.secondaryButton)
 }
 
-function resetColumnColors(column: HomePageColumn) {
+function resetColumnColors(column: PageBuilderColumn) {
   column.textColor = null
   column.items.forEach((item) => {
     if (item.type === 'badge') {
@@ -552,7 +560,7 @@ function resetColumnColors(column: HomePageColumn) {
   })
 }
 
-export function applyDefaultSectionStyling(content: HomePageContent) {
+export function applyDefaultSectionStyling(content: PageBuilderContent) {
   content.sections.forEach((section, index) => {
     section.tone = getAlternatingSectionTone(index)
     section.backgroundColor = null
@@ -561,7 +569,7 @@ export function applyDefaultSectionStyling(content: HomePageContent) {
   return content
 }
 
-export function createDefaultHomePageContent(farmAddress: string): HomePageContent {
+export function createDefaultPageBuilderContent(farmAddress: string): PageBuilderContent {
   const intro = createEmptyColumnsSection('intro', 1)
   intro.backgroundMode = 'image'
   intro.backgroundImage.imageUrl = '/images/plaquette.jpg'
@@ -575,10 +583,10 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
     createButtonsItem('intro-buttons')
   )
   const introItems = intro.columns[0]?.items || []
-  const introBadge = introItems[0] as HomePageBadgeItem
-  const introTitle = introItems[1] as HomePageTitleItem
-  const introText = introItems[2] as HomePageTextItem
-  const introButtons = introItems[3] as HomePageButtonsItem
+  const introBadge = introItems[0] as PageBuilderBadgeItem
+  const introTitle = introItems[1] as PageBuilderTitleItem
+  const introText = introItems[2] as PageBuilderTextItem
+  const introButtons = introItems[3] as PageBuilderButtonsItem
   introBadge.text = { fr: 'Ferme du Campeyrigoux', en: 'Ferme du Campeyrigoux' }
   intro.columns[0]!.textColor = { token: 'white', opacity: 100 }
   introTitle.text = { fr: 'Production locale, bio et de saison', en: 'Local, organic and seasonal production' }
@@ -605,12 +613,12 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
   col1?.items.push(createBadgeItem('activities-badge'), createTitleItem('activities-title'), createTextItem('activities-text'), createCardsItem('activities-cards'), createButtonsItem('activities-buttons'))
   col2?.items.push(createImageItem('activities-image'))
 
-  const aBadge = col1?.items[0] as HomePageBadgeItem
-  const aTitle = col1?.items[1] as HomePageTitleItem
-  const aText = col1?.items[2] as HomePageTextItem
-  const aCards = col1?.items[3] as HomePageCardsItem
-  const aButtons = col1?.items[4] as HomePageButtonsItem
-  const aImage = col2?.items[0] as HomePageImageItem
+  const aBadge = col1?.items[0] as PageBuilderBadgeItem
+  const aTitle = col1?.items[1] as PageBuilderTitleItem
+  const aText = col1?.items[2] as PageBuilderTextItem
+  const aCards = col1?.items[3] as PageBuilderCardsItem
+  const aButtons = col1?.items[4] as PageBuilderButtonsItem
+  const aImage = col2?.items[0] as PageBuilderImageItem
 
   aBadge.text = { fr: 'Nos Activites', en: 'Our Activities' }
   aTitle.text = { fr: 'Une ferme a taille humaine', en: 'A human-scale farm' }
@@ -638,12 +646,12 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
   const dTextColumn = directSale.columns[1]
   dImageColumn?.items.push(createImageItem('sale-image'))
   dTextColumn?.items.push(createBadgeItem('sale-badge'), createTitleItem('sale-title'), createTextItem('sale-text'), createCardsItem('sale-cards'), createButtonsItem('sale-buttons'))
-  const dImage = dImageColumn?.items[0] as HomePageImageItem
-  const dBadge = dTextColumn?.items[0] as HomePageBadgeItem
-  const dTitle = dTextColumn?.items[1] as HomePageTitleItem
-  const dText = dTextColumn?.items[2] as HomePageTextItem
-  const dCards = dTextColumn?.items[3] as HomePageCardsItem
-  const dButtons = dTextColumn?.items[4] as HomePageButtonsItem
+  const dImage = dImageColumn?.items[0] as PageBuilderImageItem
+  const dBadge = dTextColumn?.items[0] as PageBuilderBadgeItem
+  const dTitle = dTextColumn?.items[1] as PageBuilderTitleItem
+  const dText = dTextColumn?.items[2] as PageBuilderTextItem
+  const dCards = dTextColumn?.items[3] as PageBuilderCardsItem
+  const dButtons = dTextColumn?.items[4] as PageBuilderButtonsItem
   dImage.imageUrl = '/images/plaquette.jpg'
   dImage.alt = { fr: 'Legumes et productions de la ferme', en: 'Vegetables and farm produce' }
   dBadge.text = { fr: 'Le rendez-vous de la semaine', en: 'This week appointment' }
@@ -660,7 +668,45 @@ export function createDefaultHomePageContent(farmAddress: string): HomePageConte
   dButtons.primaryButton = { label: { fr: 'Nous trouver', en: 'Find us' }, href: '/contact', tone: 'primary', size: 'md' }
 
   return {
-    version: HOME_PAGE_SETTING_VERSION,
+    version: PAGE_BUILDER_SETTING_VERSION,
     sections: [intro, activities, directSale]
   }
+}
+
+export function duplicatePageBuilderCard(card: PageBuilderCard): PageBuilderCard {
+  const clone = cloneBuilderData(card)
+  clone.id = createBuilderId('card')
+  return clone
+}
+
+export function duplicatePageBuilderItem(item: PageBuilderColumnItem): PageBuilderColumnItem {
+  const clone = cloneBuilderData(item)
+  clone.id = createBuilderId(item.type)
+
+  if (clone.type === 'cards') {
+    clone.cards = clone.cards.map(card => duplicatePageBuilderCard(card))
+  }
+
+  if (clone.type === 'carousel') {
+    clone.slides = clone.slides.map(slide => ({
+      ...slide,
+      id: createBuilderId('slide')
+    }))
+  }
+
+  return clone
+}
+
+export function duplicatePageBuilderSection(section: PageBuilderSection): PageBuilderSection {
+  const clone = cloneBuilderData(section)
+  clone.id = createBuilderId('section')
+  clone.backgroundCarousel = clone.backgroundCarousel.map(slide => ({
+    ...slide,
+    id: createBuilderId('slide')
+  }))
+  clone.columns = clone.columns.map((column) => ({
+    ...column,
+    items: column.items.map(item => duplicatePageBuilderItem(item))
+  }))
+  return clone
 }

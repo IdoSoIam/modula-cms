@@ -245,10 +245,10 @@ function main() {
       return ensureHomeCmsPage(db, homeContent)
     })
 
-    const homePageId = transaction()
+    const rootPageId = transaction()
     console.log(JSON.stringify({
       database: dbPath,
-      homePageId,
+      rootPageId,
       updatedSetting: 'cms_site_settings_v1'
     }, null, 2))
   } finally {

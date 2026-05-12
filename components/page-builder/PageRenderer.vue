@@ -1,6 +1,6 @@
 <template>
   <div class="bg-base-100">
-    <HomeColumnsSection
+    <PageColumnsSection
       v-for="section in enabledSections"
       :key="section.id"
       :section="section"
@@ -14,18 +14,18 @@
 </template>
 
 <script setup lang="ts">
-import type { HomePageContent } from '~/shared/homePage'
-import type { HomePageEditTarget } from '~/shared/homePageEditor'
-import HomeColumnsSection from '~/components/homepage/HomeColumnsSection.vue'
+import type { PageBuilderContent } from '~/shared/pageBuilder'
+import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
+import PageColumnsSection from '~/components/page-builder/PageColumnsSection.vue'
 
 const props = defineProps<{
-  content: HomePageContent
+  content: PageBuilderContent
   locale: string
   editable?: boolean
 }>()
 
 defineEmits<{
-  edit: [target: HomePageEditTarget]
+  edit: [target: PageBuilderEditTarget]
 }>()
 
 const enabledSections = computed(() => props.content.sections.filter(section => section.enabled))

@@ -26,7 +26,7 @@
                 class="rounded-xl border border-base-300 bg-base-100 p-3"
                 :class="selectedSectionId === section.id ? 'ring-2 ring-primary' : ''"
               >
-                <button type="button" class="w-full text-left" @click="selectSection(section.id)">
+                <button type="button" class="w-full cursor-pointer text-left" @click="selectSection(section.id)">
                   <div class="flex items-center justify-between gap-2">
                     <div class="font-medium">Section {{ index + 1 }}</div>
                     <span class="badge badge-sm" :class="section.enabled ? 'badge-success' : 'badge-ghost'">
@@ -41,6 +41,7 @@
                 <div class="mt-3 flex flex-wrap gap-2">
                   <button type="button" class="btn btn-xs" :disabled="index === 0" @click="moveSection(index, -1)">Monter</button>
                   <button type="button" class="btn btn-xs" :disabled="index === content.sections.length - 1" @click="moveSection(index, 1)">Descendre</button>
+                  <button type="button" class="btn btn-xs btn-outline" @click="duplicateSection(index)">Dupliquer</button>
                   <button type="button" class="btn btn-xs btn-outline btn-error" @click="removeSection(index)">Supprimer</button>
                 </div>
               </div>
@@ -52,10 +53,10 @@
 
     <div v-if="selectedSection">
       <div role="tablist" class="tabs tabs-lift flex-wrap">
-        <button type="button" class="tab" :class="editorTab === 'section' ? 'tab-active' : 'border-0'" @click="editorTab = 'section'">
+        <button type="button" class="tab cursor-pointer" :class="editorTab === 'section' ? 'tab-active' : 'border-0'" @click="editorTab = 'section'">
           Section
         </button>
-        <button type="button" class="tab" :class="editorTab === 'columns' ? 'tab-active' : 'border-0'" @click="editorTab = 'columns'">
+        <button type="button" class="tab cursor-pointer" :class="editorTab === 'columns' ? 'tab-active' : 'border-0'" @click="editorTab = 'columns'">
           Colonnes
         </button>
       </div>
@@ -113,7 +114,7 @@
           </div>
 
           <ThemeColorPicker v-model="selectedSection.backgroundColor" label="Fond de section" default-token="base-100" />
-          <AdminHomepageSectionBackgroundFields :section="selectedSection" />
+          <AdminPageBuilderSectionBackgroundFields :section="selectedSection" />
         </div>
       </section>
 
@@ -124,7 +125,7 @@
               v-for="(_, columnIndex) in selectedSection.columns.slice(0, selectedSection.columnCount)"
               :key="columnIndex"
               type="button"
-              class="tab"
+              class="tab cursor-pointer"
               :class="sectionColumnTab === columnIndex ? 'tab-active' : ''"
               @click="sectionColumnTab = columnIndex"
             >
@@ -175,17 +176,27 @@
                   :key="item.id"
                   class="rounded-xl border border-base-300 bg-base-200 p-4"
                 >
-                  <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <div class="font-medium">{{ itemLabel(item) }}</div>
+                  <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                    <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="toggleItemPanel(item.id)">
+                      <div class="flex items-center gap-2">
+                        <Icon :name="isItemPanelOpen(item.id) ? 'mdi:chevron-down' : 'mdi:chevron-right'" size="18" />
+                        <div class="font-medium">{{ itemLabel(item) }}</div>
+                      </div>
+                      <div class="mt-1 pl-6 text-xs opacity-65">
+                        {{ itemSummary(item) }}
+                      </div>
+                    </button>
+
                     <div class="flex flex-wrap gap-2">
                       <button type="button" class="btn btn-xs" :disabled="itemIndex === 0" @click="moveItem(selectedColumn.items, itemIndex, -1)">Monter</button>
                       <button type="button" class="btn btn-xs" :disabled="itemIndex === selectedColumn.items.length - 1" @click="moveItem(selectedColumn.items, itemIndex, 1)">Descendre</button>
+                      <button type="button" class="btn btn-xs btn-outline" @click="duplicateColumnItem(itemIndex)">Dupliquer</button>
                       <button type="button" class="btn btn-xs btn-outline btn-error" @click="selectedColumn.items.splice(itemIndex, 1)">Supprimer</button>
                     </div>
                   </div>
 
-                  <div v-if="item.type === 'badge' || item.type === 'title' || item.type === 'text'" class="space-y-4">
-                    <AdminHomepageTranslationTabs
+                  <div v-if="isItemPanelOpen(item.id) && (item.type === 'badge' || item.type === 'title' || item.type === 'text')" class="space-y-4">
+                    <AdminPageBuilderTranslationTabs
                       :model-value="item.text"
                       :label="item.type === 'badge' ? 'Badge' : item.type === 'title' ? 'Titre' : 'Texte'"
                       :size="item.size"
@@ -199,7 +210,7 @@
                     </template>
                   </div>
 
-                  <div v-else-if="item.type === 'buttons'" class="space-y-4">
+                  <div v-else-if="isItemPanelOpen(item.id) && item.type === 'buttons'" class="space-y-4">
                     <div class="rounded-xl border border-base-300 bg-base-100 p-4">
                       <div class="mb-3 flex items-center justify-between gap-2">
                         <div class="font-medium">Bouton principal</div>
@@ -210,7 +221,7 @@
                           Retirer
                         </button>
                       </div>
-                      <AdminHomepageButtonFields v-if="item.primaryButton" :button="item.primaryButton" />
+                      <AdminPageBuilderButtonFields v-if="item.primaryButton" :button="item.primaryButton" />
                     </div>
 
                     <div class="rounded-xl border border-base-300 bg-base-100 p-4">
@@ -223,17 +234,17 @@
                           Retirer
                         </button>
                       </div>
-                      <AdminHomepageButtonFields v-if="item.secondaryButton" :button="item.secondaryButton" />
+                      <AdminPageBuilderButtonFields v-if="item.secondaryButton" :button="item.secondaryButton" />
                     </div>
                   </div>
 
-                  <div v-else-if="item.type === 'image'" class="space-y-4">
+                  <div v-else-if="isItemPanelOpen(item.id) && item.type === 'image'" class="space-y-4">
                     <div class="form-control">
                       <label class="label"><span class="label-text">Image</span></label>
                       <ImageInput v-model="item.imageUrl" />
                     </div>
 
-                    <AdminHomepageTranslationTabs :model-value="item.alt" label="Alt" />
+                    <AdminPageBuilderTranslationTabs :model-value="item.alt" label="Alt" />
 
                     <div class="grid gap-4 md:grid-cols-2">
                       <div class="form-control">
@@ -269,7 +280,7 @@
                     </label>
                   </div>
 
-                  <div v-else-if="item.type === 'cards'" class="space-y-4">
+                  <div v-else-if="isItemPanelOpen(item.id) && item.type === 'cards'" class="space-y-4">
                     <div class="form-control">
                       <label class="label"><span class="label-text">Affichage des cartes</span></label>
                       <select v-model="item.display" class="select select-bordered w-full">
@@ -280,7 +291,11 @@
                     </div>
 
                     <div class="flex justify-end">
-                      <button type="button" class="btn btn-sm btn-primary" @click="item.cards.push(createEmptyCard(createId('card')))">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-primary"
+                        @click="addCard(item.cards)"
+                      >
                         Ajouter une carte
                       </button>
                     </div>
@@ -291,21 +306,30 @@
                         :key="card.id"
                         class="rounded-xl border border-base-300 bg-base-100 p-4"
                       >
-                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                          <div class="font-medium">Carte {{ cardIndex + 1 }}</div>
+                        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                          <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="toggleItemPanel(card.id)">
+                            <div class="flex items-center gap-2">
+                              <Icon :name="isItemPanelOpen(card.id) ? 'mdi:chevron-down' : 'mdi:chevron-right'" size="18" />
+                              <div class="font-medium">Carte {{ cardIndex + 1 }}</div>
+                            </div>
+                            <div class="mt-1 pl-6 text-xs opacity-65">
+                              {{ cardSummary(card) }}
+                            </div>
+                          </button>
                           <div class="flex flex-wrap gap-2">
                             <button type="button" class="btn btn-xs" :disabled="cardIndex === 0" @click="moveItem(item.cards, cardIndex, -1)">Monter</button>
                             <button type="button" class="btn btn-xs" :disabled="cardIndex === item.cards.length - 1" @click="moveItem(item.cards, cardIndex, 1)">Descendre</button>
+                            <button type="button" class="btn btn-xs btn-outline" @click="duplicateCard(item.cards, cardIndex)">Dupliquer</button>
                             <button type="button" class="btn btn-xs btn-outline btn-error" @click="item.cards.splice(cardIndex, 1)">Supprimer</button>
                           </div>
                         </div>
-                        <AdminHomepageCardFields :card="card" />
+                        <AdminPageBuilderCardFields v-if="isItemPanelOpen(card.id)" :card="card" />
                       </div>
                     </div>
                   </div>
 
-                  <div v-else-if="item.type === 'carousel'" class="space-y-4">
-                    <AdminHomepageCarouselFields :carousel="item" />
+                  <div v-else-if="isItemPanelOpen(item.id) && item.type === 'carousel'" class="space-y-4">
+                    <AdminPageBuilderCarouselFields :carousel="item" />
                   </div>
                 </div>
               </div>
@@ -319,12 +343,12 @@
 
 <script setup lang="ts">
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import AdminHomepageButtonFields from '~/components/admin/homepage/ButtonFields.vue'
-import AdminHomepageCarouselFields from '~/components/admin/homepage/CarouselFields.vue'
-import AdminHomepageCardFields from '~/components/admin/homepage/CardFields.vue'
-import AdminHomepageSectionBackgroundFields from '~/components/admin/homepage/SectionBackgroundFields.vue'
-import AdminHomepageTranslationTabs from '~/components/admin/homepage/TranslationTabs.vue'
-import type { HomePageColumn, HomePageColumnItem, HomePageContent, SectionColumnCount } from '~/shared/homePage'
+import AdminPageBuilderButtonFields from '~/components/admin/page-builder/ButtonFields.vue'
+import AdminPageBuilderCarouselFields from '~/components/admin/page-builder/CarouselFields.vue'
+import AdminPageBuilderCardFields from '~/components/admin/page-builder/CardFields.vue'
+import AdminPageBuilderSectionBackgroundFields from '~/components/admin/page-builder/SectionBackgroundFields.vue'
+import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
+import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, SectionColumnCount } from '~/shared/pageBuilder'
 import {
   CARDS_DISPLAY_LABELS,
   CARDS_DISPLAYS,
@@ -340,6 +364,9 @@ import {
   createImageItem,
   createTextItem,
   createTitleItem,
+  duplicatePageBuilderCard,
+  duplicatePageBuilderItem,
+  duplicatePageBuilderSection,
   IMAGE_ASPECTS,
   IMAGE_FITS,
   SECTION_COLUMN_COUNTS,
@@ -347,22 +374,23 @@ import {
   SECTION_CONTAINER_WIDTH_LABELS,
   SECTION_CONTAINER_WIDTHS,
   VERTICAL_ALIGNS
-} from '~/shared/homePage'
+} from '~/shared/pageBuilder'
 import ImageInput from '~/components/ImageInput.vue'
 
 const props = defineProps<{
-  content: HomePageContent
+  content: PageBuilderContent
 }>()
 
 const selectedSectionId = ref(props.content.sections[0]?.id || '')
 const sectionColumnTab = ref(0)
 const editorTab = ref<'section' | 'columns'>('section')
+const openPanelIds = ref<string[]>([])
 
 const selectedSection = computed(() =>
   props.content.sections.find(section => section.id === selectedSectionId.value) ?? null
 )
 
-const selectedColumn = computed<HomePageColumn | null>(() => {
+const selectedColumn = computed<PageBuilderColumn | null>(() => {
   if (!selectedSection.value) return null
   return selectedSection.value.columns[sectionColumnTab.value] ?? null
 })
@@ -404,6 +432,14 @@ const moveSection = (index: number, direction: -1 | 1) => {
   moveItem(props.content.sections, index, direction)
 }
 
+const duplicateSection = (index: number) => {
+  const section = props.content.sections[index]
+  if (!section) return
+  const clone = duplicatePageBuilderSection(section)
+  props.content.sections.splice(index + 1, 0, clone)
+  selectSection(clone.id)
+}
+
 const removeSection = (index: number) => {
   const removed = props.content.sections[index]
   if (!removed) return
@@ -429,34 +465,55 @@ const onSectionColumnCountChange = (event: Event) => {
   sectionColumnTab.value = Math.min(sectionColumnTab.value, count - 1)
 }
 
-const addColumnItem = (type: HomePageColumnItem['type']) => {
+const addColumnItem = (type: PageBuilderColumnItem['type']) => {
   if (!selectedColumn.value) return
+  let newId = ''
   switch (type) {
     case 'badge':
-      selectedColumn.value.items.push(createBadgeItem(createId('badge')))
+      newId = createId('badge')
+      selectedColumn.value.items.push(createBadgeItem(newId))
       break
     case 'title':
-      selectedColumn.value.items.push(createTitleItem(createId('title')))
+      newId = createId('title')
+      selectedColumn.value.items.push(createTitleItem(newId))
       break
     case 'text':
-      selectedColumn.value.items.push(createTextItem(createId('text')))
+      newId = createId('text')
+      selectedColumn.value.items.push(createTextItem(newId))
       break
     case 'buttons':
-      selectedColumn.value.items.push(createButtonsItem(createId('buttons')))
+      newId = createId('buttons')
+      selectedColumn.value.items.push(createButtonsItem(newId))
       break
     case 'cards':
-      selectedColumn.value.items.push(createCardsItem(createId('cards')))
+      newId = createId('cards')
+      selectedColumn.value.items.push(createCardsItem(newId))
       break
     case 'image':
-      selectedColumn.value.items.push(createImageItem(createId('image')))
+      newId = createId('image')
+      selectedColumn.value.items.push(createImageItem(newId))
       break
     case 'carousel':
-      selectedColumn.value.items.push(createCarouselItem(createId('carousel')))
+      newId = createId('carousel')
+      selectedColumn.value.items.push(createCarouselItem(newId))
       break
+  }
+  if (newId) openPanel(newId)
+}
+
+const duplicateColumnItem = (index: number) => {
+  if (!selectedColumn.value) return
+  const item = selectedColumn.value.items[index]
+  if (!item) return
+  const clone = duplicatePageBuilderItem(item)
+  selectedColumn.value.items.splice(index + 1, 0, clone)
+  openPanel(clone.id)
+  if (clone.type === 'cards') {
+    clone.cards.forEach(card => openPanel(card.id))
   }
 }
 
-const itemLabel = (item: HomePageColumnItem) => {
+const itemLabel = (item: PageBuilderColumnItem) => {
   switch (item.type) {
     case 'badge': return 'Badge'
     case 'title': return 'Titre'
@@ -467,4 +524,62 @@ const itemLabel = (item: HomePageColumnItem) => {
     case 'carousel': return 'Carousel'
   }
 }
+
+const openPanel = (id: string) => {
+  if (!openPanelIds.value.includes(id)) {
+    openPanelIds.value = [...openPanelIds.value, id]
+  }
+}
+
+const isItemPanelOpen = (id: string) => openPanelIds.value.includes(id)
+
+const toggleItemPanel = (id: string) => {
+  if (isItemPanelOpen(id)) {
+    openPanelIds.value = openPanelIds.value.filter(panelId => panelId !== id)
+    return
+  }
+  openPanel(id)
+}
+
+const itemSummary = (item: PageBuilderColumnItem) => {
+  switch (item.type) {
+    case 'badge':
+    case 'title':
+    case 'text':
+      return item.text.fr || item.text.en || 'Sans contenu'
+    case 'buttons':
+      return [
+        item.primaryButton?.label.fr || item.primaryButton?.label.en || '',
+        item.secondaryButton?.label.fr || item.secondaryButton?.label.en || ''
+      ].filter(Boolean).join(' • ') || 'Aucun bouton'
+    case 'image':
+      return item.imageUrl || 'Image vide'
+    case 'cards':
+      return `${item.cards.length} carte${item.cards.length > 1 ? 's' : ''}`
+    case 'carousel':
+      return `${item.slides.filter(slide => slide.imageUrl.trim()).length} slide${item.slides.filter(slide => slide.imageUrl.trim()).length > 1 ? 's' : ''}`
+  }
+}
+
+const cardSummary = (card: { title: { fr: string, en: string }, text: { fr: string, en: string } }) =>
+  card.title.fr || card.title.en || card.text.fr || card.text.en || 'Carte sans contenu'
+
+const addCard = (cards: Array<{ id: string }>) => {
+  const newId = createId('card')
+  cards.push(createEmptyCard(newId))
+  openPanel(newId)
+}
+
+const duplicateCard = (cards: PageBuilderCard[], index: number) => {
+  const card = cards[index]
+  if (!card) return
+  const clone = duplicatePageBuilderCard(card)
+  cards.splice(index + 1, 0, clone)
+  openPanel(clone.id)
+}
+
+watch(selectedColumn, (column) => {
+  if (!column) return
+  openPanelIds.value = []
+}, { immediate: true })
 </script>

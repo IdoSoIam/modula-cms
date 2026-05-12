@@ -1,24 +1,47 @@
 <template>
-  <nav v-if="variant === 'sidebar'" class="space-y-5">
-    <section v-for="section in sections" :key="section.id" class="space-y-2">
-      <div class="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] opacity-55" :class="collapsed ? 'text-center' : ''">
-        <span v-if="!collapsed">{{ section.label }}</span>
-        <span v-else>•</span>
-      </div>
+  <nav v-if="variant === 'sidebar'" class="space-y-3">
+    <template v-for="section in sections" :key="section.id">
+      <NuxtLink
+        v-if="section.items.length === 1"
+        :to="localePath(section.items[0]!.path)"
+        class="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition"
+        :class="linkClass(section.items[0]!)"
+      >
+        <Icon v-if="section.items[0]!.icon" :name="section.items[0]!.icon" size="18" class="shrink-0" />
+        <span v-if="!collapsed" class="truncate">{{ section.items[0]!.label }}</span>
+      </NuxtLink>
 
-      <div class="space-y-1">
-        <NuxtLink
-          v-for="item in section.items"
-          :key="item.id"
-          :to="localePath(item.path)"
-          class="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm transition"
-          :class="linkClass(item)"
+      <section v-else class="rounded-2xl border border-base-300/80 bg-base-200/40">
+        <button
+          type="button"
+          class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-semibold transition hover:bg-base-100/60"
+          :class="collapsed ? 'justify-center' : ''"
+          @click="toggleSection(section.id)"
         >
-          <Icon v-if="item.icon" :name="item.icon" size="18" class="shrink-0" />
-          <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
-        </NuxtLink>
-      </div>
-    </section>
+          <Icon :name="section.items[0]?.icon || 'mdi:folder-outline'" size="18" class="shrink-0" />
+          <span v-if="!collapsed" class="flex-1 truncate">{{ section.label }}</span>
+          <Icon
+            v-if="!collapsed"
+            :name="isSectionOpen(section.id) ? 'mdi:chevron-up' : 'mdi:chevron-down'"
+            size="18"
+            class="shrink-0 opacity-60"
+          />
+        </button>
+
+        <div v-if="!collapsed && isSectionOpen(section.id)" class="space-y-1 px-2 pb-2">
+          <NuxtLink
+            v-for="item in section.items"
+            :key="item.id"
+            :to="localePath(item.path)"
+            class="flex min-h-10 cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition"
+            :class="linkClass(item)"
+          >
+            <Icon v-if="item.icon" :name="item.icon" size="18" class="shrink-0" />
+            <span class="truncate">{{ item.label }}</span>
+          </NuxtLink>
+        </div>
+      </section>
+    </template>
   </nav>
 
   <div v-else class="space-y-3">
@@ -31,7 +54,7 @@
           v-for="item in section.items"
           :key="item.id"
           :to="localePath(item.path)"
-          class="block rounded-lg px-3 py-2 text-sm transition hover:bg-base-200"
+          class="block cursor-pointer rounded-lg px-3 py-2 text-sm transition hover:bg-base-200"
           :class="isActive(item) ? 'bg-base-200 font-medium text-primary' : ''"
         >
           {{ item.label }}
@@ -55,6 +78,7 @@ const props = withDefaults(defineProps<{
 
 const localePath = useLocalePath()
 const route = useRoute()
+const openSectionIds = ref<string[]>([])
 
 const matchesPath = (path: string) => {
   const localizedPath = localePath(path)
@@ -67,6 +91,31 @@ const matchesPath = (path: string) => {
 const isActive = (item: AdminNavigationItem) => {
   const paths = item.activePaths?.length ? item.activePaths : [item.path]
   return paths.some(matchesPath)
+}
+
+const syncOpenSections = () => {
+  const activeSectionIds = props.sections
+    .filter(section => section.items.length > 1 && section.items.some(item => isActive(item)))
+    .map(section => section.id)
+
+  openSectionIds.value = Array.from(new Set([
+    ...openSectionIds.value.filter(id => props.sections.some(section => section.id === id && section.items.length > 1)),
+    ...activeSectionIds
+  ]))
+}
+
+watch(() => route.path, syncOpenSections, { immediate: true })
+watch(() => props.sections, syncOpenSections, { deep: true })
+
+const isSectionOpen = (sectionId: string) => openSectionIds.value.includes(sectionId)
+
+const toggleSection = (sectionId: string) => {
+  if (openSectionIds.value.includes(sectionId)) {
+    openSectionIds.value = openSectionIds.value.filter(id => id !== sectionId)
+    return
+  }
+
+  openSectionIds.value = [...openSectionIds.value, sectionId]
 }
 
 const linkClass = (item: AdminNavigationItem) => {

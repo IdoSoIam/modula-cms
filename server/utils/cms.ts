@@ -27,13 +27,13 @@ import {
   createDefaultCmsNavigationItems,
   createDefaultCmsShellLink,
   createDefaultCmsSiteSettings,
-  createEmptyHomePageContent,
+  createEmptyPageBuilderContent,
   createEmptyCmsLocalizedText
 } from '~/shared/cms'
-import type { ThemeColorSelection } from '~/shared/homePage'
-import { createThemeColorSelection } from '~/shared/homePage'
+import type { ThemeColorSelection } from '~/shared/pageBuilder'
+import { createThemeColorSelection } from '~/shared/pageBuilder'
 import { CMS_THEME_COLOR_TOKENS } from '~/shared/cms'
-import { getHomePageContent } from '~/server/utils/homePage'
+import { getPageBuilderContent } from '~/server/utils/pageBuilder'
 import { getSetting, setSetting, SETTING_KEYS } from '~/server/utils/settings'
 
 function isMissingCmsTableError(error: unknown) {
@@ -312,8 +312,8 @@ function navigationPayloadToResolved(id: number, payload: CmsNavigationItemPaylo
   }
 }
 
-function createLegacyHomeResolvedPage(locale: string): Promise<ResolvedCmsPage> {
-  return getHomePageContent().then((content) => ({
+function createLegacyRootResolvedPage(locale: string): Promise<ResolvedCmsPage> {
+  return getPageBuilderContent().then((content) => ({
     id: null,
     path: '/',
     slug: 'home',
@@ -356,7 +356,7 @@ function createLegacyBasketsResolvedPage(locale: string): ResolvedCmsPage {
       ogImage: '',
       noindex: false
     },
-    content: createEmptyHomePageContent()
+    content: createEmptyPageBuilderContent()
   }
 }
 
@@ -440,7 +440,7 @@ export async function getCmsPageById(id: number) {
   return row ? { id: row.id, ...pageRowToPayload(row) } : null
 }
 
-export async function ensureCmsHomePage() {
+export async function ensureCmsRootPage() {
   const existing = await withCmsTableFallback(
     () => prisma.cmsPage.findFirst({ where: { path: '/' } }),
     async () => null
@@ -450,7 +450,7 @@ export async function ensureCmsHomePage() {
     return existing.id
   }
 
-  const homeContent = await getHomePageContent()
+  const rootPageContent = await getPageBuilderContent()
   const created = await saveCmsPage(null, {
     ...createDefaultCmsPagePayload('/', 'Accueil'),
     path: '/',
@@ -467,7 +467,7 @@ export async function ensureCmsHomePage() {
           ogImage: '',
           noindex: false
         },
-        content: homeContent
+        content: rootPageContent
       },
       en: {
         title: 'Home',
@@ -478,7 +478,7 @@ export async function ensureCmsHomePage() {
           ogImage: '',
           noindex: false
         },
-        content: homeContent
+        content: rootPageContent
       }
     }
   })
@@ -682,7 +682,7 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
   }
 
   if (normalizedPath === '/') {
-    return await createLegacyHomeResolvedPage(locale)
+    return await createLegacyRootResolvedPage(locale)
   }
 
   if (normalizedPath === '/paniers') {

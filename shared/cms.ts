@@ -1,5 +1,5 @@
-import type { HomePageContent, SectionContainerWidth, ThemeColorSelection, ThemeColorToken, VerticalAlign } from '~/shared/homePage'
-import { createThemeColorSelection } from '~/shared/homePage'
+import type { PageBuilderContent, SectionContainerWidth, ThemeColorSelection, ThemeColorToken, VerticalAlign } from '~/shared/pageBuilder'
+import { createThemeColorSelection } from '~/shared/pageBuilder'
 
 export const CMS_LOCALES = ['fr', 'en'] as const
 
@@ -114,7 +114,7 @@ export interface CmsPageTranslation {
   title: string
   navigationLabel: string
   seo: CmsPageSeo
-  content: HomePageContent
+  content: PageBuilderContent
 }
 
 export interface CmsPagePayload {
@@ -165,7 +165,7 @@ export interface ResolvedCmsPage {
   title: string
   navigationLabel: string
   seo: CmsPageSeo
-  content: HomePageContent
+  content: PageBuilderContent
 }
 
 export interface PublicSiteShell {
@@ -189,7 +189,7 @@ export function createEmptyCmsPageSeo(): CmsPageSeo {
   }
 }
 
-export function createEmptyHomePageContent(): HomePageContent {
+export function createEmptyPageBuilderContent(): PageBuilderContent {
   return {
     version: 1,
     sections: []
@@ -352,7 +352,7 @@ export function createDefaultCmsPageTranslation(): CmsPageTranslation {
     title: '',
     navigationLabel: '',
     seo: createEmptyCmsPageSeo(),
-    content: createEmptyHomePageContent()
+    content: createEmptyPageBuilderContent()
   }
 }
 

@@ -154,11 +154,19 @@
           class="rounded-2xl border border-base-300 p-5"
         >
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="font-medium">Réseau {{ index + 1 }}</div>
+            <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="togglePanel(link.id)">
+              <div class="flex items-center gap-2">
+                <Icon :name="isPanelOpen(link.id) ? 'mdi:chevron-down' : 'mdi:chevron-right'" size="18" />
+                <div class="font-medium">Réseau {{ index + 1 }}</div>
+              </div>
+              <div class="mt-1 pl-6 text-xs opacity-65">
+                {{ previewText(link.label) || link.href || 'Sans contenu' }}
+              </div>
+            </button>
             <button class="btn btn-outline btn-error btn-xs" @click="model.settings.socialLinks.splice(index, 1)">Supprimer</button>
           </div>
 
-          <div class="grid gap-4 lg:grid-cols-2">
+          <div v-if="isPanelOpen(link.id)" class="grid gap-4 lg:grid-cols-2">
             <label class="form-control gap-2">
               <span class="label"><span class="label-text">ID</span></span>
               <input v-model="link.id" class="input input-bordered w-full" />
@@ -172,8 +180,8 @@
             </label>
           </div>
 
-          <div class="mt-4">
-            <AdminHomepageTranslationTabs :model-value="link.label" label="Libellé" />
+          <div v-if="isPanelOpen(link.id)" class="mt-4">
+            <AdminPageBuilderTranslationTabs :model-value="link.label" label="Libellé" />
           </div>
         </article>
       </div>
@@ -276,16 +284,24 @@
           class="rounded-2xl border border-base-300 p-5"
         >
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h3 class="text-lg font-semibold">Colonne {{ columnIndex + 1 }}</h3>
-            <button class="btn btn-outline btn-sm" @click="addFooterBlock(column, 'text')">Ajouter un bloc</button>
+            <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="togglePanel(column.id)">
+              <div class="flex items-center gap-2">
+                <Icon :name="isPanelOpen(column.id) ? 'mdi:chevron-down' : 'mdi:chevron-right'" size="18" />
+                <h3 class="text-lg font-semibold">Colonne {{ columnIndex + 1 }}</h3>
+              </div>
+              <div class="mt-1 pl-6 text-xs opacity-65">
+                {{ column.blocks.length }} bloc{{ column.blocks.length > 1 ? 's' : '' }}
+              </div>
+            </button>
+            <button v-if="isPanelOpen(column.id)" type="button" class="btn btn-outline btn-sm" @click="addFooterBlock(column, 'text')">Ajouter un bloc</button>
           </div>
 
-          <label class="form-control gap-2 mb-4">
+          <label v-if="isPanelOpen(column.id)" class="form-control gap-2 mb-4">
             <span class="label"><span class="label-text">Identifiant technique</span></span>
             <input v-model="column.id" class="input input-bordered w-full" />
           </label>
 
-          <div class="grid gap-4 md:grid-cols-3 mb-4">
+          <div v-if="isPanelOpen(column.id)" class="grid gap-4 md:grid-cols-3 mb-4">
             <label class="form-control gap-2">
               <span class="label"><span class="label-text">Alignement horizontal</span></span>
               <select v-model="column.align" class="select select-bordered w-full">
@@ -306,33 +322,42 @@
             </label>
           </div>
 
-          <div class="space-y-4">
+          <div v-if="isPanelOpen(column.id)" class="space-y-4">
             <article
               v-for="(block, blockIndex) in column.blocks"
               :key="block.id"
               class="rounded-xl border border-base-300 p-4"
             >
               <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <div class="font-medium">Bloc {{ blockIndex + 1 }}</div>
+                <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="togglePanel(block.id)">
+                  <div class="flex items-center gap-2">
+                    <Icon :name="isPanelOpen(block.id) ? 'mdi:chevron-down' : 'mdi:chevron-right'" size="18" />
+                    <div class="font-medium">Bloc {{ blockIndex + 1 }}</div>
+                  </div>
+                  <div class="mt-1 pl-6 text-xs opacity-65">
+                    {{ footerBlockSummary(block) }}
+                  </div>
+                </button>
                 <div class="flex flex-wrap gap-2">
-                  <button class="btn btn-xs" :disabled="blockIndex === 0" @click="moveFooterBlock(column, blockIndex, -1)">Monter</button>
-                  <button class="btn btn-xs" :disabled="blockIndex === column.blocks.length - 1" @click="moveFooterBlock(column, blockIndex, 1)">Descendre</button>
-                  <button class="btn btn-xs btn-outline btn-error" @click="removeFooterBlock(column, blockIndex)">Supprimer</button>
+                  <button type="button" class="btn btn-xs" :disabled="blockIndex === 0" @click="moveFooterBlock(column, blockIndex, -1)">Monter</button>
+                  <button type="button" class="btn btn-xs" :disabled="blockIndex === column.blocks.length - 1" @click="moveFooterBlock(column, blockIndex, 1)">Descendre</button>
+                  <button type="button" class="btn btn-xs btn-outline" @click="duplicateFooterBlock(column, blockIndex)">Dupliquer</button>
+                  <button type="button" class="btn btn-xs btn-outline btn-error" @click="removeFooterBlock(column, blockIndex)">Supprimer</button>
                 </div>
               </div>
 
-              <label class="form-control gap-2">
+              <label v-if="isPanelOpen(block.id)" class="form-control gap-2">
                 <span class="label"><span class="label-text">Type de bloc</span></span>
                 <select v-model="block.type" class="select select-bordered w-full">
                   <option v-for="type in footerBlockTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
                 </select>
               </label>
 
-              <div v-if="block.type === 'title' || block.type === 'text'" class="mt-4">
-                <AdminHomepageTranslationTabs :model-value="ensureBlockText(block)" :label="block.type === 'title' ? 'Titre' : 'Texte'" :multiline="block.type === 'text'" />
+              <div v-if="isPanelOpen(block.id) && (block.type === 'title' || block.type === 'text')" class="mt-4">
+                <AdminPageBuilderTranslationTabs :model-value="ensureBlockText(block)" :label="block.type === 'title' ? 'Titre' : 'Texte'" :multiline="block.type === 'text'" />
               </div>
 
-              <div v-if="block.type === 'navigation'" class="mt-4">
+              <div v-if="isPanelOpen(block.id) && block.type === 'navigation'" class="mt-4">
                 <label class="form-control gap-2">
                   <span class="label"><span class="label-text">Menu injecté</span></span>
                   <select v-model="block.navigationMenu" class="select select-bordered w-full">
@@ -350,7 +375,7 @@
         </article>
       </div>
 
-      <AdminHomepageTranslationTabs :model-value="model.settings.footer.copyright" label="Texte de bas de footer" />
+      <AdminPageBuilderTranslationTabs :model-value="model.settings.footer.copyright" label="Texte de bas de footer" />
     </section>
   </div>
 </template>
@@ -359,7 +384,7 @@
 import ImageInput from '~/components/ImageInput.vue'
 import AdminIconPicker from '~/components/admin/IconPicker.vue'
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import AdminHomepageTranslationTabs from '~/components/admin/homepage/TranslationTabs.vue'
+import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
 import {
   CMS_FOOTER_ALIGN_LABELS,
   CMS_FOOTER_CONTAINER_ALIGN_LABELS,
@@ -372,8 +397,8 @@ import {
   type CmsNavigationItemPayload,
   type CmsSiteSettings
 } from '~/shared/cms'
-import type { ThemeColorSelection } from '~/shared/homePage'
-import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS, VERTICAL_ALIGNS } from '~/shared/homePage'
+import type { ThemeColorSelection } from '~/shared/pageBuilder'
+import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS, VERTICAL_ALIGNS } from '~/shared/pageBuilder'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
@@ -397,6 +422,8 @@ const footerBlockTypes = [
 const { $toast } = useNuxtApp() as any
 const saving = ref(false)
 const previewLocale = ref<'fr' | 'en'>('fr')
+const openPanelIds = ref<string[]>([])
+const cloneFooterData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 const { data } = await useFetch<SiteShellModel>('/api/admin/cms/site-shell')
 const { data: settingsData } = await useFetch<{
   farmPickup: {
@@ -516,12 +543,14 @@ const getMenuPreviewItems = (menu: 'PRIMARY' | 'FOOTER') =>
   model.navigation.filter((item) => item.menu === menu && item.visible).sort((a, b) => a.position - b.position)
 
 const addSocialLink = () => {
+  const id = `social-${Date.now()}`
   model.settings.socialLinks.push({
-    id: `social-${Date.now()}`,
+    id,
     label: { fr: '', en: '' },
     href: '',
     icon: ''
   })
+  openPanel(id)
 }
 
 const ensureBlockText = (block: CmsFooterBlock) => {
@@ -532,7 +561,9 @@ const ensureBlockText = (block: CmsFooterBlock) => {
 }
 
 const addFooterBlock = (column: CmsFooterColumn, type: CmsFooterBlock['type']) => {
-  column.blocks.push(createCmsFooterBlock(type, column.blocks.length + 1))
+  const block = createCmsFooterBlock(type, column.blocks.length + 1)
+  column.blocks.push(block)
+  openPanel(block.id)
 }
 
 const moveFooterBlock = (column: CmsFooterColumn, index: number, direction: -1 | 1) => {
@@ -545,6 +576,48 @@ const moveFooterBlock = (column: CmsFooterColumn, index: number, direction: -1 |
 
 const removeFooterBlock = (column: CmsFooterColumn, index: number) => {
   column.blocks.splice(index, 1)
+}
+
+const duplicateFooterBlock = (column: CmsFooterColumn, index: number) => {
+  const block = column.blocks[index]
+  if (!block) return
+  const clone = cloneFooterData(block)
+  clone.id = `footer-block-${clone.type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  column.blocks.splice(index + 1, 0, clone)
+  openPanel(clone.id)
+}
+
+const isPanelOpen = (id: string) => openPanelIds.value.includes(id)
+
+const openPanel = (id: string) => {
+  if (!openPanelIds.value.includes(id)) {
+    openPanelIds.value = [...openPanelIds.value, id]
+  }
+}
+
+const togglePanel = (id: string) => {
+  if (isPanelOpen(id)) {
+    openPanelIds.value = openPanelIds.value.filter(panelId => panelId !== id)
+    return
+  }
+  openPanel(id)
+}
+
+const footerBlockSummary = (block: CmsFooterBlock) => {
+  switch (block.type) {
+    case 'logo': return 'Logo'
+    case 'site-name': return 'Nom du site'
+    case 'site-tagline': return 'Baseline'
+    case 'opening-hours': return 'Horaires d’ouverture'
+    case 'contact': return 'Contact'
+    case 'social-links': return 'Réseaux sociaux'
+    case 'navigation': return block.navigationMenu === 'PRIMARY' ? 'Menu header' : 'Menu footer'
+    case 'title':
+    case 'text':
+      return previewText(block.text) || 'Sans texte'
+    default:
+      return block.type
+  }
 }
 
 const save = async () => {

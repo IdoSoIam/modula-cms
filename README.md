@@ -4,7 +4,7 @@
 
 Le site couvre deja les briques principales pour publier une version utile :
 
-- page d'accueil et page `paniers`
+- page CMS racine et page `paniers`
 - reservation de paniers cote client
 - 3 modes de retrait / livraison :
   - retrait a la ferme

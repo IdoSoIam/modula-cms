@@ -40,8 +40,8 @@
 </template>
 
 <script setup lang="ts">
-import type { LocalizedText, TypographySize } from '~/shared/homePage'
-import { TYPOGRAPHY_SIZES, TYPOGRAPHY_SIZE_LABELS } from '~/shared/homePage'
+import type { LocalizedText, TypographySize } from '~/shared/pageBuilder'
+import { TYPOGRAPHY_SIZES, TYPOGRAPHY_SIZE_LABELS } from '~/shared/pageBuilder'
 
 const props = defineProps<{
   modelValue: LocalizedText

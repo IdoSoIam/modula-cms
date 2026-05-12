@@ -5,10 +5,12 @@
       v-if="showApplication && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
     />
 
-    <HomePageRenderer
+    <PageRenderer
       v-if="showContent"
       :content="resolvedPage.content"
       :locale="locale"
+      :editable="editable"
+      @edit="$emit('edit', $event)"
     />
 
     <component
@@ -20,12 +22,18 @@
 
 <script setup lang="ts">
 import type { ResolvedCmsPage } from '~/shared/cms'
-import HomePageRenderer from '~/components/homepage/HomePageRenderer.vue'
+import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
+import PageRenderer from '~/components/page-builder/PageRenderer.vue'
 import BasketsPage from '~/components/pages/BasketsPage.vue'
 
 const props = defineProps<{
   resolvedPage: ResolvedCmsPage
   locale: string
+  editable?: boolean
+}>()
+
+defineEmits<{
+  edit: [target: PageBuilderEditTarget]
 }>()
 
 const applicationComponent = computed(() => {

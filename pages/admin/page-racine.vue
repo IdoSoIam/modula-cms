@@ -1,7 +1,7 @@
 <template>
   <div class="flex items-center gap-3 rounded-xl border border-base-300 bg-base-100 p-4">
     <span class="loading loading-spinner loading-md" />
-    <span>Ouverture de la page CMS d’accueil…</span>
+    <span>Ouverture de la page CMS racine…</span>
   </div>
 </template>
 
@@ -10,7 +10,7 @@ definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const localePath = useLocalePath()
 
-const response = await $fetch<{ id: number }>('/api/admin/cms/bootstrap-home', {
+const response = await $fetch<{ id: number }>('/api/admin/cms/bootstrap-root-page', {
   method: 'POST'
 })
 

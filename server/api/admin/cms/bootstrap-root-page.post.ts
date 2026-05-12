@@ -1,13 +1,13 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { ensureCmsHomePage } from '~/server/utils/cms'
+import { ensureCmsRootPage } from '~/server/utils/cms'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
-  const id = await ensureCmsHomePage()
+  const id = await ensureCmsRootPage()
   if (!id) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Impossible d’initialiser la page CMS d’accueil'
+      statusMessage: 'Impossible d’initialiser la page CMS racine'
     })
   }
 

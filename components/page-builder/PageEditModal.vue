@@ -54,10 +54,10 @@
 import { defineComponent, h, resolveComponent, type PropType } from 'vue'
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
 import AdminIconPicker from '~/components/admin/IconPicker.vue'
-import AdminHomepageCarouselFields from '~/components/admin/homepage/CarouselFields.vue'
-import AdminHomepageSectionBackgroundFields from '~/components/admin/homepage/SectionBackgroundFields.vue'
-import type { HomePageEditTarget } from '~/shared/homePageEditor'
-import type { HomePageButton, HomePageCard, HomePageColumnItem, SectionColumnCount, ThemeColorSelection } from '~/shared/homePage'
+import AdminPageBuilderCarouselFields from '~/components/admin/page-builder/CarouselFields.vue'
+import AdminPageBuilderSectionBackgroundFields from '~/components/admin/page-builder/SectionBackgroundFields.vue'
+import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
+import type { PageBuilderButton, PageBuilderCard, PageBuilderColumnItem, SectionColumnCount, ThemeColorSelection } from '~/shared/pageBuilder'
 import {
   BUTTON_SIZE_LABELS,
   BUTTON_SIZES,
@@ -78,6 +78,9 @@ import {
   createImageItem,
   createTextItem,
   createTitleItem,
+  duplicatePageBuilderCard,
+  duplicatePageBuilderItem,
+  duplicatePageBuilderSection,
   IMAGE_ASPECTS,
   IMAGE_FITS,
   SECTION_COLUMN_COUNTS,
@@ -87,11 +90,11 @@ import {
   TYPOGRAPHY_SIZE_LABELS,
   TYPOGRAPHY_SIZES,
   VERTICAL_ALIGNS
-} from '~/shared/homePage'
+} from '~/shared/pageBuilder'
 
 const props = defineProps({
   open: { type: Boolean, required: true },
-  target: { type: Object as PropType<HomePageEditTarget | null>, default: null }
+  target: { type: Object as PropType<PageBuilderEditTarget | null>, default: null }
 })
 
 defineEmits<{ close: [] }>()
@@ -174,15 +177,21 @@ onBeforeUnmount(() => {
 
 const createId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 8)}`
 const removeAt = <T,>(list: T[], index: number) => { list.splice(index, 1) }
-const currentSectionIndex = (target: Extract<HomePageEditTarget, { kind: 'section' }>) => Math.max(0, target.sections.indexOf(target.section))
-const currentItemIndex = (target: Extract<HomePageEditTarget, { kind: 'item' }>) => Math.max(0, target.parentItems.indexOf(target.item))
-const currentCardIndex = (target: Extract<HomePageEditTarget, { kind: 'card' }>) => Math.max(0, target.parentCards.indexOf(target.card))
+const currentSectionIndex = (target: Extract<PageBuilderEditTarget, { kind: 'section' }>) => Math.max(0, target.sections.indexOf(target.section))
+const currentItemIndex = (target: Extract<PageBuilderEditTarget, { kind: 'item' }>) => Math.max(0, target.parentItems.indexOf(target.item))
+const currentCardIndex = (target: Extract<PageBuilderEditTarget, { kind: 'card' }>) => Math.max(0, target.parentCards.indexOf(target.card))
 const moveItem = <T,>(list: T[], index: number, direction: -1 | 1) => {
   const next = index + direction
   if (next < 0 || next >= list.length) return
   const [item] = list.splice(index, 1)
   if (!item) return
   list.splice(next, 0, item)
+}
+
+const duplicateAt = <T,>(list: T[], index: number, factory: (item: T) => T) => {
+  const item = list[index]
+  if (!item) return
+  list.splice(index + 1, 0, factory(item))
 }
 
 const TranslationFields = defineComponent({
@@ -210,8 +219,8 @@ const TranslationFields = defineComponent({
           }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size]))) : null
         ]),
         h('div', { class: 'tabs tabs-box tabs-xs' }, [
-          h('button', { class: ['tab', lang.value === 'fr' ? 'tab-active' : 'border-0'], onClick: () => { lang.value = 'fr' } }, 'FR'),
-          h('button', { class: ['tab', lang.value === 'en' ? 'tab-active' : 'border-0'], onClick: () => { lang.value = 'en' } }, 'EN')
+          h('button', { type: 'button', class: ['tab cursor-pointer', lang.value === 'fr' ? 'tab-active' : 'border-0'], onClick: () => { lang.value = 'fr' } }, 'FR'),
+          h('button', { type: 'button', class: ['tab cursor-pointer', lang.value === 'en' ? 'tab-active' : 'border-0'], onClick: () => { lang.value = 'en' } }, 'EN')
         ])
       ]),
       props.multiline
@@ -222,7 +231,7 @@ const TranslationFields = defineComponent({
 })
 
 const ButtonEditor = defineComponent({
-  props: { button: { type: Object as PropType<HomePageButton>, required: true } },
+  props: { button: { type: Object as PropType<PageBuilderButton>, required: true } },
   setup(props) {
     return () => h('div', { class: 'space-y-4' }, [
       h(TranslationFields, { modelValue: props.button.label, label: 'Label' }),
@@ -239,20 +248,21 @@ const ButtonEditor = defineComponent({
 })
 
 const CardEditor = defineComponent({
-  props: { target: { type: Object as PropType<Extract<HomePageEditTarget, { kind: 'card' }>>, required: true } },
+  props: { target: { type: Object as PropType<Extract<PageBuilderEditTarget, { kind: 'card' }>>, required: true } },
   setup(props) {
     const tab = ref<'content' | 'style' | 'buttons'>('content')
     return () => h('div', { class: 'space-y-4' }, [
       h('div', { class: 'flex justify-end gap-2' }, [
-        h('button', { class: 'btn btn-xs', disabled: currentCardIndex(props.target) === 0, onClick: () => moveItem(props.target.parentCards, currentCardIndex(props.target), -1) }, 'Monter'),
-        h('button', { class: 'btn btn-xs', disabled: currentCardIndex(props.target) === props.target.parentCards.length - 1, onClick: () => moveItem(props.target.parentCards, currentCardIndex(props.target), 1) }, 'Descendre'),
-        h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => removeAt(props.target.parentCards, currentCardIndex(props.target)) }, 'Supprimer')
+        h('button', { type: 'button', class: 'btn btn-xs', disabled: currentCardIndex(props.target) === 0, onClick: () => moveItem(props.target.parentCards, currentCardIndex(props.target), -1) }, 'Monter'),
+        h('button', { type: 'button', class: 'btn btn-xs', disabled: currentCardIndex(props.target) === props.target.parentCards.length - 1, onClick: () => moveItem(props.target.parentCards, currentCardIndex(props.target), 1) }, 'Descendre'),
+        h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => duplicateAt(props.target.parentCards, currentCardIndex(props.target), duplicatePageBuilderCard) }, 'Dupliquer'),
+        h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => removeAt(props.target.parentCards, currentCardIndex(props.target)) }, 'Supprimer')
       ]),
       h('div', { class: 'space-y-0' }, [
         h('div', { class: 'tabs tabs-lift flex-wrap' }, [
-        h('button', { class: ['tab', tab.value === 'content' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'content' } }, 'Contenu'),
-        h('button', { class: ['tab', tab.value === 'style' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'style' } }, 'Style'),
-        h('button', { class: ['tab', tab.value === 'buttons' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'buttons' } }, 'Boutons')
+        h('button', { type: 'button', class: ['tab cursor-pointer', tab.value === 'content' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'content' } }, 'Contenu'),
+        h('button', { type: 'button', class: ['tab cursor-pointer', tab.value === 'style' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'style' } }, 'Style'),
+        h('button', { type: 'button', class: ['tab cursor-pointer', tab.value === 'buttons' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'buttons' } }, 'Boutons')
         ]),
       tab.value === 'content' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
         h('div', { class: 'space-y-4' }, [
@@ -269,19 +279,19 @@ const CardEditor = defineComponent({
         ]),
         h(ThemeColorPicker, { label: 'Fond de la carte', modelValue: props.target.card.backgroundColor || null, defaultToken: 'base-200', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.backgroundColor = val } }),
         h(ThemeColorPicker, { label: 'Texte de la carte', modelValue: props.target.card.textColor || null, defaultToken: 'base-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.textColor = val } }),
-        h(ThemeColorPicker, { label: 'Couleur de l'icone', modelValue: props.target.card.iconColor || null, defaultToken: 'primary', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconColor = val } }),
-        h(ThemeColorPicker, { label: 'Fond de l'icone', modelValue: props.target.card.iconBackgroundColor || null, defaultToken: 'transparent', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconBackgroundColor = val } }),
+        h(ThemeColorPicker, { label: "Couleur de l'icone", modelValue: props.target.card.iconColor || null, defaultToken: 'primary', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconColor = val } }),
+        h(ThemeColorPicker, { label: "Fond de l'icone", modelValue: props.target.card.iconBackgroundColor || null, defaultToken: 'transparent', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconBackgroundColor = val } }),
         h(ThemeColorPicker, { label: 'Bordure de la carte', modelValue: props.target.card.borderColor || null, defaultToken: 'base-300', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.borderColor = val } })
         ])
       ]) : null,
       tab.value === 'buttons' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
         h('div', { class: 'space-y-4' }, [
         h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [
-          h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton principal'), !props.target.card.primaryButton ? h('button', { class: 'btn btn-xs btn-outline', onClick: () => { props.target.card.primaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => { props.target.card.primaryButton = null } }, 'Retirer')]),
+          h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton principal'), !props.target.card.primaryButton ? h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => { props.target.card.primaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => { props.target.card.primaryButton = null } }, 'Retirer')]),
           props.target.card.primaryButton ? h(ButtonEditor, { button: props.target.card.primaryButton }) : null
         ]),
         h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [
-          h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton secondaire'), !props.target.card.secondaryButton ? h('button', { class: 'btn btn-xs btn-outline', onClick: () => { props.target.card.secondaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => { props.target.card.secondaryButton = null } }, 'Retirer')]),
+          h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton secondaire'), !props.target.card.secondaryButton ? h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => { props.target.card.secondaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => { props.target.card.secondaryButton = null } }, 'Retirer')]),
           props.target.card.secondaryButton ? h(ButtonEditor, { button: props.target.card.secondaryButton }) : null
         ])
         ])
@@ -292,14 +302,15 @@ const CardEditor = defineComponent({
 })
 
 const ItemEditor = defineComponent({
-  props: { target: { type: Object as PropType<Extract<HomePageEditTarget, { kind: 'item' }>>, required: true } },
+  props: { target: { type: Object as PropType<Extract<PageBuilderEditTarget, { kind: 'item' }>>, required: true } },
   setup(props) {
     return () => {
       const item = props.target.item
       const header = h('div', { class: 'flex justify-end gap-2' }, [
-        h('button', { class: 'btn btn-xs', disabled: currentItemIndex(props.target) === 0, onClick: () => moveItem(props.target.parentItems, currentItemIndex(props.target), -1) }, 'Monter'),
-        h('button', { class: 'btn btn-xs', disabled: currentItemIndex(props.target) === props.target.parentItems.length - 1, onClick: () => moveItem(props.target.parentItems, currentItemIndex(props.target), 1) }, 'Descendre'),
-        h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => removeAt(props.target.parentItems, currentItemIndex(props.target)) }, 'Supprimer')
+        h('button', { type: 'button', class: 'btn btn-xs', disabled: currentItemIndex(props.target) === 0, onClick: () => moveItem(props.target.parentItems, currentItemIndex(props.target), -1) }, 'Monter'),
+        h('button', { type: 'button', class: 'btn btn-xs', disabled: currentItemIndex(props.target) === props.target.parentItems.length - 1, onClick: () => moveItem(props.target.parentItems, currentItemIndex(props.target), 1) }, 'Descendre'),
+        h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => duplicateAt(props.target.parentItems, currentItemIndex(props.target), duplicatePageBuilderItem) }, 'Dupliquer'),
+        h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => removeAt(props.target.parentItems, currentItemIndex(props.target)) }, 'Supprimer')
       ])
 
       if (item.type === 'badge' || item.type === 'title' || item.type === 'text') {
@@ -319,8 +330,8 @@ const ItemEditor = defineComponent({
       if (item.type === 'buttons') {
         return h('div', { class: 'space-y-4' }, [
           header,
-          h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton principal'), !item.primaryButton ? h('button', { class: 'btn btn-xs btn-outline', onClick: () => { item.primaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => { item.primaryButton = null } }, 'Retirer')]), item.primaryButton ? h(ButtonEditor, { button: item.primaryButton }) : null]),
-          h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton secondaire'), !item.secondaryButton ? h('button', { class: 'btn btn-xs btn-outline', onClick: () => { item.secondaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => { item.secondaryButton = null } }, 'Retirer')]), item.secondaryButton ? h(ButtonEditor, { button: item.secondaryButton }) : null])
+          h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton principal'), !item.primaryButton ? h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => { item.primaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => { item.primaryButton = null } }, 'Retirer')]), item.primaryButton ? h(ButtonEditor, { button: item.primaryButton }) : null]),
+          h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton secondaire'), !item.secondaryButton ? h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => { item.secondaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => { item.secondaryButton = null } }, 'Retirer')]), item.secondaryButton ? h(ButtonEditor, { button: item.secondaryButton }) : null])
         ])
       }
 
@@ -334,7 +345,7 @@ const ItemEditor = defineComponent({
             h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Placement')]), h('select', { class: 'select select-bordered w-full', value: item.fit, onChange: (e: Event) => { item.fit = (e.target as HTMLSelectElement).value as any } }, IMAGE_FITS.map(f => h('option', { value: f }, f)))]),
             h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement vertical')]), h('select', { class: 'select select-bordered w-full', value: item.verticalAlign, onChange: (e: Event) => { item.verticalAlign = (e.target as HTMLSelectElement).value as any } }, VERTICAL_ALIGNS.map(a => h('option', { value: a }, a)))])
           ]),
-          h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.framed, onChange: (e: Event) => { item.framed = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Afficher l'image dans une carte')]),
+          h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.framed, onChange: (e: Event) => { item.framed = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, "Afficher l'image dans une carte")]),
           h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.enlarge, onChange: (e: Event) => { item.enlarge = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Forcer un affichage plus grand')])
         ])
       }
@@ -342,22 +353,22 @@ const ItemEditor = defineComponent({
       if (item.type === 'carousel') {
         return h('div', { class: 'space-y-4' }, [
           header,
-          h(AdminHomepageCarouselFields, { carousel: item })
+          h(AdminPageBuilderCarouselFields, { carousel: item })
         ])
       }
 
-      const cardsItem = item as Extract<HomePageColumnItem, { type: 'cards' }>
+      const cardsItem = item as Extract<PageBuilderColumnItem, { type: 'cards' }>
       return h('div', { class: 'space-y-4' }, [
         header,
         h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Affichage des cartes')]), h('select', { class: 'select select-bordered w-full', value: cardsItem.display, onChange: (e: Event) => { cardsItem.display = (e.target as HTMLSelectElement).value as any } }, CARDS_DISPLAYS.map(d => h('option', { value: d }, CARDS_DISPLAY_LABELS[d])))]),
-        h('div', { class: 'flex justify-end' }, [h('button', { class: 'btn btn-sm btn-primary', onClick: () => cardsItem.cards.push(createEmptyCard(createId('card'))) }, 'Ajouter une carte')])
+        h('div', { class: 'flex justify-end' }, [h('button', { type: 'button', class: 'btn btn-sm btn-primary', onClick: () => cardsItem.cards.push(createEmptyCard(createId('card'))) }, 'Ajouter une carte')])
       ])
     }
   }
 })
 
 const ColumnEditor = defineComponent({
-  props: { target: { type: Object as PropType<Extract<HomePageEditTarget, { kind: 'column' }>>, required: true } },
+  props: { target: { type: Object as PropType<Extract<PageBuilderEditTarget, { kind: 'column' }>>, required: true } },
   setup(props) {
     return () => h('div', { class: 'space-y-4' }, [
       h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
@@ -368,13 +379,13 @@ const ColumnEditor = defineComponent({
       h('div', { class: 'rounded-2xl border border-base-300 bg-base-200 p-4' }, [
         h('div', { class: 'mb-3 font-medium' }, 'Ajouter un element'),
         h('div', { class: 'flex flex-wrap gap-2' }, [
-          h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createBadgeItem(createId('badge'))) }, 'Badge'),
-          h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createTitleItem(createId('title'))) }, 'Titre'),
-          h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createTextItem(createId('text'))) }, 'Texte'),
-          h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createButtonsItem(createId('buttons'))) }, 'Boutons'),
-          h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createCardsItem(createId('cards'))) }, 'Cartes'),
-          h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createImageItem(createId('image'))) }, 'Image'),
-          h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createCarouselItem(createId('carousel'))) }, 'Carousel')
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createBadgeItem(createId('badge'))) }, 'Badge'),
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createTitleItem(createId('title'))) }, 'Titre'),
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createTextItem(createId('text'))) }, 'Texte'),
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createButtonsItem(createId('buttons'))) }, 'Boutons'),
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createCardsItem(createId('cards'))) }, 'Cartes'),
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createImageItem(createId('image'))) }, 'Image'),
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createCarouselItem(createId('carousel'))) }, 'Carousel')
         ])
       ])
     ])
@@ -382,26 +393,27 @@ const ColumnEditor = defineComponent({
 })
 
 const SectionEditor = defineComponent({
-  props: { target: { type: Object as PropType<Extract<HomePageEditTarget, { kind: 'section' }>>, required: true } },
+  props: { target: { type: Object as PropType<Extract<PageBuilderEditTarget, { kind: 'section' }>>, required: true } },
   setup(props) {
     const tab = ref<'structure' | 'background' | 'insert'>('structure')
     return () => h('div', { class: 'space-y-4' }, [
       h('div', { class: 'flex justify-end gap-2' }, [
-        h('button', { class: 'btn btn-xs', disabled: currentSectionIndex(props.target) === 0, onClick: () => moveItem(props.target.sections, currentSectionIndex(props.target), -1) }, 'Monter'),
-        h('button', { class: 'btn btn-xs', disabled: currentSectionIndex(props.target) === props.target.sections.length - 1, onClick: () => moveItem(props.target.sections, currentSectionIndex(props.target), 1) }, 'Descendre'),
-        h('button', { class: 'btn btn-xs btn-outline btn-error', onClick: () => removeAt(props.target.sections, currentSectionIndex(props.target)) }, 'Supprimer')
+        h('button', { type: 'button', class: 'btn btn-xs', disabled: currentSectionIndex(props.target) === 0, onClick: () => moveItem(props.target.sections, currentSectionIndex(props.target), -1) }, 'Monter'),
+        h('button', { type: 'button', class: 'btn btn-xs', disabled: currentSectionIndex(props.target) === props.target.sections.length - 1, onClick: () => moveItem(props.target.sections, currentSectionIndex(props.target), 1) }, 'Descendre'),
+        h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => duplicateAt(props.target.sections, currentSectionIndex(props.target), duplicatePageBuilderSection) }, 'Dupliquer'),
+        h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => removeAt(props.target.sections, currentSectionIndex(props.target)) }, 'Supprimer')
       ]),
       h('div', { class: 'space-y-0' }, [
         h('div', { class: 'tabs tabs-lift flex-wrap' }, [
-          h('button', { class: ['tab', tab.value === 'structure' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'structure' } }, 'Structure'),
-          h('button', { class: ['tab', tab.value === 'background' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'background' } }, 'Fond'),
-          h('button', { class: ['tab', tab.value === 'insert' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'insert' } }, 'Insertion')
+          h('button', { type: 'button', class: ['tab cursor-pointer', tab.value === 'structure' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'structure' } }, 'Structure'),
+          h('button', { type: 'button', class: ['tab cursor-pointer', tab.value === 'background' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'background' } }, 'Fond'),
+          h('button', { type: 'button', class: ['tab cursor-pointer', tab.value === 'insert' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'insert' } }, 'Insertion')
         ]),
         tab.value === 'insert' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
           h('div', { class: 'mb-3 font-medium' }, 'Ajouter une section'),
           h('div', { class: 'grid gap-3 md:grid-cols-2' }, [
-            h('div', { class: 'space-y-2' }, [h('div', { class: 'text-sm opacity-70' }, 'Au-dessus'), h('div', { class: 'flex flex-wrap gap-2' }, SECTION_COLUMN_COUNTS.map(count => h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.sections.splice(currentSectionIndex(props.target), 0, createEmptyColumnsSection(createId('section'), count as SectionColumnCount)) }, `${count} colonne${count > 1 ? 's' : ''}`)))]),
-            h('div', { class: 'space-y-2' }, [h('div', { class: 'text-sm opacity-70' }, 'En-dessous'), h('div', { class: 'flex flex-wrap gap-2' }, SECTION_COLUMN_COUNTS.map(count => h('button', { class: 'btn btn-sm btn-outline', onClick: () => props.target.sections.splice(currentSectionIndex(props.target) + 1, 0, createEmptyColumnsSection(createId('section'), count as SectionColumnCount)) }, `${count} colonne${count > 1 ? 's' : ''}`)))])
+            h('div', { class: 'space-y-2' }, [h('div', { class: 'text-sm opacity-70' }, 'Au-dessus'), h('div', { class: 'flex flex-wrap gap-2' }, SECTION_COLUMN_COUNTS.map(count => h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.sections.splice(currentSectionIndex(props.target), 0, createEmptyColumnsSection(createId('section'), count as SectionColumnCount)) }, `${count} colonne${count > 1 ? 's' : ''}`)))]),
+            h('div', { class: 'space-y-2' }, [h('div', { class: 'text-sm opacity-70' }, 'En-dessous'), h('div', { class: 'flex flex-wrap gap-2' }, SECTION_COLUMN_COUNTS.map(count => h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.sections.splice(currentSectionIndex(props.target) + 1, 0, createEmptyColumnsSection(createId('section'), count as SectionColumnCount)) }, `${count} colonne${count > 1 ? 's' : ''}`)))])
           ])
         ]) : null,
         tab.value === 'structure' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
@@ -422,7 +434,7 @@ const SectionEditor = defineComponent({
         tab.value === 'background' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
           h('div', { class: 'space-y-4' }, [
             h(ThemeColorPicker, { label: 'Fond de section', modelValue: props.target.section.backgroundColor || null, defaultToken: 'base-100', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.section.backgroundColor = val } }),
-            h(AdminHomepageSectionBackgroundFields, { section: props.target.section })
+            h(AdminPageBuilderSectionBackgroundFields, { section: props.target.section })
           ])
         ]) : null
       ])

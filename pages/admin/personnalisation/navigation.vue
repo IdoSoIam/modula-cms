@@ -121,7 +121,7 @@
           </div>
 
           <div class="mt-4">
-            <AdminHomepageTranslationTabs :model-value="item.labels" label="Libellé du lien" />
+            <AdminPageBuilderTranslationTabs :model-value="item.labels" label="Libellé du lien" />
           </div>
 
           <div class="mt-4 grid gap-3 sm:grid-cols-2">
@@ -152,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import AdminHomepageTranslationTabs from '~/components/admin/homepage/TranslationTabs.vue'
+import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
 import { createDefaultCmsNavigationItems, type CmsLocalizedText, type CmsNavigationItemPayload, type CmsSiteSettings } from '~/shared/cms'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })

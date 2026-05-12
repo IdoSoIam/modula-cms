@@ -15,7 +15,7 @@
       />
     </template>
 
-    <HomeMediaCarousel
+    <PageMediaCarousel
       v-else-if="section.backgroundMode === 'carousel' && carouselSlides.length"
       :slides="carouselSlides"
       :settings="section.backgroundCarouselSettings"
@@ -27,12 +27,12 @@
 </template>
 
 <script setup lang="ts">
-import type { HomePageSection, ThemeColorSelection } from '~/shared/homePage'
-import { pickLocalizedText } from '~/shared/homePage'
-import HomeMediaCarousel from '~/components/homepage/HomeMediaCarousel.vue'
+import type { PageBuilderSection, ThemeColorSelection } from '~/shared/pageBuilder'
+import { pickLocalizedText } from '~/shared/pageBuilder'
+import PageMediaCarousel from '~/components/page-builder/PageMediaCarousel.vue'
 
 const props = defineProps<{
-  section: HomePageSection
+  section: PageBuilderSection
   locale: string
 }>()
 

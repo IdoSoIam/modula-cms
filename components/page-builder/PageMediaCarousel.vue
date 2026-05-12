@@ -89,14 +89,14 @@
 
 <script setup lang="ts">
 import type {
-  HomePageSectionBackgroundCarouselSettings,
-  HomePageSectionBackgroundCarouselSlide
-} from '~/shared/homePage'
-import { pickLocalizedText } from '~/shared/homePage'
+  PageBuilderSectionBackgroundCarouselSettings,
+  PageBuilderSectionBackgroundCarouselSlide
+} from '~/shared/pageBuilder'
+import { pickLocalizedText } from '~/shared/pageBuilder'
 
 const props = defineProps<{
-  slides: HomePageSectionBackgroundCarouselSlide[]
-  settings: HomePageSectionBackgroundCarouselSettings
+  slides: PageBuilderSectionBackgroundCarouselSlide[]
+  settings: PageBuilderSectionBackgroundCarouselSettings
   locale: string
   overlayStyle?: Record<string, string> | null
   overlayBlur?: boolean
@@ -117,7 +117,7 @@ const useInfiniteSlideMode = computed(() =>
   && props.slides.length > 1
 )
 
-const renderedSlides = computed<HomePageSectionBackgroundCarouselSlide[]>(() => {
+const renderedSlides = computed<PageBuilderSectionBackgroundCarouselSlide[]>(() => {
   if (!props.slides.length) return []
   if (!useInfiniteSlideMode.value) return props.slides
   const first = props.slides[0]

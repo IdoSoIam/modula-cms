@@ -34,7 +34,7 @@ export const SETTING_KEYS = {
   MAIL_SECONDARY_PROVIDER: 'mail_secondary_provider',
   GOOGLE_CALENDAR_ID: 'google_calendar_id',
   GOOGLE_CALENDAR_NAME: 'google_calendar_name',
-  HOME_PAGE_CONTENT: 'home_page_content_v1',
+  PAGE_BUILDER_CONTENT: 'home_page_content_v1',
   CMS_SITE_SETTINGS: 'cms_site_settings_v1',
   DAISYUI_THEME_CONFIG: 'daisyui_theme_config_v1',
   FACEBOOK_FLUX_DEACTIVATED: 'facebook_flux_deactivated',

@@ -1,13 +1,13 @@
-import { applyDefaultSectionStyling } from '~/shared/homePage'
+import { applyDefaultSectionStyling } from '~/shared/pageBuilder'
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { getHomePageContent, saveHomePageContent } from '~/server/utils/homePage'
+import { getPageBuilderContent, savePageBuilderContent } from '~/server/utils/pageBuilder'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const content = await getHomePageContent()
+  const content = await getPageBuilderContent()
   applyDefaultSectionStyling(content)
-  await saveHomePageContent(content)
+  await savePageBuilderContent(content)
 
   return { ok: true, message: 'Couleurs réinitialisées avec succès' }
 })

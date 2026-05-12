@@ -111,8 +111,8 @@
 </template>
 
 <script setup lang="ts">
-import type { ThemeColorSelection, ThemeColorToken } from '~/shared/homePage'
-import { THEME_COLOR_LABELS, THEME_COLOR_TOKENS, createThemeColorSelection } from '~/shared/homePage'
+import type { ThemeColorSelection, ThemeColorToken } from '~/shared/pageBuilder'
+import { THEME_COLOR_LABELS, THEME_COLOR_TOKENS, createThemeColorSelection } from '~/shared/pageBuilder'
 
 const props = withDefaults(defineProps<{
   modelValue?: ThemeColorSelection | null

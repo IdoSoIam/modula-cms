@@ -1,8 +1,8 @@
 import { prisma } from '../../prisma/client'
-import { getHomePageContent, saveHomePageContent } from '~/server/utils/homePage'
-import type { HomePageColumnItem, HomePageSection } from '~/shared/homePage'
+import { getPageBuilderContent, savePageBuilderContent } from '~/server/utils/pageBuilder'
+import type { PageBuilderColumnItem, PageBuilderSection } from '~/shared/pageBuilder'
 
-interface HomePageImageReferenceItem {
+interface RootPageImageReferenceItem {
   kind: 'section-background-image' | 'section-background-carousel' | 'column-image' | 'column-carousel'
   sectionId: string
   sectionLabel: string
@@ -11,16 +11,16 @@ interface HomePageImageReferenceItem {
   label: string
 }
 
-function getSectionLabel(section: HomePageSection) {
+function getSectionLabel(section: PageBuilderSection) {
   for (const column of section.columns) {
-    const titleItem = column.items.find((item): item is Extract<HomePageColumnItem, { type: 'title' }> => item.type === 'title')
+    const titleItem = column.items.find((item): item is Extract<PageBuilderColumnItem, { type: 'title' }> => item.type === 'title')
     if (titleItem?.text?.fr?.trim()) return titleItem.text.fr.trim()
     if (titleItem?.text?.en?.trim()) return titleItem.text.en.trim()
   }
   return section.id
 }
 
-function replaceUrlInHomePage(content: Awaited<ReturnType<typeof getHomePageContent>>, oldUrl: string, newUrl: string) {
+function replaceUrlInRootPage(content: Awaited<ReturnType<typeof getPageBuilderContent>>, oldUrl: string, newUrl: string) {
   let changed = false
 
   for (const section of content.sections) {
@@ -57,9 +57,9 @@ function replaceUrlInHomePage(content: Awaited<ReturnType<typeof getHomePageCont
   return changed
 }
 
-async function getHomePageImageReferences(url: string) {
-  const content = await getHomePageContent()
-  const items: HomePageImageReferenceItem[] = []
+async function getRootPageImageReferences(url: string) {
+  const content = await getPageBuilderContent()
+  const items: RootPageImageReferenceItem[] = []
 
   content.sections.forEach((section) => {
     const sectionLabel = getSectionLabel(section)
@@ -140,14 +140,14 @@ export async function updateImageReferences(oldUrl: string, newUrl: string) {
     `%${oldUrl}%`
   )
 
-  const homePageContent = await getHomePageContent()
-  if (replaceUrlInHomePage(homePageContent, oldUrl, newUrl)) {
-    await saveHomePageContent(homePageContent)
+  const rootPageContent = await getPageBuilderContent()
+  if (replaceUrlInRootPage(rootPageContent, oldUrl, newUrl)) {
+    await savePageBuilderContent(rootPageContent)
   }
 }
 
 export async function countImageReferences(url: string) {
-  const [vegetables, baskets, articles, articleContentMatches, homepage] = await Promise.all([
+  const [vegetables, baskets, articles, articleContentMatches, rootPage] = await Promise.all([
     prisma.vegetable.count({ where: { imageUrl: url } }),
     prisma.basket.count({ where: { imageUrl: url } }),
     prisma.article.count({ where: { coverUrl: url } }),
@@ -155,7 +155,7 @@ export async function countImageReferences(url: string) {
       'SELECT COUNT(*) as count FROM "Article" WHERE "content" LIKE ?',
       `%${url}%`
     ),
-    getHomePageImageReferences(url)
+    getRootPageImageReferences(url)
   ])
 
   return {
@@ -163,6 +163,6 @@ export async function countImageReferences(url: string) {
     baskets,
     articles,
     articleContent: Number(articleContentMatches[0]?.count ?? 0),
-    homepage
+    rootPage
   }
 }

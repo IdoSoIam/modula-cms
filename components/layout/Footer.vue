@@ -93,7 +93,7 @@
 
 <script setup lang="ts">
 import type { CmsFooterColumn, CmsLocalizedText, CmsSocialLink, PublicSiteShell } from '~/shared/cms'
-import type { ThemeColorSelection } from '~/shared/homePage'
+import type { ThemeColorSelection } from '~/shared/pageBuilder'
 
 interface SiteConfig {
   farmPickup: {

@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-4">
-    <AdminHomepageTranslationTabs :model-value="button.label" label="Label" />
+    <AdminPageBuilderTranslationTabs :model-value="button.label" label="Label" />
 
     <div class="form-control">
       <label class="label"><span class="label-text">Lien</span></label>
@@ -31,10 +31,10 @@
 
 <script setup lang="ts">
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import type { HomePageButton } from '~/shared/homePage'
-import { BUTTON_SIZE_LABELS, BUTTON_SIZES, BUTTON_TONES } from '~/shared/homePage'
+import type { PageBuilderButton } from '~/shared/pageBuilder'
+import { BUTTON_SIZE_LABELS, BUTTON_SIZES, BUTTON_TONES } from '~/shared/pageBuilder'
 
 defineProps<{
-  button: HomePageButton
+  button: PageBuilderButton
 }>()
 </script>

@@ -27,7 +27,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
     },
     {
       id: 'content',
-      label: 'Pages',
+      label: 'Contenu',
       items: [
         { id: 'content-pages', label: 'Pages', path: '/admin/contenu/pages', icon: 'mdi:file-document-edit-outline', activePaths: ['/admin/contenu/pages', '/admin/pages'] },
         { id: 'content-news', label: 'Actualité', path: '/admin/contenu/actualites', icon: 'mdi:newspaper-variant-outline', activePaths: ['/admin/contenu/actualites', '/admin/articles'] }
@@ -44,19 +44,13 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
       ]
     },
     {
-      id: 'media',
-      label: 'Media',
-      items: [
-        { id: 'media-images', label: 'Images', path: '/admin/medias/images', icon: 'mdi:image-multiple-outline', activePaths: ['/admin/medias/images', '/admin/images'] }
-      ]
-    },
-    {
       id: 'customization',
       label: 'Personnalisation',
       items: [
         { id: 'customization-layout', label: 'Mise en page', path: '/admin/personnalisation/mise-en-page', icon: 'mdi:home-edit-outline', activePaths: ['/admin/personnalisation/mise-en-page'] },
         { id: 'customization-navigation', label: 'Navigation', path: '/admin/personnalisation/navigation', icon: 'mdi:menu', activePaths: ['/admin/personnalisation/navigation'] },
-        { id: 'customization-theme', label: 'Thèmes', path: '/admin/personnalisation/themes', icon: 'mdi:palette-outline', activePaths: ['/admin/personnalisation/themes'] }
+        { id: 'customization-theme', label: 'Thèmes', path: '/admin/personnalisation/themes', icon: 'mdi:palette-outline', activePaths: ['/admin/personnalisation/themes'] },
+        { id: 'customization-images', label: 'Images', path: '/admin/personnalisation/images', icon: 'mdi:image-multiple-outline', activePaths: ['/admin/personnalisation/images'] },
       ]
     },
     {

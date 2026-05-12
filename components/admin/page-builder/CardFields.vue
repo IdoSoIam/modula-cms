@@ -22,13 +22,13 @@
     <ThemeColorPicker v-model="card.iconBackgroundColor" label="Fond de l'icone" default-token="transparent" />
     <ThemeColorPicker v-model="card.borderColor" label="Bordure de la carte" default-token="base-300" />
 
-    <AdminHomepageTranslationTabs
+    <AdminPageBuilderTranslationTabs
       :model-value="card.title"
       :size="card.titleSize"
       label="Titre"
       @update:size="card.titleSize = $event as typeof card.titleSize"
     />
-    <AdminHomepageTranslationTabs
+    <AdminPageBuilderTranslationTabs
       :model-value="card.text"
       :size="card.textSize"
       label="Texte"
@@ -46,7 +46,7 @@
           Retirer
         </button>
       </div>
-      <AdminHomepageButtonFields v-if="card.primaryButton" :button="card.primaryButton" />
+      <AdminPageBuilderButtonFields v-if="card.primaryButton" :button="card.primaryButton" />
     </div>
 
     <div class="rounded-xl border border-base-300 bg-base-100 p-4">
@@ -59,7 +59,7 @@
           Retirer
         </button>
       </div>
-      <AdminHomepageButtonFields v-if="card.secondaryButton" :button="card.secondaryButton" />
+      <AdminPageBuilderButtonFields v-if="card.secondaryButton" :button="card.secondaryButton" />
     </div>
   </div>
 </template>
@@ -67,10 +67,10 @@
 <script setup lang="ts">
 import AdminIconPicker from '~/components/admin/IconPicker.vue'
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import type { HomePageCard } from '~/shared/homePage'
-import { CARD_SIZE_LABELS, CARD_SIZES, createEmptyButton } from '~/shared/homePage'
+import type { PageBuilderCard } from '~/shared/pageBuilder'
+import { CARD_SIZE_LABELS, CARD_SIZES, createEmptyButton } from '~/shared/pageBuilder'
 
 defineProps<{
-  card: HomePageCard
+  card: PageBuilderCard
 }>()
 </script>

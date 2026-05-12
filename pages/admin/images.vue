@@ -64,12 +64,12 @@
               <div>Paniers : {{ editing.references.baskets }}</div>
               <div>Articles couverture : {{ editing.references.articles }}</div>
               <div>Articles contenu : {{ editing.references.articleContent }}</div>
-              <div>Page d'accueil : {{ editing.references.homepage.count }}</div>
+              <div>Page racine : {{ editing.references.rootPage.count }}</div>
             </div>
-            <div v-if="editing.references.homepage.items.length" class="mt-3">
-              <div class="font-medium">Utilisations sur la page d'accueil</div>
+            <div v-if="editing.references.rootPage.items.length" class="mt-3">
+              <div class="font-medium">Utilisations sur la page racine</div>
               <ul class="mt-2 space-y-1 text-xs opacity-80">
-                <li v-for="item in editing.references.homepage.items" :key="`${item.kind}-${item.sectionId}-${item.columnIndex ?? 0}-${item.itemId ?? ''}-${item.label}`">
+                <li v-for="item in editing.references.rootPage.items" :key="`${item.kind}-${item.sectionId}-${item.columnIndex ?? 0}-${item.itemId ?? ''}-${item.label}`">
                   {{ item.label }}
                 </li>
               </ul>
@@ -102,7 +102,7 @@ interface ImageReferences {
   baskets: number
   articles: number
   articleContent: number
-  homepage: {
+  rootPage: {
     count: number
     items: Array<{
       kind: 'section-background-image' | 'section-background-carousel' | 'column-image' | 'column-carousel'
@@ -139,7 +139,7 @@ const editForm = reactive({ filename: '' })
 const displayedImageUrl = computed(() => replacementPreviewUrl.value || editing.value?.url || '')
 
 const totalReferences = (references: ImageReferences) =>
-  references.vegetables + references.baskets + references.articles + references.articleContent + references.homepage.count
+  references.vegetables + references.baskets + references.articles + references.articleContent + references.rootPage.count
 
 const onFileChange = async (e: Event) => {
   const input = e.target as HTMLInputElement

@@ -1,20 +1,20 @@
 import type {
   CardsDisplay,
-  HomePageButton,
-  HomePageCard,
-  HomePageColumn,
-  HomePageColumnItem,
-  HomePageContent,
-  HomePageSection,
+  PageBuilderButton,
+  PageBuilderCard,
+  PageBuilderColumn,
+  PageBuilderColumnItem,
+  PageBuilderContent,
+  PageBuilderSection,
   ThemeColorSelection,
   ThemeColorToken
-} from '~/shared/homePage'
+} from '~/shared/pageBuilder'
 import {
   createBadgeItem,
   createButtonsItem,
   createCardsItem,
   createCarouselItem,
-  createDefaultHomePageContent,
+  createDefaultPageBuilderContent,
   createEmptyCard,
   createEmptyColumnsSection,
   createEmptyContentBlock,
@@ -26,7 +26,7 @@ import {
   createTitleItem,
   isValidIconifyName,
   THEME_COLOR_TOKENS
-} from '~/shared/homePage'
+} from '~/shared/pageBuilder'
 import { getFarmPickupConfig, getSetting, setSetting, SETTING_KEYS } from './settings'
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -72,15 +72,15 @@ function normalizeThemeColorSelection(value: unknown, fallbackToken: ThemeColorT
   }
 }
 
-function normalizeButton(value: unknown): HomePageButton | null {
+function normalizeButton(value: unknown): PageBuilderButton | null {
   if (!isObject(value)) return null
   const label = normalizeLocalizedText(value.label)
   if (!label || typeof value.href !== 'string') return null
   return {
     label,
     href: value.href,
-    tone: (typeof value.tone === 'string' ? value.tone : 'primary') as HomePageButton['tone'],
-    size: (typeof value.size === 'string' ? value.size : 'md') as HomePageButton['size'],
+    tone: (typeof value.tone === 'string' ? value.tone : 'primary') as PageBuilderButton['tone'],
+    size: (typeof value.size === 'string' ? value.size : 'md') as PageBuilderButton['size'],
     backgroundColor: normalizeThemeColorSelection(value.backgroundColor, 'primary'),
     textColor: normalizeThemeColorSelection(value.textColor, 'primary-content'),
     borderColor: normalizeThemeColorSelection(value.borderColor, 'transparent')
@@ -93,7 +93,7 @@ function sanitizeIconName(value: unknown) {
   return normalized && isValidIconifyName(normalized) ? normalized : ''
 }
 
-function normalizeCard(value: unknown): HomePageCard | null {
+function normalizeCard(value: unknown): PageBuilderCard | null {
   if (!isObject(value)) return null
   const title = normalizeLocalizedText(value.title)
   const text = normalizeLocalizedText(value.text)
@@ -103,10 +103,10 @@ function normalizeCard(value: unknown): HomePageCard | null {
     title,
     text,
     icon: sanitizeIconName(value.icon),
-    tone: (typeof value.tone === 'string' ? value.tone : 'soft') as HomePageCard['tone'],
-    size: (typeof value.size === 'string' ? value.size : 'md') as HomePageCard['size'],
-    titleSize: (typeof value.titleSize === 'string' ? value.titleSize : 'md') as HomePageCard['titleSize'],
-    textSize: (typeof value.textSize === 'string' ? value.textSize : 'sm') as HomePageCard['textSize'],
+    tone: (typeof value.tone === 'string' ? value.tone : 'soft') as PageBuilderCard['tone'],
+    size: (typeof value.size === 'string' ? value.size : 'md') as PageBuilderCard['size'],
+    titleSize: (typeof value.titleSize === 'string' ? value.titleSize : 'md') as PageBuilderCard['titleSize'],
+    textSize: (typeof value.textSize === 'string' ? value.textSize : 'sm') as PageBuilderCard['textSize'],
     backgroundColor: normalizeThemeColorSelection(value.backgroundColor, 'base-200'),
     textColor: normalizeThemeColorSelection(value.textColor, 'base-content'),
     iconColor: normalizeThemeColorSelection(value.iconColor, 'primary'),
@@ -118,7 +118,7 @@ function normalizeCard(value: unknown): HomePageCard | null {
   }
 }
 
-function normalizeColumnItem(value: unknown): HomePageColumnItem | null {
+function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
   if (!isObject(value) || typeof value.type !== 'string') return null
 
   switch (value.type) {
@@ -158,7 +158,7 @@ function normalizeColumnItem(value: unknown): HomePageColumnItem | null {
     case 'cards': {
       const item = createCardsItem(typeof value.id === 'string' ? value.id : `cards-${Math.random().toString(36).slice(2, 8)}`)
       item.display = (typeof value.display === 'string' ? value.display : 'stack') as CardsDisplay
-      item.cards = Array.isArray(value.cards) ? value.cards.map(normalizeCard).filter((card): card is HomePageCard => Boolean(card)) : []
+      item.cards = Array.isArray(value.cards) ? value.cards.map(normalizeCard).filter((card): card is PageBuilderCard => Boolean(card)) : []
       return item
     }
     case 'image': {
@@ -235,7 +235,7 @@ function normalizeSectionBackgroundSlides(value: unknown, sectionId: string) {
 }
 
 function migrateLegacyItems(value: Record<string, unknown>) {
-  const items: HomePageColumnItem[] = []
+  const items: PageBuilderColumnItem[] = []
   const badge = normalizeLocalizedText(value.badge)
   if (badge && (badge.fr || badge.en)) {
     const item = createBadgeItem(`badge-${Math.random().toString(36).slice(2, 8)}`)
@@ -257,7 +257,7 @@ function migrateLegacyItems(value: Record<string, unknown>) {
     item.size = (typeof value.textSize === 'string' ? value.textSize : 'md') as typeof item.size
     items.push(item)
   }
-  const cards = Array.isArray(value.cards) ? value.cards.map(normalizeCard).filter((card): card is HomePageCard => Boolean(card)) : []
+  const cards = Array.isArray(value.cards) ? value.cards.map(normalizeCard).filter((card): card is PageBuilderCard => Boolean(card)) : []
   if (cards.length) {
     const item = createCardsItem(`cards-${Math.random().toString(36).slice(2, 8)}`)
     item.cards = cards
@@ -275,7 +275,7 @@ function migrateLegacyItems(value: Record<string, unknown>) {
   return items
 }
 
-function normalizeColumn(value: unknown): HomePageColumn | null {
+function normalizeColumn(value: unknown): PageBuilderColumn | null {
   if (!isObject(value)) return null
 
   if (typeof value.type === 'string' && value.type === 'image') {
@@ -285,16 +285,16 @@ function normalizeColumn(value: unknown): HomePageColumn | null {
   }
 
   const column = createEmptyContentBlock()
-  column.align = (typeof value.align === 'string' ? value.align : 'start') as HomePageColumn['align']
-  column.verticalAlign = (typeof value.verticalAlign === 'string' ? value.verticalAlign : 'center') as HomePageColumn['verticalAlign']
+  column.align = (typeof value.align === 'string' ? value.align : 'start') as PageBuilderColumn['align']
+  column.verticalAlign = (typeof value.verticalAlign === 'string' ? value.verticalAlign : 'center') as PageBuilderColumn['verticalAlign']
   column.textColor = normalizeThemeColorSelection(value.textColor, 'base-content')
   column.items = Array.isArray(value.items)
-    ? value.items.map(normalizeColumnItem).filter((item): item is HomePageColumnItem => Boolean(item))
+    ? value.items.map(normalizeColumnItem).filter((item): item is PageBuilderColumnItem => Boolean(item))
     : migrateLegacyItems(value)
   return column
 }
 
-function heroToSection(hero: Record<string, unknown>): HomePageSection | null {
+function heroToSection(hero: Record<string, unknown>): PageBuilderSection | null {
   const section = createEmptyColumnsSection('migrated-hero', 1)
   const column = section.columns[0]
   if (!column) return null
@@ -342,7 +342,7 @@ function heroToSection(hero: Record<string, unknown>): HomePageSection | null {
     column.items.push(item)
   }
 
-  const highlights = Array.isArray(hero.highlights) ? hero.highlights.map(normalizeCard).filter((card): card is HomePageCard => Boolean(card)) : []
+  const highlights = Array.isArray(hero.highlights) ? hero.highlights.map(normalizeCard).filter((card): card is PageBuilderCard => Boolean(card)) : []
   if (highlights.length) {
     const item = createCardsItem('hero-cards')
     item.display = 'grid-2'
@@ -353,7 +353,7 @@ function heroToSection(hero: Record<string, unknown>): HomePageSection | null {
   return section
 }
 
-function normalizeSection(value: unknown): HomePageSection | null {
+function normalizeSection(value: unknown): PageBuilderSection | null {
   if (!isObject(value)) return null
   const count = typeof value.columnCount === 'number'
     ? value.columnCount
@@ -365,12 +365,12 @@ function normalizeSection(value: unknown): HomePageSection | null {
     count as 1 | 2 | 3 | 4
   )
   section.enabled = typeof value.enabled === 'boolean' ? value.enabled : true
-  section.tone = (typeof value.tone === 'string' ? value.tone : 'base-100') as HomePageSection['tone']
-  section.containerWidth = (typeof value.containerWidth === 'string' ? value.containerWidth : 'default') as HomePageSection['containerWidth']
-  section.contentVerticalAlign = (typeof value.contentVerticalAlign === 'string' ? value.contentVerticalAlign : 'center') as HomePageSection['contentVerticalAlign']
+  section.tone = (typeof value.tone === 'string' ? value.tone : 'base-100') as PageBuilderSection['tone']
+  section.containerWidth = (typeof value.containerWidth === 'string' ? value.containerWidth : 'default') as PageBuilderSection['containerWidth']
+  section.contentVerticalAlign = (typeof value.contentVerticalAlign === 'string' ? value.contentVerticalAlign : 'center') as PageBuilderSection['contentVerticalAlign']
   section.minHeightPx = sanitizeSectionMinHeight(value.minHeightPx)
   section.backgroundColor = normalizeThemeColorSelection(value.backgroundColor, 'base-100')
-  section.backgroundMode = (typeof value.backgroundMode === 'string' ? value.backgroundMode : 'none') as HomePageSection['backgroundMode']
+  section.backgroundMode = (typeof value.backgroundMode === 'string' ? value.backgroundMode : 'none') as PageBuilderSection['backgroundMode']
   section.backgroundImage = normalizeSectionBackgroundImage(value.backgroundImage)
   section.backgroundCarousel = normalizeSectionBackgroundSlides(value.backgroundCarousel, section.id)
   section.backgroundCarouselSettings = normalizeCarouselSettings(value.backgroundCarouselSettings)
@@ -382,7 +382,7 @@ function normalizeSection(value: unknown): HomePageSection | null {
       ? [(value as any).column]
       : []
 
-  const normalized = rawColumns.map(normalizeColumn).filter((column): column is HomePageColumn => Boolean(column))
+  const normalized = rawColumns.map(normalizeColumn).filter((column): column is PageBuilderColumn => Boolean(column))
   if (normalized.length) {
     section.columns = normalized.slice(0, section.columnCount)
     while (section.columns.length < section.columnCount) {
@@ -393,13 +393,13 @@ function normalizeSection(value: unknown): HomePageSection | null {
   return section
 }
 
-function normalizeHomePageContent(value: unknown, fallback: HomePageContent): HomePageContent {
+function normalizePageBuilderContent(value: unknown, fallback: PageBuilderContent): PageBuilderContent {
   if (!isObject(value) || value.version !== 1) {
     return fallback
   }
 
   const sections = Array.isArray(value.sections)
-    ? value.sections.map(normalizeSection).filter((section): section is HomePageSection => Boolean(section))
+    ? value.sections.map(normalizeSection).filter((section): section is PageBuilderSection => Boolean(section))
     : []
 
   if (isObject(value.hero)) {
@@ -415,21 +415,21 @@ function normalizeHomePageContent(value: unknown, fallback: HomePageContent): Ho
   }
 }
 
-export async function getHomePageContent(): Promise<HomePageContent> {
+export async function getPageBuilderContent(): Promise<PageBuilderContent> {
   const farmPickup = await getFarmPickupConfig()
-  const fallback = createDefaultHomePageContent(farmPickup.address)
-  const raw = await getSetting(SETTING_KEYS.HOME_PAGE_CONTENT)
+  const fallback = createDefaultPageBuilderContent(farmPickup.address)
+  const raw = await getSetting(SETTING_KEYS.PAGE_BUILDER_CONTENT)
   if (!raw) return fallback
   try {
-    return normalizeHomePageContent(JSON.parse(raw), fallback)
+    return normalizePageBuilderContent(JSON.parse(raw), fallback)
   } catch {
     return fallback
   }
 }
 
-export async function saveHomePageContent(content: HomePageContent) {
+export async function savePageBuilderContent(content: PageBuilderContent) {
   const farmPickup = await getFarmPickupConfig()
-  const fallback = createDefaultHomePageContent(farmPickup.address)
-  const normalized = normalizeHomePageContent(content, fallback)
-  await setSetting(SETTING_KEYS.HOME_PAGE_CONTENT, JSON.stringify(normalized))
+  const fallback = createDefaultPageBuilderContent(farmPickup.address)
+  const normalized = normalizePageBuilderContent(content, fallback)
+  await setSetting(SETTING_KEYS.PAGE_BUILDER_CONTENT, JSON.stringify(normalized))
 }
