@@ -2,6 +2,7 @@
   <div class="bg-base-100">
     <component
       :is="applicationComponent"
+      v-bind="applicationProps"
       v-if="showApplication && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
     />
 
@@ -15,6 +16,7 @@
 
     <component
       :is="applicationComponent"
+      v-bind="applicationProps"
       v-if="showApplication && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
     />
   </div>
@@ -25,6 +27,7 @@ import type { ResolvedCmsPage } from '~/shared/cms'
 import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
 import PageRenderer from '~/components/page-builder/PageRenderer.vue'
 import BasketsPage from '~/components/pages/BasketsPage.vue'
+import NewsListPage from '~/components/pages/NewsListPage.vue'
 
 const props = defineProps<{
   resolvedPage: ResolvedCmsPage
@@ -36,12 +39,28 @@ defineEmits<{
   edit: [target: PageBuilderEditTarget]
 }>()
 
+const siteConfig = useSiteConfigState()
+const cmsSettings = computed(() => siteConfig.value?.cms?.settings)
+
 const applicationComponent = computed(() => {
   switch (props.resolvedPage.rendererKey) {
     case 'baskets':
       return BasketsPage
+    case 'news':
+      return NewsListPage
     default:
       return null
+  }
+})
+
+const applicationProps = computed(() => {
+  switch (props.resolvedPage.rendererKey) {
+    case 'baskets':
+      return { settings: cmsSettings.value?.basketsPage ?? null }
+    case 'news':
+      return { settings: cmsSettings.value?.newsPage ?? null }
+    default:
+      return {}
   }
 })
 

@@ -27,6 +27,7 @@ import {
   createDefaultCmsNavigationItems,
   createDefaultCmsShellLink,
   createDefaultCmsSiteSettings,
+  createEmptyCmsPageSeo,
   createEmptyPageBuilderContent,
   createEmptyCmsLocalizedText
 } from '~/shared/cms'
@@ -182,6 +183,21 @@ function normalizeFooterColumns(value: unknown) {
   const defaults = createDefaultCmsFooterColumns()
   const source = Array.isArray(value) ? value.slice(0, 4) : []
   return defaults.map((fallback, index) => normalizeFooterColumn(source[index] ?? fallback, index))
+}
+
+function mergeMissingDefaultNavigationItems(items: Array<CmsNavigationItemPayload & { id?: number | null }>, menu?: CmsNavigationMenu) {
+  const defaults = createDefaultCmsNavigationItems().filter((item) => !menu || item.menu === menu)
+  const existingKeys = new Set(items.map((item) => `${item.menu}:${item.href}`))
+  const appended = defaults
+    .filter((item) => !existingKeys.has(`${item.menu}:${item.href}`))
+    .map((item) => ({ id: null, ...item }))
+
+  return [...items, ...appended].sort((a, b) => a.position - b.position)
+}
+
+function normalizeGridColumns(value: unknown, fallback: 1 | 2 | 3 | 4, max: 1 | 2 | 3 | 4 = 4) {
+  const normalized = typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : fallback
+  return Math.max(1, Math.min(max, normalized)) as 1 | 2 | 3 | 4
 }
 
 function normalizeSeo(value: unknown): CmsPageSeo {
@@ -360,6 +376,30 @@ function createLegacyBasketsResolvedPage(locale: string): ResolvedCmsPage {
   }
 }
 
+function createLegacyNewsResolvedPage(locale: string): ResolvedCmsPage {
+  return {
+    id: null,
+    path: '/news',
+    slug: 'news',
+    pageType: 'APPLICATION',
+    status: 'PUBLISHED',
+    templateKey: 'default',
+    rendererKey: 'news',
+    applicationPosition: 'AFTER_CONTENT',
+    title: locale === 'en' ? 'News' : 'Actualités',
+    navigationLabel: locale === 'en' ? 'News' : 'Actualités',
+    seo: {
+      metaTitle: locale === 'en' ? 'Farm news and updates' : 'Actualités de la ferme',
+      metaDescription: locale === 'en'
+        ? 'Read the latest farm news, updates and seasonal highlights from Ferme du Campeyrigoux.'
+        : 'Suivez les actualités, les nouveautés et les temps forts de saison de la Ferme du Campeyrigoux.',
+      ogImage: '',
+      noindex: false
+    },
+    content: createEmptyPageBuilderContent()
+  }
+}
+
 export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
   const raw = await getSetting(SETTING_KEYS.CMS_SITE_SETTINGS)
   const parsed = parseJson<CmsSiteSettings>(raw)
@@ -411,7 +451,45 @@ export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
             icon: typeof link.icon === 'string' ? link.icon : ''
           }))
           .filter((link) => Boolean(link.href))
-      : fallback.socialLinks
+      : fallback.socialLinks,
+    basketsPage: isObject(parsed.basketsPage)
+      ? {
+          title: normalizeLocalizedText(parsed.basketsPage.title),
+          subtitle: normalizeLocalizedText(parsed.basketsPage.subtitle),
+          containerWidth: typeof parsed.basketsPage.containerWidth === 'string'
+            ? parsed.basketsPage.containerWidth as CmsSiteSettings['basketsPage']['containerWidth']
+            : fallback.basketsPage.containerWidth,
+          gridColumns: normalizeGridColumns(parsed.basketsPage.gridColumns, fallback.basketsPage.gridColumns, 4),
+          showOrdersBanner: typeof parsed.basketsPage.showOrdersBanner === 'boolean' ? parsed.basketsPage.showOrdersBanner : fallback.basketsPage.showOrdersBanner,
+          showDescriptions: typeof parsed.basketsPage.showDescriptions === 'boolean' ? parsed.basketsPage.showDescriptions : fallback.basketsPage.showDescriptions,
+          showComposition: typeof parsed.basketsPage.showComposition === 'boolean' ? parsed.basketsPage.showComposition : fallback.basketsPage.showComposition,
+          showImages: typeof parsed.basketsPage.showImages === 'boolean' ? parsed.basketsPage.showImages : fallback.basketsPage.showImages,
+          showAvailabilityBadges: typeof parsed.basketsPage.showAvailabilityBadges === 'boolean' ? parsed.basketsPage.showAvailabilityBadges : fallback.basketsPage.showAvailabilityBadges,
+          showPrice: typeof parsed.basketsPage.showPrice === 'boolean' ? parsed.basketsPage.showPrice : fallback.basketsPage.showPrice,
+          cardBackgroundColor: normalizeThemeColorSelection(parsed.basketsPage.cardBackgroundColor, fallback.basketsPage.cardBackgroundColor || createThemeColorSelection('base-200')),
+          itemBackgroundColor: normalizeThemeColorSelection(parsed.basketsPage.itemBackgroundColor, fallback.basketsPage.itemBackgroundColor || createThemeColorSelection('base-200'))
+        }
+      : fallback.basketsPage,
+    newsPage: isObject(parsed.newsPage)
+      ? {
+          title: normalizeLocalizedText(parsed.newsPage.title),
+          subtitle: normalizeLocalizedText(parsed.newsPage.subtitle),
+          containerWidth: typeof parsed.newsPage.containerWidth === 'string'
+            ? parsed.newsPage.containerWidth as CmsSiteSettings['newsPage']['containerWidth']
+            : fallback.newsPage.containerWidth,
+          defaultViewMode: parsed.newsPage.defaultViewMode === 'list' ? 'list' : fallback.newsPage.defaultViewMode,
+          gridColumns: normalizeGridColumns(parsed.newsPage.gridColumns, fallback.newsPage.gridColumns, 3) as 1 | 2 | 3,
+          showSort: typeof parsed.newsPage.showSort === 'boolean' ? parsed.newsPage.showSort : fallback.newsPage.showSort,
+          showViewToggle: typeof parsed.newsPage.showViewToggle === 'boolean' ? parsed.newsPage.showViewToggle : fallback.newsPage.showViewToggle,
+          showCoverImage: typeof parsed.newsPage.showCoverImage === 'boolean' ? parsed.newsPage.showCoverImage : fallback.newsPage.showCoverImage,
+          showPublishedDate: typeof parsed.newsPage.showPublishedDate === 'boolean' ? parsed.newsPage.showPublishedDate : fallback.newsPage.showPublishedDate,
+          showExcerpt: typeof parsed.newsPage.showExcerpt === 'boolean' ? parsed.newsPage.showExcerpt : fallback.newsPage.showExcerpt,
+          excerptLines: [2, 3, 4].includes(Number(parsed.newsPage.excerptLines))
+            ? Number(parsed.newsPage.excerptLines) as 2 | 3 | 4
+            : fallback.newsPage.excerptLines,
+          cardBackgroundColor: normalizeThemeColorSelection(parsed.newsPage.cardBackgroundColor, fallback.newsPage.cardBackgroundColor || createThemeColorSelection('base-200'))
+        }
+      : fallback.newsPage
   }
 }
 
@@ -420,6 +498,7 @@ export async function saveCmsSiteSettings(settings: CmsSiteSettings) {
 }
 
 export async function listCmsPages() {
+  await ensureCmsSystemPages()
   const rows = await withCmsTableFallback(() => prisma.cmsPage.findMany({
     orderBy: [
       { path: 'asc' }
@@ -486,6 +565,49 @@ export async function ensureCmsRootPage() {
   return created?.id ?? null
 }
 
+async function ensureCmsApplicationPage(path: string, slug: string, titleFr: string, titleEn: string, rendererKey: string) {
+  const existing = await withCmsTableFallback(
+    () => prisma.cmsPage.findFirst({ where: { path } }),
+    async () => null
+  )
+
+  if (existing) {
+    return existing.id
+  }
+
+  const created = await saveCmsPage(null, {
+    ...createDefaultCmsPagePayload(path, titleFr),
+    path,
+    slug,
+    pageType: 'APPLICATION',
+    status: 'PUBLISHED',
+    rendererKey,
+    title: titleFr,
+    translations: {
+      fr: {
+        title: titleFr,
+        navigationLabel: titleFr,
+        seo: createEmptyCmsPageSeo(),
+        content: createEmptyPageBuilderContent()
+      },
+      en: {
+        title: titleEn,
+        navigationLabel: titleEn,
+        seo: createEmptyCmsPageSeo(),
+        content: createEmptyPageBuilderContent()
+      }
+    }
+  })
+
+  return created?.id ?? null
+}
+
+export async function ensureCmsSystemPages() {
+  await ensureCmsRootPage()
+  await ensureCmsApplicationPage('/paniers', 'paniers', 'Paniers', 'Baskets', 'baskets')
+  await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
+}
+
 export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
   const normalizedPath = normalizePath(payload.path)
   const data = {
@@ -537,6 +659,38 @@ export async function deleteCmsPage(id: number) {
   }, async () => undefined)
 }
 
+export async function duplicateCmsPage(id: number) {
+  const existing = await getCmsPageById(id)
+  if (!existing) return null
+
+  const allPages = await listCmsPages()
+  const existingPaths = new Set(allPages.map(page => page.path))
+  const existingSlugs = new Set(allPages.map(page => page.slug))
+
+  let path = `${existing.path}-copie`.replace(/\/+/g, '/')
+  if (path === '//') path = '/copie'
+  let slug = `${existing.slug}-copie`
+  let suffix = 2
+
+  while (existingPaths.has(path)) {
+    path = `${existing.path}-copie-${suffix}`.replace(/\/+/g, '/')
+    suffix += 1
+  }
+
+  suffix = 2
+  while (existingSlugs.has(slug)) {
+    slug = `${existing.slug}-copie-${suffix}`
+    suffix += 1
+  }
+
+  return await saveCmsPage(null, {
+    ...existing,
+    path,
+    slug,
+    title: `${existing.title} (copie)`
+  })
+}
+
 export async function listCmsNavigationItems(menu?: CmsNavigationMenu) {
   const rows = await withCmsTableFallback(() => prisma.cmsNavigationItem.findMany({
     where: menu ? { menu } : undefined,
@@ -548,18 +702,21 @@ export async function listCmsNavigationItems(menu?: CmsNavigationMenu) {
   }), async () => [])
 
   if (!rows.length) {
-    return createDefaultCmsNavigationItems()
-      .filter((item) => !menu || item.menu === menu)
-      .map((item) => ({
-        id: null,
-        ...item
-      }))
+    return mergeMissingDefaultNavigationItems(
+      createDefaultCmsNavigationItems()
+        .filter((item) => !menu || item.menu === menu)
+        .map((item) => ({
+          id: null,
+          ...item
+        })),
+      menu
+    )
   }
 
-  return rows.map((row) => ({
+  return mergeMissingDefaultNavigationItems(rows.map((row) => ({
     id: row.id,
     ...navigationRowToPayload(row)
-  }))
+  })), menu)
 }
 
 export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPayload & { id?: number | null }>) {
@@ -626,12 +783,18 @@ async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string) {
   }), async () => [])
 
   if (!rows.length) {
-    return createDefaultCmsNavigationItems()
-      .filter((item) => item.menu === menu && item.visible)
-      .map((item, index) => navigationPayloadToResolved(-(index + 1), item, locale))
+    return mergeMissingDefaultNavigationItems(
+      createDefaultCmsNavigationItems()
+        .filter((item) => item.menu === menu && item.visible)
+        .map((item) => ({ id: null, ...item })),
+      menu
+    ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale))
   }
 
-  return rows.map((row) => navigationPayloadToResolved(row.id, navigationRowToPayload(row), locale))
+  return mergeMissingDefaultNavigationItems(
+    rows.map((row) => ({ id: row.id, ...navigationRowToPayload(row) })),
+    menu
+  ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale))
 }
 
 export async function getPublicSiteShell(locale: string): Promise<PublicSiteShell> {
@@ -689,6 +852,10 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
     return createLegacyBasketsResolvedPage(locale)
   }
 
+  if (normalizedPath === '/news') {
+    return createLegacyNewsResolvedPage(locale)
+  }
+
   return null
 }
 
@@ -735,6 +902,8 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
   const faviconValue = isObject(value.favicon) ? value.favicon : {}
   const headerValue = isObject(value.header) ? value.header : {}
   const footerValue = isObject(value.footer) ? value.footer : {}
+  const basketsPageValue = isObject(value.basketsPage) ? value.basketsPage : {}
+  const newsPageValue = isObject(value.newsPage) ? value.newsPage : {}
 
   return {
     siteName: normalizeLocalizedText(value.siteName),
@@ -772,7 +941,37 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
             icon: typeof link.icon === 'string' ? link.icon.trim() : ''
           }))
           .filter((link) => Boolean(link.href))
-      : fallback.socialLinks
+      : fallback.socialLinks,
+    basketsPage: {
+      title: normalizeLocalizedText(basketsPageValue.title),
+      subtitle: normalizeLocalizedText(basketsPageValue.subtitle),
+      containerWidth: typeof basketsPageValue.containerWidth === 'string' ? basketsPageValue.containerWidth as CmsSiteSettings['basketsPage']['containerWidth'] : fallback.basketsPage.containerWidth,
+      gridColumns: normalizeGridColumns(basketsPageValue.gridColumns, fallback.basketsPage.gridColumns, 4),
+      showOrdersBanner: typeof basketsPageValue.showOrdersBanner === 'boolean' ? basketsPageValue.showOrdersBanner : fallback.basketsPage.showOrdersBanner,
+      showDescriptions: typeof basketsPageValue.showDescriptions === 'boolean' ? basketsPageValue.showDescriptions : fallback.basketsPage.showDescriptions,
+      showComposition: typeof basketsPageValue.showComposition === 'boolean' ? basketsPageValue.showComposition : fallback.basketsPage.showComposition,
+      showImages: typeof basketsPageValue.showImages === 'boolean' ? basketsPageValue.showImages : fallback.basketsPage.showImages,
+      showAvailabilityBadges: typeof basketsPageValue.showAvailabilityBadges === 'boolean' ? basketsPageValue.showAvailabilityBadges : fallback.basketsPage.showAvailabilityBadges,
+      showPrice: typeof basketsPageValue.showPrice === 'boolean' ? basketsPageValue.showPrice : fallback.basketsPage.showPrice,
+      cardBackgroundColor: normalizeThemeColorSelection(basketsPageValue.cardBackgroundColor, fallback.basketsPage.cardBackgroundColor || createThemeColorSelection('base-200')),
+      itemBackgroundColor: normalizeThemeColorSelection(basketsPageValue.itemBackgroundColor, fallback.basketsPage.itemBackgroundColor || createThemeColorSelection('base-200'))
+    },
+    newsPage: {
+      title: normalizeLocalizedText(newsPageValue.title),
+      subtitle: normalizeLocalizedText(newsPageValue.subtitle),
+      containerWidth: typeof newsPageValue.containerWidth === 'string' ? newsPageValue.containerWidth as CmsSiteSettings['newsPage']['containerWidth'] : fallback.newsPage.containerWidth,
+      defaultViewMode: newsPageValue.defaultViewMode === 'list' ? 'list' : fallback.newsPage.defaultViewMode,
+      gridColumns: normalizeGridColumns(newsPageValue.gridColumns, fallback.newsPage.gridColumns, 3) as 1 | 2 | 3,
+      showSort: typeof newsPageValue.showSort === 'boolean' ? newsPageValue.showSort : fallback.newsPage.showSort,
+      showViewToggle: typeof newsPageValue.showViewToggle === 'boolean' ? newsPageValue.showViewToggle : fallback.newsPage.showViewToggle,
+      showCoverImage: typeof newsPageValue.showCoverImage === 'boolean' ? newsPageValue.showCoverImage : fallback.newsPage.showCoverImage,
+      showPublishedDate: typeof newsPageValue.showPublishedDate === 'boolean' ? newsPageValue.showPublishedDate : fallback.newsPage.showPublishedDate,
+      showExcerpt: typeof newsPageValue.showExcerpt === 'boolean' ? newsPageValue.showExcerpt : fallback.newsPage.showExcerpt,
+      excerptLines: [2, 3, 4].includes(Number(newsPageValue.excerptLines))
+        ? Number(newsPageValue.excerptLines) as 2 | 3 | 4
+        : fallback.newsPage.excerptLines,
+      cardBackgroundColor: normalizeThemeColorSelection(newsPageValue.cardBackgroundColor, fallback.newsPage.cardBackgroundColor || createThemeColorSelection('base-200'))
+    }
   }
 }
 

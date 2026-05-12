@@ -49,6 +49,8 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
       items: [
         { id: 'customization-layout', label: 'Mise en page', path: '/admin/personnalisation/mise-en-page', icon: 'mdi:home-edit-outline', activePaths: ['/admin/personnalisation/mise-en-page'] },
         { id: 'customization-navigation', label: 'Navigation', path: '/admin/personnalisation/navigation', icon: 'mdi:menu', activePaths: ['/admin/personnalisation/navigation'] },
+        { id: 'customization-baskets', label: 'Paniers', path: '/admin/personnalisation/paniers', icon: 'mdi:basket-outline', activePaths: ['/admin/personnalisation/paniers'] },
+        { id: 'customization-news', label: 'Actualité', path: '/admin/personnalisation/actualites', icon: 'mdi:newspaper-variant-outline', activePaths: ['/admin/personnalisation/actualites'] },
         { id: 'customization-theme', label: 'Thèmes', path: '/admin/personnalisation/themes', icon: 'mdi:palette-outline', activePaths: ['/admin/personnalisation/themes'] },
         { id: 'customization-images', label: 'Images', path: '/admin/personnalisation/images', icon: 'mdi:image-multiple-outline', activePaths: ['/admin/personnalisation/images'] },
       ]

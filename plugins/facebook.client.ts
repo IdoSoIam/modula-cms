@@ -13,7 +13,7 @@ export default defineNuxtPlugin(async () => {
   }
 
   if (facebookDeactivated) {
-    console.log('[Facebook Plugin] Facebook is deactivated, skipping SDK load')
+    //console.log('[Facebook Plugin] Facebook is deactivated, skipping SDK load')
     return
   }
 

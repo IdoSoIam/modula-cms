@@ -12,6 +12,8 @@ export type CmsNavigationMenu = 'PRIMARY' | 'FOOTER'
 export type CmsNavigationItemType = 'CMS_PAGE' | 'APPLICATION_ROUTE' | 'EXTERNAL_URL'
 export type CmsFooterAlign = 'start' | 'center'
 export type CmsFooterContainerAlign = 'start' | 'center' | 'between'
+export type CmsApplicationGridColumns = 1 | 2 | 3 | 4
+export type CmsApplicationViewMode = 'grid' | 'list'
 
 export interface CmsLocalizedText {
   fr: string
@@ -93,6 +95,36 @@ export interface CmsFooterSettings {
   textColor?: ThemeColorSelection | null
 }
 
+export interface CmsBasketsPageSettings {
+  title: CmsLocalizedText
+  subtitle: CmsLocalizedText
+  containerWidth: SectionContainerWidth
+  gridColumns: CmsApplicationGridColumns
+  showOrdersBanner: boolean
+  showDescriptions: boolean
+  showComposition: boolean
+  showImages: boolean
+  showAvailabilityBadges: boolean
+  showPrice: boolean
+  cardBackgroundColor?: ThemeColorSelection | null
+  itemBackgroundColor?: ThemeColorSelection | null
+}
+
+export interface CmsNewsPageSettings {
+  title: CmsLocalizedText
+  subtitle: CmsLocalizedText
+  containerWidth: SectionContainerWidth
+  defaultViewMode: CmsApplicationViewMode
+  gridColumns: Exclude<CmsApplicationGridColumns, 4>
+  showSort: boolean
+  showViewToggle: boolean
+  showCoverImage: boolean
+  showPublishedDate: boolean
+  showExcerpt: boolean
+  excerptLines: 2 | 3 | 4
+  cardBackgroundColor?: ThemeColorSelection | null
+}
+
 export interface CmsSiteSettings {
   siteName: CmsLocalizedText
   siteTagline: CmsLocalizedText
@@ -101,6 +133,8 @@ export interface CmsSiteSettings {
   header: CmsHeaderSettings
   footer: CmsFooterSettings
   socialLinks: CmsSocialLink[]
+  basketsPage: CmsBasketsPageSettings
+  newsPage: CmsNewsPageSettings
 }
 
 export interface CmsPageSeo {
@@ -252,7 +286,47 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
         href: 'https://www.facebook.com/profile.php?id=61571709076079',
         icon: 'mdi:facebook'
       }
-    ]
+    ],
+    basketsPage: {
+      title: {
+        fr: 'Paniers',
+        en: 'Baskets'
+      },
+      subtitle: {
+        fr: 'Consultez les paniers disponibles et choisissez votre mode de retrait ou de livraison.',
+        en: 'Browse available baskets and choose your pickup or delivery option.'
+      },
+      containerWidth: 'wide',
+      gridColumns: 3,
+      showOrdersBanner: true,
+      showDescriptions: true,
+      showComposition: true,
+      showImages: true,
+      showAvailabilityBadges: true,
+      showPrice: true,
+      cardBackgroundColor: createThemeColorSelection('base-200'),
+      itemBackgroundColor: createThemeColorSelection('base-200')
+    },
+    newsPage: {
+      title: {
+        fr: 'Actualités',
+        en: 'News'
+      },
+      subtitle: {
+        fr: 'Suivez les actualités, les nouveautés et les temps forts de saison de la ferme.',
+        en: 'Follow the latest farm news, updates and seasonal highlights.'
+      },
+      containerWidth: 'wide',
+      defaultViewMode: 'grid',
+      gridColumns: 2,
+      showSort: true,
+      showViewToggle: true,
+      showCoverImage: true,
+      showPublishedDate: true,
+      showExcerpt: true,
+      excerptLines: 3,
+      cardBackgroundColor: createThemeColorSelection('base-200')
+    }
   }
 }
 
@@ -488,4 +562,18 @@ export const CMS_FOOTER_CONTAINER_ALIGN_LABELS: Record<CmsFooterContainerAlign, 
   start: 'Début',
   center: 'Centre',
   between: 'Réparti'
+}
+
+export const CMS_APPLICATION_GRID_COLUMNS = [1, 2, 3, 4] as const
+export const CMS_APPLICATION_GRID_COLUMN_LABELS: Record<CmsApplicationGridColumns, string> = {
+  1: '1 colonne',
+  2: '2 colonnes',
+  3: '3 colonnes',
+  4: '4 colonnes'
+}
+
+export const CMS_APPLICATION_VIEW_MODES = ['grid', 'list'] as const
+export const CMS_APPLICATION_VIEW_MODE_LABELS: Record<CmsApplicationViewMode, string> = {
+  grid: 'Grille',
+  list: 'Liste'
 }

@@ -8,7 +8,7 @@
         </p>
       </div>
 
-      <button class="btn btn-primary" :disabled="creating" @click="createPage">
+      <button type="button" class="btn btn-primary" :disabled="creating" @click="createPage">
         <span v-if="creating" class="loading loading-spinner loading-sm" />
         Nouvelle page
       </button>
@@ -41,7 +41,8 @@
             <td class="text-right">
               <div class="flex justify-end gap-2">
                 <NuxtLink class="btn btn-sm" :to="localePath(`/admin/pages/${page.id}`)">Éditer</NuxtLink>
-                <button class="btn btn-sm btn-outline btn-error" @click="removePage(page.id, page.title)">Supprimer</button>
+                <button type="button" class="btn btn-sm btn-outline" @click="duplicatePage(page.id)">Dupliquer</button>
+                <button type="button" class="btn btn-sm btn-outline btn-error" @click="removePage(page.id, page.title)">Supprimer</button>
               </div>
             </td>
           </tr>
@@ -138,6 +139,18 @@ const removePage = async (id: number, title: string) => {
     await refresh()
   } catch (error: any) {
     $toast?.error(error.statusMessage || 'Impossible de supprimer la page')
+  }
+}
+
+const duplicatePage = async (id: number) => {
+  try {
+    const duplicated = await $fetch<{ id: number }>(`/api/admin/cms/pages/${id}/duplicate`, {
+      method: 'POST'
+    })
+    $toast?.success('Page dupliquée')
+    await router.push(localePath(`/admin/pages/${duplicated.id}`))
+  } catch (error: any) {
+    $toast?.error(error.statusMessage || 'Impossible de dupliquer la page')
   }
 }
 </script>

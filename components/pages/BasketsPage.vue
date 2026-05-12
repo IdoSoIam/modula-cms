@@ -1,13 +1,13 @@
 <template>
-  <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+  <div class="mx-auto w-full px-4 py-10 sm:px-6 lg:px-8" :class="containerClass">
     <header class="mb-10 text-center">
-      <h1 class="mb-2 text-4xl font-bold">{{ $t('pages.baskets.title') }}</h1>
-      <p class="mx-auto max-w-2xl opacity-70">
-        {{ $t('pages.baskets.subtitle') }}
+      <h1 class="mb-2 text-4xl font-bold">{{ pageTitle }}</h1>
+      <p v-if="pageSubtitle" class="mx-auto max-w-2xl opacity-70">
+        {{ pageSubtitle }}
       </p>
     </header>
 
-    <div v-if="!ordersOpen" class="alert alert-warning mx-auto mb-8 max-w-3xl">
+    <div v-if="effectiveSettings.showOrdersBanner && !ordersOpen" class="alert alert-warning mx-auto mb-8 max-w-3xl">
       <Icon name="mdi:clock-alert-outline" size="20" />
       <span>{{ ordersClosedBanner }}</span>
     </div>
@@ -24,7 +24,7 @@
       <div class="grid gap-0 lg:grid-cols-[1.1fr_.9fr]">
         <div class="relative min-h-[320px] bg-base-200">
           <img
-            v-if="singleBasket.imageUrl"
+            v-if="effectiveSettings.showImages && singleBasket.imageUrl"
             :src="singleBasket.imageUrl"
             :alt="singleBasket.name"
             class="h-full w-full object-cover"
@@ -34,27 +34,28 @@
           </div>
           <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-6 text-white">
             <div class="flex flex-wrap items-center gap-3">
-              <span class="badge badge-primary badge-lg border-0">{{ $formatPrice(singleBasket.finalPrice) }}</span>
-              <span v-if="singleBasket.remaining === 0" class="badge badge-error badge-lg">{{ $t('pages.baskets.complete') }}</span>
-              <span v-else-if="singleBasket.remaining <= 3" class="badge badge-warning badge-lg">
+              <span v-if="effectiveSettings.showPrice" class="badge badge-primary badge-lg border-0">{{ $formatPrice(singleBasket.finalPrice) }}</span>
+              <span v-if="effectiveSettings.showAvailabilityBadges && singleBasket.remaining === 0" class="badge badge-error badge-lg">{{ $t('pages.baskets.complete') }}</span>
+              <span v-else-if="effectiveSettings.showAvailabilityBadges && singleBasket.remaining <= 3" class="badge badge-warning badge-lg">
                 {{ $t('pages.baskets.remaining', { count: singleBasket.remaining }) }}
               </span>
             </div>
             <h2 class="mt-4 text-4xl font-black tracking-tight">{{ singleBasket.name }}</h2>
-            <p v-if="singleBasket.description" class="mt-3 max-w-2xl text-sm text-white/85 md:text-base">{{ singleBasket.description }}</p>
+            <p v-if="effectiveSettings.showDescriptions && singleBasket.description" class="mt-3 max-w-2xl text-sm text-white/85 md:text-base">{{ singleBasket.description }}</p>
           </div>
         </div>
 
         <div class="flex flex-col justify-between gap-6 p-6 md:p-8">
           <div>
-            <div class="mb-3 text-sm font-semibold uppercase tracking-[0.22em] text-primary">
+            <div v-if="effectiveSettings.showComposition" class="mb-3 text-sm font-semibold uppercase tracking-[0.22em] text-primary">
               {{ $t('pages.baskets.composition', { count: singleBasket.items.length }) }}
             </div>
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div v-if="effectiveSettings.showComposition" class="grid gap-3 sm:grid-cols-2">
               <div
                 v-for="(item, idx) in singleBasket.items"
                 :key="`${singleBasket.id}-${idx}`"
                 class="rounded-2xl border border-base-300 bg-base-200/70 p-4"
+                :style="itemCardStyle"
               >
                 <button
                   v-if="item.vegetable.imageUrl"
@@ -73,7 +74,7 @@
 
           <div class="rounded-2xl border border-base-300 bg-base-200 p-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
-              <div>
+              <div v-if="effectiveSettings.showPrice">
                 <div class="text-sm uppercase tracking-[0.18em] opacity-60">{{ $t('pages.baskets.reserve') }}</div>
                 <div class="mt-1 text-3xl font-bold text-primary">{{ $formatPrice(singleBasket.finalPrice) }}</div>
               </div>
@@ -90,33 +91,34 @@
       </div>
     </div>
 
-    <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2" :class="gridColumnsClass">
       <div
         v-for="basket in baskets"
         :key="basket.id"
-        class="card bg-base-200 shadow-xl"
+        class="card shadow-xl"
+        :style="cardStyle"
       >
-        <figure v-if="basket.imageUrl" class="h-48 overflow-hidden">
+        <figure v-if="effectiveSettings.showImages && basket.imageUrl" class="h-48 overflow-hidden">
           <img :src="basket.imageUrl" :alt="basket.name" class="h-full w-full object-cover" />
         </figure>
 
         <div class="card-body">
           <h2 class="card-title">
             {{ basket.name }}
-            <span v-if="basket.remaining === 0" class="badge badge-error">{{ $t('pages.baskets.complete') }}</span>
-            <span v-else-if="basket.remaining <= 3" class="badge badge-warning">
+            <span v-if="effectiveSettings.showAvailabilityBadges && basket.remaining === 0" class="badge badge-error">{{ $t('pages.baskets.complete') }}</span>
+            <span v-else-if="effectiveSettings.showAvailabilityBadges && basket.remaining <= 3" class="badge badge-warning">
               {{ $t('pages.baskets.remaining', { count: basket.remaining }) }}
             </span>
           </h2>
 
-          <p v-if="basket.description" class="opacity-80">{{ basket.description }}</p>
+          <p v-if="effectiveSettings.showDescriptions && basket.description" class="opacity-80">{{ basket.description }}</p>
 
-          <div class="mt-2">
+          <div v-if="effectiveSettings.showComposition" class="mt-2">
             <details class="collapse collapse-arrow overflow-visible bg-base-300">
               <summary class="collapse-title text-sm font-medium">
                 {{ $t('pages.baskets.composition', { count: basket.items.length }) }}
               </summary>
-              <div class="collapse-content text-sm">
+              <div class="collapse-content text-sm" :style="itemCardStyle">
                 <ul class="list-disc list-inside">
                   <li
                     v-for="(item, idx) in basket.items"
@@ -152,7 +154,7 @@
           </div>
 
           <div class="mt-4 flex items-center justify-between">
-            <div class="text-2xl font-bold text-primary">{{ $formatPrice(basket.finalPrice) }}</div>
+            <div v-if="effectiveSettings.showPrice" class="text-2xl font-bold text-primary">{{ $formatPrice(basket.finalPrice) }}</div>
             <button
               class="btn btn-primary"
               :disabled="basket.remaining === 0 || !ordersOpen"
@@ -443,6 +445,8 @@
 </template>
 
 <script setup lang="ts">
+import type { CmsBasketsPageSettings } from '~/shared/cms'
+import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
 interface PublicBasket {
   id: number
   name: string
@@ -499,7 +503,16 @@ interface SiteConfig {
   facebookFluxDeactivated: boolean
   ordersWindow: OrdersWindow
   subscriptionsEnabled: boolean
+  cms?: {
+    settings?: {
+      basketsPage?: CmsBasketsPageSettings
+    }
+  }
 }
+
+const props = defineProps<{
+  settings?: CmsBasketsPageSettings | null
+}>()
 
 interface DeliveryOptions {
   farmPickup: { label: string; address: string; dayOfWeek: number; startTime: string; endTime: string; nextDate: string; slotLabel: string }
@@ -515,6 +528,7 @@ const deliveryOptions = ref<DeliveryOptions | null>(null)
 const deliveryOptionsLoading = ref(false)
 const deliveryCities = ref<DeliveryCity[]>([])
 const deliveryCitiesLoading = ref(false)
+const defaultSettings = createDefaultCmsSiteSettings().basketsPage
 
 usePageSeo({
   title: computed(() => locale.value === 'en' ? 'Reserve a vegetable basket' : 'Réserver un panier de légumes'),
@@ -527,6 +541,47 @@ const ordersOpen = computed(() => siteConfig.value?.ordersWindow?.isOpen ?? true
 const ordersWindow = computed(() => siteConfig.value?.ordersWindow)
 const subscriptionsEnabled = computed(() => siteConfig.value?.subscriptionsEnabled ?? false)
 const singleBasket = computed(() => baskets.value?.length === 1 ? baskets.value[0] : null)
+const effectiveSettings = computed(() => props.settings || siteConfig.value?.cms?.settings?.basketsPage || defaultSettings)
+const pageTitle = computed(() => pickCmsLocalizedText(locale.value, effectiveSettings.value.title) || t('pages.baskets.title'))
+const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value, effectiveSettings.value.subtitle) || t('pages.baskets.subtitle'))
+
+const containerClass = computed(() => {
+  switch (effectiveSettings.value.containerWidth) {
+    case 'narrow': return 'max-w-3xl'
+    case 'default': return 'max-w-5xl'
+    case 'wide': return 'max-w-6xl'
+    case 'xwide': return 'max-w-7xl'
+    case 'edge': return 'max-w-[90rem]'
+    case 'full': return 'max-w-none'
+    default: return 'max-w-6xl'
+  }
+})
+
+const gridColumnsClass = computed(() => {
+  switch (effectiveSettings.value.gridColumns) {
+    case 1: return 'lg:grid-cols-1'
+    case 2: return 'lg:grid-cols-2'
+    case 4: return 'lg:grid-cols-4'
+    default: return 'lg:grid-cols-3'
+  }
+})
+
+const tokenToCssVar = (token?: string | null) => {
+  if (!token) return ''
+  if (token === 'white') return 'rgba(255,255,255,1)'
+  if (token === 'white-90') return 'rgba(255,255,255,.9)'
+  if (token === 'white-70') return 'rgba(255,255,255,.7)'
+  if (token === 'white-10') return 'rgba(255,255,255,.1)'
+  if (token === 'transparent') return 'transparent'
+  return `var(--color-${token})`
+}
+
+const cardStyle = computed(() => ({
+  backgroundColor: tokenToCssVar(effectiveSettings.value.cardBackgroundColor?.token || 'base-200')
+}))
+const itemCardStyle = computed(() => ({
+  backgroundColor: tokenToCssVar(effectiveSettings.value.itemBackgroundColor?.token || 'base-200')
+}))
 
 const formatLongDate = (value: string) =>
   new Date(value).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', {
