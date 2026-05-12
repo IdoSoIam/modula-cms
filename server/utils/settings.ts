@@ -36,6 +36,7 @@ export const SETTING_KEYS = {
   GOOGLE_CALENDAR_NAME: 'google_calendar_name',
   HOME_PAGE_CONTENT: 'home_page_content_v1',
   CMS_SITE_SETTINGS: 'cms_site_settings_v1',
+  DAISYUI_THEME_CONFIG: 'daisyui_theme_config_v1',
   FACEBOOK_FLUX_DEACTIVATED: 'facebook_flux_deactivated',
   IN_DEVELOPMENT: 'in_development',
   ORDERS_OPEN_FROM: 'orders_open_from',

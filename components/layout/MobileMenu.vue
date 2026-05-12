@@ -29,7 +29,6 @@ const route = useRoute()
 const authStore = useAuthStore()
 const siteConfig = useSiteConfigState()
 const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
-const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated))
 const cms = computed(() => siteConfig.value?.cms)
 const headerSettings = computed(() => cms.value?.settings.header ?? {
   heightPx: 84,
@@ -37,8 +36,10 @@ const headerSettings = computed(() => cms.value?.settings.header ?? {
   mobileLogoHeightPx: 40,
   showSiteName: true,
   showSiteTagline: false,
+  showPrimaryNavigation: true,
   sticky: true
 })
+const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated) && headerSettings.value.showPrimaryNavigation)
 
 const logoSrc = computed(() => cms.value?.settings.logo.src || '/images/logo-removebg-preview.png')
 const logoAlt = computed(() => locale.value === 'en'

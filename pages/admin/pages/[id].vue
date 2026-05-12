@@ -10,15 +10,16 @@
 
       <div class="flex gap-2">
         <NuxtLink class="btn btn-outline" :to="localePath('/admin/pages')">Retour</NuxtLink>
-        <button class="btn btn-primary" :disabled="saving" @click="save">
+        <button type="button" class="btn btn-primary" :disabled="saving" @click="save">
           <span v-if="saving" class="loading loading-spinner loading-sm" />
           Enregistrer
         </button>
       </div>
     </div>
 
-    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-      <div class="space-y-6">
+    <div class="space-y-6">
+      <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div class="space-y-6">
         <section class="rounded-box border border-base-300 bg-base-100 p-5">
           <h2 class="text-lg font-semibold">Configuration</h2>
           <div class="mt-4 grid gap-4 md:grid-cols-2">
@@ -67,16 +68,16 @@
           </div>
         </section>
 
-        <section class="rounded-box border border-base-300 bg-base-100 p-5 space-y-4">
+          <section class="rounded-box border border-base-300 bg-base-100 p-5 space-y-4">
           <div class="tabs tabs-lift mb-1">
-            <button class="tab" :class="activeLocale === 'fr' ? 'tab-active' : ''" @click="activeLocale = 'fr'">Français</button>
-            <button class="tab" :class="activeLocale === 'en' ? 'tab-active' : ''" @click="activeLocale = 'en'">English</button>
+            <button type="button" class="tab" :class="activeLocale === 'fr' ? 'tab-active' : ''" @click="activeLocale = 'fr'">Français</button>
+            <button type="button" class="tab" :class="activeLocale === 'en' ? 'tab-active' : ''" @click="activeLocale = 'en'">English</button>
           </div>
 
-          <AdminHomepageTranslationTabs :model-value="localizedTitle" label="Titre visible" />
-          <AdminHomepageTranslationTabs :model-value="localizedNavigationLabel" label="Libellé menu" />
-          <AdminHomepageTranslationTabs :model-value="localizedMetaTitle" label="Meta title" />
-          <AdminHomepageTranslationTabs :model-value="localizedMetaDescription" label="Meta description" multiline />
+          <AdminHomepageTranslationTabs :model-value="localizedTitle" label="Titre visible" @update:model-value="localizedTitle = $event" />
+          <AdminHomepageTranslationTabs :model-value="localizedNavigationLabel" label="Libellé menu" @update:model-value="localizedNavigationLabel = $event" />
+          <AdminHomepageTranslationTabs :model-value="localizedMetaTitle" label="Meta title" @update:model-value="localizedMetaTitle = $event" />
+          <AdminHomepageTranslationTabs :model-value="localizedMetaDescription" label="Meta description" multiline @update:model-value="localizedMetaDescription = $event" />
 
           <label class="form-control">
             <span class="label-text">OG image</span>
@@ -87,27 +88,54 @@
             <input v-model="activeTranslation.seo.noindex" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
             <span class="label-text">Noindex</span>
           </label>
-        </section>
+          </section>
+        </div>
       </div>
 
-      <section class="rounded-box border border-base-300 bg-base-100 p-5">
-        <h2 class="text-lg font-semibold">Contenu JSON</h2>
-        <p class="mt-1 text-sm opacity-70">
-          Phase 1: édition brute du contenu builder. Le builder admin générique viendra ensuite sur cette base.
-        </p>
-        <textarea
-          v-model="contentJson"
-          rows="28"
-          spellcheck="false"
-          class="textarea textarea-bordered mt-4 min-h-[36rem] w-full font-mono text-xs"
-        />
+      <section v-if="page.pageType !== 'APPLICATION'" class="rounded-box border border-base-300 bg-base-100 p-5">
+        <div class="mb-5">
+          <h2 class="text-lg font-semibold">Contenu de page</h2>
+          <p class="mt-1 text-sm opacity-70">
+            Même système liveEdit que l’accueil, avec aperçu direct sur la traduction active.
+          </p>
+        </div>
+
+        <div role="tablist" class="tabs tabs-lift flex-wrap">
+          <button type="button" class="tab" :class="contentTab === 'editor' ? 'tab-active' : ''" @click="contentTab = 'editor'">
+            Éditeur
+          </button>
+          <button type="button" class="tab" :class="contentTab === 'preview' ? 'tab-active' : ''" @click="contentTab = 'preview'">
+            Aperçu
+          </button>
+        </div>
+
+        <div v-if="contentTab === 'editor'" class="rounded-b-box rounded-tr-box border border-base-300 border-t-0 p-5">
+          <CmsPageContentBuilder :content="activeTranslation.content" />
+        </div>
+
+        <div v-else class="rounded-b-box rounded-tr-box border border-base-300 border-t-0 bg-base-200 p-5">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm opacity-70">
+              Rendu réel de la page pour la langue <strong>{{ activeLocale === 'fr' ? 'FR' : 'EN' }}</strong>.
+            </div>
+          </div>
+
+          <div class="overflow-hidden rounded-[2rem] border border-base-300 bg-base-100">
+            <HomePageRenderer
+              :content="activeTranslation.content"
+              :locale="activeLocale"
+            />
+          </div>
+        </div>
       </section>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import CmsPageContentBuilder from '~/components/admin/cms/CmsPageContentBuilder.vue'
 import AdminHomepageTranslationTabs from '~/components/admin/homepage/TranslationTabs.vue'
+import HomePageRenderer from '~/components/homepage/HomePageRenderer.vue'
 import ImageInput from '~/components/ImageInput.vue'
 import type { CmsLocale, CmsPagePayload } from '~/shared/cms'
 
@@ -121,6 +149,7 @@ const route = useRoute()
 const localePath = useLocalePath()
 const { $toast } = useNuxtApp() as any
 const activeLocale = ref<CmsLocale>('fr')
+const contentTab = ref<'editor' | 'preview'>('editor')
 const saving = ref(false)
 
 const { data } = await useFetch<CmsPageEditor>(`/api/admin/cms/pages/${route.params.id}`)
@@ -134,39 +163,44 @@ if (!data.value) {
 const page = reactive<CmsPageEditor>(structuredClone(data.value))
 
 const activeTranslation = computed(() => page.translations[activeLocale.value])
-const localizedTitle = reactive({
-  get fr() { return page.translations.fr.title },
-  set fr(value: string) { page.translations.fr.title = value },
-  get en() { return page.translations.en.title },
-  set en(value: string) { page.translations.en.title = value }
+const localizedTitle = computed({
+  get: () => ({
+    fr: page.translations.fr.title,
+    en: page.translations.en.title
+  }),
+  set: (value: { fr: string, en: string }) => {
+    page.translations.fr.title = value.fr
+    page.translations.en.title = value.en
+  }
 })
-const localizedNavigationLabel = reactive({
-  get fr() { return page.translations.fr.navigationLabel },
-  set fr(value: string) { page.translations.fr.navigationLabel = value },
-  get en() { return page.translations.en.navigationLabel },
-  set en(value: string) { page.translations.en.navigationLabel = value }
+const localizedNavigationLabel = computed({
+  get: () => ({
+    fr: page.translations.fr.navigationLabel,
+    en: page.translations.en.navigationLabel
+  }),
+  set: (value: { fr: string, en: string }) => {
+    page.translations.fr.navigationLabel = value.fr
+    page.translations.en.navigationLabel = value.en
+  }
 })
-const localizedMetaTitle = reactive({
-  get fr() { return page.translations.fr.seo.metaTitle },
-  set fr(value: string) { page.translations.fr.seo.metaTitle = value },
-  get en() { return page.translations.en.seo.metaTitle },
-  set en(value: string) { page.translations.en.seo.metaTitle = value }
+const localizedMetaTitle = computed({
+  get: () => ({
+    fr: page.translations.fr.seo.metaTitle,
+    en: page.translations.en.seo.metaTitle
+  }),
+  set: (value: { fr: string, en: string }) => {
+    page.translations.fr.seo.metaTitle = value.fr
+    page.translations.en.seo.metaTitle = value.en
+  }
 })
-const localizedMetaDescription = reactive({
-  get fr() { return page.translations.fr.seo.metaDescription },
-  set fr(value: string) { page.translations.fr.seo.metaDescription = value },
-  get en() { return page.translations.en.seo.metaDescription },
-  set en(value: string) { page.translations.en.seo.metaDescription = value }
-})
-
-const contentJson = computed({
-  get: () => JSON.stringify(activeTranslation.value.content, null, 2),
-  set: (value: string) => {
-    try {
-      activeTranslation.value.content = JSON.parse(value)
-    } catch {
-      // Keep invalid JSON in the textarea until save validates it server-side.
-    }
+const localizedMetaDescription = computed({
+  get: () => ({
+    fr: page.translations.fr.seo.metaDescription,
+    en: page.translations.en.seo.metaDescription
+  }),
+  set: (value: { fr: string, en: string }) => {
+    page.translations.fr.seo.metaDescription = value.fr
+    page.translations.en.seo.metaDescription = value.en
   }
 })
 

@@ -1,4 +1,5 @@
 import type { PublicSiteShell } from '~/shared/cms'
+import type { PublicDaisyUiThemeConfig } from '~/shared/themes'
 
 interface PublicSiteConfigState {
   facebookFluxDeactivated: boolean
@@ -22,6 +23,7 @@ interface PublicSiteConfigState {
   adminEmail?: string | null
   adminPhone?: string | null
   cms?: PublicSiteShell
+  themes?: PublicDaisyUiThemeConfig
 }
 
 interface SiteConfigNuxtApp {

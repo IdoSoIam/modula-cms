@@ -120,12 +120,16 @@ const props = withDefaults(defineProps<{
   defaultToken?: ThemeColorToken
   defaultHex?: string
   searchPlaceholder?: string
+  allowCustom?: boolean
+  allowedTokens?: ThemeColorToken[] | null
 }>(), {
   modelValue: null,
   label: 'Couleur',
   defaultToken: 'primary',
   defaultHex: '#3b4d28',
-  searchPlaceholder: 'Rechercher une couleur'
+  searchPlaceholder: 'Rechercher une couleur',
+  allowCustom: true,
+  allowedTokens: null
 })
 
 const emit = defineEmits<{
@@ -169,14 +173,19 @@ const triggerRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
 const panelStyle = ref<Record<string, string>>({})
 
-const options = THEME_COLOR_TOKENS.map(token => ({
+const selectableTokens = computed(() => {
+  const baseTokens = props.allowedTokens?.length ? props.allowedTokens : THEME_COLOR_TOKENS
+  return baseTokens.filter((token) => props.allowCustom || token !== 'custom')
+})
+
+const options = computed(() => selectableTokens.value.map(token => ({
   value: token,
   label: THEME_COLOR_LABELS[token],
   className: COLOR_SWATCHS[token].className,
   style: COLOR_SWATCHS[token].style
-}))
+})))
 
-const filteredOptions = computed(() => options.filter(option =>
+const filteredOptions = computed(() => options.value.filter(option =>
   option.label.toLowerCase().includes(search.value.toLowerCase().trim()) ||
   option.value.toLowerCase().includes(search.value.toLowerCase().trim())
 ))

@@ -20,7 +20,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
   const sections: AdminNavigationSection[] = [
     {
       id: 'dashboard',
-      label: 'Dashboard',
+      label: '',
       items: [
         { id: 'dashboard-home', label: 'Dashboard', path: '/admin', icon: 'mdi:view-dashboard-outline' }
       ]
@@ -30,8 +30,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
       label: 'Pages',
       items: [
         { id: 'content-pages', label: 'Pages', path: '/admin/contenu/pages', icon: 'mdi:file-document-edit-outline', activePaths: ['/admin/contenu/pages', '/admin/pages'] },
-        { id: 'content-news', label: 'Actualité', path: '/admin/contenu/actualites', icon: 'mdi:newspaper-variant-outline', activePaths: ['/admin/contenu/actualites', '/admin/articles'] },
-        { id: 'content-home-legacy', label: 'Accueil legacy', path: '/admin/accueil', icon: 'mdi:home-edit-outline', activePaths: ['/admin/accueil'] }
+        { id: 'content-news', label: 'Actualité', path: '/admin/contenu/actualites', icon: 'mdi:newspaper-variant-outline', activePaths: ['/admin/contenu/actualites', '/admin/articles'] }
       ]
     },
     {
@@ -46,9 +45,18 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
     },
     {
       id: 'media',
-      label: 'Images',
+      label: 'Media',
       items: [
         { id: 'media-images', label: 'Images', path: '/admin/medias/images', icon: 'mdi:image-multiple-outline', activePaths: ['/admin/medias/images', '/admin/images'] }
+      ]
+    },
+    {
+      id: 'customization',
+      label: 'Personnalisation',
+      items: [
+        { id: 'customization-layout', label: 'Mise en page', path: '/admin/personnalisation/mise-en-page', icon: 'mdi:home-edit-outline', activePaths: ['/admin/personnalisation/mise-en-page'] },
+        { id: 'customization-navigation', label: 'Navigation', path: '/admin/personnalisation/navigation', icon: 'mdi:menu', activePaths: ['/admin/personnalisation/navigation'] },
+        { id: 'customization-theme', label: 'Thèmes', path: '/admin/personnalisation/themes', icon: 'mdi:palette-outline', activePaths: ['/admin/personnalisation/themes'] }
       ]
     },
     {
@@ -63,7 +71,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
   ]
 
   if (options.facebookSyncEnabled) {
-    sections[2]?.items.push({
+    sections[sections.length - 1]?.items.push({
       id: 'shop-facebook-sync',
       label: 'Facebook sync',
       path: '/facebook-sync',

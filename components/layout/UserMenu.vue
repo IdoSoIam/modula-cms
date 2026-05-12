@@ -19,17 +19,12 @@
           <NuxtLink :to="localePath('/profile')" class="mt-2 inline-flex text-sm text-primary">{{ $t('auth.profile') }}</NuxtLink>
         </div>
         <template v-if="authStore.user?.role === 'admin'">
-          <div class="border-t border-base-200 px-1 py-2">
-            <div class="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.14em] opacity-60">
-              {{ $t('admin.title') }}
-            </div>
-            <AdminNavigationMenu :sections="adminSections" variant="text" />
+          <div class="menu px-3 py-2">
+            <NuxtLink to="/admin" class="inline-flex text-sm text-primary">{{ $t('admin.title') }}</NuxtLink>
           </div>
         </template>
-        <div class="menu border-t border-base-200 pt-2">
-          <li>
-            <button class="text-error" @click="handleLogout">{{ $t('auth.logout') }}</button>
-          </li>
+        <div class="menu border-t border-base-200 px-3 py-2 hover:bg-base-200">
+          <button class="text-error cursor-pointer" @click="handleLogout">{{ $t('auth.logout') }}</button>
         </div>
       </template>
     </ul>

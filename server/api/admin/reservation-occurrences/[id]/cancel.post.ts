@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     data: {
       status: 'CANCELLED',
       cancelledAt: new Date(),
-      cancellationReason: 'Occurrence annulee par l admin'
+      cancellationReason: "Occurrence annulée par l'admin"
     }
   })
 

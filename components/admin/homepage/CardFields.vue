@@ -18,8 +18,8 @@
 
     <ThemeColorPicker v-model="card.backgroundColor" label="Fond de la carte" default-token="base-200" />
     <ThemeColorPicker v-model="card.textColor" label="Texte de la carte" default-token="base-content" />
-    <ThemeColorPicker v-model="card.iconColor" label="Couleur de l icone" default-token="primary" />
-    <ThemeColorPicker v-model="card.iconBackgroundColor" label="Fond de l icone" default-token="transparent" />
+    <ThemeColorPicker v-model="card.iconColor" label="Couleur de l'icone" default-token="primary" />
+    <ThemeColorPicker v-model="card.iconBackgroundColor" label="Fond de l'icone" default-token="transparent" />
     <ThemeColorPicker v-model="card.borderColor" label="Bordure de la carte" default-token="base-300" />
 
     <AdminHomepageTranslationTabs

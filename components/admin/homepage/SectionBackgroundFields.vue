@@ -172,7 +172,7 @@
 
       <div class="form-control">
         <label class="label">
-          <span class="label-text">Opacite de l overlay</span>
+          <span class="label-text">Opacite de l'overlay</span>
           <span class="label-text-alt">{{ section.backgroundImage.overlayOpacity }}%</span>
           &nbsp;
         </label>
@@ -188,7 +188,7 @@
 
       <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
         <input v-model="section.backgroundImage.blur" type="checkbox" class="toggle toggle-primary">
-        <span class="label-text">Blur de l overlay</span>
+        <span class="label-text">Blur de l'overlay</span>
       </label>
     </template>
   </div>

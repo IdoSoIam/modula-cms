@@ -18,21 +18,23 @@
       </div>
 
       <div class="tabs tabs-box tabs-xs">
-        <button class="tab" :class="activeLang === 'fr' ? 'tab-active' : ''" @click="activeLang = 'fr'">FR</button>
-        <button class="tab" :class="activeLang === 'en' ? 'tab-active' : ''" @click="activeLang = 'en'">EN</button>
+        <button type="button" class="tab" :class="activeLang === 'fr' ? 'tab-active' : ''" @click="activeLang = 'fr'">FR</button>
+        <button type="button" class="tab" :class="activeLang === 'en' ? 'tab-active' : ''" @click="activeLang = 'en'">EN</button>
       </div>
     </div>
 
     <textarea
       v-if="multiline"
-      v-model="modelValue[activeLang]"
+      :value="modelValue[activeLang]"
       class="textarea textarea-bordered w-full"
       rows="3"
+      @input="updateLocalizedValue(activeLang, ($event.target as HTMLTextAreaElement).value)"
     />
     <input
       v-else
-      v-model="modelValue[activeLang]"
+      :value="modelValue[activeLang]"
       class="input input-bordered w-full"
+      @input="updateLocalizedValue(activeLang, ($event.target as HTMLInputElement).value)"
     >
   </div>
 </template>
@@ -41,16 +43,25 @@
 import type { LocalizedText, TypographySize } from '~/shared/homePage'
 import { TYPOGRAPHY_SIZES, TYPOGRAPHY_SIZE_LABELS } from '~/shared/homePage'
 
-defineProps<{
+const props = defineProps<{
   modelValue: LocalizedText
   label: string
   size?: TypographySize
   multiline?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'update:size': [value: string]
+  'update:modelValue': [value: LocalizedText]
 }>()
 
 const activeLang = ref<'fr' | 'en'>('fr')
+
+const updateLocalizedValue = (lang: 'fr' | 'en', value: string) => {
+  props.modelValue[lang] = value
+  emit('update:modelValue', {
+    ...props.modelValue,
+    [lang]: value
+  })
+}
 </script>

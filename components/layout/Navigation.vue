@@ -3,7 +3,7 @@
     id="site-header"
     class="navbar z-50 border-b border-base-200 bg-base-100 px-4 sm:px-6 lg:px-8"
     :class="headerSettings.sticky ? 'sticky top-0 shadow-sm' : ''"
-    :style="{ minHeight: `${headerSettings.heightPx}px` }"
+    :style="headerStyle"
   >
     <div class="navbar-start gap-3">
       <!-- Hamburger pour mobile -->
@@ -55,6 +55,7 @@
 
 <script setup lang="ts">
 import type { ResolvedCmsNavigationItem } from '~/shared/cms'
+import type { ThemeColorSelection } from '~/shared/homePage'
 import { useAuthStore } from '~/stores/auth'
 
 const localePath = useLocalePath();
@@ -63,7 +64,6 @@ const route = useRoute()
 const authStore = useAuthStore()
 const siteConfig = useSiteConfigState()
 const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
-const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated))
 const cms = computed(() => siteConfig.value?.cms)
 const headerSettings = computed(() => cms.value?.settings.header ?? {
   heightPx: 84,
@@ -71,8 +71,12 @@ const headerSettings = computed(() => cms.value?.settings.header ?? {
   mobileLogoHeightPx: 40,
   showSiteName: true,
   showSiteTagline: false,
+  showPrimaryNavigation: true,
+  backgroundColor: { token: 'base-100' as const, opacity: 100 },
+  textColor: { token: 'base-content' as const, opacity: 100 },
   sticky: true
 })
+const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated) && headerSettings.value.showPrimaryNavigation)
 
 const siteName = computed(() => locale.value === 'en'
   ? cms.value?.settings.siteName.en || 'Ferme du Campeyrigoux'
@@ -87,6 +91,28 @@ const logoAlt = computed(() => locale.value === 'en'
   : cms.value?.settings.logo.alt.fr || 'Logo')
 
 const menuItems = computed(() => cms.value?.navigation.primary ?? [])
+
+const tokenToCssVar = (token: string) => {
+  if (token === 'white') return 'rgba(255,255,255,1)'
+  if (token === 'white-90') return 'rgba(255,255,255,.9)'
+  if (token === 'white-70') return 'rgba(255,255,255,.7)'
+  if (token === 'white-10') return 'rgba(255,255,255,.1)'
+  if (token === 'transparent') return 'transparent'
+  return `var(--color-${token})`
+}
+
+const selectionToCss = (selection: ThemeColorSelection | null, cssProperty: 'backgroundColor' | 'color') => {
+  if (!selection) return {}
+  return {
+    [cssProperty]: tokenToCssVar(selection.token)
+  }
+}
+
+const headerStyle = computed(() => ({
+  minHeight: `${headerSettings.value.heightPx}px`,
+  ...selectionToCss(headerSettings.value.backgroundColor ?? null, 'backgroundColor'),
+  ...selectionToCss(headerSettings.value.textColor ?? null, 'color')
+}))
 
 const resolveLabel = (item: ResolvedCmsNavigationItem) =>
   locale.value === 'en' ? item.labels.en || item.label : item.labels.fr || item.label

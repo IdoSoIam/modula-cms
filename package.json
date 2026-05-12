@@ -5,6 +5,7 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "npx nuxt dev",
+    "dev:reset": "npx nuxi cleanup && npx nuxt dev",
     "generate": "nuxt generate",
     "preview": "npm run build && wrangler --cwd .output dev --local",
     "deploy": "npm run build && wrangler --cwd .output deploy",
@@ -15,6 +16,7 @@
     "db:local:reset": "node ./scripts/apply-local-migrations.mjs --reset",
     "db:studio": "npx -p better-sqlite3 -p prisma prisma studio --url file:./prisma/local.db",
     "db:studio:d1:local": "node ./scripts/d1-studio.mjs",
+    "db:d1:seed:cms-local": "node ./scripts/seed-local-cms-home-and-footer.mjs",
     "db:d1:migrate:local": "wrangler d1 migrations apply ferme-du-campeyrigoux --local",
     "db:d1:migrate:remote": "wrangler d1 migrations apply ferme-du-campeyrigoux --remote",
     "db:d1:query:local": "wrangler d1 execute ferme-du-campeyrigoux --local --command",

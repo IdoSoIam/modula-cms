@@ -269,8 +269,8 @@ const CardEditor = defineComponent({
         ]),
         h(ThemeColorPicker, { label: 'Fond de la carte', modelValue: props.target.card.backgroundColor || null, defaultToken: 'base-200', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.backgroundColor = val } }),
         h(ThemeColorPicker, { label: 'Texte de la carte', modelValue: props.target.card.textColor || null, defaultToken: 'base-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.textColor = val } }),
-        h(ThemeColorPicker, { label: 'Couleur de l icone', modelValue: props.target.card.iconColor || null, defaultToken: 'primary', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconColor = val } }),
-        h(ThemeColorPicker, { label: 'Fond de l icone', modelValue: props.target.card.iconBackgroundColor || null, defaultToken: 'transparent', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconBackgroundColor = val } }),
+        h(ThemeColorPicker, { label: 'Couleur de l'icone', modelValue: props.target.card.iconColor || null, defaultToken: 'primary', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconColor = val } }),
+        h(ThemeColorPicker, { label: 'Fond de l'icone', modelValue: props.target.card.iconBackgroundColor || null, defaultToken: 'transparent', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconBackgroundColor = val } }),
         h(ThemeColorPicker, { label: 'Bordure de la carte', modelValue: props.target.card.borderColor || null, defaultToken: 'base-300', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.borderColor = val } })
         ])
       ]) : null,
@@ -334,7 +334,7 @@ const ItemEditor = defineComponent({
             h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Placement')]), h('select', { class: 'select select-bordered w-full', value: item.fit, onChange: (e: Event) => { item.fit = (e.target as HTMLSelectElement).value as any } }, IMAGE_FITS.map(f => h('option', { value: f }, f)))]),
             h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement vertical')]), h('select', { class: 'select select-bordered w-full', value: item.verticalAlign, onChange: (e: Event) => { item.verticalAlign = (e.target as HTMLSelectElement).value as any } }, VERTICAL_ALIGNS.map(a => h('option', { value: a }, a)))])
           ]),
-          h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.framed, onChange: (e: Event) => { item.framed = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Afficher l image dans une carte')]),
+          h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.framed, onChange: (e: Event) => { item.framed = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Afficher l'image dans une carte')]),
           h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.enlarge, onChange: (e: Event) => { item.enlarge = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Forcer un affichage plus grand')])
         ])
       }

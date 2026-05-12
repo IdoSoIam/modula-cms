@@ -2,6 +2,7 @@ import { prisma } from '~/prisma/client'
 import type { CmsNavigationItem, CmsPage } from '@prisma/client'
 import type {
   CmsApplicationPosition,
+  CmsFooterBlock,
   CmsLocale,
   CmsNavigationItemPayload,
   CmsNavigationMenu,
@@ -22,25 +23,18 @@ import {
   createDefaultCmsPageTranslation,
   createDefaultCmsFooterColumn,
   createDefaultCmsFooterColumns,
+  createCmsFooterBlock,
+  createDefaultCmsNavigationItems,
   createDefaultCmsShellLink,
   createDefaultCmsSiteSettings,
   createEmptyHomePageContent,
   createEmptyCmsLocalizedText
 } from '~/shared/cms'
+import type { ThemeColorSelection } from '~/shared/homePage'
+import { createThemeColorSelection } from '~/shared/homePage'
+import { CMS_THEME_COLOR_TOKENS } from '~/shared/cms'
 import { getHomePageContent } from '~/server/utils/homePage'
 import { getSetting, setSetting, SETTING_KEYS } from '~/server/utils/settings'
-
-const DEFAULT_PRIMARY_NAV = [
-  { path: '/', labels: { fr: 'Accueil', en: 'Home' } },
-  { path: '/news', labels: { fr: 'Actualités', en: 'News' } },
-  { path: '/paniers', labels: { fr: 'Paniers', en: 'Baskets' } },
-  { path: '/contact', labels: { fr: 'Contact', en: 'Contact' } }
-] as const
-
-const DEFAULT_FOOTER_NAV = [
-  { path: '/privacy', labels: { fr: 'Confidentialité', en: 'Privacy' } },
-  { path: '/terms', labels: { fr: 'Mentions légales', en: 'Terms' } }
-] as const
 
 function isMissingCmsTableError(error: unknown) {
   return Boolean(
@@ -85,6 +79,17 @@ function normalizeImageAsset(value: unknown, fallback: { src: string; alt: { fr:
   }
 }
 
+function normalizeThemeColorSelection(value: unknown, fallback: ThemeColorSelection) {
+  if (!isObject(value)) return fallback
+  const token = typeof value.token === 'string' && CMS_THEME_COLOR_TOKENS.includes(value.token as any)
+    ? value.token
+    : fallback.token
+  const opacity = typeof value.opacity === 'number' && Number.isFinite(value.opacity)
+    ? Math.max(0, Math.min(100, Math.round(value.opacity)))
+    : (fallback.opacity ?? 100)
+  return createThemeColorSelection(token as any, undefined, opacity)
+}
+
 function normalizeShellLink(value: unknown, index: number) {
   const fallback = createDefaultCmsShellLink(`link-${index + 1}`)
   if (!isObject(value)) return fallback
@@ -96,12 +101,59 @@ function normalizeShellLink(value: unknown, index: number) {
   }
 }
 
+function normalizeFooterBlocks(value: unknown, fallback: ReturnType<typeof createDefaultCmsFooterColumn>, index: number): CmsFooterBlock[] {
+  if (Array.isArray(value) && value.length) {
+    return value
+      .filter(isObject)
+      .map((block, blockIndex) => ({
+        id: typeof block.id === 'string' && block.id.trim() ? block.id.trim() : `footer-block-${index + 1}-${blockIndex + 1}`,
+        type: typeof block.type === 'string' ? block.type as CmsFooterBlock['type'] : 'text',
+        title: normalizeLocalizedText(block.title),
+        text: normalizeLocalizedText(block.text),
+        navigationMenu: block.navigationMenu === 'PRIMARY' ? 'PRIMARY' : 'FOOTER'
+      }))
+  }
+
+  const legacyBlocks: CmsFooterBlock[] = []
+  if (fallback.image?.src || (isObject(value) && isObject(value.image) && typeof value.image.src === 'string' && value.image.src.trim())) {
+    legacyBlocks.push(createCmsFooterBlock('logo', 1))
+  }
+  const title = isObject(value) ? normalizeLocalizedText(value.title) : fallback.title
+  if (title.fr || title.en) {
+    legacyBlocks.push({
+      ...createCmsFooterBlock('title', legacyBlocks.length + 1),
+      text: title
+    })
+  }
+  const text = isObject(value) ? normalizeLocalizedText(value.text) : fallback.text
+  if (text.fr || text.en) {
+    legacyBlocks.push({
+      ...createCmsFooterBlock('text', legacyBlocks.length + 1),
+      text
+    })
+  }
+  if (isObject(value) && value.showOpeningHours === true) {
+    legacyBlocks.push(createCmsFooterBlock('opening-hours', legacyBlocks.length + 1))
+  }
+  if (isObject(value) && value.showContactDetails === true) {
+    legacyBlocks.push(createCmsFooterBlock('contact', legacyBlocks.length + 1))
+  }
+  if (isObject(value) && value.showSocialLinks === true) {
+    legacyBlocks.push(createCmsFooterBlock('social-links', legacyBlocks.length + 1))
+  }
+  if (isObject(value) && value.showFooterNavigation === true) {
+    legacyBlocks.push(createCmsFooterBlock('navigation', legacyBlocks.length + 1))
+  }
+  return legacyBlocks.length ? legacyBlocks : fallback.blocks
+}
+
 function normalizeFooterColumn(value: unknown, index: number) {
   const fallback = createDefaultCmsFooterColumn(`footer-col-${index + 1}`)
   if (!isObject(value)) return fallback
+  const hasImageValue = isObject(value.image) && typeof value.image.src === 'string' && value.image.src.trim()
   const image = value.image === null
     ? null
-    : normalizeImageAsset(value.image, fallback.image || createDefaultCmsSiteSettings().logo)
+    : (hasImageValue ? normalizeImageAsset(value.image, createDefaultCmsSiteSettings().logo) : null)
 
   return {
     id: typeof value.id === 'string' && value.id.trim() ? value.id.trim() : fallback.id,
@@ -116,7 +168,13 @@ function normalizeFooterColumn(value: unknown, index: number) {
     showOpeningHours: typeof value.showOpeningHours === 'boolean' ? value.showOpeningHours : false,
     showContactDetails: typeof value.showContactDetails === 'boolean' ? value.showContactDetails : false,
     showSocialLinks: typeof value.showSocialLinks === 'boolean' ? value.showSocialLinks : false,
-    showFooterNavigation: typeof value.showFooterNavigation === 'boolean' ? value.showFooterNavigation : false
+    showFooterNavigation: typeof value.showFooterNavigation === 'boolean' ? value.showFooterNavigation : false,
+    align: value.align === 'center' ? 'center' : fallback.align,
+    verticalAlign: value.verticalAlign === 'center' || value.verticalAlign === 'end' ? value.verticalAlign : fallback.verticalAlign,
+    gapPx: typeof value.gapPx === 'number' && Number.isFinite(value.gapPx)
+      ? Math.max(4, Math.min(64, Math.round(value.gapPx)))
+      : fallback.gapPx,
+    blocks: normalizeFooterBlocks(value.blocks, fallback, index)
   }
 }
 
@@ -323,12 +381,23 @@ export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
           mobileLogoHeightPx: typeof parsed.header.mobileLogoHeightPx === 'number' ? Math.max(24, Math.min(120, Math.round(parsed.header.mobileLogoHeightPx))) : fallback.header.mobileLogoHeightPx,
           showSiteName: typeof parsed.header.showSiteName === 'boolean' ? parsed.header.showSiteName : fallback.header.showSiteName,
           showSiteTagline: typeof parsed.header.showSiteTagline === 'boolean' ? parsed.header.showSiteTagline : fallback.header.showSiteTagline,
+          showPrimaryNavigation: typeof parsed.header.showPrimaryNavigation === 'boolean' ? parsed.header.showPrimaryNavigation : fallback.header.showPrimaryNavigation,
+          backgroundColor: normalizeThemeColorSelection(parsed.header.backgroundColor, fallback.header.backgroundColor || createThemeColorSelection('base-100')),
+          textColor: normalizeThemeColorSelection(parsed.header.textColor, fallback.header.textColor || createThemeColorSelection('base-content')),
           sticky: typeof parsed.header.sticky === 'boolean' ? parsed.header.sticky : fallback.header.sticky
         }
       : fallback.header,
     footer: isObject(parsed.footer)
       ? {
           columns: normalizeFooterColumns(parsed.footer.columns),
+          containerWidth: typeof parsed.footer.containerWidth === 'string'
+            ? parsed.footer.containerWidth as CmsSiteSettings['footer']['containerWidth']
+            : fallback.footer.containerWidth,
+          containerAlign: parsed.footer.containerAlign === 'start' || parsed.footer.containerAlign === 'center' || parsed.footer.containerAlign === 'between'
+            ? parsed.footer.containerAlign
+            : fallback.footer.containerAlign,
+          backgroundColor: normalizeThemeColorSelection(parsed.footer.backgroundColor, fallback.footer.backgroundColor || createThemeColorSelection('neutral')),
+          textColor: normalizeThemeColorSelection(parsed.footer.textColor, fallback.footer.textColor || createThemeColorSelection('neutral-content')),
           copyright: normalizeLocalizedText(parsed.footer.copyright)
         }
       : fallback.footer,
@@ -369,6 +438,52 @@ export async function getCmsPageById(id: number) {
     async () => null
   )
   return row ? { id: row.id, ...pageRowToPayload(row) } : null
+}
+
+export async function ensureCmsHomePage() {
+  const existing = await withCmsTableFallback(
+    () => prisma.cmsPage.findFirst({ where: { path: '/' } }),
+    async () => null
+  )
+
+  if (existing) {
+    return existing.id
+  }
+
+  const homeContent = await getHomePageContent()
+  const created = await saveCmsPage(null, {
+    ...createDefaultCmsPagePayload('/', 'Accueil'),
+    path: '/',
+    slug: 'home',
+    status: 'PUBLISHED',
+    title: 'Accueil',
+    translations: {
+      fr: {
+        title: 'Accueil',
+        navigationLabel: 'Accueil',
+        seo: {
+          metaTitle: 'Légumes bio, paniers et vente à la ferme',
+          metaDescription: 'Découvrez les légumes bio de saison, la vente à la ferme et la réservation de paniers à la Ferme du Campeyrigoux.',
+          ogImage: '',
+          noindex: false
+        },
+        content: homeContent
+      },
+      en: {
+        title: 'Home',
+        navigationLabel: 'Home',
+        seo: {
+          metaTitle: 'Organic vegetables, baskets and farm pickup',
+          metaDescription: 'Discover seasonal organic vegetables, farm pickup and local basket reservations at Ferme du Campeyrigoux.',
+          ogImage: '',
+          noindex: false
+        },
+        content: homeContent
+      }
+    }
+  })
+
+  return created?.id ?? null
 }
 
 export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
@@ -431,6 +546,15 @@ export async function listCmsNavigationItems(menu?: CmsNavigationMenu) {
       { id: 'asc' }
     ]
   }), async () => [])
+
+  if (!rows.length) {
+    return createDefaultCmsNavigationItems()
+      .filter((item) => !menu || item.menu === menu)
+      .map((item) => ({
+        id: null,
+        ...item
+      }))
+  }
 
   return rows.map((row) => ({
     id: row.id,
@@ -502,18 +626,9 @@ async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string) {
   }), async () => [])
 
   if (!rows.length) {
-    const fallback = menu === 'PRIMARY' ? DEFAULT_PRIMARY_NAV : DEFAULT_FOOTER_NAV
-    return fallback.map((item, index) => ({
-      id: -(index + 1),
-      menu,
-      itemType: 'APPLICATION_ROUTE' as CmsNavigationItemType,
-      labels: item.labels,
-      label: locale === 'en' ? item.labels.en : item.labels.fr,
-      href: item.path,
-      newTab: false,
-      visible: true,
-      position: index
-    }))
+    return createDefaultCmsNavigationItems()
+      .filter((item) => item.menu === menu && item.visible)
+      .map((item, index) => navigationPayloadToResolved(-(index + 1), item, locale))
   }
 
   return rows.map((row) => navigationPayloadToResolved(row.id, navigationRowToPayload(row), locale))
@@ -632,10 +747,19 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
       mobileLogoHeightPx: typeof headerValue.mobileLogoHeightPx === 'number' ? Math.max(24, Math.min(120, Math.round(headerValue.mobileLogoHeightPx))) : fallback.header.mobileLogoHeightPx,
       showSiteName: typeof headerValue.showSiteName === 'boolean' ? headerValue.showSiteName : fallback.header.showSiteName,
       showSiteTagline: typeof headerValue.showSiteTagline === 'boolean' ? headerValue.showSiteTagline : fallback.header.showSiteTagline,
+      showPrimaryNavigation: typeof headerValue.showPrimaryNavigation === 'boolean' ? headerValue.showPrimaryNavigation : fallback.header.showPrimaryNavigation,
+      backgroundColor: normalizeThemeColorSelection(headerValue.backgroundColor, fallback.header.backgroundColor || createThemeColorSelection('base-100')),
+      textColor: normalizeThemeColorSelection(headerValue.textColor, fallback.header.textColor || createThemeColorSelection('base-content')),
       sticky: typeof headerValue.sticky === 'boolean' ? headerValue.sticky : fallback.header.sticky
     },
     footer: {
       columns: normalizeFooterColumns(footerValue.columns),
+      containerWidth: typeof footerValue.containerWidth === 'string' ? footerValue.containerWidth as CmsSiteSettings['footer']['containerWidth'] : fallback.footer.containerWidth,
+      containerAlign: footerValue.containerAlign === 'start' || footerValue.containerAlign === 'center' || footerValue.containerAlign === 'between'
+        ? footerValue.containerAlign
+        : fallback.footer.containerAlign,
+      backgroundColor: normalizeThemeColorSelection(footerValue.backgroundColor, fallback.footer.backgroundColor || createThemeColorSelection('neutral')),
+      textColor: normalizeThemeColorSelection(footerValue.textColor, fallback.footer.textColor || createThemeColorSelection('neutral-content')),
       copyright: normalizeLocalizedText(footerValue.copyright)
     },
     socialLinks: Array.isArray(value.socialLinks)
