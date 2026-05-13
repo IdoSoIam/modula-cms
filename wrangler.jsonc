@@ -12,7 +12,8 @@
   "r2_buckets": [
     {
       "binding": "IMAGES",
-      "bucket_name": "ferme-du-campeyrigoux-images"
+      "bucket_name": "ferme-du-campeyrigoux-images",
+      "remote": true
     }
   ],
   "d1_databases": [
