@@ -519,6 +519,15 @@ export async function getCmsPageById(id: number) {
   return row ? { id: row.id, ...pageRowToPayload(row) } : null
 }
 
+export async function getCmsPageByPath(path: string) {
+  const normalizedPath = normalizePath(path)
+  const row = await withCmsTableFallback(
+    () => prisma.cmsPage.findFirst({ where: { path: normalizedPath } }),
+    async () => null
+  )
+  return row ? { id: row.id, ...pageRowToPayload(row) } : null
+}
+
 export async function ensureCmsRootPage() {
   const existing = await withCmsTableFallback(
     () => prisma.cmsPage.findFirst({ where: { path: '/' } }),
@@ -606,6 +615,38 @@ export async function ensureCmsSystemPages() {
   await ensureCmsRootPage()
   await ensureCmsApplicationPage('/paniers', 'paniers', 'Paniers', 'Baskets', 'baskets')
   await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
+}
+
+export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCmsPage, locale: CmsLocale) {
+  if (resolvedPage.path === '/') {
+    const id = await ensureCmsRootPage()
+    return id ? await getCmsPageById(id) : null
+  }
+
+  if (resolvedPage.path === '/paniers' || resolvedPage.path === '/news') {
+    await ensureCmsSystemPages()
+    return await getCmsPageByPath(resolvedPage.path)
+  }
+
+  const existing = await getCmsPageByPath(resolvedPage.path)
+  if (existing) return existing
+
+  const payload = createDefaultCmsPagePayload(resolvedPage.path, resolvedPage.title)
+  payload.status = resolvedPage.status
+  payload.pageType = resolvedPage.pageType
+  payload.templateKey = resolvedPage.templateKey
+  payload.rendererKey = resolvedPage.rendererKey
+  payload.applicationPosition = resolvedPage.applicationPosition
+  payload.title = resolvedPage.title
+  payload.translations[locale] = {
+    title: resolvedPage.title,
+    navigationLabel: resolvedPage.navigationLabel,
+    seo: resolvedPage.seo,
+    content: resolvedPage.content
+  }
+
+  const created = await saveCmsPage(null, payload)
+  return created ? { id: created.id, ...pageRowToPayload(created) } : null
 }
 
 export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {

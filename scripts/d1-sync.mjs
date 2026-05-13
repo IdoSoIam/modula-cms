@@ -22,6 +22,22 @@ const appTables = [
   'Article',
   'Image'
 ]
+const userScopedTables = [
+  'User',
+  'Reservation',
+  'ReservationScheduleProposal',
+  'ReservationOccurrence',
+  'ReservationNotification'
+]
+const protectedRemoteSiteParamKeys = [
+  'gmail_sender_email',
+  'gmail_refresh_token',
+  'gmail_access_token',
+  'gmail_token_expiry',
+  'gmail_connected_email',
+  'google_calendar_id',
+  'google_calendar_name'
+]
 
 const mode = process.argv[2]
 
@@ -59,9 +75,10 @@ function syncSqliteToD1Local() {
 
   const dataSqlPath = path.join(tempDir, 'sqlite-data.sql')
   const importSqlPath = path.join(tempDir, 'sqlite-to-d1-local.sql')
+  const syncPlan = createSyncPlan({ source: 'sqlite', target: 'local' })
 
-  writeSqliteDataDump(sqlitePath, dataSqlPath)
-  fs.writeFileSync(importSqlPath, `${buildResetSql()}\n${fs.readFileSync(dataSqlPath, 'utf8')}`, 'utf8')
+  writeSqliteDataDump(sqlitePath, dataSqlPath, syncPlan)
+  fs.writeFileSync(importSqlPath, `${buildResetSql(syncPlan)}\n${fs.readFileSync(dataSqlPath, 'utf8')}`, 'utf8')
 
   runWrangler(['d1', 'execute', databaseName, '--local', '--file', importSqlPath, '--yes'])
   console.log('Imported prisma/local.db into local D1.')
@@ -76,6 +93,7 @@ function syncD1ToD1({ source, target }) {
 
   const exportSqlPath = path.join(tempDir, `${source}-export.sql`)
   const importSqlPath = path.join(tempDir, `${source}-to-${target}.sql`)
+  const syncPlan = createSyncPlan({ source, target })
 
   runWrangler([
     'd1',
@@ -86,29 +104,53 @@ function syncD1ToD1({ source, target }) {
     exportSqlPath,
     '--no-schema',
     '--skip-confirmation',
-    ...appTables.flatMap((table) => ['--table', table])
+    ...syncPlan.exportTables.flatMap((table) => ['--table', table])
   ])
 
-  fs.writeFileSync(importSqlPath, `${buildResetSql()}\n${fs.readFileSync(exportSqlPath, 'utf8')}`, 'utf8')
+  const exportSql = fs.readFileSync(exportSqlPath, 'utf8')
+  const filteredExportSql = transformExportSql(exportSql, syncPlan)
+  fs.writeFileSync(importSqlPath, `${buildResetSql(syncPlan)}\n${filteredExportSql}`, 'utf8')
   runWrangler(['d1', 'execute', databaseName, `--${target}`, '--file', importSqlPath, '--yes'])
 
   console.log(`Imported ${source} D1 data into ${target} D1.`)
 }
 
-function writeSqliteDataDump(sqlitePath, outputPath) {
+function createSyncPlan({ source, target }) {
+  if (source === 'local' && target === 'remote') {
+    return {
+      exportTables: appTables.filter((table) => !userScopedTables.includes(table)),
+      resetTables: appTables.filter((table) => !userScopedTables.includes(table)),
+      preserveSiteParamKeys: protectedRemoteSiteParamKeys,
+      columnOverrides: {
+        SiteParams: { id: null },
+        Article: { authorId: null },
+        Image: { uploadedById: null }
+      }
+    }
+  }
+
+  return {
+    exportTables: appTables,
+    resetTables: appTables,
+    preserveSiteParamKeys: [],
+    columnOverrides: {}
+  }
+}
+
+function writeSqliteDataDump(sqlitePath, outputPath, syncPlan) {
   const db = new Database(sqlitePath, { readonly: true, fileMustExist: true })
 
   try {
     const statements = ['PRAGMA defer_foreign_keys = on;']
 
-    for (const table of appTables) {
+    for (const table of syncPlan.exportTables) {
       const columns = db.prepare(`PRAGMA table_info("${table}")`).all()
       if (columns.length === 0) {
         throw new Error(`Table "${table}" is missing in ${sqlitePath}`)
       }
 
       const columnNames = columns.map((column) => column.name)
-      const rows = db.prepare(`SELECT * FROM "${table}"`).all()
+      const rows = db.prepare(buildSelectSql(table, syncPlan)).all()
       if (rows.length === 0) {
         continue
       }
@@ -116,7 +158,10 @@ function writeSqliteDataDump(sqlitePath, outputPath) {
       const columnList = columnNames.map(quoteIdentifier).join(', ')
 
       for (const row of rows) {
-        const values = columnNames.map((columnName) => toSqlLiteral(row[columnName])).join(', ')
+        const values = columnNames.map((columnName) => {
+          const overrideValue = syncPlan.columnOverrides[table]?.[columnName]
+          return toSqlLiteral(overrideValue === undefined ? row[columnName] : overrideValue)
+        }).join(', ')
         statements.push(`INSERT INTO ${quoteIdentifier(table)} (${columnList}) VALUES (${values});`)
       }
     }
@@ -127,16 +172,148 @@ function writeSqliteDataDump(sqlitePath, outputPath) {
   }
 }
 
-function buildResetSql() {
-  const statements = ['PRAGMA defer_foreign_keys = on;']
-
-  for (const table of [...appTables].reverse()) {
-    statements.push(`DELETE FROM ${quoteIdentifier(table)};`)
+function buildSelectSql(table, syncPlan) {
+  if (table === 'SiteParams' && syncPlan.preserveSiteParamKeys.length > 0) {
+    return `SELECT * FROM "${table}" WHERE "key" NOT IN (${syncPlan.preserveSiteParamKeys.map(toSqlLiteral).join(', ')})`
   }
 
-  statements.push(`DELETE FROM sqlite_sequence WHERE name IN (${appTables.map(toSqlLiteral).join(', ')});`)
+  return `SELECT * FROM "${table}"`
+}
+
+function buildResetSql(syncPlan) {
+  const statements = ['PRAGMA defer_foreign_keys = on;']
+  const fullyResetTables = []
+
+  for (const table of [...syncPlan.resetTables].reverse()) {
+    if (table === 'SiteParams' && syncPlan.preserveSiteParamKeys.length > 0) {
+      statements.push(`DELETE FROM ${quoteIdentifier(table)} WHERE "key" NOT IN (${syncPlan.preserveSiteParamKeys.map(toSqlLiteral).join(', ')});`)
+      continue
+    }
+
+    statements.push(`DELETE FROM ${quoteIdentifier(table)};`)
+    fullyResetTables.push(table)
+  }
+
+  if (fullyResetTables.length > 0) {
+    statements.push(`DELETE FROM sqlite_sequence WHERE name IN (${fullyResetTables.map(toSqlLiteral).join(', ')});`)
+  }
 
   return `${statements.join('\n')}\n`
+}
+
+function transformExportSql(sql, syncPlan) {
+  const lines = sql.split(/\r?\n/)
+  const transformedLines = []
+
+  for (const line of lines) {
+    const transformedLine = transformExportSqlLine(line, syncPlan)
+    if (transformedLine !== null) {
+      transformedLines.push(transformedLine)
+    }
+  }
+
+  return `${transformedLines.join('\n')}\n`
+}
+
+function transformExportSqlLine(line, syncPlan) {
+  const match = line.match(/^INSERT INTO "([^"]+)" VALUES\((.*)\);$/)
+  if (!match) {
+    return line
+  }
+
+  const [, table, rawValues] = match
+  if (!syncPlan.exportTables.includes(table)) {
+    return null
+  }
+
+  if (table === 'SiteParams' && syncPlan.preserveSiteParamKeys.length > 0) {
+    const values = splitSqlValues(rawValues)
+    const key = parseSqlLiteral(values[1])
+    if (syncPlan.preserveSiteParamKeys.includes(key)) {
+      return null
+    }
+  }
+
+  const overrides = syncPlan.columnOverrides[table]
+  if (!overrides) {
+    return line
+  }
+
+  const columns = getInsertColumnOrder(table)
+  const values = splitSqlValues(rawValues)
+  for (const [columnName, overrideValue] of Object.entries(overrides)) {
+    const index = columns.indexOf(columnName)
+    if (index === -1) {
+      throw new Error(`Cannot override missing column "${columnName}" for table "${table}".`)
+    }
+
+    values[index] = toSqlLiteral(overrideValue)
+  }
+
+  return `INSERT INTO "${table}" VALUES(${values.join(',')});`
+}
+
+function getInsertColumnOrder(table) {
+  switch (table) {
+    case 'SiteParams':
+      return ['id', 'key', 'value', 'createdAt', 'updatedAt']
+    case 'Article':
+      return ['id', 'title', 'slug', 'excerpt', 'content', 'coverUrl', 'published', 'publishedAt', 'authorId', 'createdAt', 'updatedAt']
+    case 'Image':
+      return ['id', 'filename', 'url', 'mimeType', 'size', 'width', 'height', 'uploadedById', 'createdAt']
+    default:
+      throw new Error(`Unsupported export column order for table "${table}".`)
+  }
+}
+
+function splitSqlValues(rawValues) {
+  const values = []
+  let current = ''
+  let inString = false
+  let i = 0
+
+  while (i < rawValues.length) {
+    const char = rawValues[i]
+    const nextChar = rawValues[i + 1]
+
+    if (char === "'") {
+      current += char
+      if (inString && nextChar === "'") {
+        current += nextChar
+        i += 2
+        continue
+      }
+
+      inString = !inString
+      i += 1
+      continue
+    }
+
+    if (char === ',' && !inString) {
+      values.push(current)
+      current = ''
+      i += 1
+      continue
+    }
+
+    current += char
+    i += 1
+  }
+
+  values.push(current)
+  return values
+}
+
+function parseSqlLiteral(rawValue) {
+  if (rawValue === 'NULL') {
+    return null
+  }
+
+  if (rawValue.startsWith("'") && rawValue.endsWith("'")) {
+    return rawValue.slice(1, -1).replaceAll("''", "'")
+  }
+
+  return rawValue
 }
 
 function toSqlLiteral(value) {

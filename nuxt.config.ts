@@ -4,6 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   debug: false,
+  experimental: {
+    appManifest: false
+  },
   features: {
     inlineStyles: true
   },

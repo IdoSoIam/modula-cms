@@ -1,5 +1,5 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { saveCmsPage, validateCmsPagePayload } from '~/server/utils/cms'
+import { getCmsPageById, saveCmsPage, validateCmsPagePayload } from '~/server/utils/cms'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -21,5 +21,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return page
+  const normalizedPage = await getCmsPageById(page.id)
+  if (!normalizedPage) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Page enregistrée mais réponse CMS introuvable'
+    })
+  }
+
+  return normalizedPage
 })

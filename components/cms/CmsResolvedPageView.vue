@@ -65,26 +65,31 @@ const route = useRoute()
 const { locale } = useI18n()
 const authStore = useAuthStore()
 const { $toast } = useNuxtApp() as any
+const cloneCmsData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
-const editableResolvedPage = ref<ResolvedCmsPage>(structuredClone(props.resolvedPage))
+const editableResolvedPage = ref<ResolvedCmsPage>(cloneCmsData(props.resolvedPage))
 const editorPage = ref<CmsPageEditor | null>(null)
 const activeTarget = ref<PageBuilderEditTarget | null>(null)
 const modalOpen = ref(false)
 const loadingEditor = ref(false)
 const saving = ref(false)
+const liveEditHydrated = ref(false)
 
 const currentLocale = computed<CmsLocale>(() => locale.value === 'en' ? 'en' : 'fr')
 const wantsLiveEdit = computed(() => route.query.liveEdit === '1')
 const liveEditEnabled = computed(() =>
-  import.meta.client
+  liveEditHydrated.value
   && wantsLiveEdit.value
   && authStore.isAdmin
-  && editableResolvedPage.value.id !== null
   && editableResolvedPage.value.pageType !== 'APPLICATION'
 )
 
+onMounted(() => {
+  liveEditHydrated.value = true
+})
+
 watch(() => props.resolvedPage, (value) => {
-  editableResolvedPage.value = structuredClone(value)
+  editableResolvedPage.value = cloneCmsData(value)
   syncLocalizedContentFromEditor()
 }, { deep: true, immediate: true })
 
@@ -100,28 +105,74 @@ usePageSeo({
 
 function syncLocalizedContentFromEditor() {
   if (!editorPage.value) return
-  const translation = editorPage.value.translations[currentLocale.value]
+  const translation = editorPage.value.translations?.[currentLocale.value]
+    ?? editorPage.value.translations?.fr
+    ?? editorPage.value.translations?.en
+
+  if (!translation) return
+
   editableResolvedPage.value = {
     ...editableResolvedPage.value,
     title: translation.title || editorPage.value.title,
     navigationLabel: translation.navigationLabel || translation.title || editorPage.value.title,
-    seo: structuredClone(translation.seo),
-    content: structuredClone(translation.content)
+    seo: cloneCmsData(translation.seo),
+    content: cloneCmsData(translation.content)
   }
 }
 
+function getErrorMessage(error: any, fallback: string) {
+  return error?.data?.statusMessage
+    || error?.statusMessage
+    || error?.data?.message
+    || error?.message
+    || fallback
+}
+
+async function bootstrapCurrentPage() {
+  const page = await $fetch<CmsPageEditor>('/api/admin/cms/bootstrap-current', {
+    method: 'POST',
+    body: {
+      resolvedPage: cloneCmsData(editableResolvedPage.value),
+      locale: currentLocale.value
+    }
+  })
+
+  editorPage.value = cloneCmsData(page)
+  editableResolvedPage.value = {
+    ...editableResolvedPage.value,
+    id: page.id
+  }
+  syncLocalizedContentFromEditor()
+  return editorPage.value
+}
+
 async function ensureEditorPage() {
-  if (!liveEditEnabled.value || !editableResolvedPage.value.id) return null
+  if (!liveEditEnabled.value) return null
   if (editorPage.value) return editorPage.value
 
   loadingEditor.value = true
   try {
+    if (!editableResolvedPage.value.id) {
+      return await bootstrapCurrentPage()
+    }
+
     const page = await $fetch<CmsPageEditor>(`/api/admin/cms/pages/${editableResolvedPage.value.id}`)
-    editorPage.value = structuredClone(page)
+    editorPage.value = cloneCmsData(page)
     syncLocalizedContentFromEditor()
     return editorPage.value
   } catch (error: any) {
-    $toast?.error(error?.statusMessage || 'Impossible de charger la page CMS')
+    if (editableResolvedPage.value.path === '/' || error?.statusCode === 404) {
+      try {
+        return await bootstrapCurrentPage()
+      } catch (bootstrapError: any) {
+        console.error('LiveEdit bootstrap failed', bootstrapError)
+        $toast?.error(getErrorMessage(bootstrapError, 'Impossible d’initialiser la page CMS'))
+        return null
+      }
+    }
+
+    console.error('LiveEdit load failed', error)
+    $toast?.error(getErrorMessage(error, 'Impossible de charger la page CMS'))
     return null
   } finally {
     loadingEditor.value = false
@@ -129,7 +180,7 @@ async function ensureEditorPage() {
 }
 
 async function reloadEditorPage() {
-  if (!liveEditEnabled.value || !editableResolvedPage.value.id) return
+  if (!liveEditEnabled.value) return
   editorPage.value = null
   await ensureEditorPage()
 }
@@ -143,20 +194,42 @@ async function openLiveEditor(target: PageBuilderEditTarget) {
 
 async function saveLiveEdit() {
   const page = await ensureEditorPage()
-  if (!page || !editableResolvedPage.value.id) return
+  if (!page) return
 
   saving.value = true
   try {
-    page.translations[currentLocale.value].content = structuredClone(editableResolvedPage.value.content)
-    const saved = await $fetch<CmsPageEditor>(`/api/admin/cms/pages/${editableResolvedPage.value.id}`, {
+    if (!page.translations?.[currentLocale.value]) {
+      page.translations = {
+        fr: page.translations?.fr ?? {
+          title: page.title,
+          navigationLabel: page.title,
+          seo: cloneCmsData(editableResolvedPage.value.seo),
+          content: cloneCmsData(editableResolvedPage.value.content)
+        },
+        en: page.translations?.en ?? {
+          title: page.title,
+          navigationLabel: page.title,
+          seo: cloneCmsData(editableResolvedPage.value.seo),
+          content: cloneCmsData(editableResolvedPage.value.content)
+        }
+      }
+    }
+
+    page.translations[currentLocale.value].content = cloneCmsData(editableResolvedPage.value.content)
+    const saved = await $fetch<CmsPageEditor>(`/api/admin/cms/pages/${page.id}`, {
       method: 'PUT',
       body: page
     })
-    editorPage.value = structuredClone(saved)
+    editorPage.value = cloneCmsData(saved)
+    editableResolvedPage.value = {
+      ...editableResolvedPage.value,
+      id: saved.id
+    }
     syncLocalizedContentFromEditor()
     $toast?.success('Page enregistrée')
   } catch (error: any) {
-    $toast?.error(error?.statusMessage || 'Erreur lors de l’enregistrement')
+    console.error('LiveEdit save failed', error)
+    $toast?.error(getErrorMessage(error, 'Erreur lors de l’enregistrement'))
   } finally {
     saving.value = false
   }
