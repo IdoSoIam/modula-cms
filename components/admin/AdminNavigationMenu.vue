@@ -8,7 +8,7 @@
         :class="linkClass(section.items[0]!)"
       >
         <Icon v-if="section.items[0]!.icon" :name="section.items[0]!.icon" size="18" class="shrink-0" />
-        <span v-if="!collapsed" class="truncate">{{ section.items[0]!.label }}</span>
+        <span v-if="!collapsed" class="truncate">{{ t(section.items[0]!.labelKey) }}</span>
       </NuxtLink>
 
       <section v-else class="rounded-2xl border border-base-300/80 bg-base-200/40">
@@ -19,7 +19,7 @@
           @click="toggleSection(section.id)"
         >
           <Icon :name="section.items[0]?.icon || 'mdi:folder-outline'" size="18" class="shrink-0" />
-          <span v-if="!collapsed" class="flex-1 truncate">{{ section.label }}</span>
+          <span v-if="!collapsed" class="flex-1 truncate">{{ t(section.labelKey) }}</span>
           <Icon
             v-if="!collapsed"
             :name="isSectionOpen(section.id) ? 'mdi:chevron-up' : 'mdi:chevron-down'"
@@ -37,7 +37,7 @@
             :class="linkClass(item)"
           >
             <Icon v-if="item.icon" :name="item.icon" size="18" class="shrink-0" />
-            <span class="truncate">{{ item.label }}</span>
+            <span class="truncate">{{ t(item.labelKey) }}</span>
           </NuxtLink>
         </div>
       </section>
@@ -47,7 +47,7 @@
   <div v-else class="space-y-3">
     <div v-for="section in sections" :key="section.id" class="space-y-1">
       <div class="px-1 text-xs font-semibold uppercase tracking-[0.14em] opacity-60">
-        {{ section.label }}
+        {{ t(section.labelKey) }}
       </div>
       <div class="space-y-1">
         <NuxtLink
@@ -57,7 +57,7 @@
           class="block cursor-pointer rounded-lg px-3 py-2 text-sm transition hover:bg-base-200"
           :class="isActive(item) ? 'bg-base-200 font-medium text-primary' : ''"
         >
-          {{ item.label }}
+          {{ t(item.labelKey) }}
         </NuxtLink>
       </div>
     </div>
@@ -78,6 +78,7 @@ const props = withDefaults(defineProps<{
 
 const localePath = useLocalePath()
 const route = useRoute()
+const { t } = useI18n()
 const openSectionIds = ref<string[]>([])
 
 const matchesPath = (path: string) => {

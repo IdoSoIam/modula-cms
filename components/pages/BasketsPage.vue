@@ -830,7 +830,7 @@ const submit = async () => {
 
   submitting.value = true
   try {
-    await $fetch('/api/reservations', {
+    await $fetch('/api/orders', {
       method: 'POST',
       body: {
         basketId: selected.value.id,

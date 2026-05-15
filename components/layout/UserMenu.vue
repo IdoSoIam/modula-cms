@@ -20,7 +20,7 @@
         </div>
         <template v-if="authStore.user?.role === 'admin'">
           <div class="px-3 py-2 hover:bg-base-200">
-            <NuxtLink to="/admin" class="inline-flex text-sm text-primary">{{ $t('admin.title') }}</NuxtLink>
+            <NuxtLink :to="localePath('/admin')" class="inline-flex text-sm text-primary">{{ $t('admin.title') }}</NuxtLink>
           </div>
         </template>
         <div class="px-3 py-2 hover:bg-base-200">

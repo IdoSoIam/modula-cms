@@ -1,7 +1,7 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { getAdminPhone, getContactEmail, getGmailSenderEmail, getReservationNotificationEmail, getResendSenderEmail, getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig } from '~/server/utils/settings'
 import { listGoogleCalendars } from '~/server/utils/gmail'
-import { TEMPLATE_DEFINITIONS } from '~/server/utils/reservationEmailContent'
+import { getAllAdminEmailTemplateDefinitions } from '~/server/utils/adminEmailTemplates'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -74,6 +74,6 @@ export default defineEventHandler(async (event) => {
     ordersOpenFrom: s[SETTING_KEYS.ORDERS_OPEN_FROM] ?? '',
     ordersOpenTo: s[SETTING_KEYS.ORDERS_OPEN_TO] ?? '',
     ordersClosedMessage: s[SETTING_KEYS.ORDERS_CLOSED_MESSAGE] ?? '',
-    templateDefinitions: TEMPLATE_DEFINITIONS
+    templateDefinitions: await getAllAdminEmailTemplateDefinitions()
   }
 })

@@ -4,6 +4,7 @@ import type { PublicDaisyUiThemeConfig } from '~/shared/themes'
 interface PublicSiteConfigState {
   facebookFluxDeactivated: boolean
   inDevelopment: boolean
+  siteName: string
   registerEnabled: boolean
   subscriptionsEnabled: boolean
   ordersWindow?: {

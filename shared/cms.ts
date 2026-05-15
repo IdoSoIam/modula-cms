@@ -233,25 +233,25 @@ export function createEmptyPageBuilderContent(): PageBuilderContent {
 export function createDefaultCmsSiteSettings(): CmsSiteSettings {
   return {
     siteName: {
-      fr: 'Ferme du Campeyrigoux',
-      en: 'Ferme du Campeyrigoux'
+      fr: 'Nom du site',
+      en: 'Site name'
     },
     siteTagline: {
-      fr: 'Agriculture biologique depuis 2024',
-      en: 'Organic farming since 2024'
+      fr: 'Décrivez votre activité en une phrase',
+      en: 'Describe your activity in one sentence'
     },
     logo: {
       src: '/images/logo-removebg-preview.png',
       alt: {
-        fr: 'Logo de la Ferme du Campeyrigoux',
-        en: 'Ferme du Campeyrigoux logo'
+        fr: 'Logo du site',
+        en: 'Site logo'
       }
     },
     favicon: {
       src: '/favicon.ico',
       alt: {
-        fr: 'Icône du site Ferme du Campeyrigoux',
-        en: 'Ferme du Campeyrigoux site icon'
+        fr: 'Icône du site',
+        en: 'Site icon'
       }
     },
     header: {
@@ -272,8 +272,8 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
       backgroundColor: createThemeColorSelection('neutral'),
       textColor: createThemeColorSelection('neutral-content'),
       copyright: {
-        fr: 'Ferme du Campeyrigoux. Tous droits réservés.',
-        en: 'Ferme du Campeyrigoux. All rights reserved.'
+        fr: 'Nom du site. Tous droits réservés.',
+        en: 'Site name. All rights reserved.'
       }
     },
     socialLinks: [
@@ -283,7 +283,7 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
           fr: 'Facebook',
           en: 'Facebook'
         },
-        href: 'https://www.facebook.com/profile.php?id=61571709076079',
+        href: '',
         icon: 'mdi:facebook'
       }
     ],
@@ -371,45 +371,33 @@ export function createCmsFooterBlock(type: CmsFooterBlockType, index = 1): CmsFo
 }
 
 export function createDefaultCmsFooterColumns(): CmsFooterColumn[] {
-  const column1 = createDefaultCmsFooterColumn('footer-col-1', 'La ferme')
+  const column1 = createDefaultCmsFooterColumn('footer-col-1', 'Présentation')
   column1.blocks = [
     createCmsFooterBlock('logo', 1),
     createCmsFooterBlock('site-name', 2),
     createCmsFooterBlock('site-tagline', 3)
   ]
 
-  const column2 = createDefaultCmsFooterColumn('footer-col-2', 'Horaires')
+  const column2 = createDefaultCmsFooterColumn('footer-col-2', 'Informations')
   const hoursTitle = createCmsFooterBlock('title', 1)
   hoursTitle.text = { fr: 'Horaires', en: 'Opening hours' }
-  const farmLabel = createCmsFooterBlock('text', 2)
-  farmLabel.text = { fr: 'Vente directe à la ferme', en: 'Direct sale at the farm' }
   const openingHours = createCmsFooterBlock('opening-hours', 3)
-  const marketLabel = createCmsFooterBlock('text', 4)
-  marketLabel.text = {
-    fr: 'Marché de Saint-Sébastien-d\'Aigrefeuille',
-    en: 'Saint-Sébastien-d\'Aigrefeuille market'
-  }
-  const marketHours = createCmsFooterBlock('text', 5)
-  marketHours.text = {
-    fr: 'Tous les samedi de 9h30 à 12h00',
-    en: 'Every Saturday from 9:30am to 12:00pm'
-  }
-  column2.blocks = [hoursTitle, farmLabel, openingHours, marketLabel, marketHours]
+  column2.blocks = [hoursTitle, openingHours]
 
   const column3 = createDefaultCmsFooterColumn('footer-col-3', 'Contact')
   const contactTitle = createCmsFooterBlock('title', 1)
   contactTitle.text = { fr: 'Contact', en: 'Contact' }
   const contactLine1 = createCmsFooterBlock('text', 2)
   contactLine1.text = {
-    fr: 'Ferme du Campeyrigoux\n30140 Saint-Sébastien-d\'Aigrefeuille',
-    en: 'Ferme du Campeyrigoux\n30140 Saint-Sébastien-d\'Aigrefeuille'
+    fr: 'Nom du site\nAdresse du site',
+    en: 'Site name\nSite address'
   }
   const contactLine2 = createCmsFooterBlock('text', 3)
-  contactLine2.text = { fr: '07 68 55 06 64', en: '07 68 55 06 64' }
+  contactLine2.text = { fr: 'Téléphone', en: 'Phone' }
   const contactLine3 = createCmsFooterBlock('text', 4)
   contactLine3.text = {
-    fr: 'ferme.campeyrigoux@gmail.com',
-    en: 'ferme.campeyrigoux@gmail.com'
+    fr: 'email@site.fr',
+    en: 'site@email.com'
   }
   column3.blocks = [contactTitle, contactLine1, contactLine2, contactLine3]
 
@@ -502,7 +490,7 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
 }
 
 export function createDefaultCmsPagePayload(path: string, title = ''): CmsPagePayload {
-  const normalizedSlug = path === '/' ? 'home' : path.replace(/^\/+|\/+$/g, '').replace(/\//g, '-')
+  const normalizedSlug = path === '/' ? 'index' : path.replace(/^\/+|\/+$/g, '').replace(/\//g, '-')
 
   return {
     path,
@@ -512,7 +500,7 @@ export function createDefaultCmsPagePayload(path: string, title = ''): CmsPagePa
     templateKey: 'default',
     rendererKey: '',
     applicationPosition: 'AFTER_CONTENT',
-    title: title || normalizedSlug || 'Nouvelle page',
+    title: title || normalizedSlug || 'page',
     translations: {
       fr: createDefaultCmsPageTranslation(),
       en: createDefaultCmsPageTranslation()

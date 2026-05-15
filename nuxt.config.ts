@@ -96,6 +96,7 @@ export default defineNuxtConfig({
   ],
   i18n: {
     strategy: 'prefix_except_default',
+    customRoutes: 'meta',
     defaultLocale: 'fr',
     detectBrowserLanguage: {
       useCookie: true,

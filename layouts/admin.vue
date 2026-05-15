@@ -13,8 +13,8 @@
             <Icon name="mdi:storefront-outline" size="22" />
           </div>
           <div v-if="!sidebarCollapsed" class="min-w-0">
-            <div class="truncate text-sm font-semibold">Administration</div>
-            <div class="truncate text-xs opacity-60">Ferme du Campeyrigoux</div>
+            <div class="truncate text-sm font-semibold">{{ t('admin.title') }}</div>
+            <div class="truncate text-xs opacity-60">{{ siteConfig?.siteName || t('admin.settingsGlobalPage.title') }}</div>
           </div>
         </NuxtLink>
       </div>
@@ -26,7 +26,7 @@
       <div class="border-t border-base-300 p-3">
         <button class="btn btn-block btn-ghost justify-start" :class="sidebarCollapsed ? 'justify-center' : ''" @click="sidebarCollapsed = !sidebarCollapsed">
           <Icon :name="sidebarCollapsed ? 'mdi:chevron-right' : 'mdi:chevron-left'" size="18" />
-          <span v-if="!sidebarCollapsed">Rétracter</span>
+          <span v-if="!sidebarCollapsed">{{ t('admin.layout.collapse') }}</span>
         </button>
       </div>
     </aside>
@@ -45,7 +45,7 @@
               <Icon name="mdi:menu" size="22" />
             </button>
             <NuxtLink :to="localePath('/')" class="text-sm font-medium text-primary">
-              Retour au site
+              {{ t('admin.layout.backToSite') }}
             </NuxtLink>
           </div>
 
@@ -77,6 +77,7 @@ import { getAdminNavigationSections } from '~/shared/adminNavigation'
 useNoIndexSeo('Administration')
 
 const localePath = useLocalePath()
+const { t } = useI18n()
 const siteConfig = useSiteConfigState()
 const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated === true)
 const adminSections = computed(() => getAdminNavigationSections({

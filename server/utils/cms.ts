@@ -31,8 +31,8 @@ import {
   createEmptyPageBuilderContent,
   createEmptyCmsLocalizedText
 } from '~/shared/cms'
-import type { ThemeColorSelection } from '~/shared/pageBuilder'
-import { createThemeColorSelection } from '~/shared/pageBuilder'
+import type { PageBuilderContent, ThemeColorSelection } from '~/shared/pageBuilder'
+import { clonePageBuilderContent, createThemeColorSelection } from '~/shared/pageBuilder'
 import { CMS_THEME_COLOR_TOKENS } from '~/shared/cms'
 import { getPageBuilderContent } from '~/server/utils/pageBuilder'
 import { getSetting, setSetting, SETTING_KEYS } from '~/server/utils/settings'
@@ -235,14 +235,45 @@ function normalizeTranslation(value: unknown): CmsPageTranslation {
   }
 }
 
+function isEmptyPageBuilderContent(content: PageBuilderContent | null | undefined) {
+  return !content || !Array.isArray(content.sections) || content.sections.length === 0
+}
+
+function pickSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
+  if (!isEmptyPageBuilderContent(translations.fr.content)) {
+    return clonePageBuilderContent(translations.fr.content)
+  }
+
+  if (!isEmptyPageBuilderContent(translations.en.content)) {
+    return clonePageBuilderContent(translations.en.content)
+  }
+
+  return createEmptyPageBuilderContent()
+}
+
+function synchronizeSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
+  const sharedContent = pickSharedPageContent(translations)
+
+  return {
+    fr: {
+      ...translations.fr,
+      content: clonePageBuilderContent(sharedContent)
+    },
+    en: {
+      ...translations.en,
+      content: clonePageBuilderContent(sharedContent)
+    }
+  }
+}
+
 function normalizeTranslations(value: unknown, path = '/'): Record<CmsLocale, CmsPageTranslation> {
   const fallback = createDefaultCmsPagePayload(path).translations
   if (!isObject(value)) return fallback
 
-  return {
+  return synchronizeSharedPageContent({
     fr: normalizeTranslation(value.fr),
     en: normalizeTranslation(value.en)
-  }
+  })
 }
 
 function parseJson<T>(value: string | null | undefined): T | null {
@@ -338,13 +369,13 @@ function createLegacyRootResolvedPage(locale: string): Promise<ResolvedCmsPage> 
     templateKey: 'default',
     rendererKey: '',
     applicationPosition: 'AFTER_CONTENT',
-    title: locale === 'en' ? 'Home' : 'Accueil',
-    navigationLabel: locale === 'en' ? 'Home' : 'Accueil',
+    title: locale === 'en' ? 'Home page' : 'Page d’accueil',
+    navigationLabel: locale === 'en' ? 'Home page' : 'Page d’accueil',
     seo: {
-      metaTitle: locale === 'en' ? 'Organic vegetables, baskets and farm pickup' : 'Légumes bio, paniers et vente à la ferme',
+      metaTitle: locale === 'en' ? 'Home page' : 'Page d’accueil',
       metaDescription: locale === 'en'
-        ? 'Discover seasonal organic vegetables, farm pickup and local basket reservations at Ferme du Campeyrigoux.'
-        : 'Découvrez les légumes bio de saison, la vente à la ferme et la réservation de paniers à la Ferme du Campeyrigoux.',
+        ? 'Edit this page from the CMS to publish your own content.'
+        : 'Modifiez cette page depuis le CMS pour publier votre propre contenu.',
       ogImage: '',
       noindex: false
     },
@@ -391,8 +422,8 @@ function createLegacyNewsResolvedPage(locale: string): ResolvedCmsPage {
     seo: {
       metaTitle: locale === 'en' ? 'Farm news and updates' : 'Actualités de la ferme',
       metaDescription: locale === 'en'
-        ? 'Read the latest farm news, updates and seasonal highlights from Ferme du Campeyrigoux.'
-        : 'Suivez les actualités, les nouveautés et les temps forts de saison de la Ferme du Campeyrigoux.',
+        ? 'Read the latest news, updates and highlights published on the site.'
+        : 'Suivez les actualités, les nouveautés et les temps forts publiés sur le site.',
       ogImage: '',
       noindex: false
     },
@@ -540,29 +571,29 @@ export async function ensureCmsRootPage() {
 
   const rootPageContent = await getPageBuilderContent()
   const created = await saveCmsPage(null, {
-    ...createDefaultCmsPagePayload('/', 'Accueil'),
+    ...createDefaultCmsPagePayload('/', 'Page d’accueil'),
     path: '/',
     slug: 'home',
     status: 'PUBLISHED',
-    title: 'Accueil',
+    title: 'Page d’accueil',
     translations: {
       fr: {
-        title: 'Accueil',
-        navigationLabel: 'Accueil',
+        title: 'Page d’accueil',
+        navigationLabel: 'Page d’accueil',
         seo: {
-          metaTitle: 'Légumes bio, paniers et vente à la ferme',
-          metaDescription: 'Découvrez les légumes bio de saison, la vente à la ferme et la réservation de paniers à la Ferme du Campeyrigoux.',
+          metaTitle: 'Page d’accueil',
+          metaDescription: 'Modifiez cette page depuis le CMS pour publier votre propre contenu.',
           ogImage: '',
           noindex: false
         },
         content: rootPageContent
       },
       en: {
-        title: 'Home',
-        navigationLabel: 'Home',
+        title: 'Home page',
+        navigationLabel: 'Home page',
         seo: {
-          metaTitle: 'Organic vegetables, baskets and farm pickup',
-          metaDescription: 'Discover seasonal organic vegetables, farm pickup and local basket reservations at Ferme du Campeyrigoux.',
+          metaTitle: 'Home page',
+          metaDescription: 'Edit this page from the CMS to publish your own content.',
           ogImage: '',
           noindex: false
         },
@@ -651,6 +682,7 @@ export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCms
 
 export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
   const normalizedPath = normalizePath(payload.path)
+  const translations = synchronizeSharedPageContent(payload.translations)
   const data = {
     path: normalizedPath,
     slug: payload.slug,
@@ -660,7 +692,7 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
     templateKey: payload.templateKey || 'default',
     rendererKey: payload.rendererKey || null,
     applicationPosition: payload.applicationPosition,
-    translationsJson: JSON.stringify(payload.translations)
+    translationsJson: JSON.stringify(translations)
   }
 
   if (id) {

@@ -1,6 +1,6 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { setSetting, SETTING_KEYS } from '~/server/utils/settings'
-import { TEMPLATE_DEFINITIONS } from '~/server/utils/reservationEmailContent'
+import { findAdminEmailTemplateDefinition } from '~/server/utils/adminEmailTemplates'
 
 interface Body {
   gmailSenderEmail?: string
@@ -98,7 +98,7 @@ export default defineEventHandler(async (event) => {
   }
   if (body.templates) {
     for (const [action, locales] of Object.entries(body.templates)) {
-      const templateDefinition = TEMPLATE_DEFINITIONS.find((template) => template.action === action)
+      const templateDefinition = await findAdminEmailTemplateDefinition(action)
       if (!templateDefinition) continue
       if (locales.fr || locales.en) {
         const value: Record<string, { subject: string; body: string }> = {}

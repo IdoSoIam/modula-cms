@@ -587,7 +587,7 @@ export function createDefaultPageBuilderContent(farmAddress: string): PageBuilde
   const introTitle = introItems[1] as PageBuilderTitleItem
   const introText = introItems[2] as PageBuilderTextItem
   const introButtons = introItems[3] as PageBuilderButtonsItem
-  introBadge.text = { fr: 'Ferme du Campeyrigoux', en: 'Ferme du Campeyrigoux' }
+  introBadge.text = { fr: 'Nom du site', en: 'Site name' }
   intro.columns[0]!.textColor = { token: 'white', opacity: 100 }
   introTitle.text = { fr: 'Production locale, bio et de saison', en: 'Local, organic and seasonal production' }
   introText.text = {
@@ -635,7 +635,7 @@ export function createDefaultPageBuilderContent(farmAddress: string): PageBuilde
   ]
   aButtons.primaryButton = { label: { fr: 'Voir les paniers', en: 'View baskets' }, href: '/paniers', tone: 'primary', size: 'md' }
   aImage.imageUrl = '/images/erasebg-transformed.png'
-  aImage.alt = { fr: 'Logo de la Ferme du Campeyrigoux', en: 'Ferme du Campeyrigoux logo' }
+  aImage.alt = { fr: 'Logo du site', en: 'Site logo' }
   aImage.aspect = 'square'
   aImage.fit = 'contain'
 

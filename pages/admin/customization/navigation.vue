@@ -1,0 +1,256 @@
+<template>
+  <div v-if="model" class="space-y-8">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-bold">{{ t('admin.customizationNavigationPage.title') }}</h1>
+        <p class="mt-2 max-w-3xl text-sm opacity-70">
+          {{ t('admin.customizationNavigationPage.description') }}
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-outline" @click="resetToDefaultNavigation">{{ t('admin.customizationNavigationPage.reset') }}</button>
+        <button class="btn btn-outline" @click="addNavigationItem(activeMenuTab)">{{ t('admin.customizationNavigationPage.addLink') }}</button>
+        <button class="btn btn-primary" :disabled="saving" @click="save">
+          <span v-if="saving" class="loading loading-spinner loading-sm" />
+          {{ t('admin.common.save') }}
+        </button>
+      </div>
+    </div>
+
+    <div class="tabs tabs-box w-fit">
+      <button type="button" class="tab" :class="previewLocale === 'fr' ? 'tab-active' : ''" @click="previewLocale = 'fr'">{{ t('admin.customizationNavigationPage.previewFr') }}</button>
+      <button type="button" class="tab" :class="previewLocale === 'en' ? 'tab-active' : ''" @click="previewLocale = 'en'">{{ t('admin.customizationNavigationPage.previewEn') }}</button>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-2">
+      <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-4">
+        <div>
+          <h2 class="text-xl font-semibold">{{ t('admin.customizationNavigationPage.headerPreview') }}</h2>
+          <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationNavigationPage.headerPreviewDescription') }}</p>
+        </div>
+
+        <div class="rounded-[2rem] border border-base-300 bg-base-200 p-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              v-for="item in primaryItems"
+              :key="item.id ?? item.title"
+              class="rounded-full border border-base-300 bg-base-100 px-4 py-2 text-sm"
+            >
+              {{ previewText(item.labels) || item.title }}
+            </span>
+            <span v-if="!primaryItems.length" class="text-sm opacity-60">{{ t('admin.customizationNavigationPage.noHeaderLinks') }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-4">
+        <div>
+          <h2 class="text-xl font-semibold">{{ t('admin.customizationNavigationPage.footerPreview') }}</h2>
+          <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationNavigationPage.footerPreviewDescription') }}</p>
+        </div>
+
+        <div class="rounded-[2rem] border border-base-300 bg-neutral p-4 text-neutral-content">
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              v-for="item in footerItems"
+              :key="item.id ?? item.title"
+              class="rounded-full border border-white/20 px-4 py-2 text-sm"
+            >
+              {{ previewText(item.labels) || item.title }}
+            </span>
+            <span v-if="!footerItems.length" class="text-sm opacity-60">{{ t('admin.customizationNavigationPage.noFooterLinks') }}</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5">
+      <div class="tabs tabs-box w-fit">
+        <button type="button" class="tab" :class="activeMenuTab === 'PRIMARY' ? 'tab-active' : ''" @click="activeMenuTab = 'PRIMARY'">
+          {{ t('admin.customizationNavigationPage.header') }}
+        </button>
+        <button type="button" class="tab" :class="activeMenuTab === 'FOOTER' ? 'tab-active' : ''" @click="activeMenuTab = 'FOOTER'">
+          {{ t('admin.customizationNavigationPage.footer') }}
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <article
+          v-for="(item, index) in activeItems"
+          :key="item.id ?? `new-${index}`"
+          class="rounded-2xl border border-base-300 p-5"
+        >
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="font-medium">{{ t('admin.customizationNavigationPage.link', { index: index + 1 }) }}</div>
+            <button class="btn btn-outline btn-error btn-xs" @click="removeNavigationItem(item)">{{ t('admin.common.delete') }}</button>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-3">
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.menuZone') }}</span></span>
+              <select v-model="item.menu" class="select select-bordered w-full">
+                <option value="PRIMARY">{{ t('admin.customizationNavigationPage.header') }}</option>
+                <option value="FOOTER">{{ t('admin.customizationNavigationPage.footer') }}</option>
+              </select>
+            </label>
+
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.type') }}</span></span>
+              <select v-model="item.itemType" class="select select-bordered w-full">
+                <option value="CMS_PAGE">{{ t('admin.customizationNavigationPage.typeCmsPage') }}</option>
+                <option value="APPLICATION_ROUTE">{{ t('admin.customizationNavigationPage.typeApplicationRoute') }}</option>
+                <option value="EXTERNAL_URL">{{ t('admin.customizationNavigationPage.typeExternalUrl') }}</option>
+              </select>
+            </label>
+
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.position') }}</span></span>
+              <input v-model.number="item.position" type="number" class="input input-bordered w-full" />
+            </label>
+
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.internalTitle') }}</span></span>
+              <input v-model="item.title" class="input input-bordered w-full" />
+            </label>
+
+            <label class="form-control gap-2 lg:col-span-2">
+              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.url') }}</span></span>
+              <input v-model="item.href" class="input input-bordered w-full" />
+            </label>
+          </div>
+
+          <div class="mt-4">
+            <AdminPageBuilderTranslationTabs :model-value="item.labels" :label="t('admin.customizationNavigationPage.linkLabel')" />
+          </div>
+
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <label class="flex items-start gap-3 rounded-xl border border-base-300 p-4">
+              <input v-model="item.visible" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
+              <div>
+                <div class="font-medium">{{ t('admin.customizationNavigationPage.visible') }}</div>
+                <div class="text-sm opacity-70">{{ t('admin.customizationNavigationPage.visibleDescription') }}</div>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-3 rounded-xl border border-base-300 p-4">
+              <input v-model="item.newTab" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
+              <div>
+                <div class="font-medium">{{ t('admin.customizationNavigationPage.newTab') }}</div>
+                <div class="text-sm opacity-70">{{ t('admin.customizationNavigationPage.newTabDescription') }}</div>
+              </div>
+            </label>
+          </div>
+        </article>
+
+        <div v-if="!activeItems.length" class="rounded-2xl border border-dashed border-base-300 p-6 text-sm opacity-70">
+          {{ t('admin.customizationNavigationPage.empty') }}
+        </div>
+      </div>
+    </section>
+  </div>
+</template>
+
+<script setup lang="ts">
+import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
+import { createDefaultCmsNavigationItems, type CmsLocalizedText, type CmsNavigationItemPayload, type CmsSiteSettings } from '~/shared/cms'
+
+definePageMeta({
+  layout: 'admin',
+  middleware: 'auth',
+  i18n: {
+    paths: {
+      fr: '/admin/personnalisation/navigation',
+      en: '/admin/customization/navigation'
+    }
+  }
+})
+
+interface SiteShellModel {
+  settings: CmsSiteSettings
+  navigation: Array<CmsNavigationItemPayload & { id?: number | null }>
+}
+
+const { $toast } = useNuxtApp() as any
+const { t } = useI18n()
+const saving = ref(false)
+const previewLocale = ref<'fr' | 'en'>('fr')
+const activeMenuTab = ref<'PRIMARY' | 'FOOTER'>('PRIMARY')
+const { data } = await useFetch<SiteShellModel>('/api/admin/cms/site-shell')
+
+if (!data.value) {
+  throw createError({
+    statusCode: 500,
+    statusMessage: t('admin.customizationNavigationPage.loadError')
+  })
+}
+
+const model = reactive<SiteShellModel>(structuredClone(data.value))
+
+if (!model.navigation.length) {
+  model.navigation = createDefaultCmsNavigationItems().map((item) => ({ ...item }))
+}
+
+const primaryItems = computed(() =>
+  model.navigation
+    .filter((item) => item.menu === 'PRIMARY' && item.visible)
+    .sort((a, b) => a.position - b.position)
+)
+
+const footerItems = computed(() =>
+  model.navigation
+    .filter((item) => item.menu === 'FOOTER' && item.visible)
+    .sort((a, b) => a.position - b.position)
+)
+
+const activeItems = computed(() =>
+  model.navigation
+    .filter((item) => item.menu === activeMenuTab.value)
+    .sort((a, b) => a.position - b.position)
+)
+
+const previewText = (value: CmsLocalizedText | null | undefined) => {
+  if (!value) return ''
+  return previewLocale.value === 'en' ? value.en : value.fr
+}
+
+const addNavigationItem = (menu: 'PRIMARY' | 'FOOTER') => {
+  model.navigation.push({
+    menu,
+    itemType: 'APPLICATION_ROUTE',
+    title: t('admin.customizationNavigationPage.newLinkTitle'),
+    labels: { fr: '', en: '' },
+    href: '/',
+    pageId: null,
+    newTab: false,
+    visible: true,
+    position: model.navigation.filter((item) => item.menu === menu).length
+  })
+}
+
+const resetToDefaultNavigation = () => {
+  model.navigation = createDefaultCmsNavigationItems().map((item) => ({ ...item }))
+}
+
+const removeNavigationItem = (target: CmsNavigationItemPayload & { id?: number | null }) => {
+  const index = model.navigation.indexOf(target)
+  if (index >= 0) {
+    model.navigation.splice(index, 1)
+  }
+}
+
+const save = async () => {
+  saving.value = true
+  try {
+    await $fetch('/api/admin/cms/site-shell', {
+      method: 'PUT',
+      body: model
+    })
+    $toast?.success(t('admin.customizationNavigationPage.saved'))
+  } catch (error: any) {
+    $toast?.error(error.statusMessage || t('admin.customizationNavigationPage.saveError'))
+  } finally {
+    saving.value = false
+  }
+}
+</script>

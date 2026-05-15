@@ -1,5 +1,5 @@
 import { prisma } from '../../prisma/client'
-import { getNextDateForDayOfWeek } from '~/server/utils/reservationFulfillment'
+import { getNextDateForDayOfWeek } from '~/server/utils/orderFulfillment'
 import { getFarmPickupConfig } from '~/server/utils/settings'
 
 export default defineEventHandler(async () => {

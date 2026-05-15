@@ -1,6 +1,6 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { sendGmail } from '~/server/utils/gmail'
-import { buildGenericEmail } from '~/server/utils/reservationEmails'
+import { buildGenericEmail } from '~/server/utils/orderEmails'
 import { formatDateTimeLabel, getDefaultTimeZone } from '~/server/utils/dateFormat'
 import { getReservationNotificationEmail, getSettings, SETTING_KEYS } from '~/server/utils/settings'
 

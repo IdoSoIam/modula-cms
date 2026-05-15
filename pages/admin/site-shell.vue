@@ -3,5 +3,7 @@
 </template>
 
 <script setup lang="ts">
-await navigateTo('/admin/reglages/global', { replace: true })
+const localePath = useLocalePath()
+
+await navigateTo(localePath('/admin/settings/global'), { replace: true })
 </script>
