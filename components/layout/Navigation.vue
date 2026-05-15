@@ -5,17 +5,16 @@
     :class="headerSettings.sticky ? 'sticky top-0 shadow-sm' : ''"
     :style="headerStyle"
   >
-    <div class="navbar-start gap-3">
-      <!-- Hamburger pour mobile -->
+    <div class="navbar-start min-w-0 gap-3">
       <div v-if="showNavigation" class="md:hidden">
         <label for="drawer-toggle" class="btn btn-ghost btn-circle">
           <Icon name="mdi:menu" size="24" />
         </label>
       </div>
-      <!-- Logo et nom -->
+
       <NuxtLink
         :to="localePath('/')"
-        class="flex min-w-0 items-center gap-3"
+        class="flex min-w-60 items-center gap-3"
         :style="{
           '--site-header-logo-height': `${headerSettings.logoHeightPx}px`,
           '--site-header-logo-height-mobile': `${headerSettings.mobileLogoHeightPx}px`
@@ -23,29 +22,52 @@
       >
         <img :src="logoSrc" :alt="logoAlt" class="site-header-logo w-auto shrink-0" />
         <div v-if="headerSettings.showSiteName || headerSettings.showSiteTagline" class="min-w-0">
-          <div v-if="headerSettings.showSiteName" class="truncate text-lg font-bold sm:text-xl">{{ siteName }}</div>
-          <div v-if="headerSettings.showSiteTagline" class="truncate text-xs opacity-70 sm:text-sm">{{ siteTagline }}</div>
+          <div v-if="headerSettings.showSiteName" class="whitespace-normal break-words text-sm font-bold leading-tight sm:text-xl">
+            {{ siteName }}
+          </div>
+          <div v-if="headerSettings.showSiteTagline" class="hidden text-xs opacity-70 sm:block sm:text-sm">
+            {{ siteTagline }}
+          </div>
         </div>
       </NuxtLink>
     </div>
 
-    <!-- Menu desktop -->
     <div class="navbar-center hidden md:flex">
-      <ul v-if="showNavigation" class="menu menu-horizontal px-1 gap-2">
-        <li v-for="item in menuItems" :key="`${item.href}-${item.position}`">
+      <ul v-if="showNavigation" class="flex items-center gap-2 px-1">
+        <li v-for="item in menuItems" :key="item.navigationItemKey">
+          <details v-if="item.children.length" class="dropdown dropdown-hover dropdown-bottom">
+            <summary class="list-none" :class="navLinkClass(item)">
+              <span>{{ resolveLabel(item) }}</span>
+              <Icon name="mdi:chevron-down" size="16" class="opacity-70" />
+            </summary>
+            <ul class="dropdown-content z-50 mt-2 w-72 rounded-2xl border border-base-300 bg-base-100 p-2 shadow-xl">
+              <li v-for="child in item.children" :key="child.navigationItemKey">
+                <NuxtLink
+                  :to="resolveHref(child)"
+                  :target="child.newTab ? '_blank' : undefined"
+                  :rel="child.newTab ? 'noopener noreferrer' : undefined"
+                  :class="navChildLinkClass(child)"
+                >
+                  {{ resolveLabel(child) }}
+                </NuxtLink>
+              </li>
+            </ul>
+          </details>
+
           <NuxtLink
+            v-else
             :to="resolveHref(item)"
-            class="btn btn-ghost"
             :target="item.newTab ? '_blank' : undefined"
             :rel="item.newTab ? 'noopener noreferrer' : undefined"
-            :class="{ 'btn-active': isActiveItem(item) }"
+            :class="navLinkClass(item)"
           >
             {{ resolveLabel(item) }}
           </NuxtLink>
         </li>
       </ul>
     </div>
-    <div class="navbar-end">
+
+    <div class="navbar-end hidden md:flex">
       <ThemeSelector />
       <LanguageSelector />
       <LayoutUserMenu />
@@ -54,11 +76,11 @@
 </template>
 
 <script setup lang="ts">
-import type { ResolvedCmsNavigationItem } from '~/shared/cms'
+import type { CmsHeaderNavigationStyle, ResolvedCmsNavigationItem } from '~/shared/cms'
 import type { ThemeColorSelection } from '~/shared/pageBuilder'
 import { useAuthStore } from '~/stores/auth'
 
-const localePath = useLocalePath();
+const localePath = useLocalePath()
 const { locale } = useI18n()
 const route = useRoute()
 const authStore = useAuthStore()
@@ -72,6 +94,7 @@ const headerSettings = computed(() => cms.value?.settings.header ?? {
   showSiteName: true,
   showSiteTagline: false,
   showPrimaryNavigation: true,
+  navigationStyle: 'ghost' as CmsHeaderNavigationStyle,
   backgroundColor: { token: 'base-100' as const, opacity: 100 },
   textColor: { token: 'base-content' as const, opacity: 100 },
   sticky: true
@@ -79,8 +102,8 @@ const headerSettings = computed(() => cms.value?.settings.header ?? {
 const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated) && headerSettings.value.showPrimaryNavigation)
 
 const siteName = computed(() => locale.value === 'en'
-  ? cms.value?.settings.siteName.en || 'Ferme du Campeyrigoux'
-  : cms.value?.settings.siteName.fr || 'Ferme du Campeyrigoux')
+  ? cms.value?.settings.siteName.en || 'Site name'
+  : cms.value?.settings.siteName.fr || 'Nom du site')
 const siteTagline = computed(() => locale.value === 'en'
   ? cms.value?.settings.siteTagline.en || ''
   : cms.value?.settings.siteTagline.fr || '')
@@ -120,10 +143,37 @@ const resolveLabel = (item: ResolvedCmsNavigationItem) =>
 const resolveHref = (item: ResolvedCmsNavigationItem) =>
   item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)
 
-const isActiveItem = (item: ResolvedCmsNavigationItem) => {
+const isActiveItem = (item: ResolvedCmsNavigationItem): boolean => {
+  if (item.children.length) {
+    return item.children.some(child => isActiveItem(child))
+  }
+
   if (item.itemType === 'EXTERNAL_URL') return false
   const href = localePath(item.href)
   return route.path === href || (item.href !== '/' && route.path.startsWith(`${href}/`))
+}
+
+const navLinkClass = (item: ResolvedCmsNavigationItem) => {
+  const active = isActiveItem(item)
+  const base = 'inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition'
+  switch (headerSettings.value.navigationStyle) {
+    case 'soft':
+      return `${base} ${active ? 'bg-primary text-primary-content shadow-sm' : 'border border-base-300 bg-base-200/70 hover:bg-base-300/70'}`
+    case 'outline':
+      return `${base} border ${active ? 'border-primary bg-primary text-primary-content shadow-sm' : 'border-current/20 hover:bg-base-200/70'}`
+    case 'solid':
+      return `${base} ${active ? 'bg-primary text-primary-content shadow-sm' : 'bg-primary/12 hover:bg-primary/18'}`
+    default:
+      return `${base} ${active ? 'bg-primary text-primary-content shadow-sm' : 'hover:bg-base-200/80'}`
+  }
+}
+
+const navChildLinkClass = (item: ResolvedCmsNavigationItem) => {
+  const active = isActiveItem(item)
+  return [
+    'block rounded-xl px-3 py-2 text-sm transition',
+    active ? 'bg-primary text-primary-content shadow-sm' : 'hover:bg-base-200'
+  ]
 }
 </script>
 

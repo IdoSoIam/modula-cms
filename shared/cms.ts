@@ -10,10 +10,12 @@ export type CmsPageStatus = 'DRAFT' | 'PUBLISHED'
 export type CmsApplicationPosition = 'BEFORE_CONTENT' | 'AFTER_CONTENT'
 export type CmsNavigationMenu = 'PRIMARY' | 'FOOTER'
 export type CmsNavigationItemType = 'CMS_PAGE' | 'APPLICATION_ROUTE' | 'EXTERNAL_URL'
+export type CmsHeaderNavigationStyle = 'ghost' | 'soft' | 'outline' | 'solid'
 export type CmsFooterAlign = 'start' | 'center'
 export type CmsFooterContainerAlign = 'start' | 'center' | 'between'
 export type CmsApplicationGridColumns = 1 | 2 | 3 | 4
 export type CmsApplicationViewMode = 'grid' | 'list'
+export const CMS_HEADER_NAVIGATION_STYLES: CmsHeaderNavigationStyle[] = ['ghost', 'soft', 'outline', 'solid']
 
 export interface CmsLocalizedText {
   fr: string
@@ -46,6 +48,7 @@ export interface CmsHeaderSettings {
   showSiteName: boolean
   showSiteTagline: boolean
   showPrimaryNavigation: boolean
+  navigationStyle: CmsHeaderNavigationStyle
   backgroundColor?: ThemeColorSelection | null
   textColor?: ThemeColorSelection | null
   sticky: boolean
@@ -168,6 +171,8 @@ export interface CmsNavigationItemPayload {
   itemType: CmsNavigationItemType
   title: string
   labels: CmsLocalizedText
+  navigationItemKey: string
+  parentItemKey: string | null
   href: string
   pageId: number | null
   newTab: boolean
@@ -181,10 +186,13 @@ export interface ResolvedCmsNavigationItem {
   itemType: CmsNavigationItemType
   labels: CmsLocalizedText
   label: string
+  navigationItemKey: string
+  parentItemKey: string | null
   href: string
   newTab: boolean
   visible: boolean
   position: number
+  children: ResolvedCmsNavigationItem[]
 }
 
 export interface ResolvedCmsPage {
@@ -261,6 +269,7 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
       showSiteName: true,
       showSiteTagline: false,
       showPrimaryNavigation: true,
+      navigationStyle: 'ghost',
       backgroundColor: createThemeColorSelection('base-100'),
       textColor: createThemeColorSelection('base-content'),
       sticky: true
@@ -425,6 +434,8 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       itemType: 'APPLICATION_ROUTE',
       title: 'Accueil',
       labels: { fr: 'Accueil', en: 'Home' },
+      navigationItemKey: 'nav-home',
+      parentItemKey: null,
       href: '/',
       pageId: null,
       newTab: false,
@@ -436,6 +447,8 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       itemType: 'APPLICATION_ROUTE',
       title: 'Actualités',
       labels: { fr: 'Actualités', en: 'News' },
+      navigationItemKey: 'nav-news',
+      parentItemKey: null,
       href: '/news',
       pageId: null,
       newTab: false,
@@ -447,6 +460,8 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       itemType: 'APPLICATION_ROUTE',
       title: 'Paniers',
       labels: { fr: 'Paniers', en: 'Baskets' },
+      navigationItemKey: 'nav-baskets',
+      parentItemKey: null,
       href: '/paniers',
       pageId: null,
       newTab: false,
@@ -458,6 +473,8 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       itemType: 'APPLICATION_ROUTE',
       title: 'Contact',
       labels: { fr: 'Contact', en: 'Contact' },
+      navigationItemKey: 'nav-contact',
+      parentItemKey: null,
       href: '/contact',
       pageId: null,
       newTab: false,
@@ -469,6 +486,8 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       itemType: 'APPLICATION_ROUTE',
       title: 'Confidentialité',
       labels: { fr: 'Confidentialité', en: 'Privacy' },
+      navigationItemKey: 'nav-privacy',
+      parentItemKey: null,
       href: '/privacy',
       pageId: null,
       newTab: false,
@@ -480,6 +499,8 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       itemType: 'APPLICATION_ROUTE',
       title: 'Mentions légales',
       labels: { fr: 'Mentions légales', en: 'Legal notice' },
+      navigationItemKey: 'nav-legal',
+      parentItemKey: null,
       href: '/terms',
       pageId: null,
       newTab: false,

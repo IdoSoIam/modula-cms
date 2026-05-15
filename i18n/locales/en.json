@@ -880,6 +880,8 @@
       "menuZone": "Menu area",
       "type": "Type",
       "position": "Position",
+      "parentLink": "Parent link",
+      "topLevel": "Top level",
       "internalTitle": "Internal title",
       "url": "Link",
       "linkLabel": "Link label",
@@ -909,6 +911,7 @@
       "headerHeight": "Header height",
       "desktopLogoHeight": "Desktop logo height",
       "mobileLogoHeight": "Mobile logo height",
+      "navigationStyle": "Navigation link style",
       "headerBackground": "Header background",
       "headerText": "Header text",
       "showSiteName": "Show site name",
@@ -965,6 +968,12 @@
         "contact": "Contact",
         "socialLinks": "Social links",
         "navigation": "Menu"
+      },
+      "navigationStyleOptions": {
+        "ghost": "Ghost",
+        "soft": "Soft",
+        "outline": "Outline",
+        "solid": "Solid"
       }
     },
     "themesPage": {
@@ -1060,6 +1069,19 @@
     "empty": "No images. Import one above.",
     "imageCount": "{count} image(s)"
   },
+  "layout": {
+    "logoutSuccess": "You have been logged out",
+    "mobileMenu": {
+      "navigationGroup": "Navigation",
+      "themeGroup": "Theme",
+      "languageGroup": "Language",
+      "accountGroup": "Account"
+    }
+  },
+  "theme": {
+    "title": "Themes",
+    "select": "Select a theme"
+  },
   "ui": {
     "lightMode": "Switch to light mode",
     "darkMode": "Switch to dark mode"
@@ -1076,15 +1098,6 @@
       "as well as the latest news."
     ],
     "footer": "Thank you for your patience and see you soon"
-  },
-  "theme": {
-    "title": "Theme",
-    "select": "Choose a theme",
-    "ferme": "Sunny field",
-    "ferme-dark": "Barn at night",
-    "prairie": "Prairie",
-    "recolte": "Harvest",
-    "lavande": "Lavender"
   },
   "toast": {
     "connectionSuccess": "Connection successful",

@@ -744,7 +744,7 @@
       "preview": "Aperçu",
       "saved": "Réglages globaux enregistrés",
       "loadError": "Configuration CMS indisponible",
-      "saveError": "Impossible d’enregistrer les réglages globaux",
+      "saveError": "Impossible d'enregistrer les réglages globaux",
       "days": {
         "sunday": "Dimanche",
         "monday": "Lundi",
@@ -765,7 +765,7 @@
       "subscriptionsEnabled": "Abonnements paniers actifs",
       "facebookFluxDeactivated": "Désactiver le flux Facebook public",
       "saved": "Fonctionnalités enregistrées",
-      "saveError": "Impossible d’enregistrer les fonctionnalités"
+      "saveError": "Impossible d'enregistrer les fonctionnalités"
     },
     "emailConnectorsPage": {
       "title": "Emails et connecteurs",
@@ -820,7 +820,7 @@
       "customVariablesHelp": "Séparez les variables par des virgules.",
       "deleteTemplateConfirm": "Supprimer ce template custom ?",
       "saved": "Paramètres enregistrés",
-      "saveError": "Erreur lors de l’enregistrement",
+      "saveError": "Erreur lors de l'enregistrement",
       "testSent": "Email de test envoyé",
       "testError": "Erreur lors du test email"
     },
@@ -842,12 +842,12 @@
       "previewTitle": "Aperçu",
       "previewDescription": "Rendu réel du composant paniers avec vos réglages.",
       "saved": "Personnalisation paniers enregistrée",
-      "saveError": "Impossible d’enregistrer les paniers",
+      "saveError": "Impossible d'enregistrer les paniers",
       "loadError": "Configuration CMS indisponible"
     },
     "customizationNewsPage": {
       "title": "Personnalisation actualités",
-      "description": "Réglage du rendu de la liste et des cartes d’actualité.",
+      "description": "Réglage du rendu de la liste et des cartes d'actualité.",
       "titleField": "Titre",
       "subtitleField": "Sous-titre",
       "containerWidth": "Largeur du conteneur",
@@ -858,18 +858,18 @@
       "gridColumnThree": "3 colonnes",
       "showSort": "Afficher le tri",
       "showViewToggle": "Afficher le switch grille / liste",
-      "showCoverImage": "Afficher l’image de couverture",
+      "showCoverImage": "Afficher l'image de couverture",
       "showPublishedDate": "Afficher la date",
-      "showExcerpt": "Afficher l’extrait",
-      "excerptLines": "Nombre de lignes d’extrait",
+      "showExcerpt": "Afficher l'extrait",
+      "excerptLines": "Nombre de lignes d'extrait",
       "excerptLinesTwo": "2 lignes",
       "excerptLinesThree": "3 lignes",
       "excerptLinesFour": "4 lignes",
       "cardBackground": "Fond des cartes actualité",
       "previewTitle": "Aperçu",
-      "previewDescription": "Rendu réel de la liste d’actualités avec vos réglages.",
+      "previewDescription": "Rendu réel de la liste d'actualités avec vos réglages.",
       "saved": "Personnalisation actualités enregistrée",
-      "saveError": "Impossible d’enregistrer les actualités",
+      "saveError": "Impossible d'enregistrer les actualités",
       "loadError": "Configuration CMS indisponible"
     },
     "customizationNavigationPage": {
@@ -891,6 +891,8 @@
       "menuZone": "Zone de menu",
       "type": "Type",
       "position": "Position",
+      "parentLink": "Lien parent",
+      "topLevel": "Niveau principal",
       "internalTitle": "Titre interne",
       "url": "Lien",
       "linkLabel": "Libellé du lien",
@@ -904,7 +906,7 @@
       "typeExternalUrl": "URL externe",
       "newLinkTitle": "Nouveau lien",
       "saved": "Navigation enregistrée",
-      "saveError": "Impossible d’enregistrer la navigation",
+      "saveError": "Impossible d'enregistrer la navigation",
       "loadError": "Configuration CMS indisponible"
     },
     "customizationLayoutPage": {
@@ -920,6 +922,7 @@
       "headerHeight": "Hauteur du header",
       "desktopLogoHeight": "Hauteur du logo desktop",
       "mobileLogoHeight": "Hauteur du logo mobile",
+      "navigationStyle": "Style des liens de navigation",
       "headerBackground": "Fond du header",
       "headerText": "Texte du header",
       "showSiteName": "Afficher le nom du site",
@@ -931,7 +934,7 @@
       "stickyHeader": "Header sticky",
       "stickyHeaderHelp": "Le header reste visible en haut pendant le scroll.",
       "socialLinksTitle": "Réseaux sociaux",
-      "socialLinksDescription": "Injectables à n’importe quel endroit du footer.",
+      "socialLinksDescription": "Injectables à n'importe quel endroit du footer.",
       "socialLinkLabel": "Réseau {index}",
       "emptyContent": "Sans contenu",
       "idField": "ID",
@@ -964,7 +967,7 @@
       "footerMenu": "Menu footer",
       "noText": "Sans texte",
       "saved": "Mise en page enregistrée",
-      "saveError": "Impossible d’enregistrer la mise en page",
+      "saveError": "Impossible d'enregistrer la mise en page",
       "loadError": "Configuration CMS indisponible",
       "blockTypes": {
         "logo": "Logo",
@@ -972,10 +975,16 @@
         "siteTagline": "Baseline du site",
         "title": "Titre",
         "text": "Texte",
-        "openingHours": "Horaires d’ouverture",
+        "openingHours": "Horaires d'ouverture",
         "contact": "Contact",
         "socialLinks": "Réseaux sociaux",
         "navigation": "Menu"
+      },
+      "navigationStyleOptions": {
+        "ghost": "Ghost",
+        "soft": "Doux",
+        "outline": "Contour",
+        "solid": "Plein"
       }
     },
     "themesPage": {
@@ -1013,7 +1022,7 @@
       "generatedCssDescription": "Aperçu direct du bloc CSS injecté pour ce thème, avec ou sans sélecteur `theme-controller`.",
       "loadError": "Impossible de charger les thèmes",
       "saved": "Thèmes enregistrés",
-      "saveError": "Impossible d’enregistrer les thèmes"
+      "saveError": "Impossible d'enregistrer les thèmes"
     },
     "pageEditorPage": {
       "title": "Édition de page",
@@ -1040,14 +1049,14 @@
       "previewTab": "Aperçu",
       "previewLanguage": "Rendu réel de la page pour la langue {locale}.",
       "componentPageTitle": "Page branchée sur composant",
-      "componentPageDescription": "Cette page utilisera le composant {component}. Le branchement complet sera fait au moment de l’intégration métier.",
+      "componentPageDescription": "Cette page utilisera le composant {component}. Le branchement complet sera fait au moment de l'intégration métier.",
       "rendererCms": "Page CMS",
       "rendererNews": "Actualités",
       "rendererBaskets": "Paniers",
       "rendererShop": "Boutique",
       "rendererEvents": "Événements",
       "saved": "Page enregistrée",
-      "saveError": "Erreur lors de l’enregistrement",
+      "saveError": "Erreur lors de l'enregistrement",
       "notFound": "Page CMS introuvable"
     },
     "common": {
@@ -1071,6 +1080,19 @@
     "empty": "Aucune image. Importez-en une ci-dessus.",
     "imageCount": "{count} image(s)"
   },
+  "layout": {
+    "logoutSuccess": "Vous avez été déconnecté",
+    "mobileMenu": {
+      "navigationGroup": "Navigation",
+      "themeGroup": "Thème",
+      "languageGroup": "Langue",
+      "accountGroup": "Compte"
+    }
+  },
+  "theme": {
+    "title": "Thèmes",
+    "select": "Choisir un thème"
+  },
   "ui": {
     "lightMode": "Passer en mode clair",
     "darkMode": "Passer en mode sombre"
@@ -1080,22 +1102,13 @@
     "subtitle": "Le contenu de ce site est en cours de préparation.",
     "featuresTitle": "Vous y retrouverez prochainement :",
     "features": [
-      "la présentation de l’activité,",
+      "la présentation de l'activité,",
       "les contenus et services proposés,",
       "les pages publiques principales,",
       "les réservations ou commandes si elles sont activées,",
       "ainsi que les dernières actualités."
     ],
     "footer": "Merci pour votre patience et à très bientôt"
-  },
-  "theme": {
-    "title": "Thème",
-    "select": "Choisir un thème",
-    "ferme": "Champ ensoleillé",
-    "ferme-dark": "Nuit à l'étable",
-    "prairie": "Prairie",
-    "recolte": "Récolte",
-    "lavande": "Lavande"
   },
   "toast": {
     "connectionSuccess": "Connexion réussie",

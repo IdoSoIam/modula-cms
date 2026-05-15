@@ -102,6 +102,10 @@ function normalizeShellLink(value: unknown, index: number) {
   }
 }
 
+function createNavigationItemKey(index: number) {
+  return `nav-item-${index + 1}`
+}
+
 function normalizeFooterBlocks(value: unknown, fallback: ReturnType<typeof createDefaultCmsFooterColumn>, index: number): CmsFooterBlock[] {
   if (Array.isArray(value) && value.length) {
     return value
@@ -183,6 +187,14 @@ function normalizeFooterColumns(value: unknown) {
   const defaults = createDefaultCmsFooterColumns()
   const source = Array.isArray(value) ? value.slice(0, 4) : []
   return defaults.map((fallback, index) => normalizeFooterColumn(source[index] ?? fallback, index))
+}
+
+function normalizeNavigationItemKey(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback
+}
+
+function normalizeParentNavigationItemKey(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
 function mergeMissingDefaultNavigationItems(items: Array<CmsNavigationItemPayload & { id?: number | null }>, menu?: CmsNavigationMenu) {
@@ -332,11 +344,14 @@ function pickTranslation(locale: string, translations: Record<CmsLocale, CmsPage
 }
 
 function navigationRowToPayload(row: CmsNavigationItem): CmsNavigationItemPayload {
+  const rawLabels = parseJson<Record<string, unknown>>(row.labelsJson)
   return {
     menu: row.menu as CmsNavigationMenu,
     itemType: row.itemType as CmsNavigationItemType,
     title: row.title,
-    labels: normalizeLocalizedText(parseJson(row.labelsJson)),
+    labels: normalizeLocalizedText(rawLabels),
+    navigationItemKey: normalizeNavigationItemKey(rawLabels?.navigationItemKey, `nav-item-${row.id}`),
+    parentItemKey: normalizeParentNavigationItemKey(rawLabels?.parentItemKey),
     href: row.href,
     pageId: row.pageId ?? null,
     newTab: row.newTab,
@@ -352,11 +367,40 @@ function navigationPayloadToResolved(id: number, payload: CmsNavigationItemPaylo
     itemType: payload.itemType,
     labels: payload.labels,
     label: locale === 'en' ? payload.labels.en : payload.labels.fr,
+    navigationItemKey: payload.navigationItemKey,
+    parentItemKey: payload.parentItemKey,
     href: payload.href,
     newTab: payload.newTab,
     visible: payload.visible,
-    position: payload.position
+    position: payload.position,
+    children: []
   }
+}
+
+function buildResolvedNavigationTree(items: ResolvedCmsNavigationItem[]) {
+  const nodes = items.map(item => ({ ...item, children: [] as ResolvedCmsNavigationItem[] }))
+  const byKey = new Map(nodes.map(item => [item.navigationItemKey, item]))
+  const roots: ResolvedCmsNavigationItem[] = []
+
+  for (const node of nodes) {
+    const parent = node.parentItemKey ? byKey.get(node.parentItemKey) : null
+    if (!parent || parent.navigationItemKey === node.navigationItemKey) {
+      roots.push(node)
+      continue
+    }
+
+    parent.children.push(node)
+  }
+
+  const sortTree = (entries: ResolvedCmsNavigationItem[]) => {
+    entries.sort((a, b) => a.position - b.position || a.id - b.id)
+    for (const entry of entries) {
+      sortTree(entry.children)
+    }
+  }
+
+  sortTree(roots)
+  return roots
 }
 
 function createLegacyRootResolvedPage(locale: string): Promise<ResolvedCmsPage> {
@@ -453,6 +497,9 @@ export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
           showSiteName: typeof parsed.header.showSiteName === 'boolean' ? parsed.header.showSiteName : fallback.header.showSiteName,
           showSiteTagline: typeof parsed.header.showSiteTagline === 'boolean' ? parsed.header.showSiteTagline : fallback.header.showSiteTagline,
           showPrimaryNavigation: typeof parsed.header.showPrimaryNavigation === 'boolean' ? parsed.header.showPrimaryNavigation : fallback.header.showPrimaryNavigation,
+          navigationStyle: parsed.header.navigationStyle === 'soft' || parsed.header.navigationStyle === 'outline' || parsed.header.navigationStyle === 'solid' || parsed.header.navigationStyle === 'ghost'
+            ? parsed.header.navigationStyle
+            : fallback.header.navigationStyle,
           backgroundColor: normalizeThemeColorSelection(parsed.header.backgroundColor, fallback.header.backgroundColor || createThemeColorSelection('base-100')),
           textColor: normalizeThemeColorSelection(parsed.header.textColor, fallback.header.textColor || createThemeColorSelection('base-content')),
           sticky: typeof parsed.header.sticky === 'boolean' ? parsed.header.sticky : fallback.header.sticky
@@ -812,7 +859,11 @@ export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPaylo
       menu: item.menu,
       itemType: item.itemType,
       title: item.title,
-      labelsJson: JSON.stringify(item.labels),
+      labelsJson: JSON.stringify({
+        ...item.labels,
+        navigationItemKey: item.navigationItemKey,
+        parentItemKey: item.parentItemKey
+      }),
       href: item.href,
       pageId: item.pageId,
       newTab: item.newTab,
@@ -856,18 +907,18 @@ async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string) {
   }), async () => [])
 
   if (!rows.length) {
-    return mergeMissingDefaultNavigationItems(
+    return buildResolvedNavigationTree(mergeMissingDefaultNavigationItems(
       createDefaultCmsNavigationItems()
         .filter((item) => item.menu === menu && item.visible)
         .map((item) => ({ id: null, ...item })),
       menu
-    ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale))
+    ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale)))
   }
 
-  return mergeMissingDefaultNavigationItems(
+  return buildResolvedNavigationTree(mergeMissingDefaultNavigationItems(
     rows.map((row) => ({ id: row.id, ...navigationRowToPayload(row) })),
     menu
-  ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale))
+  ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale)))
 }
 
 export async function getPublicSiteShell(locale: string): Promise<PublicSiteShell> {
@@ -990,6 +1041,9 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
       showSiteName: typeof headerValue.showSiteName === 'boolean' ? headerValue.showSiteName : fallback.header.showSiteName,
       showSiteTagline: typeof headerValue.showSiteTagline === 'boolean' ? headerValue.showSiteTagline : fallback.header.showSiteTagline,
       showPrimaryNavigation: typeof headerValue.showPrimaryNavigation === 'boolean' ? headerValue.showPrimaryNavigation : fallback.header.showPrimaryNavigation,
+      navigationStyle: headerValue.navigationStyle === 'soft' || headerValue.navigationStyle === 'outline' || headerValue.navigationStyle === 'solid' || headerValue.navigationStyle === 'ghost'
+        ? headerValue.navigationStyle
+        : fallback.header.navigationStyle,
       backgroundColor: normalizeThemeColorSelection(headerValue.backgroundColor, fallback.header.backgroundColor || createThemeColorSelection('base-100')),
       textColor: normalizeThemeColorSelection(headerValue.textColor, fallback.header.textColor || createThemeColorSelection('base-content')),
       sticky: typeof headerValue.sticky === 'boolean' ? headerValue.sticky : fallback.header.sticky
@@ -1064,6 +1118,8 @@ export function validateCmsNavigationItemsPayload(value: unknown): Array<CmsNavi
       itemType: isCmsNavigationItemType(item.itemType) ? item.itemType : 'APPLICATION_ROUTE',
       title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : `Lien ${index + 1}`,
       labels: normalizeLocalizedText(item.labels),
+      navigationItemKey: normalizeNavigationItemKey(item.navigationItemKey, createNavigationItemKey(index)),
+      parentItemKey: normalizeParentNavigationItemKey(item.parentItemKey),
       href: typeof item.href === 'string' && item.href.trim() ? item.href.trim() : '/',
       pageId: typeof item.pageId === 'number' ? item.pageId : null,
       newTab: typeof item.newTab === 'boolean' ? item.newTab : false,

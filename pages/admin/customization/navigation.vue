@@ -110,6 +110,20 @@
             </label>
 
             <label class="form-control gap-2">
+              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.parentLink') }}</span></span>
+              <select v-model="item.parentItemKey" class="select select-bordered w-full">
+                <option :value="null">{{ t('admin.customizationNavigationPage.topLevel') }}</option>
+                <option
+                  v-for="candidate in parentCandidates(item)"
+                  :key="candidate.navigationItemKey"
+                  :value="candidate.navigationItemKey"
+                >
+                  {{ previewText(candidate.labels) || candidate.title }}
+                </option>
+              </select>
+            </label>
+
+            <label class="form-control gap-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.internalTitle') }}</span></span>
               <input v-model="item.title" class="input input-bordered w-full" />
             </label>
@@ -187,6 +201,16 @@ if (!data.value) {
 
 const model = reactive<SiteShellModel>(structuredClone(data.value))
 
+const createNavigationItemKey = () => `nav-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+for (const [index, item] of model.navigation.entries()) {
+  item.navigationItemKey ||= createNavigationItemKey()
+  item.parentItemKey ??= null
+  if (item.position === undefined || item.position === null) {
+    item.position = index
+  }
+}
+
 if (!model.navigation.length) {
   model.navigation = createDefaultCmsNavigationItems().map((item) => ({ ...item }))
 }
@@ -202,6 +226,15 @@ const footerItems = computed(() =>
     .filter((item) => item.menu === 'FOOTER' && item.visible)
     .sort((a, b) => a.position - b.position)
 )
+
+const parentCandidates = (currentItem: CmsNavigationItemPayload & { id?: number | null }) =>
+  model.navigation
+    .filter((item) =>
+      item.menu === currentItem.menu
+      && item.navigationItemKey !== currentItem.navigationItemKey
+      && !item.parentItemKey
+    )
+    .sort((a, b) => a.position - b.position)
 
 const activeItems = computed(() =>
   model.navigation
@@ -220,6 +253,8 @@ const addNavigationItem = (menu: 'PRIMARY' | 'FOOTER') => {
     itemType: 'APPLICATION_ROUTE',
     title: t('admin.customizationNavigationPage.newLinkTitle'),
     labels: { fr: '', en: '' },
+    navigationItemKey: createNavigationItemKey(),
+    parentItemKey: null,
     href: '/',
     pageId: null,
     newTab: false,

@@ -28,6 +28,8 @@
 </template>
 
 <script setup lang="ts">
+import LayoutMobileMenu from '~/components/layout/MobileMenu.vue'
+
 const { locale } = useI18n();
 const switchLocalePath = useSwitchLocalePath();
 

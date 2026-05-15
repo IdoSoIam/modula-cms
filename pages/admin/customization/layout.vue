@@ -82,6 +82,15 @@
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.mobileLogoHeight') }}</span></span>
               <input v-model.number="model.settings.header.mobileLogoHeightPx" type="number" min="24" max="120" class="input input-bordered w-full" />
             </label>
+
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.navigationStyle') }}</span></span>
+              <select v-model="model.settings.header.navigationStyle" class="select select-bordered w-full">
+                <option v-for="style in CMS_HEADER_NAVIGATION_STYLES" :key="style" :value="style">
+                  {{ t(`admin.customizationLayoutPage.navigationStyleOptions.${style}`) }}
+                </option>
+              </select>
+            </label>
           </div>
 
           <div class="grid gap-4 lg:grid-cols-2">
@@ -388,6 +397,7 @@ import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/Tra
 import {
   CMS_FOOTER_ALIGN_LABELS,
   CMS_FOOTER_CONTAINER_ALIGN_LABELS,
+  CMS_HEADER_NAVIGATION_STYLES,
   CMS_THEME_COLOR_TOKENS,
   createCmsFooterBlock,
   createEmptyCmsLocalizedText,
