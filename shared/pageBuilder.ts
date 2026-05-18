@@ -43,6 +43,7 @@ export type SectionBackgroundMode = 'none' | 'image' | 'carousel'
 export type CarouselAnimation = 'slide' | 'fade'
 export type CardSize = 'sm' | 'md' | 'lg' | 'xl'
 export type TypographySize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
+export type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
 export type SectionColumnCount = 1 | 2 | 3 | 4
 export type CardsDisplay = 'stack' | 'grid-2' | 'grid-3' | 'grid-4'
@@ -97,6 +98,7 @@ export interface PageBuilderTitleItem {
   type: 'title'
   text: LocalizedText
   size: TypographySize
+  headingTag: HeadingTag
 }
 
 export interface PageBuilderTextItem {
@@ -223,6 +225,7 @@ export const SECTION_BACKGROUND_MODES: SectionBackgroundMode[] = ['none', 'image
 export const SECTION_COLUMN_COUNTS: SectionColumnCount[] = [1, 2, 3, 4]
 export const CARD_SIZES: CardSize[] = ['sm', 'md', 'lg', 'xl']
 export const TYPOGRAPHY_SIZES: TypographySize[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl']
+export const HEADING_TAGS: HeadingTag[] = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 export const BUTTON_SIZES: ButtonSize[] = ['xs', 'sm', 'md', 'lg']
 export const CARDS_DISPLAYS: CardsDisplay[] = ['stack', 'grid-2', 'grid-3', 'grid-4']
 export const CAROUSEL_ANIMATIONS: CarouselAnimation[] = ['slide', 'fade']
@@ -357,6 +360,15 @@ export function clonePageBuilderContent(content: PageBuilderContent): PageBuilde
   return JSON.parse(JSON.stringify(content)) as PageBuilderContent
 }
 
+export const HEADING_TAG_LABELS: Record<HeadingTag, string> = {
+  h1: 'H1',
+  h2: 'H2',
+  h3: 'H3',
+  h4: 'H4',
+  h5: 'H5',
+  h6: 'H6'
+}
+
 function cloneBuilderData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
 }
@@ -419,7 +431,7 @@ export function createBadgeItem(id: string): PageBuilderBadgeItem {
 }
 
 export function createTitleItem(id: string): PageBuilderTitleItem {
-  return { id, type: 'title', text: createEmptyLocalizedText(), size: 'xl' }
+  return { id, type: 'title', text: createEmptyLocalizedText(), size: 'xl', headingTag: 'h2' }
 }
 
 export function createTextItem(id: string): PageBuilderTextItem {

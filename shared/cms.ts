@@ -10,12 +10,18 @@ export type CmsPageStatus = 'DRAFT' | 'PUBLISHED'
 export type CmsApplicationPosition = 'BEFORE_CONTENT' | 'AFTER_CONTENT'
 export type CmsNavigationMenu = 'PRIMARY' | 'FOOTER'
 export type CmsNavigationItemType = 'CMS_PAGE' | 'APPLICATION_ROUTE' | 'EXTERNAL_URL'
-export type CmsHeaderNavigationStyle = 'ghost' | 'soft' | 'outline' | 'solid'
+export type CmsHeaderNavigationStyle = 'ghost' | 'soft' | 'outline' | 'solid' | 'menu' | 'underline'
+export type CmsHeaderSubmenuTrigger = 'hover' | 'click'
+export type CmsHeaderSubmenuAnimation = 'none' | 'fade' | 'scale' | 'slide'
+export type CmsHeaderMobileLogoPosition = 'left' | 'right'
 export type CmsFooterAlign = 'start' | 'center'
 export type CmsFooterContainerAlign = 'start' | 'center' | 'between'
 export type CmsApplicationGridColumns = 1 | 2 | 3 | 4
 export type CmsApplicationViewMode = 'grid' | 'list'
-export const CMS_HEADER_NAVIGATION_STYLES: CmsHeaderNavigationStyle[] = ['ghost', 'soft', 'outline', 'solid']
+export const CMS_HEADER_NAVIGATION_STYLES: CmsHeaderNavigationStyle[] = ['ghost', 'soft', 'outline', 'solid', 'menu', 'underline']
+export const CMS_HEADER_SUBMENU_TRIGGERS: CmsHeaderSubmenuTrigger[] = ['hover', 'click']
+export const CMS_HEADER_SUBMENU_ANIMATIONS: CmsHeaderSubmenuAnimation[] = ['none', 'fade', 'scale', 'slide']
+export const CMS_HEADER_MOBILE_LOGO_POSITIONS: CmsHeaderMobileLogoPosition[] = ['left', 'right']
 
 export interface CmsLocalizedText {
   fr: string
@@ -44,13 +50,30 @@ export interface CmsShellLink {
 export interface CmsHeaderSettings {
   heightPx: number
   logoHeightPx: number
+  mobileHeightPx: number
   mobileLogoHeightPx: number
   showSiteName: boolean
   showSiteTagline: boolean
+  mobileHeaderShowSiteName: boolean
+  mobileHeaderShowSiteTagline: boolean
+  mobileHeaderLogoPosition: CmsHeaderMobileLogoPosition
+  mobileMenuShowSiteName: boolean
+  mobileMenuShowSiteTagline: boolean
+  mobileMenuLogoPosition: CmsHeaderMobileLogoPosition
+  mobileBurgerPosition: CmsHeaderMobileLogoPosition
   showPrimaryNavigation: boolean
   navigationStyle: CmsHeaderNavigationStyle
+  submenuTrigger: CmsHeaderSubmenuTrigger
+  submenuAnimation: CmsHeaderSubmenuAnimation
+  submenuRadiusPx: number
   backgroundColor?: ThemeColorSelection | null
   textColor?: ThemeColorSelection | null
+  navigationActiveBackgroundColor?: ThemeColorSelection | null
+  navigationActiveTextColor?: ThemeColorSelection | null
+  navigationHoverBackgroundColor?: ThemeColorSelection | null
+  navigationHoverTextColor?: ThemeColorSelection | null
+  submenuBackgroundColor?: ThemeColorSelection | null
+  submenuTextColor?: ThemeColorSelection | null
   sticky: boolean
 }
 
@@ -265,13 +288,30 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
     header: {
       heightPx: 84,
       logoHeightPx: 48,
+      mobileHeightPx: 72,
       mobileLogoHeightPx: 40,
       showSiteName: true,
       showSiteTagline: false,
+      mobileHeaderShowSiteName: true,
+      mobileHeaderShowSiteTagline: false,
+      mobileHeaderLogoPosition: 'left',
+      mobileMenuShowSiteName: true,
+      mobileMenuShowSiteTagline: true,
+      mobileMenuLogoPosition: 'left',
+      mobileBurgerPosition: 'left',
       showPrimaryNavigation: true,
       navigationStyle: 'ghost',
+      submenuTrigger: 'hover',
+      submenuAnimation: 'fade',
+      submenuRadiusPx: 18,
       backgroundColor: createThemeColorSelection('base-100'),
       textColor: createThemeColorSelection('base-content'),
+      navigationActiveBackgroundColor: createThemeColorSelection('primary'),
+      navigationActiveTextColor: createThemeColorSelection('primary-content'),
+      navigationHoverBackgroundColor: createThemeColorSelection('base-200'),
+      navigationHoverTextColor: createThemeColorSelection('base-content'),
+      submenuBackgroundColor: createThemeColorSelection('base-100'),
+      submenuTextColor: createThemeColorSelection('base-content'),
       sticky: true
     },
     footer: {
@@ -508,6 +548,57 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       position: 1
     }
   ]
+}
+
+export function buildResolvedNavigationPreview(items: CmsNavigationItemPayload[]): PublicSiteShell['navigation'] {
+  const visibleItems = items
+    .filter(item => item.visible)
+    .map((item, index) => ({
+      id: index + 1,
+      menu: item.menu,
+      itemType: item.itemType,
+      labels: item.labels,
+      label: item.title,
+      navigationItemKey: item.navigationItemKey,
+      parentItemKey: item.parentItemKey,
+      href: item.href,
+      newTab: item.newTab,
+      visible: item.visible,
+      position: item.position,
+      children: [] as ResolvedCmsNavigationItem[]
+    }))
+
+  const buildTree = (menu: CmsNavigationMenu) => {
+    const nodes = visibleItems
+      .filter(item => item.menu === menu)
+      .map(item => ({ ...item, children: [] as ResolvedCmsNavigationItem[] }))
+
+    const byKey = new Map(nodes.map(node => [node.navigationItemKey, node]))
+    const roots: ResolvedCmsNavigationItem[] = []
+
+    for (const node of nodes) {
+      if (node.parentItemKey && byKey.has(node.parentItemKey)) {
+        byKey.get(node.parentItemKey)?.children.push(node)
+      } else {
+        roots.push(node)
+      }
+    }
+
+    const sortTree = (entries: ResolvedCmsNavigationItem[]) => {
+      entries.sort((left, right) => left.position - right.position)
+      for (const entry of entries) {
+        sortTree(entry.children)
+      }
+    }
+
+    sortTree(roots)
+    return roots
+  }
+
+  return {
+    primary: buildTree('PRIMARY'),
+    footer: buildTree('FOOTER')
+  }
 }
 
 export function createDefaultCmsPagePayload(path: string, title = ''): CmsPagePayload {

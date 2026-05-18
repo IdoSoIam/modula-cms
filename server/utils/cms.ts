@@ -1,6 +1,10 @@
 import { prisma } from '~/prisma/client'
 import type { CmsNavigationItem, CmsPage } from '@prisma/client'
 import type {
+  CmsHeaderNavigationStyle,
+  CmsHeaderMobileLogoPosition,
+  CmsHeaderSubmenuAnimation,
+  CmsHeaderSubmenuTrigger,
   CmsApplicationPosition,
   CmsFooterBlock,
   CmsLocale,
@@ -325,6 +329,22 @@ function isCmsNavigationItemType(value: unknown): value is CmsNavigationItemType
   return typeof value === 'string' && CMS_NAVIGATION_ITEM_TYPES.has(value as CmsNavigationItemType)
 }
 
+function isCmsHeaderNavigationStyle(value: unknown): value is CmsHeaderNavigationStyle {
+  return typeof value === 'string' && CMS_HEADER_NAVIGATION_STYLES.has(value as CmsHeaderNavigationStyle)
+}
+
+function isCmsHeaderSubmenuTrigger(value: unknown): value is CmsHeaderSubmenuTrigger {
+  return typeof value === 'string' && CMS_HEADER_SUBMENU_TRIGGERS.has(value as CmsHeaderSubmenuTrigger)
+}
+
+function isCmsHeaderSubmenuAnimation(value: unknown): value is CmsHeaderSubmenuAnimation {
+  return typeof value === 'string' && CMS_HEADER_SUBMENU_ANIMATIONS.has(value as CmsHeaderSubmenuAnimation)
+}
+
+function isCmsHeaderMobileLogoPosition(value: unknown): value is CmsHeaderMobileLogoPosition {
+  return typeof value === 'string' && CMS_HEADER_MOBILE_LOGO_POSITIONS.has(value as CmsHeaderMobileLogoPosition)
+}
+
 function pageRowToPayload(row: CmsPage): CmsPagePayload {
   return {
     path: normalizePath(row.path),
@@ -490,20 +510,51 @@ export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
     logo: normalizeImageAsset(parsed.logo, fallback.logo),
     favicon: normalizeImageAsset(parsed.favicon, fallback.favicon),
     header: isObject(parsed.header)
-      ? {
-          heightPx: typeof parsed.header.heightPx === 'number' ? Math.max(56, Math.min(180, Math.round(parsed.header.heightPx))) : fallback.header.heightPx,
-          logoHeightPx: typeof parsed.header.logoHeightPx === 'number' ? Math.max(24, Math.min(140, Math.round(parsed.header.logoHeightPx))) : fallback.header.logoHeightPx,
-          mobileLogoHeightPx: typeof parsed.header.mobileLogoHeightPx === 'number' ? Math.max(24, Math.min(120, Math.round(parsed.header.mobileLogoHeightPx))) : fallback.header.mobileLogoHeightPx,
-          showSiteName: typeof parsed.header.showSiteName === 'boolean' ? parsed.header.showSiteName : fallback.header.showSiteName,
-          showSiteTagline: typeof parsed.header.showSiteTagline === 'boolean' ? parsed.header.showSiteTagline : fallback.header.showSiteTagline,
-          showPrimaryNavigation: typeof parsed.header.showPrimaryNavigation === 'boolean' ? parsed.header.showPrimaryNavigation : fallback.header.showPrimaryNavigation,
-          navigationStyle: parsed.header.navigationStyle === 'soft' || parsed.header.navigationStyle === 'outline' || parsed.header.navigationStyle === 'solid' || parsed.header.navigationStyle === 'ghost'
-            ? parsed.header.navigationStyle
-            : fallback.header.navigationStyle,
-          backgroundColor: normalizeThemeColorSelection(parsed.header.backgroundColor, fallback.header.backgroundColor || createThemeColorSelection('base-100')),
-          textColor: normalizeThemeColorSelection(parsed.header.textColor, fallback.header.textColor || createThemeColorSelection('base-content')),
-          sticky: typeof parsed.header.sticky === 'boolean' ? parsed.header.sticky : fallback.header.sticky
-        }
+        ? {
+            heightPx: typeof parsed.header.heightPx === 'number' ? Math.max(56, Math.min(180, Math.round(parsed.header.heightPx))) : fallback.header.heightPx,
+            logoHeightPx: typeof parsed.header.logoHeightPx === 'number' ? Math.max(24, Math.min(140, Math.round(parsed.header.logoHeightPx))) : fallback.header.logoHeightPx,
+            mobileHeightPx: typeof parsed.header.mobileHeightPx === 'number' ? Math.max(56, Math.min(160, Math.round(parsed.header.mobileHeightPx))) : fallback.header.mobileHeightPx,
+            mobileLogoHeightPx: typeof parsed.header.mobileLogoHeightPx === 'number' ? Math.max(24, Math.min(120, Math.round(parsed.header.mobileLogoHeightPx))) : fallback.header.mobileLogoHeightPx,
+            showSiteName: typeof parsed.header.showSiteName === 'boolean' ? parsed.header.showSiteName : fallback.header.showSiteName,
+            showSiteTagline: typeof parsed.header.showSiteTagline === 'boolean' ? parsed.header.showSiteTagline : fallback.header.showSiteTagline,
+            mobileHeaderShowSiteName: typeof parsed.header.mobileHeaderShowSiteName === 'boolean'
+              ? parsed.header.mobileHeaderShowSiteName
+              : (typeof parsed.header.mobileShowSiteName === 'boolean' ? parsed.header.mobileShowSiteName : fallback.header.mobileHeaderShowSiteName),
+            mobileHeaderShowSiteTagline: typeof parsed.header.mobileHeaderShowSiteTagline === 'boolean'
+              ? parsed.header.mobileHeaderShowSiteTagline
+              : (typeof parsed.header.mobileShowSiteTagline === 'boolean' ? parsed.header.mobileShowSiteTagline : fallback.header.mobileHeaderShowSiteTagline),
+            mobileHeaderLogoPosition: isCmsHeaderMobileLogoPosition(parsed.header.mobileHeaderLogoPosition)
+              ? parsed.header.mobileHeaderLogoPosition
+              : (isCmsHeaderMobileLogoPosition(parsed.header.mobileLogoPosition) ? parsed.header.mobileLogoPosition : fallback.header.mobileHeaderLogoPosition),
+            mobileMenuShowSiteName: typeof parsed.header.mobileMenuShowSiteName === 'boolean'
+              ? parsed.header.mobileMenuShowSiteName
+              : (typeof parsed.header.mobileShowSiteName === 'boolean' ? parsed.header.mobileShowSiteName : fallback.header.mobileMenuShowSiteName),
+            mobileMenuShowSiteTagline: typeof parsed.header.mobileMenuShowSiteTagline === 'boolean'
+              ? parsed.header.mobileMenuShowSiteTagline
+              : (typeof parsed.header.mobileShowSiteTagline === 'boolean' ? parsed.header.mobileShowSiteTagline : fallback.header.mobileMenuShowSiteTagline),
+            mobileMenuLogoPosition: isCmsHeaderMobileLogoPosition(parsed.header.mobileMenuLogoPosition)
+              ? parsed.header.mobileMenuLogoPosition
+              : (isCmsHeaderMobileLogoPosition(parsed.header.mobileLogoPosition) ? parsed.header.mobileLogoPosition : fallback.header.mobileMenuLogoPosition),
+            mobileBurgerPosition: isCmsHeaderMobileLogoPosition(parsed.header.mobileBurgerPosition)
+              ? parsed.header.mobileBurgerPosition
+              : fallback.header.mobileBurgerPosition,
+            showPrimaryNavigation: typeof parsed.header.showPrimaryNavigation === 'boolean' ? parsed.header.showPrimaryNavigation : fallback.header.showPrimaryNavigation,
+            navigationStyle: isCmsHeaderNavigationStyle(parsed.header.navigationStyle)
+              ? parsed.header.navigationStyle
+              : fallback.header.navigationStyle,
+            submenuTrigger: isCmsHeaderSubmenuTrigger(parsed.header.submenuTrigger) ? parsed.header.submenuTrigger : fallback.header.submenuTrigger,
+            submenuAnimation: isCmsHeaderSubmenuAnimation(parsed.header.submenuAnimation) ? parsed.header.submenuAnimation : fallback.header.submenuAnimation,
+            submenuRadiusPx: typeof parsed.header.submenuRadiusPx === 'number' ? Math.max(0, Math.min(40, Math.round(parsed.header.submenuRadiusPx))) : fallback.header.submenuRadiusPx,
+            backgroundColor: normalizeThemeColorSelection(parsed.header.backgroundColor, fallback.header.backgroundColor || createThemeColorSelection('base-100')),
+            textColor: normalizeThemeColorSelection(parsed.header.textColor, fallback.header.textColor || createThemeColorSelection('base-content')),
+            navigationActiveBackgroundColor: normalizeThemeColorSelection(parsed.header.navigationActiveBackgroundColor, fallback.header.navigationActiveBackgroundColor || createThemeColorSelection('primary')),
+            navigationActiveTextColor: normalizeThemeColorSelection(parsed.header.navigationActiveTextColor, fallback.header.navigationActiveTextColor || createThemeColorSelection('primary-content')),
+            navigationHoverBackgroundColor: normalizeThemeColorSelection(parsed.header.navigationHoverBackgroundColor, fallback.header.navigationHoverBackgroundColor || createThemeColorSelection('base-200')),
+            navigationHoverTextColor: normalizeThemeColorSelection(parsed.header.navigationHoverTextColor, fallback.header.navigationHoverTextColor || createThemeColorSelection('base-content')),
+            submenuBackgroundColor: normalizeThemeColorSelection(parsed.header.submenuBackgroundColor, fallback.header.submenuBackgroundColor || createThemeColorSelection('base-100')),
+            submenuTextColor: normalizeThemeColorSelection(parsed.header.submenuTextColor, fallback.header.submenuTextColor || createThemeColorSelection('base-content')),
+            sticky: typeof parsed.header.sticky === 'boolean' ? parsed.header.sticky : fallback.header.sticky
+          }
       : fallback.header,
     footer: isObject(parsed.footer)
       ? {
@@ -1037,15 +1088,46 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
     header: {
       heightPx: typeof headerValue.heightPx === 'number' ? Math.max(56, Math.min(180, Math.round(headerValue.heightPx))) : fallback.header.heightPx,
       logoHeightPx: typeof headerValue.logoHeightPx === 'number' ? Math.max(24, Math.min(140, Math.round(headerValue.logoHeightPx))) : fallback.header.logoHeightPx,
+      mobileHeightPx: typeof headerValue.mobileHeightPx === 'number' ? Math.max(56, Math.min(160, Math.round(headerValue.mobileHeightPx))) : fallback.header.mobileHeightPx,
       mobileLogoHeightPx: typeof headerValue.mobileLogoHeightPx === 'number' ? Math.max(24, Math.min(120, Math.round(headerValue.mobileLogoHeightPx))) : fallback.header.mobileLogoHeightPx,
       showSiteName: typeof headerValue.showSiteName === 'boolean' ? headerValue.showSiteName : fallback.header.showSiteName,
       showSiteTagline: typeof headerValue.showSiteTagline === 'boolean' ? headerValue.showSiteTagline : fallback.header.showSiteTagline,
+      mobileHeaderShowSiteName: typeof headerValue.mobileHeaderShowSiteName === 'boolean'
+        ? headerValue.mobileHeaderShowSiteName
+        : (typeof headerValue.mobileShowSiteName === 'boolean' ? headerValue.mobileShowSiteName : fallback.header.mobileHeaderShowSiteName),
+      mobileHeaderShowSiteTagline: typeof headerValue.mobileHeaderShowSiteTagline === 'boolean'
+        ? headerValue.mobileHeaderShowSiteTagline
+        : (typeof headerValue.mobileShowSiteTagline === 'boolean' ? headerValue.mobileShowSiteTagline : fallback.header.mobileHeaderShowSiteTagline),
+      mobileHeaderLogoPosition: isCmsHeaderMobileLogoPosition(headerValue.mobileHeaderLogoPosition)
+        ? headerValue.mobileHeaderLogoPosition
+        : (isCmsHeaderMobileLogoPosition(headerValue.mobileLogoPosition) ? headerValue.mobileLogoPosition : fallback.header.mobileHeaderLogoPosition),
+      mobileMenuShowSiteName: typeof headerValue.mobileMenuShowSiteName === 'boolean'
+        ? headerValue.mobileMenuShowSiteName
+        : (typeof headerValue.mobileShowSiteName === 'boolean' ? headerValue.mobileShowSiteName : fallback.header.mobileMenuShowSiteName),
+      mobileMenuShowSiteTagline: typeof headerValue.mobileMenuShowSiteTagline === 'boolean'
+        ? headerValue.mobileMenuShowSiteTagline
+        : (typeof headerValue.mobileShowSiteTagline === 'boolean' ? headerValue.mobileShowSiteTagline : fallback.header.mobileMenuShowSiteTagline),
+      mobileMenuLogoPosition: isCmsHeaderMobileLogoPosition(headerValue.mobileMenuLogoPosition)
+        ? headerValue.mobileMenuLogoPosition
+        : (isCmsHeaderMobileLogoPosition(headerValue.mobileLogoPosition) ? headerValue.mobileLogoPosition : fallback.header.mobileMenuLogoPosition),
+      mobileBurgerPosition: isCmsHeaderMobileLogoPosition(headerValue.mobileBurgerPosition)
+        ? headerValue.mobileBurgerPosition
+        : fallback.header.mobileBurgerPosition,
       showPrimaryNavigation: typeof headerValue.showPrimaryNavigation === 'boolean' ? headerValue.showPrimaryNavigation : fallback.header.showPrimaryNavigation,
-      navigationStyle: headerValue.navigationStyle === 'soft' || headerValue.navigationStyle === 'outline' || headerValue.navigationStyle === 'solid' || headerValue.navigationStyle === 'ghost'
+      navigationStyle: isCmsHeaderNavigationStyle(headerValue.navigationStyle)
         ? headerValue.navigationStyle
         : fallback.header.navigationStyle,
+      submenuTrigger: isCmsHeaderSubmenuTrigger(headerValue.submenuTrigger) ? headerValue.submenuTrigger : fallback.header.submenuTrigger,
+      submenuAnimation: isCmsHeaderSubmenuAnimation(headerValue.submenuAnimation) ? headerValue.submenuAnimation : fallback.header.submenuAnimation,
+      submenuRadiusPx: typeof headerValue.submenuRadiusPx === 'number' ? Math.max(0, Math.min(40, Math.round(headerValue.submenuRadiusPx))) : fallback.header.submenuRadiusPx,
       backgroundColor: normalizeThemeColorSelection(headerValue.backgroundColor, fallback.header.backgroundColor || createThemeColorSelection('base-100')),
       textColor: normalizeThemeColorSelection(headerValue.textColor, fallback.header.textColor || createThemeColorSelection('base-content')),
+      navigationActiveBackgroundColor: normalizeThemeColorSelection(headerValue.navigationActiveBackgroundColor, fallback.header.navigationActiveBackgroundColor || createThemeColorSelection('primary')),
+      navigationActiveTextColor: normalizeThemeColorSelection(headerValue.navigationActiveTextColor, fallback.header.navigationActiveTextColor || createThemeColorSelection('primary-content')),
+      navigationHoverBackgroundColor: normalizeThemeColorSelection(headerValue.navigationHoverBackgroundColor, fallback.header.navigationHoverBackgroundColor || createThemeColorSelection('base-200')),
+      navigationHoverTextColor: normalizeThemeColorSelection(headerValue.navigationHoverTextColor, fallback.header.navigationHoverTextColor || createThemeColorSelection('base-content')),
+      submenuBackgroundColor: normalizeThemeColorSelection(headerValue.submenuBackgroundColor, fallback.header.submenuBackgroundColor || createThemeColorSelection('base-100')),
+      submenuTextColor: normalizeThemeColorSelection(headerValue.submenuTextColor, fallback.header.submenuTextColor || createThemeColorSelection('base-content')),
       sticky: typeof headerValue.sticky === 'boolean' ? headerValue.sticky : fallback.header.sticky
     },
     footer: {
@@ -1133,3 +1215,7 @@ const CMS_PAGE_STATUSES = new Set<CmsPageStatus>(['DRAFT', 'PUBLISHED'])
 const CMS_APPLICATION_POSITIONS = new Set<CmsApplicationPosition>(['BEFORE_CONTENT', 'AFTER_CONTENT'])
 const CMS_NAVIGATION_MENUS = new Set<CmsNavigationMenu>(['PRIMARY', 'FOOTER'])
 const CMS_NAVIGATION_ITEM_TYPES = new Set<CmsNavigationItemType>(['CMS_PAGE', 'APPLICATION_ROUTE', 'EXTERNAL_URL'])
+const CMS_HEADER_NAVIGATION_STYLES = new Set<CmsHeaderNavigationStyle>(['ghost', 'soft', 'outline', 'solid', 'menu', 'underline'])
+const CMS_HEADER_SUBMENU_TRIGGERS = new Set<CmsHeaderSubmenuTrigger>(['hover', 'click'])
+const CMS_HEADER_SUBMENU_ANIMATIONS = new Set<CmsHeaderSubmenuAnimation>(['none', 'fade', 'scale', 'slide'])
+const CMS_HEADER_MOBILE_LOGO_POSITIONS = new Set<CmsHeaderMobileLogoPosition>(['left', 'right'])

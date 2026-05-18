@@ -83,14 +83,13 @@
 </template>
 
 <script setup lang="ts">
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
+
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin',
-      en: '/admin'
-    }
+    paths: ADMIN_I18N_PATHS.dashboard
   }
 })
 

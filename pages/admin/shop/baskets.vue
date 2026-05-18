@@ -163,14 +163,13 @@
 </template>
 
 <script setup lang="ts">
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
+
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/boutique/paniers',
-      en: '/admin/shop/baskets'
-    }
+    paths: ADMIN_I18N_PATHS.shopBaskets
   }
 })
 

@@ -203,6 +203,14 @@
                       :multiline="item.type === 'text'"
                       @update:size="item.size = $event as typeof item.size"
                     />
+                    <div v-if="item.type === 'title'" class="form-control">
+                      <label class="label"><span class="label-text">Balise du titre</span></label>
+                      <select v-model="item.headingTag" class="select select-bordered w-full">
+                        <option v-for="tag in HEADING_TAGS" :key="tag" :value="tag">
+                          {{ HEADING_TAG_LABELS[tag] }}
+                        </option>
+                      </select>
+                    </div>
                     <template v-if="item.type === 'badge'">
                       <ThemeColorPicker v-model="item.backgroundColor" label="Fond du badge" default-token="primary" />
                       <ThemeColorPicker v-model="item.textColor" label="Texte du badge" default-token="primary-content" />
@@ -367,6 +375,8 @@ import {
   duplicatePageBuilderCard,
   duplicatePageBuilderItem,
   duplicatePageBuilderSection,
+  HEADING_TAG_LABELS,
+  HEADING_TAGS,
   IMAGE_ASPECTS,
   IMAGE_FITS,
   SECTION_COLUMN_COUNTS,

@@ -34,7 +34,7 @@
                   button-position="inline-end"
                   @edit="emit('edit', { kind: 'item', label: `Badge colonne ${columnIndex + 1}`, item, parentItems: column.items, itemIndex })"
                 >
-                  <div class="badge badge-outline" :class="badgeSizeClass(item.size)" :style="badgeStyle(item)">
+                  <div class="badge badge-outline h-auto" :class="badgeSizeClass(item.size)" :style="badgeStyle(item)">
                     {{ pickLocalizedText(locale, item.text) || 'Badge vide' }}
                   </div>
                 </PageEditable>
@@ -45,9 +45,9 @@
                   label="Titre"
                   @edit="emit('edit', { kind: 'item', label: `Titre colonne ${columnIndex + 1}`, item, parentItems: column.items, itemIndex })"
                 >
-                  <h2 class="font-bold" :class="titleSizeClass(item.size)">
+                  <component :is="titleTag(item)" class="font-bold" :class="titleSizeClass(item.size)">
                     {{ pickLocalizedText(locale, item.text) || 'Titre vide' }}
-                  </h2>
+                  </component>
                 </PageEditable>
 
                 <PageEditable
@@ -148,12 +148,15 @@
                         :class="[cardClass(card), cardSizeClass(card, item.display)]"
                         :style="cardStyle(card)"
                       >
-                        <div v-if="card.icon" class="mb-3 w-fit rounded-xl p-3" :style="iconWrapperStyle(card)">
-                          <Icon :name="card.icon" size="22" />
+                        <div class="flex items-center gap-3">
+                          <div v-if="card.icon" class="mb-3 w-fit rounded-xl p-3" :style="iconWrapperStyle(card)">
+                            <Icon :name="card.icon" size="22" />
+                          </div>
+                          <div class="font-semibold" :class="cardTitleSizeClass(card.titleSize)" :style="textColorStyle(card.textColor)">
+                            {{ pickLocalizedText(locale, card.title) }}
+                          </div>
                         </div>
-                        <div class="font-semibold" :class="cardTitleSizeClass(card.titleSize)" :style="textColorStyle(card.textColor)">
-                          {{ pickLocalizedText(locale, card.title) }}
-                        </div>
+                        
                         <p class="mt-2" :class="cardTextSizeClass(card.textSize)" :style="textColorStyle(card.textColor, 0.8)">
                           {{ pickLocalizedText(locale, card.text) }}
                         </p>
@@ -236,6 +239,7 @@ import type {
   PageBuilderColumn,
   PageBuilderImageItem,
   PageBuilderSection,
+  PageBuilderTitleItem,
   ThemeColorToken,
   ThemeColorSelection
 } from '~/shared/pageBuilder'
@@ -422,48 +426,50 @@ const badgeSizeClass = (size: string) => {
 
 const titleSizeClass = (size: string) => {
   switch (size) {
-    case 'xs': return 'text-xl'
-    case 'sm': return 'text-2xl'
-    case 'md': return 'text-3xl'
-    case 'lg': return 'text-4xl'
-    case 'xl': return 'text-5xl'
-    case '2xl': return 'text-6xl'
-    default: return 'text-3xl'
+    case 'xs': return 'text-lg md:text-xl'
+    case 'sm': return 'text-xl md:text-2xl'
+    case 'md': return 'text-2xl md:text-3xl'
+    case 'lg': return 'text-3xl md:text-4xl'
+    case 'xl': return 'text-4xl md:text-5xl'
+    case '2xl': return 'text-5xl md:text-6xl lg:text-7xl'
+    default: return 'text-2xl md:text-3xl'
   }
 }
 
 const textSizeClass = (size: string) => {
   switch (size) {
-    case 'xs': return 'text-xs'
-    case 'sm': return 'text-sm'
-    case 'lg': return 'text-lg'
-    case 'xl': return 'text-xl'
-    case '2xl': return 'text-2xl'
+    case 'xs': return 'text-xs md:text-sm'
+    case 'sm': return 'text-sm md:text-base'
+    case 'lg': return 'text-base md:text-lg lg:text-xl'
+    case 'xl': return 'text-lg md:text-xl lg:text-2xl'
+    case '2xl': return 'text-xl md:text-2xl lg:text-3xl'
     default: return 'text-base md:text-lg'
   }
 }
 
 const cardTitleSizeClass = (size: string) => {
   switch (size) {
-    case 'xs': return 'text-sm'
-    case 'sm': return 'text-base'
-    case 'lg': return 'text-xl'
-    case 'xl': return 'text-2xl'
-    case '2xl': return 'text-3xl'
-    default: return 'text-lg'
+    case 'xs': return 'text-sm md:text-base'
+    case 'sm': return 'text-base md:text-lg'
+    case 'lg': return 'text-lg md:text-xl'
+    case 'xl': return 'text-xl md:text-2xl'
+    case '2xl': return 'text-2xl md:text-3xl'
+    default: return 'text-base md:text-lg'
   }
 }
 
 const cardTextSizeClass = (size: string) => {
   switch (size) {
-    case 'xs': return 'text-xs'
-    case 'md': return 'text-base'
-    case 'lg': return 'text-lg'
-    case 'xl': return 'text-xl'
-    case '2xl': return 'text-2xl'
-    default: return 'text-sm'
+    case 'xs': return 'text-xs md:text-sm'
+    case 'md': return 'text-sm md:text-base'
+    case 'lg': return 'text-base md:text-lg'
+    case 'xl': return 'text-lg md:text-xl'
+    case '2xl': return 'text-xl md:text-2xl'
+    default: return 'text-sm md:text-base'
   }
 }
+
+const titleTag = (item: PageBuilderTitleItem) => item.headingTag || 'h2'
 
 const mixColor = (color: string, opacity: number) => {
   if (opacity >= 1) return color

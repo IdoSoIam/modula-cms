@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsFooterColumn, CmsLocalizedText, CmsSocialLink, PublicSiteShell } from '~/shared/cms'
+import type { CmsFooterColumn, CmsLocalizedText, CmsLocale, CmsSocialLink, PublicSiteShell } from '~/shared/cms'
 import type { ThemeColorSelection } from '~/shared/pageBuilder'
 
 interface SiteConfig {
@@ -109,6 +109,14 @@ interface SiteConfig {
   cms?: PublicSiteShell
 }
 
+const props = withDefaults(defineProps<{
+  previewLocale?: CmsLocale | null
+  previewSiteConfig?: SiteConfig | null
+}>(), {
+  previewLocale: null,
+  previewSiteConfig: null
+})
+
 const siteConfigState = useSiteConfigState()
 const { locale } = useI18n()
 
@@ -116,8 +124,9 @@ if (process.server && !siteConfigState.value) {
   await ensureSiteConfigState()
 }
 
-const siteConfig = computed(() => siteConfigState.value as SiteConfig | null)
-const cms = computed(() => siteConfigState.value?.cms)
+const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
+const siteConfig = computed(() => (props.previewSiteConfig ?? siteConfigState.value) as SiteConfig | null)
+const cms = computed(() => siteConfig.value?.cms)
 const socialLinks = computed<CmsSocialLink[]>(() => cms.value?.settings.socialLinks || [])
 const footerColumns = computed<CmsFooterColumn[]>(() => cms.value?.settings.footer.columns || [])
 const footerContainerWidthClass = computed(() => {
@@ -146,22 +155,22 @@ const dayLabels = {
 }
 const formatFooterSchedule = (schedule?: SiteConfig['farmPickup'] | null) => {
   if (!schedule) return ''
-  const day = dayLabels[locale.value === 'en' ? 'en' : 'fr'][schedule.dayOfWeek] || ''
+  const day = dayLabels[effectiveLocale.value === 'en' ? 'en' : 'fr'][schedule.dayOfWeek] || ''
   if (!day || !schedule.startTime || !schedule.endTime) return ''
-  return locale.value === 'en'
+  return effectiveLocale.value === 'en'
     ? `Every ${day} from ${schedule.startTime.replace(':', 'h')} to ${schedule.endTime.replace(':', 'h')}`
     : `Tous les ${day} de ${schedule.startTime.replace(':', 'h')} à ${schedule.endTime.replace(':', 'h')}`
 }
 const farmScheduleText = computed(() => formatFooterSchedule(siteConfig.value?.farmPickup || null))
-const siteName = computed(() => locale.value === 'en'
+const siteName = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.siteName.en || 'Ferme du Campeyrigoux'
   : cms.value?.settings.siteName.fr || 'Ferme du Campeyrigoux')
-const siteTagline = computed(() => locale.value === 'en'
+const siteTagline = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.siteTagline.en || ''
   : cms.value?.settings.siteTagline.fr || '')
 const copyrightText = computed(() => {
   const value = cms.value?.settings.footer.copyright
-  return locale.value === 'en' ? value?.en || '' : value?.fr || ''
+  return effectiveLocale.value === 'en' ? value?.en || '' : value?.fr || ''
 })
 
 const tokenToCssVar = (token: string) => {
@@ -219,7 +228,7 @@ const columnLayoutStyle = (column: CmsFooterColumn) => ({
 
 const pickText = (value: CmsLocalizedText | null | undefined) => {
   if (!value) return ''
-  return locale.value === 'en' ? value.en : value.fr
+  return effectiveLocale.value === 'en' ? value.en : value.fr
 }
 
 const getNavigationItems = (menu: 'PRIMARY' | 'FOOTER') => {

@@ -91,6 +91,7 @@
 import NewsListPage from '~/components/pages/NewsListPage.vue'
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
 import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
 import { CMS_APPLICATION_VIEW_MODE_LABELS, CMS_APPLICATION_VIEW_MODES, CMS_THEME_COLOR_TOKENS, type CmsNavigationItemPayload, type CmsSiteSettings } from '~/shared/cms'
 import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS } from '~/shared/pageBuilder'
 
@@ -98,10 +99,7 @@ definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/personnalisation/actualites',
-      en: '/admin/customization/news'
-    }
+    paths: ADMIN_I18N_PATHS.customizationNews
   }
 })
 

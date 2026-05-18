@@ -56,16 +56,14 @@
 </template>
 
 <script setup lang="ts">
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
 import type { CmsPagePayload } from '~/shared/cms'
 
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/contenu/pages',
-      en: '/admin/content/pages'
-    }
+    paths: ADMIN_I18N_PATHS.contentPages
   }
 })
 

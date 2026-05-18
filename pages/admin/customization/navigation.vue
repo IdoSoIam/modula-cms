@@ -18,53 +18,6 @@
       </div>
     </div>
 
-    <div class="tabs tabs-box w-fit">
-      <button type="button" class="tab" :class="previewLocale === 'fr' ? 'tab-active' : ''" @click="previewLocale = 'fr'">{{ t('admin.customizationNavigationPage.previewFr') }}</button>
-      <button type="button" class="tab" :class="previewLocale === 'en' ? 'tab-active' : ''" @click="previewLocale = 'en'">{{ t('admin.customizationNavigationPage.previewEn') }}</button>
-    </div>
-
-    <div class="grid gap-6 xl:grid-cols-2">
-      <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-4">
-        <div>
-          <h2 class="text-xl font-semibold">{{ t('admin.customizationNavigationPage.headerPreview') }}</h2>
-          <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationNavigationPage.headerPreviewDescription') }}</p>
-        </div>
-
-        <div class="rounded-[2rem] border border-base-300 bg-base-200 p-4">
-          <div class="flex flex-wrap items-center gap-2">
-            <span
-              v-for="item in primaryItems"
-              :key="item.id ?? item.title"
-              class="rounded-full border border-base-300 bg-base-100 px-4 py-2 text-sm"
-            >
-              {{ previewText(item.labels) || item.title }}
-            </span>
-            <span v-if="!primaryItems.length" class="text-sm opacity-60">{{ t('admin.customizationNavigationPage.noHeaderLinks') }}</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-4">
-        <div>
-          <h2 class="text-xl font-semibold">{{ t('admin.customizationNavigationPage.footerPreview') }}</h2>
-          <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationNavigationPage.footerPreviewDescription') }}</p>
-        </div>
-
-        <div class="rounded-[2rem] border border-base-300 bg-neutral p-4 text-neutral-content">
-          <div class="flex flex-wrap items-center gap-2">
-            <span
-              v-for="item in footerItems"
-              :key="item.id ?? item.title"
-              class="rounded-full border border-white/20 px-4 py-2 text-sm"
-            >
-              {{ previewText(item.labels) || item.title }}
-            </span>
-            <span v-if="!footerItems.length" class="text-sm opacity-60">{{ t('admin.customizationNavigationPage.noFooterLinks') }}</span>
-          </div>
-        </div>
-      </section>
-    </div>
-
     <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5">
       <div class="tabs tabs-box w-fit">
         <button type="button" class="tab" :class="activeMenuTab === 'PRIMARY' ? 'tab-active' : ''" @click="activeMenuTab = 'PRIMARY'">
@@ -167,16 +120,14 @@
 
 <script setup lang="ts">
 import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
 import { createDefaultCmsNavigationItems, type CmsLocalizedText, type CmsNavigationItemPayload, type CmsSiteSettings } from '~/shared/cms'
 
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/personnalisation/navigation',
-      en: '/admin/customization/navigation'
-    }
+    paths: ADMIN_I18N_PATHS.customizationNavigation
   }
 })
 

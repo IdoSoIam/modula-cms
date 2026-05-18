@@ -100,7 +100,7 @@
               </p>
             </div>
 
-            <div class="badge badge-outline">
+            <div class="badge badge-outline h-auto">
               {{ detailsReservation.googleCalendarEventId ? t('admin.ordersPage.googleSynced') : t('admin.ordersPage.googleNotSynced') }}
             </div>
           </div>
@@ -390,6 +390,7 @@
 <script setup lang="ts">
 import { defineComponent, h } from 'vue'
 import type { PropType } from 'vue'
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
 import OrdersWindowSettings from '~/components/admin/OrdersWindowSettings.vue'
 import OrdersCalendar from '~/components/admin/OrdersCalendar.vue'
 import OrdersList from '~/components/admin/OrdersList.vue'
@@ -398,10 +399,7 @@ definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/boutique/commandes',
-      en: '/admin/shop/orders'
-    }
+    paths: ADMIN_I18N_PATHS.shopOrders
   }
 })
 const { t, locale } = useI18n()

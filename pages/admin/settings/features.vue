@@ -47,15 +47,13 @@
 
 <script setup lang="ts">
 import OrdersWindowSettings from '~/components/admin/OrdersWindowSettings.vue'
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/reglages/fonctionnalites',
-      en: '/admin/settings/features'
-    }
+    paths: ADMIN_I18N_PATHS.settingsFeatures
   }
 })
 

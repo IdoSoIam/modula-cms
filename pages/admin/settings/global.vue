@@ -102,16 +102,14 @@
 <script setup lang="ts">
 import ImageInput from '~/components/ImageInput.vue'
 import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
 import type { CmsNavigationItemPayload, CmsSiteSettings } from '~/shared/cms'
 
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/reglages/global',
-      en: '/admin/settings/global'
-    }
+    paths: ADMIN_I18N_PATHS.settingsGlobal
   }
 })
 

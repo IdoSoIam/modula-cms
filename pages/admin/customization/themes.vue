@@ -189,6 +189,7 @@
 </template>
 
 <script setup lang="ts">
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
 import type { DaisyUiThemeColors, DaisyUiThemeConfig, DaisyUiThemeDefinition, DaisyUiThemeTokens } from '~/shared/themes'
 import { createEmptyDaisyUiThemeDefinition, renderDaisyUiThemeCss } from '~/shared/themes'
 
@@ -196,10 +197,7 @@ definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/personnalisation/themes',
-      en: '/admin/customization/themes'
-    }
+    paths: ADMIN_I18N_PATHS.customizationThemes
   }
 })
 

@@ -81,6 +81,8 @@ import {
   duplicatePageBuilderCard,
   duplicatePageBuilderItem,
   duplicatePageBuilderSection,
+  HEADING_TAG_LABELS,
+  HEADING_TAGS,
   IMAGE_ASPECTS,
   IMAGE_FITS,
   SECTION_COLUMN_COUNTS,
@@ -317,6 +319,16 @@ const ItemEditor = defineComponent({
         return h('div', { class: 'space-y-4' }, [
           header,
           h(TranslationFields, { modelValue: item.text, label: item.type === 'badge' ? 'Badge' : item.type === 'title' ? 'Titre' : 'Texte', size: item.size, multiline: item.type === 'text', 'onUpdate:size': (val: string) => { item.size = val as any } }),
+          item.type === 'title'
+            ? h('div', { class: 'form-control' }, [
+                h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Balise du titre')]),
+                h('select', {
+                  class: 'select select-bordered w-full',
+                  value: item.headingTag || 'h2',
+                  onChange: (e: Event) => { item.headingTag = (e.target as HTMLSelectElement).value as any }
+                }, HEADING_TAGS.map(tag => h('option', { value: tag }, HEADING_TAG_LABELS[tag])))
+              ])
+            : null,
           item.type === 'badge'
             ? h('div', { class: 'space-y-4' }, [
                 h(ThemeColorPicker, { label: 'Fond du badge', modelValue: item.backgroundColor || null, defaultToken: 'primary', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.backgroundColor = val } }),

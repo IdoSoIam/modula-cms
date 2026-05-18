@@ -90,7 +90,7 @@
                     {{ tr.startTime }} — {{ tr.endTime }}
                   </div>
                   <div v-if="tr.cities?.length" class="flex flex-wrap gap-1 mt-2">
-                    <span v-for="c in tr.cities" :key="c.id" class="badge badge-outline badge-sm">
+                    <span v-for="c in tr.cities" :key="c.id" class="badge badge-outline badge-sm h-auto">
                       {{ c.city }}
                       <span v-if="c.postalCodes" class="opacity-70">({{ c.postalCodes }})</span>
                     </span>
@@ -238,14 +238,13 @@
 </template>
 
 <script setup lang="ts">
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
+
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/boutique/livraison',
-      en: '/admin/shop/delivery'
-    }
+    paths: ADMIN_I18N_PATHS.shopDelivery
   }
 })
 

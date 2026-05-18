@@ -164,6 +164,7 @@ import CmsPageContentBuilder from '~/components/admin/cms/CmsPageContentBuilder.
 import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
 import PageRenderer from '~/components/page-builder/PageRenderer.vue'
 import ImageInput from '~/components/ImageInput.vue'
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
 import type { CmsLocale, CmsPagePayload } from '~/shared/cms'
 import { clonePageBuilderContent, type PageBuilderContent } from '~/shared/pageBuilder'
 
@@ -171,10 +172,7 @@ definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/pages/[id]',
-      en: '/admin/pages/[id]'
-    }
+    paths: ADMIN_I18N_PATHS.pageEditor
   }
 })
 

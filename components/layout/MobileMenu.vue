@@ -1,15 +1,15 @@
 <template>
-  <div v-if="showNavigation" class="drawer-side z-50">
-    <label for="drawer-toggle" class="drawer-overlay"></label>
+  <div v-if="showNavigation" :class="previewStatic ? 'block' : 'drawer-side z-50'">
+    <label v-if="!previewStatic" for="drawer-toggle" class="drawer-overlay"></label>
     <aside class="min-h-full w-80 space-y-4 overflow-y-auto bg-base-100 p-4">
       <div class="rounded-2xl border border-base-300 bg-base-200/40 p-4">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3" :class="mobileBrandClass">
           <img :src="logoSrc" :alt="logoAlt" class="h-auto w-auto shrink-0" :style="{ height: `${headerSettings.mobileLogoHeightPx + 8}px` }" />
-          <div class="min-w-0">
-            <div v-if="headerSettings.showSiteName" class="whitespace-normal break-words text-base font-bold leading-tight">
+          <div v-if="showMobileMenuBrandText" class="min-w-0">
+            <div v-if="headerSettings.mobileMenuShowSiteName" class="whitespace-normal break-words text-base font-bold leading-tight">
               {{ siteName }}
             </div>
-            <div v-if="headerSettings.showSiteTagline" class="mt-1 text-xs opacity-70">
+            <div v-if="headerSettings.mobileMenuShowSiteTagline" class="mt-1 text-xs opacity-70">
               {{ siteTagline }}
             </div>
           </div>
@@ -20,44 +20,50 @@
         <div class="px-1 text-xs font-semibold uppercase tracking-[0.14em] opacity-60">
           {{ t('layout.mobileMenu.navigationGroup') }}
         </div>
-        <div class="space-y-2">
+        <ul :class="mobileMenuClass">
           <template v-for="item in menuItems" :key="item.navigationItemKey">
-            <div v-if="item.children.length" class="rounded-2xl border border-base-300 bg-base-200/40">
+            <li v-if="item.children.length" class="rounded-2xl">
               <button
                 type="button"
-                class="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-semibold transition hover:bg-base-100/60"
+                :class="navGroupButtonClass(item)"
+                :style="navLinkStyle(item)"
                 @click="toggleOpenGroup(item.navigationItemKey)"
               >
                 <span class="flex-1">{{ resolveLabel(item) }}</span>
                 <Icon :name="isOpenGroup(item.navigationItemKey) ? 'mdi:chevron-up' : 'mdi:chevron-down'" size="18" class="opacity-60" />
               </button>
-              <div v-if="isOpenGroup(item.navigationItemKey)" class="space-y-2 px-2 pb-2">
-                <NuxtLink
-                  v-for="child in item.children"
-                  :key="child.navigationItemKey"
-                  :to="resolveHref(child)"
-                  :target="child.newTab ? '_blank' : undefined"
-                  :rel="child.newTab ? 'noopener noreferrer' : undefined"
-                  :class="navLinkClass(child)"
-                  @click="closeDrawer"
-                >
-                  {{ resolveLabel(child) }}
-                </NuxtLink>
-              </div>
-            </div>
+              <Transition :name="submenuTransitionName">
+                <ul v-if="isOpenGroup(item.navigationItemKey)" class="space-y-2 px-2 pb-2" :style="submenuListStyle">
+                  <li v-for="child in item.children" :key="child.navigationItemKey">
+                    <NuxtLink
+                      :to="resolveHref(child)"
+                      :target="child.newTab ? '_blank' : undefined"
+                      :rel="child.newTab ? 'noopener noreferrer' : undefined"
+                      :class="navLinkClass(child)"
+                      :style="navChildLinkStyle(child)"
+                      @click="closeDrawer"
+                    >
+                      {{ resolveLabel(child) }}
+                    </NuxtLink>
+                  </li>
+                </ul>
+              </Transition>
+            </li>
 
-            <NuxtLink
-              v-else
-              :to="resolveHref(item)"
-              :target="item.newTab ? '_blank' : undefined"
-              :rel="item.newTab ? 'noopener noreferrer' : undefined"
-              :class="navLinkClass(item)"
-              @click="closeDrawer"
-            >
-              {{ resolveLabel(item) }}
-            </NuxtLink>
+            <li v-else>
+              <NuxtLink
+                :to="resolveHref(item)"
+                :target="item.newTab ? '_blank' : undefined"
+                :rel="item.newTab ? 'noopener noreferrer' : undefined"
+                :class="navLinkClass(item)"
+                :style="navLinkStyle(item)"
+                @click="closeDrawer"
+              >
+                {{ resolveLabel(item) }}
+              </NuxtLink>
+            </li>
           </template>
-        </div>
+        </ul>
       </section>
 
       <section v-if="themeControllerEnabled && availableThemes.length" class="space-y-2">
@@ -152,11 +158,28 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsHeaderNavigationStyle, ResolvedCmsNavigationItem } from '~/shared/cms'
+import type { CmsHeaderNavigationStyle, CmsLocale, PublicSiteShell, ResolvedCmsNavigationItem } from '~/shared/cms'
 import { useAuthStore } from '~/stores/auth'
 
 type SupportedLocale = 'fr' | 'en'
 type LocaleOption = { code: SupportedLocale, name: string }
+
+interface PreviewSiteConfig {
+  facebookFluxDeactivated?: boolean
+  inDevelopment?: boolean
+  registerEnabled?: boolean
+  cms?: PublicSiteShell
+}
+
+const props = withDefaults(defineProps<{
+  previewLocale?: CmsLocale | null
+  previewSiteConfig?: PreviewSiteConfig | null
+  previewStatic?: boolean
+}>(), {
+  previewLocale: null,
+  previewSiteConfig: null,
+  previewStatic: false
+})
 
 const localePath = useLocalePath()
 const { locale, locales, setLocale, t } = useI18n()
@@ -165,34 +188,79 @@ const router = useRouter()
 const authStore = useAuthStore()
 const siteConfig = useSiteConfigState()
 const { theme, availableThemes, setTheme, themeControllerEnabled } = useTheme()
-const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
-const cms = computed(() => siteConfig.value?.cms)
-const registerEnabled = computed(() => siteConfig.value?.registerEnabled === true)
+const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
+const effectiveSiteConfig = computed(() => props.previewSiteConfig ?? siteConfig.value)
+const previewStatic = computed(() => props.previewStatic)
+const inDevelopment = computed(() => effectiveSiteConfig.value?.inDevelopment === true)
+const cms = computed(() => effectiveSiteConfig.value?.cms)
+const registerEnabled = computed(() => effectiveSiteConfig.value?.registerEnabled === true)
 const headerSettings = computed(() => cms.value?.settings.header ?? {
   heightPx: 84,
   logoHeightPx: 48,
+  mobileHeightPx: 72,
   mobileLogoHeightPx: 40,
   showSiteName: true,
   showSiteTagline: false,
+  mobileHeaderShowSiteName: true,
+  mobileHeaderShowSiteTagline: false,
+  mobileHeaderLogoPosition: 'left' as const,
+  mobileMenuShowSiteName: true,
+  mobileMenuShowSiteTagline: true,
+  mobileMenuLogoPosition: 'left' as const,
+  mobileBurgerPosition: 'left' as const,
   showPrimaryNavigation: true,
   navigationStyle: 'ghost' as CmsHeaderNavigationStyle,
+  submenuTrigger: 'hover' as const,
+  submenuAnimation: 'fade' as const,
+  submenuRadiusPx: 18,
+  navigationActiveBackgroundColor: { token: 'primary' as const, opacity: 100 },
+  navigationActiveTextColor: { token: 'primary-content' as const, opacity: 100 },
+  navigationHoverBackgroundColor: { token: 'base-200' as const, opacity: 100 },
+  navigationHoverTextColor: { token: 'base-content' as const, opacity: 100 },
+  submenuBackgroundColor: { token: 'base-100' as const, opacity: 100 },
+  submenuTextColor: { token: 'base-content' as const, opacity: 100 },
   sticky: true
 })
 const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated) && headerSettings.value.showPrimaryNavigation)
 const openGroupKeys = ref<string[]>([])
 const showAuthModal = ref(false)
 
-const siteName = computed(() => locale.value === 'en'
+const siteName = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.siteName.en || 'Site name'
   : cms.value?.settings.siteName.fr || 'Nom du site')
-const siteTagline = computed(() => locale.value === 'en'
+const siteTagline = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.siteTagline.en || ''
   : cms.value?.settings.siteTagline.fr || '')
 const logoSrc = computed(() => cms.value?.settings.logo.src || '/images/logo-removebg-preview.png')
-const logoAlt = computed(() => locale.value === 'en'
+const logoAlt = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.logo.alt.en || 'Logo'
   : cms.value?.settings.logo.alt.fr || 'Logo')
 const menuItems = computed(() => cms.value?.navigation.primary ?? [])
+const showMobileMenuBrandText = computed(() =>
+  headerSettings.value.mobileMenuShowSiteName || (headerSettings.value.mobileMenuShowSiteTagline && Boolean(siteTagline.value))
+)
+const mobileBrandClass = computed(() =>
+  headerSettings.value.mobileMenuLogoPosition === 'right'
+    ? 'flex-row-reverse justify-between text-right'
+    : ''
+)
+const mobileMenuClass = computed(() =>
+  headerSettings.value.navigationStyle === 'menu'
+    ? 'menu w-full rounded-box bg-base-100 p-0'
+    : 'space-y-2'
+)
+const submenuTransitionName = computed(() => {
+  switch (headerSettings.value.submenuAnimation) {
+    case 'scale': return 'submenu-scale'
+    case 'slide': return 'submenu-slide'
+    case 'none': return 'submenu-none'
+    default: return 'submenu-fade'
+  }
+})
+const submenuListStyle = computed(() => ({
+  borderRadius: `${headerSettings.value.submenuRadiusPx}px`,
+  backgroundColor: colorToCss(headerSettings.value.submenuBackgroundColor) || undefined
+}))
 
 const localeOptions = computed<LocaleOption[]>(() =>
   locales.value.map((item) => ({
@@ -202,7 +270,7 @@ const localeOptions = computed<LocaleOption[]>(() =>
 )
 
 const resolveLabel = (item: ResolvedCmsNavigationItem) =>
-  locale.value === 'en' ? item.labels.en || item.label : item.labels.fr || item.label
+  effectiveLocale.value === 'en' ? item.labels.en || item.label : item.labels.fr || item.label
 
 const resolveHref = (item: ResolvedCmsNavigationItem) =>
   item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)
@@ -219,20 +287,110 @@ const isActiveItem = (item: ResolvedCmsNavigationItem): boolean => {
 
 const navLinkClass = (item: ResolvedCmsNavigationItem) => {
   const active = isActiveItem(item)
-  const base = 'flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium transition'
+  const base = 'flex min-h-11 w-full items-center gap-3 px-4 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer'
   switch (headerSettings.value.navigationStyle) {
+    case 'menu':
+      return `${base} rounded-xl ${active
+        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+    case 'underline':
+      return `${base} rounded-none border-b-2 border-transparent px-2 ${active
+        ? '[border-bottom-color:var(--nav-active-accent)] [color:var(--nav-active-text)]'
+        : 'hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]'}`
     case 'soft':
-      return `${base} ${active ? 'bg-primary text-primary-content shadow-sm' : 'border border-base-300 bg-base-200/70 hover:bg-base-300/70'}`
+      return `${base} rounded-full ${active
+        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+        : 'border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
     case 'outline':
-      return `${base} border ${active ? 'border-primary bg-primary text-primary-content shadow-sm' : 'border-current/20 hover:bg-base-200/70'}`
+      return `${base} rounded-full border ${active
+        ? '[border-color:var(--nav-active-accent)] [background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+        : 'border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
     case 'solid':
-      return `${base} ${active ? 'bg-primary text-primary-content shadow-sm' : 'bg-primary/12 hover:bg-primary/18'}`
+      return `${base} rounded-xl ${active
+        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+        : 'bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
     default:
-      return `${base} ${active ? 'bg-primary text-primary-content shadow-sm' : 'hover:bg-base-200/80'}`
+      return `${base} rounded-xl ${active
+        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
   }
 }
 
+const navGroupButtonClass = (item: ResolvedCmsNavigationItem) => {
+  const active = isActiveItem(item)
+  const base = 'flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left text-sm font-semibold transition-colors duration-150 cursor-pointer'
+  switch (headerSettings.value.navigationStyle) {
+    case 'menu':
+      return `${base} rounded-xl ${active
+        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+    case 'underline':
+      return `${base} rounded-none border-b-2 border-transparent px-2 ${active
+        ? '[border-bottom-color:var(--nav-active-accent)] [color:var(--nav-active-text)]'
+        : 'hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]'}`
+    case 'soft':
+      return `${base} rounded-2xl ${active
+        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+        : 'border border-base-300 bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+    case 'outline':
+      return `${base} rounded-2xl border ${active
+        ? '[border-color:var(--nav-active-accent)] [background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+        : 'border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+    case 'solid':
+      return `${base} rounded-2xl ${active
+        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+        : 'bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+    default:
+      return `${base} rounded-2xl ${active
+        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+  }
+}
+
+const mixColor = (color: string, opacity: number) => {
+  if (opacity >= 1) return color
+  const percent = Math.max(0, Math.min(100, Math.round(opacity * 100)))
+  return `color-mix(in srgb, ${color} ${percent}%, transparent)`
+}
+
+const colorToCss = (selection: any, opacity = 1) => {
+  if (!selection) return ''
+  const selectionOpacity = typeof selection.opacity === 'number'
+    ? Math.max(0, Math.min(100, selection.opacity)) / 100
+    : 1
+  const finalOpacity = opacity * selectionOpacity
+  switch (selection.token) {
+    case 'transparent': return 'transparent'
+    case 'white': return mixColor('#ffffff', finalOpacity)
+    case 'white-90': return `rgba(255,255,255,${0.9 * finalOpacity})`
+    case 'white-70': return `rgba(255,255,255,${0.7 * finalOpacity})`
+    case 'white-10': return `rgba(255,255,255,${0.1 * finalOpacity})`
+    case 'custom': return selection.customHex ? mixColor(selection.customHex, finalOpacity) : ''
+    default: return mixColor(`var(--color-${selection.token})`, finalOpacity)
+  }
+}
+
+const navLinkStyle = (_item: ResolvedCmsNavigationItem) => {
+  const activeBg = colorToCss(headerSettings.value.navigationActiveBackgroundColor) || 'var(--color-primary)'
+  const activeText = colorToCss(headerSettings.value.navigationActiveTextColor) || 'var(--color-primary-content)'
+  const hoverBg = colorToCss(headerSettings.value.navigationHoverBackgroundColor) || 'var(--color-base-200)'
+  const hoverText = colorToCss(headerSettings.value.navigationHoverTextColor) || 'var(--color-base-content)'
+  return {
+    '--nav-active-bg': activeBg,
+    '--nav-active-text': activeText,
+    '--nav-hover-bg': hoverBg,
+    '--nav-hover-text': hoverText,
+    '--nav-active-accent': activeBg
+  }
+}
+
+const navChildLinkStyle = (_item: ResolvedCmsNavigationItem) => ({
+  ...navLinkStyle(_item),
+  color: colorToCss(headerSettings.value.submenuTextColor) || undefined
+})
+
 const closeDrawer = () => {
+  if (previewStatic.value) return
   if (!import.meta.client) return
   const toggle = document.getElementById('drawer-toggle') as HTMLInputElement | null
   if (toggle) {
@@ -281,3 +439,39 @@ const onAuthSuccess = () => {
   closeDrawer()
 }
 </script>
+
+<style scoped>
+.submenu-fade-enter-active,
+.submenu-fade-leave-active,
+.submenu-scale-enter-active,
+.submenu-scale-leave-active,
+.submenu-slide-enter-active,
+.submenu-slide-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.submenu-fade-enter-from,
+.submenu-fade-leave-to,
+.submenu-scale-enter-from,
+.submenu-scale-leave-to,
+.submenu-slide-enter-from,
+.submenu-slide-leave-to {
+  opacity: 0;
+}
+
+.submenu-scale-enter-from,
+.submenu-scale-leave-to {
+  transform: translateY(-6px) scale(0.96);
+  transform-origin: top center;
+}
+
+.submenu-slide-enter-from,
+.submenu-slide-leave-to {
+  transform: translateY(-10px);
+}
+
+.submenu-none-enter-active,
+.submenu-none-leave-active {
+  transition: none;
+}
+</style>

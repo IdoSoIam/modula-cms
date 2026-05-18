@@ -15,9 +15,15 @@
     </div>
 
     <div>
-    <div class="tabs tabs-lift w-fit">
-      <button type="button" class="tab" :class="previewLocale === 'fr' ? 'tab-active' : 'border-0'" @click="previewLocale = 'fr'">{{ t('admin.customizationLayoutPage.previewFr') }}</button>
-      <button type="button" class="tab" :class="previewLocale === 'en' ? 'tab-active' : 'border-0'" @click="previewLocale = 'en'">{{ t('admin.customizationLayoutPage.previewEn') }}</button>
+    <div class="flex flex-wrap items-end gap-4">
+      <div class="tabs tabs-lift w-fit">
+        <button type="button" class="tab" :class="previewLocale === 'fr' ? 'tab-active' : 'border-0'" @click="previewLocale = 'fr'">{{ t('admin.customizationLayoutPage.previewFr') }}</button>
+        <button type="button" class="tab" :class="previewLocale === 'en' ? 'tab-active' : 'border-0'" @click="previewLocale = 'en'">{{ t('admin.customizationLayoutPage.previewEn') }}</button>
+      </div>
+      <div class="tabs tabs-box w-fit">
+        <button type="button" class="tab" :class="previewDevice === 'desktop' ? 'tab-active' : ''" @click="previewDevice = 'desktop'">Vue desktop</button>
+        <button type="button" class="tab" :class="previewDevice === 'mobile' ? 'tab-active' : ''" @click="previewDevice = 'mobile'">Vue mobile</button>
+      </div>
     </div>
 
     <section class="rounded-box rounded-bottom rounded-topright border border-base-300 bg-base-100 p-6 space-y-5">
@@ -30,38 +36,35 @@
 
         <div class="space-y-3">
           <div class="text-sm font-medium">{{ t('admin.customizationLayoutPage.previewTitle') }}</div>
-          <div
-            class="overflow-hidden rounded-[2rem] border border-base-300 shadow-sm"
-            :style="headerPreviewStyle"
-          >
-            <div class="flex flex-wrap items-center justify-between gap-4 px-5" :style="{ minHeight: `${model.settings.header.heightPx}px` }">
-              <div class="flex min-w-0 items-center gap-4">
-                <img
-                  :src="model.settings.logo.src"
-                  :alt="previewText(model.settings.logo.alt)"
-                  class="h-auto w-auto shrink-0"
-                  :style="{ height: `${model.settings.header.logoHeightPx}px` }"
-                />
-                <div v-if="model.settings.header.showSiteName || model.settings.header.showSiteTagline" class="min-w-0">
-                  <div v-if="model.settings.header.showSiteName" class="truncate text-lg font-bold">
-                    {{ previewText(model.settings.siteName) || t('admin.customizationLayoutPage.siteNameFallback') }}
-                  </div>
-                  <div v-if="model.settings.header.showSiteTagline" class="truncate text-sm opacity-70">
-                    {{ previewText(model.settings.siteTagline) || t('admin.customizationLayoutPage.siteTaglineFallback') }}
-                  </div>
-                </div>
-              </div>
 
-              <div v-if="model.settings.header.showPrimaryNavigation" class="hidden flex-wrap items-center gap-2 md:flex">
-                <span
-                  v-for="item in primaryNavigationPreview"
-                  :key="item.id ?? item.title"
-                  class="rounded-full border border-current/15 px-4 py-2 text-sm"
-                >
-                  {{ previewText(item.labels) || item.title }}
-                </span>
-              </div>
-            </div>
+          <div
+            v-if="previewDevice === 'desktop'"
+            class="overflow-visible rounded-[2rem] border border-base-300 bg-base-200 shadow-sm"
+          >
+            <Navigation
+              :preview-locale="previewLocale"
+              :preview-site-config="previewSiteConfig"
+              :preview-show-utility-controls="true"
+              :preview-force-open-first-submenu="true"
+            />
+            <div class="pointer-events-none h-28" aria-hidden="true" />
+          </div>
+
+          <div
+            v-else
+            class="mx-auto max-w-[390px] overflow-hidden rounded-[2rem] border border-base-300 bg-base-200 shadow-sm"
+          >
+            <Navigation
+              :preview-locale="previewLocale"
+              :preview-site-config="previewSiteConfig"
+              :preview-show-utility-controls="false"
+              :preview-force-mobile="true"
+            />
+            <MobileMenu
+              :preview-locale="previewLocale"
+              :preview-site-config="previewSiteConfig"
+              :preview-static="true"
+            />
           </div>
         </div>
 
@@ -84,10 +87,65 @@
             </label>
 
             <label class="form-control gap-2">
+              <span class="label"><span class="label-text">Hauteur mobile</span></span>
+              <input v-model.number="model.settings.header.mobileHeightPx" type="number" min="56" max="160" class="input input-bordered w-full" />
+            </label>
+
+            <label class="form-control gap-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.navigationStyle') }}</span></span>
               <select v-model="model.settings.header.navigationStyle" class="select select-bordered w-full">
                 <option v-for="style in CMS_HEADER_NAVIGATION_STYLES" :key="style" :value="style">
-                  {{ t(`admin.customizationLayoutPage.navigationStyleOptions.${style}`) }}
+                  {{ headerNavigationStyleLabels[style] }}
+                </option>
+              </select>
+            </label>
+
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">Ouverture du sous-menu</span></span>
+              <select v-model="model.settings.header.submenuTrigger" class="select select-bordered w-full">
+                <option v-for="trigger in CMS_HEADER_SUBMENU_TRIGGERS" :key="trigger" :value="trigger">
+                  {{ headerSubmenuTriggerLabels[trigger] }}
+                </option>
+              </select>
+            </label>
+
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">Animation du sous-menu</span></span>
+              <select v-model="model.settings.header.submenuAnimation" class="select select-bordered w-full">
+                <option v-for="animation in CMS_HEADER_SUBMENU_ANIMATIONS" :key="animation" :value="animation">
+                  {{ headerSubmenuAnimationLabels[animation] }}
+                </option>
+              </select>
+            </label>
+
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">Radius du sous-menu</span></span>
+              <input v-model.number="model.settings.header.submenuRadiusPx" type="number" min="0" max="40" class="input input-bordered w-full" />
+            </label>
+
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">Position du logo mobile</span></span>
+              <select v-model="model.settings.header.mobileHeaderLogoPosition" class="select select-bordered w-full">
+                <option v-for="position in CMS_HEADER_MOBILE_LOGO_POSITIONS" :key="position" :value="position">
+                  {{ headerMobileLogoPositionLabels[position] }}
+                </option>
+              </select>
+            </label>
+
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">Position du burger mobile</span></span>
+              <select v-model="model.settings.header.mobileBurgerPosition" class="select select-bordered w-full">
+                <option v-for="position in CMS_HEADER_MOBILE_LOGO_POSITIONS" :key="`burger-${position}`" :value="position">
+                  {{ headerMobileBurgerPositionLabels[position] }}
+                </option>
+              </select>
+            </label>
+
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">Position du logo dans le menu mobile</span></span>
+              <select v-model="model.settings.header.mobileMenuLogoPosition" class="select select-bordered w-full">
+                <option v-for="position in CMS_HEADER_MOBILE_LOGO_POSITIONS" :key="`menu-${position}`" :value="position">
+                  {{ headerMobileLogoPositionLabels[position] }}
                 </option>
               </select>
             </label>
@@ -104,6 +162,48 @@
             <ThemeColorPicker
               v-model="model.settings.header.textColor"
               :label="t('admin.customizationLayoutPage.headerText')"
+              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+              :allow-custom="false"
+              default-token="base-content"
+            />
+            <ThemeColorPicker
+              v-model="model.settings.header.navigationActiveBackgroundColor"
+              label="Couleur de fond active de la navigation"
+              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+              :allow-custom="false"
+              default-token="primary"
+            />
+            <ThemeColorPicker
+              v-model="model.settings.header.navigationActiveTextColor"
+              label="Couleur du texte actif de la navigation"
+              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+              :allow-custom="false"
+              default-token="primary-content"
+            />
+            <ThemeColorPicker
+              v-model="model.settings.header.navigationHoverBackgroundColor"
+              label="Couleur de survol de la navigation"
+              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+              :allow-custom="false"
+              default-token="base-200"
+            />
+            <ThemeColorPicker
+              v-model="model.settings.header.navigationHoverTextColor"
+              label="Couleur du texte au survol"
+              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+              :allow-custom="false"
+              default-token="base-content"
+            />
+            <ThemeColorPicker
+              v-model="model.settings.header.submenuBackgroundColor"
+              label="Fond du sous-menu"
+              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+              :allow-custom="false"
+              default-token="base-100"
+            />
+            <ThemeColorPicker
+              v-model="model.settings.header.submenuTextColor"
+              label="Texte du sous-menu"
               :allowed-tokens="CMS_THEME_COLOR_TOKENS"
               :allow-custom="false"
               default-token="base-content"
@@ -134,6 +234,46 @@
                 <div class="text-sm opacity-70">{{ t('admin.customizationLayoutPage.showPrimaryNavigationHelp') }}</div>
               </div>
             </label>
+
+            <div class="rounded-xl border border-base-300 p-4 space-y-3">
+              <div class="text-sm font-semibold">Header mobile</div>
+
+              <label class="flex items-start gap-3">
+                <input v-model="model.settings.header.mobileHeaderShowSiteName" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
+                <div>
+                  <div class="font-medium">Afficher le nom du site</div>
+                  <div class="text-sm opacity-70">Contrôle uniquement la barre du header mobile.</div>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3">
+                <input v-model="model.settings.header.mobileHeaderShowSiteTagline" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
+                <div>
+                  <div class="font-medium">Afficher la baseline</div>
+                  <div class="text-sm opacity-70">À activer seulement si tu veux une barre mobile plus haute.</div>
+                </div>
+              </label>
+            </div>
+
+            <div class="rounded-xl border border-base-300 p-4 space-y-3">
+              <div class="text-sm font-semibold">Menu mobile</div>
+
+              <label class="flex items-start gap-3">
+                <input v-model="model.settings.header.mobileMenuShowSiteName" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
+                <div>
+                  <div class="font-medium">Afficher le nom du site</div>
+                  <div class="text-sm opacity-70">Contrôle uniquement le panneau du menu mobile.</div>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3">
+                <input v-model="model.settings.header.mobileMenuShowSiteTagline" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
+                <div>
+                  <div class="font-medium">Afficher la baseline</div>
+                  <div class="text-sm opacity-70">Permet d’avoir une baseline visible dans le drawer sans l’afficher dans la barre mobile.</div>
+                </div>
+              </label>
+            </div>
 
             <label class="flex items-start gap-3 rounded-xl border border-base-300 p-4">
               <input v-model="model.settings.header.sticky" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
@@ -233,57 +373,11 @@
         />
       </div>
 
-      <div class="overflow-hidden rounded-[2rem] border border-base-300" :style="footerPreviewStyle">
-        <div class="mx-auto flex w-full flex-wrap gap-8 px-6 py-10" :class="[footerPreviewContainerClass, footerPreviewAlignClass]">
-          <section
-            v-for="column in model.settings.footer.columns"
-            :key="column.id"
-            class="flex min-w-[220px] flex-1 basis-[240px] flex-col"
-            :class="columnPreviewClass(column)"
-            :style="columnPreviewStyle(column)"
-          >
-            <template v-for="block in column.blocks" :key="block.id">
-              <div v-if="block.type === 'logo'" class="max-w-[220px]">
-                <img :src="model.settings.logo.src" :alt="previewText(model.settings.logo.alt)" class="h-auto max-h-24 w-auto" />
-              </div>
-              <div v-else-if="block.type === 'site-name'" class="text-xl font-semibold">{{ previewText(model.settings.siteName) }}</div>
-              <p v-else-if="block.type === 'site-tagline'" class="whitespace-pre-line text-sm leading-6 opacity-85">{{ previewText(model.settings.siteTagline) }}</p>
-              <div v-else-if="block.type === 'title' && previewText(block.text)" class="text-sm font-semibold uppercase tracking-[0.16em] opacity-80">{{ previewText(block.text) }}</div>
-              <p v-else-if="block.type === 'text' && previewText(block.text)" class="whitespace-pre-line text-sm leading-6 opacity-85">{{ previewText(block.text) }}</p>
-              <div v-else-if="block.type === 'opening-hours'" class="space-y-2 text-sm opacity-85">
-                <div>{{ openingHoursPreview }}</div>
-              </div>
-              <div v-else-if="block.type === 'contact'" class="space-y-2 text-sm opacity-85">
-                <div>{{ previewText(model.settings.siteName) }}</div>
-                <div v-if="farmOpening.address" class="whitespace-pre-line">{{ farmOpening.address }}</div>
-                <div v-if="publicPhone">{{ publicPhone }}</div>
-                <div v-if="contactEmail">{{ contactEmail }}</div>
-              </div>
-              <div v-else-if="block.type === 'social-links'" class="flex flex-wrap gap-3">
-                <span
-                  v-for="link in model.settings.socialLinks"
-                  :key="link.id"
-                  class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-current/15"
-                >
-                  <Icon :name="link.icon || 'mdi:link-variant'" size="18" />
-                </span>
-              </div>
-              <div v-else-if="block.type === 'navigation'" class="space-y-2">
-                <div
-                  v-for="item in getMenuPreviewItems(block.navigationMenu || 'FOOTER')"
-                  :key="item.id ?? item.title"
-                  class="text-sm"
-                >
-                  {{ previewText(item.labels) || item.title }}
-                </div>
-              </div>
-            </template>
-          </section>
-        </div>
-
-        <div class="border-t border-current/10 px-6 py-4 text-center text-xs opacity-70">
-          {{ previewText(model.settings.footer.copyright) }}
-        </div>
+      <div class="overflow-hidden rounded-[2rem] border border-base-300">
+        <Footer
+          :preview-locale="previewLocale"
+          :preview-site-config="previewSiteConfig"
+        />
       </div>
 
       <div class="space-y-6">
@@ -394,13 +488,22 @@ import ImageInput from '~/components/ImageInput.vue'
 import AdminIconPicker from '~/components/admin/IconPicker.vue'
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
 import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
+import Footer from '~/components/layout/Footer.vue'
+import MobileMenu from '~/components/layout/MobileMenu.vue'
+import Navigation from '~/components/layout/Navigation.vue'
+import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
 import {
   CMS_FOOTER_ALIGN_LABELS,
   CMS_FOOTER_CONTAINER_ALIGN_LABELS,
+  CMS_HEADER_MOBILE_LOGO_POSITIONS,
   CMS_HEADER_NAVIGATION_STYLES,
+  CMS_HEADER_SUBMENU_ANIMATIONS,
+  CMS_HEADER_SUBMENU_TRIGGERS,
   CMS_THEME_COLOR_TOKENS,
+  buildResolvedNavigationPreview,
   createCmsFooterBlock,
   createEmptyCmsLocalizedText,
+  type PublicSiteShell,
   type CmsFooterBlock,
   type CmsFooterColumn,
   type CmsLocalizedText,
@@ -414,10 +517,7 @@ definePageMeta({
   layout: 'admin',
   middleware: 'auth',
   i18n: {
-    paths: {
-      fr: '/admin/personnalisation/mise-en-page',
-      en: '/admin/customization/layout'
-    }
+    paths: ADMIN_I18N_PATHS.customizationLayout
   }
 })
 
@@ -440,8 +540,40 @@ const footerBlockTypes = [
   { value: 'navigation', label: t('admin.customizationLayoutPage.blockTypes.navigation') }
 ] as const
 
+const headerNavigationStyleLabels = {
+  ghost: 'Léger',
+  soft: 'Pilules douces',
+  outline: 'Pilules contour',
+  solid: 'Pilules pleines',
+  menu: 'Menu DaisyUI',
+  underline: 'Souligné'
+} as const
+
+const headerSubmenuTriggerLabels = {
+  hover: 'Au survol',
+  click: 'Au clic'
+} as const
+
+const headerSubmenuAnimationLabels = {
+  none: 'Aucune',
+  fade: 'Fondu',
+  scale: 'Zoom',
+  slide: 'Glissement'
+} as const
+
+const headerMobileLogoPositionLabels = {
+  left: 'À gauche',
+  right: 'À droite'
+} as const
+
+const headerMobileBurgerPositionLabels = {
+  left: 'À gauche',
+  right: 'À droite'
+} as const
+
 const saving = ref(false)
 const previewLocale = ref<'fr' | 'en'>('fr')
+const previewDevice = ref<'desktop' | 'mobile'>('desktop')
 const openPanelIds = ref<string[]>([])
 const cloneFooterData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 const { data } = await useFetch<SiteShellModel>('/api/admin/cms/site-shell')
@@ -480,69 +612,58 @@ watchEffect(() => {
   contactEmail.value = settingsData.value.contactEmail
 })
 
+const previewNavigation = computed(() => buildResolvedNavigationPreview(model.navigation))
+
+const previewSiteConfig = computed(() => ({
+  inDevelopment: false,
+  registerEnabled: true,
+  adminPhone: publicPhone.value,
+  contactEmail: contactEmail.value,
+  farmPickup: {
+    address: farmOpening.address,
+    dayOfWeek: farmOpening.dayOfWeek,
+    startTime: farmOpening.startTime,
+    endTime: farmOpening.endTime,
+    slotLabel: ''
+  },
+  cms: {
+    settings: model.settings,
+    navigation: previewNavigation.value
+  } as PublicSiteShell
+}))
+
 const previewText = (value: CmsLocalizedText | null | undefined) => {
   if (!value) return ''
   return previewLocale.value === 'en' ? value.en : value.fr
 }
 
-const tokenToCssVar = (token: string) => {
-  if (token === 'white') return 'rgba(255,255,255,1)'
-  if (token === 'white-90') return 'rgba(255,255,255,.9)'
-  if (token === 'white-70') return 'rgba(255,255,255,.7)'
-  if (token === 'white-10') return 'rgba(255,255,255,.1)'
-  if (token === 'transparent') return 'transparent'
-  return `var(--color-${token})`
+const mixColor = (color: string, opacity: number) => {
+  if (opacity >= 1) return color
+  const percent = Math.max(0, Math.min(100, Math.round(opacity * 100)))
+  return `color-mix(in srgb, ${color} ${percent}%, transparent)`
+}
+
+const colorToCss = (selection?: ThemeColorSelection | null, opacity = 1) => {
+  if (!selection) return ''
+  const selectionOpacity = typeof selection.opacity === 'number'
+    ? Math.max(0, Math.min(100, selection.opacity)) / 100
+    : 1
+  const finalOpacity = opacity * selectionOpacity
+  switch (selection.token) {
+    case 'transparent': return 'transparent'
+    case 'white': return mixColor('#ffffff', finalOpacity)
+    case 'white-90': return `rgba(255,255,255,${0.9 * finalOpacity})`
+    case 'white-70': return `rgba(255,255,255,${0.7 * finalOpacity})`
+    case 'white-10': return `rgba(255,255,255,${0.1 * finalOpacity})`
+    case 'custom': return selection.customHex ? mixColor(selection.customHex, finalOpacity) : ''
+    default: return mixColor(`var(--color-${selection.token})`, finalOpacity)
+  }
 }
 
 const selectionToStyle = (selection?: ThemeColorSelection | null, cssProperty: 'backgroundColor' | 'color' = 'backgroundColor') => {
-  if (!selection) return {}
-  return { [cssProperty]: tokenToCssVar(selection.token) }
+  const value = colorToCss(selection)
+  return value ? { [cssProperty]: value } : {}
 }
-
-const headerPreviewStyle = computed(() => ({
-  ...selectionToStyle(model.settings.header.backgroundColor, 'backgroundColor'),
-  ...selectionToStyle(model.settings.header.textColor, 'color')
-}))
-
-const footerPreviewStyle = computed(() => ({
-  ...selectionToStyle(model.settings.footer.backgroundColor, 'backgroundColor'),
-  ...selectionToStyle(model.settings.footer.textColor, 'color')
-}))
-
-const footerPreviewContainerClass = computed(() => {
-  switch (model.settings.footer.containerWidth) {
-    case 'narrow': return 'max-w-3xl'
-    case 'default': return 'max-w-5xl'
-    case 'wide': return 'max-w-6xl'
-    case 'xwide': return 'max-w-7xl'
-    case 'edge': return 'max-w-[90rem]'
-    case 'full': return 'max-w-none'
-    default: return 'max-w-7xl'
-  }
-})
-
-const footerPreviewAlignClass = computed(() => {
-  switch (model.settings.footer.containerAlign) {
-    case 'start': return 'justify-start'
-    case 'center': return 'justify-center'
-    case 'between': return 'justify-between'
-    default: return 'justify-between'
-  }
-})
-
-const columnPreviewClass = (column: CmsFooterColumn) => {
-  const horizontalClass = column.align === 'center' ? 'items-center text-center' : 'items-start text-left'
-  const verticalClass = column.verticalAlign === 'center'
-    ? 'justify-center'
-    : column.verticalAlign === 'end'
-      ? 'justify-end'
-      : 'justify-start'
-  return `${horizontalClass} ${verticalClass}`
-}
-
-const columnPreviewStyle = (column: CmsFooterColumn) => ({
-  gap: `${column.gapPx}px`
-})
 
 const dayLabels = {
   fr: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
@@ -558,6 +679,21 @@ const openingHoursPreview = computed(() => {
 const primaryNavigationPreview = computed(() =>
   model.navigation.filter((item) => item.menu === 'PRIMARY' && item.visible).sort((a, b) => a.position - b.position)
 )
+
+const primaryNavigationRootPreview = computed(() =>
+  primaryNavigationPreview.value.filter((item) => !item.parentItemKey)
+)
+
+const firstDesktopSubmenuPreview = computed(() => {
+  const parent = primaryNavigationRootPreview.value.find(item =>
+    primaryNavigationPreview.value.some(child => child.parentItemKey === item.navigationItemKey)
+  )
+  if (!parent) return null
+  return {
+    parent,
+    children: primaryNavigationPreview.value.filter(child => child.parentItemKey === parent.navigationItemKey)
+  }
+})
 
 const getMenuPreviewItems = (menu: 'PRIMARY' | 'FOOTER') =>
   model.navigation.filter((item) => item.menu === menu && item.visible).sort((a, b) => a.position - b.position)
