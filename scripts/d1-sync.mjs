@@ -14,6 +14,8 @@ const appTables = [
   'BasketItem',
   'PickupPoint',
   'DeliveryTour',
+  'CmsPage',
+  'CmsNavigationItem',
   'TourCity',
   'Reservation',
   'ReservationScheduleProposal',
