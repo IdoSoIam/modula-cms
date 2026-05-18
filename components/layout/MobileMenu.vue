@@ -76,12 +76,12 @@
             :key="availableTheme.name"
             type="button"
             class="flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-2 text-left text-sm transition"
-            :class="theme === availableTheme.name ? 'bg-primary text-primary-content shadow-sm' : 'border border-base-300 bg-base-100 hover:bg-base-200'"
+            :class="themeButtonClass(availableTheme.name)"
             @click="setTheme(availableTheme.name)"
           >
             <span class="h-4 w-4 shrink-0 rounded-full border border-current/20" :style="{ background: availableTheme.preview }" />
             <span class="flex-1">{{ availableTheme.displayName }}</span>
-            <Icon v-if="theme === availableTheme.name" name="mdi:check" size="16" />
+            <Icon v-if="showThemeCheck(availableTheme.name)" name="mdi:check" size="16" />
           </button>
         </div>
       </section>
@@ -96,12 +96,12 @@
             :key="availableLocale.code"
             type="button"
             class="flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-2 text-left text-sm transition"
-            :class="locale === availableLocale.code ? 'bg-primary text-primary-content shadow-sm' : 'border border-base-300 bg-base-100 hover:bg-base-200'"
+            :class="localeButtonClass(availableLocale.code)"
             @click="changeLocale(availableLocale.code)"
           >
             <Icon name="mdi:translate" size="18" class="shrink-0" />
             <span class="flex-1">{{ availableLocale.name }}</span>
-            <Icon v-if="locale === availableLocale.code" name="mdi:check" size="16" />
+            <Icon v-if="showLocaleCheck(availableLocale.code)" name="mdi:check" size="16" />
           </button>
         </div>
       </section>
@@ -224,6 +224,7 @@ const headerSettings = computed(() => cms.value?.settings.header ?? {
 const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated) && headerSettings.value.showPrimaryNavigation)
 const openGroupKeys = ref<string[]>([])
 const showAuthModal = ref(false)
+const isHydrated = ref(false)
 
 const siteName = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.siteName.en || 'Site name'
@@ -389,6 +390,21 @@ const navChildLinkStyle = (_item: ResolvedCmsNavigationItem) => ({
   color: colorToCss(headerSettings.value.submenuTextColor) || undefined
 })
 
+const inactiveSelectorButtonClass = 'border border-base-300 bg-base-100 hover:bg-base-200'
+const activeSelectorButtonClass = 'bg-primary text-primary-content shadow-sm'
+
+const themeButtonClass = (themeName: string) =>
+  isHydrated.value && theme.value === themeName ? activeSelectorButtonClass : inactiveSelectorButtonClass
+
+const localeButtonClass = (localeCode: SupportedLocale) =>
+  isHydrated.value && locale.value === localeCode ? activeSelectorButtonClass : inactiveSelectorButtonClass
+
+const showThemeCheck = (themeName: string) =>
+  isHydrated.value && theme.value === themeName
+
+const showLocaleCheck = (localeCode: SupportedLocale) =>
+  isHydrated.value && locale.value === localeCode
+
 const closeDrawer = () => {
   if (previewStatic.value) return
   if (!import.meta.client) return
@@ -438,6 +454,10 @@ const onAuthSuccess = () => {
   $toast?.success(t('auth.loginSuccess'))
   closeDrawer()
 }
+
+onMounted(() => {
+  isHydrated.value = true
+})
 </script>
 
 <style scoped>
