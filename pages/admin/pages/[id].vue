@@ -68,6 +68,15 @@
                   <option value="PUBLISHED">PUBLISHED</option>
                 </select>
               </label>
+              <label class="label cursor-pointer justify-start gap-3 md:col-span-2">
+                <input
+                  :checked="page.specialRole === 'construction'"
+                  type="checkbox"
+                  class="checkbox checkbox-primary checkbox-sm"
+                  @change="page.specialRole = ($event.target as HTMLInputElement).checked ? 'construction' : null"
+                >
+                <span class="label-text">Cette page est la page de construction du site</span>
+              </label>
             </div>
           </section>
 

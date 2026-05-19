@@ -12,11 +12,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   let inDevelopment = false
+  let constructionPath = '/construction'
   try {
     // Skip site config check if no Nuxt app context (edge case during SSR)
     if (tryUseNuxtApp()) {
       const siteConfig = await ensureSiteConfigState()
       inDevelopment = siteConfig?.inDevelopment === true
+      constructionPath = siteConfig?.constructionPagePath || '/construction'
     }
   } catch (error) {
     console.debug('Site config check failed:', error)
@@ -24,14 +26,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   const adminRoutes = ['/admin', '/facebook-test']
   const protectedRoutes = ['/profile', '/commandes']
-  const publicAllowedInDevelopment = ['/login', '/construction']
+  const publicAllowedInDevelopment = ['/login', '/construction', constructionPath]
 
   if (
     inDevelopment &&
     !authStore.isAuthenticated &&
     !publicAllowedInDevelopment.includes(normalizedPath)
   ) {
-    return navigateTo(localePath('/construction'))
+    return navigateTo(localePath(constructionPath))
   }
 
   if (adminRoutes.some(route => normalizedPath.startsWith(route))) {
@@ -54,7 +56,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo(localePath('/profile'))
   }
 
-  if (normalizedPath === '/construction' && authStore.isAuthenticated) {
+  if ((normalizedPath === '/construction' || normalizedPath === constructionPath) && authStore.isAuthenticated) {
     return navigateTo(localePath('/profile'))
   }
 })

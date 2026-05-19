@@ -317,6 +317,7 @@ model CmsPage {
   title               String
   pageType            CmsPageType            @default(CMS)
   status              CmsPageStatus          @default(DRAFT)
+  specialRole         String?
   templateKey         String                 @default("default")
   rendererKey         String?
   applicationPosition CmsApplicationPosition @default(AFTER_CONTENT)

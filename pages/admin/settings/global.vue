@@ -96,6 +96,97 @@
         <div class="mt-2 opacity-80">{{ openingHoursPreview }}</div>
       </div>
     </section>
+
+    <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5">
+      <div>
+        <h2 class="text-xl font-semibold">{{ t('admin.settingsGlobalPage.cookieConsent.title') }}</h2>
+        <p class="mt-1 text-sm opacity-70">
+          {{ t('admin.settingsGlobalPage.cookieConsent.description') }}
+        </p>
+      </div>
+
+      <label class="label cursor-pointer justify-start gap-3">
+        <input v-model="model.settings.cookieBanner.enabled" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
+        <span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.enabled') }}</span>
+      </label>
+
+      <AdminPageBuilderTranslationTabs :model-value="model.settings.cookieBanner.title" :label="t('admin.settingsGlobalPage.cookieConsent.bannerTitle')" />
+      <AdminPageBuilderTranslationTabs :model-value="model.settings.cookieBanner.text" :label="t('admin.settingsGlobalPage.cookieConsent.bannerText')" multiline />
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <AdminPageBuilderTranslationTabs :model-value="model.settings.cookieBanner.acceptLabel" :label="t('admin.settingsGlobalPage.cookieConsent.acceptLabel')" />
+        <AdminPageBuilderTranslationTabs :model-value="model.settings.cookieBanner.refuseLabel" :label="t('admin.settingsGlobalPage.cookieConsent.refuseLabel')" />
+        <AdminPageBuilderTranslationTabs :model-value="model.settings.cookieBanner.customizeLabel" :label="t('admin.settingsGlobalPage.cookieConsent.customizeLabel')" />
+        <AdminPageBuilderTranslationTabs :model-value="model.settings.cookieBanner.saveLabel" :label="t('admin.settingsGlobalPage.cookieConsent.saveLabel')" />
+      </div>
+
+      <label class="form-control min-w-0 gap-2">
+        <span class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.privacyPath') }}</span></span>
+        <input v-model="model.settings.cookieBanner.privacyPagePath" class="input input-bordered w-full" />
+      </label>
+
+      <div class="space-y-4">
+        <div class="font-medium">{{ t('admin.settingsGlobalPage.cookieConsent.inventoryTitle') }}</div>
+        <div
+          v-for="(service, serviceIndex) in model.settings.cookieBanner.services"
+          :key="service.id"
+          class="rounded-2xl border border-base-300 bg-base-200 p-4 space-y-4"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="font-medium">{{ t('admin.settingsGlobalPage.cookieConsent.serviceLabel', { count: serviceIndex + 1 }) }}</div>
+            <div class="flex gap-2">
+              <label class="label cursor-pointer gap-2">
+                <input v-model="service.enabled" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
+                <span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.active') }}</span>
+              </label>
+              <button type="button" class="btn btn-xs btn-outline btn-error" @click="model.settings.cookieBanner.services.splice(serviceIndex, 1)">{{ t('common.delete') }}</button>
+            </div>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.serviceId') }}</span></span>
+              <input v-model="service.id" class="input input-bordered w-full" />
+            </label>
+            <label class="form-control gap-2">
+              <span class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.serviceKeys') }}</span></span>
+              <input :value="service.keys.join(', ')" class="input input-bordered w-full" @input="updateCookieServiceKeys(serviceIndex, ($event.target as HTMLInputElement).value)" />
+            </label>
+            <div class="form-control">
+              <label class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.category') }}</span></label>
+              <select v-model="service.category" class="select select-bordered w-full">
+                <option value="essential">{{ t('admin.settingsGlobalPage.cookieConsent.categories.essential') }}</option>
+                <option value="preferences">{{ t('admin.settingsGlobalPage.cookieConsent.categories.preferences') }}</option>
+                <option value="third_party">{{ t('admin.settingsGlobalPage.cookieConsent.categories.thirdParty') }}</option>
+                <option value="marketing">{{ t('admin.settingsGlobalPage.cookieConsent.categories.marketing') }}</option>
+              </select>
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.storageType') }}</span></label>
+              <select v-model="service.storage" class="select select-bordered w-full">
+                <option value="cookie">{{ t('admin.settingsGlobalPage.cookieConsent.storage.cookie') }}</option>
+                <option value="localStorage">localStorage</option>
+                <option value="sessionStorage">sessionStorage</option>
+                <option value="script">{{ t('admin.settingsGlobalPage.cookieConsent.storage.script') }}</option>
+              </select>
+            </div>
+            <label class="label cursor-pointer justify-start gap-3 lg:col-span-2">
+              <input v-model="service.required" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
+              <span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.required') }}</span>
+            </label>
+          </div>
+
+          <AdminPageBuilderTranslationTabs :model-value="service.name" :label="t('admin.settingsGlobalPage.cookieConsent.serviceName')" />
+          <AdminPageBuilderTranslationTabs :model-value="service.description" :label="t('admin.settingsGlobalPage.cookieConsent.serviceDescription')" multiline />
+        </div>
+
+        <div class="flex justify-end">
+          <button type="button" class="btn btn-outline" @click="addCookieService">
+            {{ t('admin.settingsGlobalPage.cookieConsent.addService') }}
+          </button>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -173,6 +264,28 @@ const openingHoursPreview = computed(() => {
   const day = dayLabels[farmOpening.dayOfWeek] || t('admin.settingsGlobalPage.days.friday')
   return `${day} ${farmOpening.startTime} - ${farmOpening.endTime}`
 })
+
+const addCookieService = () => {
+  model.settings.cookieBanner.services.push({
+    id: `cookie-service-${Math.random().toString(36).slice(2, 8)}`,
+    name: { fr: '', en: '' },
+    description: { fr: '', en: '' },
+    category: 'preferences',
+    storage: 'cookie',
+    keys: [],
+    required: false,
+    enabled: true
+  })
+}
+
+const updateCookieServiceKeys = (index: number, value: string) => {
+  const service = model.settings.cookieBanner.services[index]
+  if (!service) return
+  service.keys = value
+    .split(',')
+    .map(entry => entry.trim())
+    .filter(Boolean)
+}
 
 const save = async () => {
   saving.value = true

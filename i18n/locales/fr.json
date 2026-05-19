@@ -745,6 +745,40 @@
       "saved": "Réglages globaux enregistrés",
       "loadError": "Configuration CMS indisponible",
       "saveError": "Impossible d'enregistrer les réglages globaux",
+      "cookieConsent": {
+        "title": "Cookies et consentement",
+        "description": "Configure la bannière cookies publique et l’inventaire déclaré des cookies et stockages utilisés.",
+        "enabled": "Activer la bannière cookies",
+        "bannerTitle": "Titre de la bannière",
+        "bannerText": "Texte de la bannière",
+        "acceptLabel": "Bouton accepter",
+        "refuseLabel": "Bouton refuser",
+        "customizeLabel": "Bouton personnaliser",
+        "saveLabel": "Bouton enregistrer",
+        "privacyPath": "Chemin de la page confidentialité",
+        "cookiesPath": "Chemin de la politique des cookies",
+        "inventoryTitle": "Inventaire déclaré",
+        "serviceLabel": "Service {count}",
+        "active": "Actif",
+        "serviceId": "Identifiant",
+        "serviceKeys": "Clés stockées (séparées par des virgules)",
+        "category": "Catégorie",
+        "storageType": "Type de stockage",
+        "required": "Toujours requis",
+        "serviceName": "Nom du service",
+        "serviceDescription": "Description",
+        "addService": "Ajouter un service",
+        "categories": {
+          "essential": "Essentiels",
+          "preferences": "Préférences",
+          "thirdParty": "Intégrations tierces",
+          "marketing": "Mesure / marketing"
+        },
+        "storage": {
+          "cookie": "Cookie",
+          "script": "Script tiers"
+        }
+      },
       "days": {
         "sunday": "Dimanche",
         "monday": "Lundi",
@@ -1082,11 +1116,41 @@
   },
   "layout": {
     "logoutSuccess": "Vous avez été déconnecté",
+    "cookieBanner": {
+      "privacyLink": "Politique de confidentialité",
+      "cookiesLink": "Politique des cookies",
+      "essentialTitle": "Essentiels",
+      "essentialHelp": "Toujours actifs pour le bon fonctionnement du site.",
+      "categories": {
+        "preferences": "Préférences",
+        "thirdParty": "Intégrations tierces",
+        "marketing": "Mesure et marketing"
+      }
+    },
     "mobileMenu": {
       "navigationGroup": "Navigation",
       "themeGroup": "Thème",
       "languageGroup": "Langue",
       "accountGroup": "Compte"
+    }
+  },
+  "cookiesPage": {
+    "eyebrow": "Cookies et stockages",
+    "title": "Politique des cookies",
+    "intro": "Cette page recense les cookies, stockages navigateur et scripts que le site peut utiliser, selon la configuration activée dans l’administration. Les services essentiels sont listés ici même lorsqu’ils ne sont pas soumis à consentement.",
+    "requiredBadge": "Essentiel",
+    "keysTitle": "Clés utilisées",
+    "categoryDescriptions": {
+      "essential": "Nécessaires au fonctionnement du site, à la sécurité, à la langue ou à la persistance technique minimale.",
+      "preferences": "Utilisés pour mémoriser certaines préférences d’affichage ou de confort utilisateur.",
+      "thirdParty": "Activent des intégrations externes susceptibles de charger des scripts ou de déposer leurs propres cookies.",
+      "marketing": "Servent à la mesure, au suivi ou à des usages marketing lorsqu’ils sont activés."
+    },
+    "storage": {
+      "cookie": "Cookie",
+      "localStorage": "Local storage",
+      "sessionStorage": "Session storage",
+      "script": "Script tiers"
     }
   },
   "theme": {

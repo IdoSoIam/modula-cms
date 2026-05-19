@@ -54,6 +54,7 @@
 import { defineComponent, h, resolveComponent, type PropType } from 'vue'
 import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
 import AdminIconPicker from '~/components/admin/IconPicker.vue'
+import AdminPageBuilderCardFields from '~/components/admin/page-builder/CardFields.vue'
 import AdminPageBuilderCarouselFields from '~/components/admin/page-builder/CarouselFields.vue'
 import AdminPageBuilderSectionBackgroundFields from '~/components/admin/page-builder/SectionBackgroundFields.vue'
 import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
@@ -74,6 +75,10 @@ import {
   createCardsItem,
   createEmptyButton,
   createEmptyCard,
+  createEmptyCardElement,
+  createEmptyFormField,
+  createEmptyFormRow,
+  createEmptyFormSection,
   createEmptyContentBlock,
   createImageItem,
   createTextItem,
@@ -85,6 +90,10 @@ import {
   HEADING_TAGS,
   IMAGE_ASPECTS,
   IMAGE_FITS,
+  PAGE_BUILDER_FORM_FIELD_TYPES,
+  PAGE_BUILDER_FORM_FIELD_WIDTHS,
+  PAGE_BUILDER_FORM_FIELD_TYPE_LABELS,
+  PAGE_BUILDER_FORM_FIELD_WIDTH_LABELS,
   SECTION_COLUMN_COUNTS,
   SECTION_COLUMN_COUNT_LABELS,
   SECTION_CONTAINER_WIDTH_LABELS,
@@ -252,7 +261,6 @@ const ButtonEditor = defineComponent({
 const CardEditor = defineComponent({
   props: { target: { type: Object as PropType<Extract<PageBuilderEditTarget, { kind: 'card' }>>, required: true } },
   setup(props) {
-    const tab = ref<'content' | 'style' | 'buttons'>('content')
     return () => h('div', { class: 'space-y-4' }, [
       h('div', { class: 'flex justify-end gap-2' }, [
         h('button', { type: 'button', class: 'btn btn-xs', disabled: currentCardIndex(props.target) === 0, onClick: () => moveItem(props.target.parentCards, currentCardIndex(props.target), -1) }, 'Monter'),
@@ -260,44 +268,8 @@ const CardEditor = defineComponent({
         h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => duplicateAt(props.target.parentCards, currentCardIndex(props.target), duplicatePageBuilderCard) }, 'Dupliquer'),
         h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => removeAt(props.target.parentCards, currentCardIndex(props.target)) }, 'Supprimer')
       ]),
-      h('div', { class: 'space-y-0' }, [
-        h('div', { class: 'tabs tabs-lift flex-wrap' }, [
-        h('button', { type: 'button', class: ['tab cursor-pointer', tab.value === 'content' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'content' } }, 'Contenu'),
-        h('button', { type: 'button', class: ['tab cursor-pointer', tab.value === 'style' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'style' } }, 'Style'),
-        h('button', { type: 'button', class: ['tab cursor-pointer', tab.value === 'buttons' ? 'tab-active' : 'border-0'], onClick: () => { tab.value = 'buttons' } }, 'Boutons')
-        ]),
-      tab.value === 'content' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
-        h('div', { class: 'space-y-4' }, [
-        h(AdminIconPicker, { modelValue: props.target.card.icon || '', 'onUpdate:modelValue': (val: string) => { props.target.card.icon = val } }),
-        h(TranslationFields, { modelValue: props.target.card.title, label: 'Titre', size: props.target.card.titleSize, 'onUpdate:size': (val: string) => { props.target.card.titleSize = val as any } }),
-        h(TranslationFields, { modelValue: props.target.card.text, label: 'Texte', size: props.target.card.textSize, multiline: true, 'onUpdate:size': (val: string) => { props.target.card.textSize = val as any } })
-        ])
-      ]) : null,
-      tab.value === 'style' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
-        h('div', { class: 'space-y-4' }, [
-        h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
-          h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Taille de la carte')]), h('select', { class: 'select select-bordered w-full', value: props.target.card.size, onChange: (e: Event) => { props.target.card.size = (e.target as HTMLSelectElement).value as any } }, CARD_SIZES.map(s => h('option', { value: s }, CARD_SIZE_LABELS[s])))]),
-          h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary toggle-sm', checked: props.target.card.backdropBlur === true, onChange: (e: Event) => { props.target.card.backdropBlur = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Background blur')])
-        ]),
-        h(ThemeColorPicker, { label: 'Fond de la carte', modelValue: props.target.card.backgroundColor || null, defaultToken: 'base-200', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.backgroundColor = val } }),
-        h(ThemeColorPicker, { label: 'Texte de la carte', modelValue: props.target.card.textColor || null, defaultToken: 'base-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.textColor = val } }),
-        h(ThemeColorPicker, { label: "Couleur de l'icone", modelValue: props.target.card.iconColor || null, defaultToken: 'primary', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconColor = val } }),
-        h(ThemeColorPicker, { label: "Fond de l'icone", modelValue: props.target.card.iconBackgroundColor || null, defaultToken: 'transparent', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.iconBackgroundColor = val } }),
-        h(ThemeColorPicker, { label: 'Bordure de la carte', modelValue: props.target.card.borderColor || null, defaultToken: 'base-300', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.card.borderColor = val } })
-        ])
-      ]) : null,
-      tab.value === 'buttons' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [
-        h('div', { class: 'space-y-4' }, [
-        h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [
-          h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton principal'), !props.target.card.primaryButton ? h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => { props.target.card.primaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => { props.target.card.primaryButton = null } }, 'Retirer')]),
-          props.target.card.primaryButton ? h(ButtonEditor, { button: props.target.card.primaryButton }) : null
-        ]),
-        h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4' }, [
-          h('div', { class: 'mb-3 flex items-center justify-between gap-2' }, [h('div', { class: 'font-medium' }, 'Bouton secondaire'), !props.target.card.secondaryButton ? h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => { props.target.card.secondaryButton = createEmptyButton() } }, 'Ajouter') : h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => { props.target.card.secondaryButton = null } }, 'Retirer')]),
-          props.target.card.secondaryButton ? h(ButtonEditor, { button: props.target.card.secondaryButton }) : null
-        ])
-        ])
-      ]) : null
+      h('div', { class: 'rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm' }, [
+        h(AdminPageBuilderCardFields, { card: props.target.card })
       ])
     ])
   }
@@ -369,11 +341,109 @@ const ItemEditor = defineComponent({
         ])
       }
 
+      if (item.type === 'form') {
+        return h('div', { class: 'space-y-4' }, [
+          header,
+          h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
+            h('div', { class: 'form-control' }, [
+              h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Clé technique')]),
+              h('input', { class: 'input input-bordered w-full', value: item.formKey, onInput: (e: Event) => { item.formKey = (e.target as HTMLInputElement).value } })
+            ]),
+            h('div', { class: 'form-control' }, [
+              h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Style du bouton')]),
+              h('select', { class: 'select select-bordered w-full', value: item.submitButtonTone, onChange: (e: Event) => { item.submitButtonTone = (e.target as HTMLSelectElement).value as any } }, BUTTON_TONES.map(tone => h('option', { value: tone }, tone)))
+            ])
+          ]),
+          h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
+            h(ThemeColorPicker, { label: 'Fond de la carte du formulaire', modelValue: item.cardBackgroundColor || null, defaultToken: 'base-100', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.cardBackgroundColor = val } }),
+            h(ThemeColorPicker, { label: 'Couleur des labels', modelValue: item.labelColor || null, defaultToken: 'base-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.labelColor = val } }),
+            h(ThemeColorPicker, { label: 'Fond du bouton d’envoi', modelValue: item.submitButtonBackgroundColor || null, defaultToken: 'primary', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonBackgroundColor = val } }),
+            h(ThemeColorPicker, { label: 'Texte du bouton d’envoi', modelValue: item.submitButtonTextColor || null, defaultToken: 'primary-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonTextColor = val } }),
+            h(ThemeColorPicker, { label: 'Bordure du bouton d’envoi', modelValue: item.submitButtonBorderColor || null, defaultToken: 'transparent', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonBorderColor = val } })
+          ]),
+          h(TranslationFields, { modelValue: item.title, label: 'Titre du formulaire' }),
+          h(TranslationFields, { modelValue: item.intro, label: 'Introduction', multiline: true }),
+          h(TranslationFields, { modelValue: item.submitLabel, label: 'Libellé du bouton' }),
+          h(TranslationFields, { modelValue: item.successMessage, label: 'Message de succès', multiline: true }),
+          h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4 space-y-3' }, [
+            h('div', { class: 'flex items-center justify-between gap-2' }, [
+              h('div', { class: 'font-medium' }, 'Action à la soumission'),
+              h('select', { class: 'select select-bordered select-sm', value: item.action.type, onChange: (e: Event) => {
+                const type = (e.target as HTMLSelectElement).value
+                item.action = type === 'internalWebhook'
+                  ? { type: 'internalWebhook', actionKey: '' }
+                  : { type: 'email', to: '', templateAction: '', replyToFieldName: '' }
+              } }, [
+                h('option', { value: 'email' }, 'Email'),
+                h('option', { value: 'internalWebhook' }, 'Fonction interne')
+              ])
+            ]),
+            item.action.type === 'email'
+              ? h('div', { class: 'space-y-3' }, [
+                  h('input', { class: 'input input-bordered w-full', placeholder: 'Email destinataire', value: item.action.to, onInput: (e: Event) => { item.action.type === 'email' && (item.action.to = (e.target as HTMLInputElement).value) } }),
+                  h('input', { class: 'input input-bordered w-full', placeholder: 'Action template email', value: item.action.templateAction, onInput: (e: Event) => { item.action.type === 'email' && (item.action.templateAction = (e.target as HTMLInputElement).value) } }),
+                  h('input', { class: 'input input-bordered w-full', placeholder: 'Champ reply-to', value: item.action.replyToFieldName, onInput: (e: Event) => { item.action.type === 'email' && (item.action.replyToFieldName = (e.target as HTMLInputElement).value) } })
+                ])
+              : h('input', { class: 'input input-bordered w-full', placeholder: 'Action interne', value: item.action.actionKey, onInput: (e: Event) => { item.action.type === 'internalWebhook' && (item.action.actionKey = (e.target as HTMLInputElement).value) } })
+          ]),
+          h('div', { class: 'space-y-4' }, [
+            h('div', { class: 'flex justify-end' }, [
+              h('button', { type: 'button', class: 'btn btn-sm btn-primary', onClick: () => item.sections.push(createEmptyFormSection(createId('form-section'))) }, 'Ajouter une section')
+            ]),
+            ...item.sections.map((section, sectionIndex) => h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4 space-y-4', key: section.id }, [
+              h('div', { class: 'flex flex-wrap items-center justify-between gap-2' }, [
+                h('div', { class: 'font-medium' }, `Section formulaire ${sectionIndex + 1}`),
+                h('div', { class: 'flex gap-2' }, [
+                  h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => section.rows.push(createEmptyFormRow(createId('form-row'))) }, 'Ajouter une ligne'),
+                  h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => item.sections.splice(sectionIndex, 1) }, 'Supprimer')
+                ])
+              ]),
+              h(TranslationFields, { modelValue: section.title, label: 'Titre de section' }),
+              h(TranslationFields, { modelValue: section.description, label: 'Description', multiline: true }),
+              ...section.rows.map((row, rowIndex) => h('div', { class: 'rounded-xl border border-base-300 bg-base-200 p-4 space-y-4', key: row.id }, [
+                h('div', { class: 'flex flex-wrap items-center justify-between gap-2' }, [
+                  h('div', { class: 'font-medium' }, `Ligne ${rowIndex + 1}`),
+                  h('div', { class: 'flex gap-2' }, [
+                    h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => row.fields.push(createEmptyFormField(createId('field'))) }, 'Ajouter un champ'),
+                    h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => section.rows.splice(rowIndex, 1) }, 'Supprimer')
+                  ])
+                ]),
+                ...row.fields.map((field, fieldIndex) => h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4 space-y-3', key: field.id }, [
+                  h('div', { class: 'flex flex-wrap items-center justify-between gap-2' }, [
+                    h('div', { class: 'font-medium' }, `Champ ${fieldIndex + 1}`),
+                    h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => row.fields.splice(fieldIndex, 1) }, 'Supprimer')
+                  ]),
+                  h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
+                    h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Nom technique')]), h('input', { class: 'input input-bordered w-full', value: field.name, onInput: (e: Event) => { field.name = (e.target as HTMLInputElement).value } })]),
+                    h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Type')]), h('select', { class: 'select select-bordered w-full', value: field.type, onChange: (e: Event) => { field.type = (e.target as HTMLSelectElement).value as any } }, PAGE_BUILDER_FORM_FIELD_TYPES.map(type => h('option', { value: type }, PAGE_BUILDER_FORM_FIELD_TYPE_LABELS[type])))]),
+                    h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Largeur')]), h('select', { class: 'select select-bordered w-full', value: String(field.width), onChange: (e: Event) => { field.width = Number((e.target as HTMLSelectElement).value) as any } }, PAGE_BUILDER_FORM_FIELD_WIDTHS.map(width => h('option', { value: String(width) }, PAGE_BUILDER_FORM_FIELD_WIDTH_LABELS[width])))]),
+                    h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'checkbox checkbox-primary checkbox-sm', checked: field.required, onChange: (e: Event) => { field.required = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Champ requis')])
+                  ]),
+                  h(TranslationFields, { modelValue: field.label, label: 'Label' }),
+                  h(TranslationFields, { modelValue: field.placeholder, label: 'Placeholder' }),
+                  h(TranslationFields, { modelValue: field.helpText, label: 'Aide', multiline: true }),
+                  h(TranslationFields, { modelValue: field.errorMessage, label: 'Message d’erreur', multiline: true })
+                ]))
+              ]))
+            ]))
+          ])
+        ])
+      }
+
       const cardsItem = item as Extract<PageBuilderColumnItem, { type: 'cards' }>
       return h('div', { class: 'space-y-4' }, [
         header,
         h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Affichage des cartes')]), h('select', { class: 'select select-bordered w-full', value: cardsItem.display, onChange: (e: Event) => { cardsItem.display = (e.target as HTMLSelectElement).value as any } }, CARDS_DISPLAYS.map(d => h('option', { value: d }, CARDS_DISPLAY_LABELS[d])))]),
-        h('div', { class: 'flex justify-end' }, [h('button', { type: 'button', class: 'btn btn-sm btn-primary', onClick: () => cardsItem.cards.push(createEmptyCard(createId('card'))) }, 'Ajouter une carte')])
+        h('div', { class: 'flex justify-end' }, [h('button', { type: 'button', class: 'btn btn-sm btn-primary', onClick: () => {
+          const id = createId('card')
+          cardsItem.cards.push({
+            ...createEmptyCard(id),
+            elements: [
+              createEmptyCardElement(`${id}-element-1`, 'title'),
+              createEmptyCardElement(`${id}-element-2`, 'text')
+            ]
+          })
+        } }, 'Ajouter une carte')])
       ])
     }
   }

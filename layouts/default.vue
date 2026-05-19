@@ -24,10 +24,12 @@
 
     <!-- Menu mobile -->
     <LayoutMobileMenu />
+    <LayoutCookieBanner />
   </div>
 </template>
 
 <script setup lang="ts">
+import LayoutCookieBanner from '~/components/layout/CookieBanner.vue'
 import LayoutMobileMenu from '~/components/layout/MobileMenu.vue'
 
 const { locale } = useI18n();

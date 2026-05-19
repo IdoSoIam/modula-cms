@@ -734,6 +734,40 @@
       "saved": "Global settings saved",
       "loadError": "CMS configuration unavailable",
       "saveError": "Unable to save global settings",
+      "cookieConsent": {
+        "title": "Cookies and consent",
+        "description": "Configure the public cookie banner and the declared inventory of cookies and browser storage.",
+        "enabled": "Enable the cookie banner",
+        "bannerTitle": "Banner title",
+        "bannerText": "Banner text",
+        "acceptLabel": "Accept button",
+        "refuseLabel": "Reject button",
+        "customizeLabel": "Customize button",
+        "saveLabel": "Save button",
+        "privacyPath": "Privacy page path",
+        "cookiesPath": "Cookie policy path",
+        "inventoryTitle": "Declared inventory",
+        "serviceLabel": "Service {count}",
+        "active": "Active",
+        "serviceId": "Identifier",
+        "serviceKeys": "Stored keys (comma-separated)",
+        "category": "Category",
+        "storageType": "Storage type",
+        "required": "Always required",
+        "serviceName": "Service name",
+        "serviceDescription": "Description",
+        "addService": "Add service",
+        "categories": {
+          "essential": "Essential",
+          "preferences": "Preferences",
+          "thirdParty": "Third-party integrations",
+          "marketing": "Measurement / marketing"
+        },
+        "storage": {
+          "cookie": "Cookie",
+          "script": "Third-party script"
+        }
+      },
       "days": {
         "sunday": "Sunday",
         "monday": "Monday",
@@ -1071,11 +1105,41 @@
   },
   "layout": {
     "logoutSuccess": "You have been logged out",
+    "cookieBanner": {
+      "privacyLink": "Privacy policy",
+      "cookiesLink": "Cookie policy",
+      "essentialTitle": "Essential",
+      "essentialHelp": "Always active for the proper operation of the site.",
+      "categories": {
+        "preferences": "Preferences",
+        "thirdParty": "Third-party integrations",
+        "marketing": "Measurement and marketing"
+      }
+    },
     "mobileMenu": {
       "navigationGroup": "Navigation",
       "themeGroup": "Theme",
       "languageGroup": "Language",
       "accountGroup": "Account"
+    }
+  },
+  "cookiesPage": {
+    "eyebrow": "Cookies and storage",
+    "title": "Cookie policy",
+    "intro": "This page lists the cookies, browser storage and scripts that the site may use based on the configuration enabled in the admin area. Essential services are listed here even when they are not subject to consent.",
+    "requiredBadge": "Essential",
+    "keysTitle": "Used keys",
+    "categoryDescriptions": {
+      "essential": "Required for site operation, security, language handling or minimal technical persistence.",
+      "preferences": "Used to remember some display or user comfort preferences.",
+      "thirdParty": "Enable external integrations that may load scripts or set their own cookies.",
+      "marketing": "Used for measurement, tracking or marketing purposes when enabled."
+    },
+    "storage": {
+      "cookie": "Cookie",
+      "localStorage": "Local storage",
+      "sessionStorage": "Session storage",
+      "script": "Third-party script"
     }
   },
   "theme": {

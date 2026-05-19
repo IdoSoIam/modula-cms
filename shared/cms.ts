@@ -7,6 +7,7 @@ export type CmsLocale = typeof CMS_LOCALES[number]
 
 export type CmsPageType = 'CMS' | 'APPLICATION' | 'HYBRID'
 export type CmsPageStatus = 'DRAFT' | 'PUBLISHED'
+export type CmsPageSpecialRole = 'construction'
 export type CmsApplicationPosition = 'BEFORE_CONTENT' | 'AFTER_CONTENT'
 export type CmsNavigationMenu = 'PRIMARY' | 'FOOTER'
 export type CmsNavigationItemType = 'CMS_PAGE' | 'APPLICATION_ROUTE' | 'EXTERNAL_URL'
@@ -18,6 +19,8 @@ export type CmsFooterAlign = 'start' | 'center'
 export type CmsFooterContainerAlign = 'start' | 'center' | 'between'
 export type CmsApplicationGridColumns = 1 | 2 | 3 | 4
 export type CmsApplicationViewMode = 'grid' | 'list'
+export type CmsCookieServiceCategory = 'essential' | 'preferences' | 'third_party' | 'marketing'
+export type CmsCookieServiceStorage = 'cookie' | 'localStorage' | 'sessionStorage' | 'script'
 export const CMS_HEADER_NAVIGATION_STYLES: CmsHeaderNavigationStyle[] = ['ghost', 'soft', 'outline', 'solid', 'menu', 'underline']
 export const CMS_HEADER_SUBMENU_TRIGGERS: CmsHeaderSubmenuTrigger[] = ['hover', 'click']
 export const CMS_HEADER_SUBMENU_ANIMATIONS: CmsHeaderSubmenuAnimation[] = ['none', 'fade', 'scale', 'slide']
@@ -151,6 +154,30 @@ export interface CmsNewsPageSettings {
   cardBackgroundColor?: ThemeColorSelection | null
 }
 
+export interface CmsCookieService {
+  id: string
+  name: CmsLocalizedText
+  description: CmsLocalizedText
+  category: CmsCookieServiceCategory
+  storage: CmsCookieServiceStorage
+  keys: string[]
+  required: boolean
+  enabled: boolean
+}
+
+export interface CmsCookieBannerSettings {
+  enabled: boolean
+  title: CmsLocalizedText
+  text: CmsLocalizedText
+  acceptLabel: CmsLocalizedText
+  refuseLabel: CmsLocalizedText
+  customizeLabel: CmsLocalizedText
+  saveLabel: CmsLocalizedText
+  privacyPagePath: string
+  cookieName: string
+  services: CmsCookieService[]
+}
+
 export interface CmsSiteSettings {
   siteName: CmsLocalizedText
   siteTagline: CmsLocalizedText
@@ -161,6 +188,7 @@ export interface CmsSiteSettings {
   socialLinks: CmsSocialLink[]
   basketsPage: CmsBasketsPageSettings
   newsPage: CmsNewsPageSettings
+  cookieBanner: CmsCookieBannerSettings
 }
 
 export interface CmsPageSeo {
@@ -182,6 +210,7 @@ export interface CmsPagePayload {
   slug: string
   pageType: CmsPageType
   status: CmsPageStatus
+  specialRole?: CmsPageSpecialRole | null
   templateKey: string
   rendererKey: string
   applicationPosition: CmsApplicationPosition
@@ -224,6 +253,7 @@ export interface ResolvedCmsPage {
   slug: string
   pageType: CmsPageType
   status: CmsPageStatus
+  specialRole?: CmsPageSpecialRole | null
   templateKey: string
   rendererKey: string
   applicationPosition: CmsApplicationPosition
@@ -375,6 +405,102 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
       showExcerpt: true,
       excerptLines: 3,
       cardBackgroundColor: createThemeColorSelection('base-200')
+    },
+    cookieBanner: {
+      enabled: true,
+      title: {
+        fr: 'Cookies et préférences',
+        en: 'Cookies and preferences'
+      },
+      text: {
+        fr: 'Nous utilisons des cookies et stockages techniques pour le fonctionnement du site, la langue et certaines intégrations tierces.',
+        en: 'We use cookies and browser storage for site functionality, language and some third-party integrations.'
+      },
+      acceptLabel: {
+        fr: 'Tout accepter',
+        en: 'Accept all'
+      },
+      refuseLabel: {
+        fr: 'Refuser le non essentiel',
+        en: 'Reject non-essential'
+      },
+      customizeLabel: {
+        fr: 'Personnaliser',
+        en: 'Customize'
+      },
+      saveLabel: {
+        fr: 'Enregistrer mes choix',
+        en: 'Save my choices'
+      },
+      privacyPagePath: '/privacy',
+      cookieName: 'cms_cookie_consent',
+      services: [
+        {
+          id: 'session-auth',
+          name: { fr: 'Session utilisateur', en: 'User session' },
+          description: {
+            fr: 'Conserve la session de connexion et protège les accès privés.',
+            en: 'Keeps the login session and protects private access.'
+          },
+          category: 'essential',
+          storage: 'cookie',
+          keys: ['auth_session'],
+          required: true,
+          enabled: true
+        },
+        {
+          id: 'locale-cookie',
+          name: { fr: 'Langue du site', en: 'Site language' },
+          description: {
+            fr: 'Mémorise la langue choisie pour les prochaines visites.',
+            en: 'Stores the chosen language for future visits.'
+          },
+          category: 'preferences',
+          storage: 'cookie',
+          keys: ['i18n_redirected'],
+          required: false,
+          enabled: true
+        },
+        {
+          id: 'theme-storage',
+          name: { fr: 'Thème visuel', en: 'Visual theme' },
+          description: {
+            fr: 'Mémorise le thème visuel choisi dans le navigateur.',
+            en: 'Stores the selected visual theme in the browser.'
+          },
+          category: 'preferences',
+          storage: 'localStorage',
+          keys: ['theme-preference'],
+          required: false,
+          enabled: true
+        },
+        {
+          id: 'locale-storage',
+          name: { fr: 'Préférence de langue locale', en: 'Local language preference' },
+          description: {
+            fr: 'Mémorise localement la langue détectée ou choisie.',
+            en: 'Stores the detected or chosen language locally.'
+          },
+          category: 'preferences',
+          storage: 'localStorage',
+          keys: ['preferred-locale'],
+          required: false,
+          enabled: true
+        },
+        {
+          id: 'facebook-sdk',
+          name: { fr: 'Facebook SDK', en: 'Facebook SDK' },
+          description: {
+            fr: 'Active l’intégration Facebook susceptible de déposer des cookies tiers.',
+            en: 'Enables the Facebook integration which may set third-party cookies.'
+          },
+          category: 'third_party',
+          storage: 'script',
+          keys: ['facebook-sdk', 'fbm_*', 'fbc', 'fbp'],
+          required: false,
+          enabled: true
+        }
+      ]
     }
   }
 }
@@ -609,6 +735,7 @@ export function createDefaultCmsPagePayload(path: string, title = ''): CmsPagePa
     slug: normalizedSlug || 'page',
     pageType: 'CMS',
     status: 'DRAFT',
+    specialRole: null,
     templateKey: 'default',
     rendererKey: '',
     applicationPosition: 'AFTER_CONTENT',

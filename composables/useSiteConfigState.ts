@@ -25,6 +25,7 @@ interface PublicSiteConfigState {
   adminPhone?: string | null
   cms?: PublicSiteShell
   themes?: PublicDaisyUiThemeConfig
+  constructionPagePath?: string | null
 }
 
 interface SiteConfigNuxtApp {

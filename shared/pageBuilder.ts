@@ -47,6 +47,11 @@ export type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
 export type SectionColumnCount = 1 | 2 | 3 | 4
 export type CardsDisplay = 'stack' | 'grid-2' | 'grid-3' | 'grid-4'
+export type PageBuilderCardElementKind = 'title' | 'text'
+export type PageBuilderCardElementSource = 'custom' | 'opening-hours' | 'email' | 'phone' | 'address'
+export type PageBuilderFormFieldType = 'text' | 'email' | 'tel' | 'textarea' | 'select' | 'radio' | 'checkbox'
+export type PageBuilderFormFieldWidth = 1 | 2
+export type PageBuilderFormActionType = 'email' | 'internalWebhook'
 
 export interface ThemeColorSelection {
   token: ThemeColorToken
@@ -64,11 +69,23 @@ export interface PageBuilderButton {
   borderColor?: ThemeColorSelection | null
 }
 
+export interface PageBuilderCardElement {
+  id: string
+  kind: PageBuilderCardElementKind
+  source: PageBuilderCardElementSource
+  icon?: string
+  title: LocalizedText
+  text: LocalizedText
+  titleSize: TypographySize
+  textSize: TypographySize
+}
+
 export interface PageBuilderCard {
   id: string
   title: LocalizedText
   text: LocalizedText
   icon?: string
+  elements: PageBuilderCardElement[]
   tone: CardTone
   size: CardSize
   titleSize: TypographySize
@@ -143,6 +160,75 @@ export interface PageBuilderCarouselItem {
   settings: PageBuilderSectionBackgroundCarouselSettings
 }
 
+export interface PageBuilderFormFieldOption {
+  id: string
+  label: LocalizedText
+  value: string
+}
+
+export interface PageBuilderFormField {
+  id: string
+  name: string
+  type: PageBuilderFormFieldType
+  width: PageBuilderFormFieldWidth
+  label: LocalizedText
+  placeholder: LocalizedText
+  helpText: LocalizedText
+  required: boolean
+  defaultValue: string
+  defaultChecked: boolean
+  regexPattern: string
+  errorMessage: LocalizedText
+  textareaMinLines: number
+  options: PageBuilderFormFieldOption[]
+}
+
+export interface PageBuilderFormRow {
+  id: string
+  fields: PageBuilderFormField[]
+}
+
+export interface PageBuilderFormSection {
+  id: string
+  title: LocalizedText
+  description: LocalizedText
+  rows: PageBuilderFormRow[]
+}
+
+export interface PageBuilderFormActionEmail {
+  type: 'email'
+  to: string
+  templateAction: string
+  replyToFieldName: string
+}
+
+export interface PageBuilderFormActionInternalWebhook {
+  type: 'internalWebhook'
+  actionKey: string
+}
+
+export type PageBuilderFormAction =
+  | PageBuilderFormActionEmail
+  | PageBuilderFormActionInternalWebhook
+
+export interface PageBuilderFormItem {
+  id: string
+  type: 'form'
+  formKey: string
+  title: LocalizedText
+  intro: LocalizedText
+  submitLabel: LocalizedText
+  successMessage: LocalizedText
+  submitButtonTone: ButtonTone
+  cardBackgroundColor?: ThemeColorSelection | null
+  labelColor?: ThemeColorSelection | null
+  submitButtonBackgroundColor?: ThemeColorSelection | null
+  submitButtonTextColor?: ThemeColorSelection | null
+  submitButtonBorderColor?: ThemeColorSelection | null
+  sections: PageBuilderFormSection[]
+  action: PageBuilderFormAction
+}
+
 export interface PageBuilderSectionBackgroundImage {
   imageUrl: string
   alt: LocalizedText
@@ -178,6 +264,7 @@ export type PageBuilderColumnItem =
   | PageBuilderCardsItem
   | PageBuilderImageItem
   | PageBuilderCarouselItem
+  | PageBuilderFormItem
 
 export interface PageBuilderColumn {
   align: ContentAlign
@@ -228,7 +315,11 @@ export const TYPOGRAPHY_SIZES: TypographySize[] = ['xs', 'sm', 'md', 'lg', 'xl',
 export const HEADING_TAGS: HeadingTag[] = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 export const BUTTON_SIZES: ButtonSize[] = ['xs', 'sm', 'md', 'lg']
 export const CARDS_DISPLAYS: CardsDisplay[] = ['stack', 'grid-2', 'grid-3', 'grid-4']
+export const PAGE_BUILDER_CARD_ELEMENT_KINDS: PageBuilderCardElementKind[] = ['title', 'text']
+export const PAGE_BUILDER_CARD_ELEMENT_SOURCES: PageBuilderCardElementSource[] = ['custom', 'opening-hours', 'email', 'phone', 'address']
 export const CAROUSEL_ANIMATIONS: CarouselAnimation[] = ['slide', 'fade']
+export const PAGE_BUILDER_FORM_FIELD_TYPES: PageBuilderFormFieldType[] = ['text', 'email', 'tel', 'textarea', 'select', 'radio', 'checkbox']
+export const PAGE_BUILDER_FORM_FIELD_WIDTHS: PageBuilderFormFieldWidth[] = [1, 2]
 
 export const SECTION_CONTAINER_WIDTH_LABELS: Record<SectionContainerWidth, string> = {
   narrow: 'Etroit',
@@ -282,9 +373,37 @@ export const CARDS_DISPLAY_LABELS: Record<CardsDisplay, string> = {
   'grid-4': 'Grille 4 colonnes'
 }
 
+export const PAGE_BUILDER_CARD_ELEMENT_KIND_LABELS: Record<PageBuilderCardElementKind, string> = {
+  title: 'Titre',
+  text: 'Texte'
+}
+
+export const PAGE_BUILDER_CARD_ELEMENT_SOURCE_LABELS: Record<PageBuilderCardElementSource, string> = {
+  custom: 'Texte libre',
+  'opening-hours': 'Horaires d’ouverture',
+  email: 'Email public',
+  phone: 'Téléphone public',
+  address: 'Adresse publique'
+}
+
 export const CAROUSEL_ANIMATION_LABELS: Record<CarouselAnimation, string> = {
   slide: 'Slide',
   fade: 'Fade'
+}
+
+export const PAGE_BUILDER_FORM_FIELD_TYPE_LABELS: Record<PageBuilderFormFieldType, string> = {
+  text: 'Texte',
+  email: 'Email',
+  tel: 'Téléphone',
+  textarea: 'Zone de texte',
+  select: 'Liste',
+  radio: 'Choix unique',
+  checkbox: 'Case à cocher'
+}
+
+export const PAGE_BUILDER_FORM_FIELD_WIDTH_LABELS: Record<PageBuilderFormFieldWidth, string> = {
+  1: '1/2 largeur',
+  2: 'Pleine largeur'
 }
 
 export const THEME_COLOR_TOKENS: ThemeColorToken[] = [
@@ -397,12 +516,26 @@ export function createThemeColorSelection(token: ThemeColorToken = 'primary', cu
   return { token, customHex, opacity }
 }
 
+export function createEmptyCardElement(id: string, kind: PageBuilderCardElementKind = 'text'): PageBuilderCardElement {
+  return {
+    id,
+    kind,
+    source: 'custom',
+    icon: '',
+    title: createEmptyLocalizedText(),
+    text: createEmptyLocalizedText(),
+    titleSize: kind === 'title' ? 'lg' : 'sm',
+    textSize: 'sm'
+  }
+}
+
 export function createEmptyCard(id: string): PageBuilderCard {
   return {
     id,
     title: createEmptyLocalizedText(),
     text: createEmptyLocalizedText(),
     icon: '',
+    elements: [],
     tone: 'soft',
     size: 'md',
     titleSize: 'md',
@@ -685,9 +818,104 @@ export function createDefaultPageBuilderContent(farmAddress: string): PageBuilde
   }
 }
 
+export function createEmptyFormFieldOption(id: string): PageBuilderFormFieldOption {
+  return {
+    id,
+    label: createEmptyLocalizedText(),
+    value: ''
+  }
+}
+
+export function createEmptyFormField(id: string, type: PageBuilderFormFieldType = 'text'): PageBuilderFormField {
+  return {
+    id,
+    name: id.replace(/[^a-z0-9]+/gi, '_').toLowerCase(),
+    type,
+    width: 2,
+    label: createEmptyLocalizedText(),
+    placeholder: createEmptyLocalizedText(),
+    helpText: createEmptyLocalizedText(),
+    required: false,
+    defaultValue: '',
+    defaultChecked: false,
+    regexPattern: '',
+    errorMessage: createEmptyLocalizedText(),
+    textareaMinLines: 4,
+    options: type === 'select' || type === 'radio'
+      ? [createEmptyFormFieldOption(`${id}-option-1`)]
+      : []
+  }
+}
+
+export function createEmptyFormRow(id: string): PageBuilderFormRow {
+  return {
+    id,
+    fields: [createEmptyFormField(`${id}-field-1`)]
+  }
+}
+
+export function createEmptyFormSection(id: string): PageBuilderFormSection {
+  return {
+    id,
+    title: createEmptyLocalizedText(),
+    description: createEmptyLocalizedText(),
+    rows: [createEmptyFormRow(`${id}-row-1`)]
+  }
+}
+
+export function createEmptyFormAction(): PageBuilderFormActionEmail {
+  return {
+    type: 'email',
+    to: '',
+    templateAction: '',
+    replyToFieldName: ''
+  }
+}
+
+export function createFormItem(id: string): PageBuilderFormItem {
+  return {
+    id,
+    type: 'form',
+    formKey: id,
+    title: createEmptyLocalizedText(),
+    intro: createEmptyLocalizedText(),
+    submitLabel: {
+      fr: 'Envoyer',
+      en: 'Send'
+    },
+    successMessage: {
+      fr: 'Votre message a été envoyé.',
+      en: 'Your message has been sent.'
+    },
+    submitButtonTone: 'primary',
+    cardBackgroundColor: null,
+    labelColor: null,
+    submitButtonBackgroundColor: null,
+    submitButtonTextColor: null,
+    submitButtonBorderColor: null,
+    sections: [createEmptyFormSection(`${id}-section-1`)],
+    action: createEmptyFormAction()
+  }
+}
+
 export function duplicatePageBuilderCard(card: PageBuilderCard): PageBuilderCard {
   const clone = cloneBuilderData(card)
   clone.id = createBuilderId('card')
+  clone.elements = clone.elements.map(element => ({
+    ...element,
+    id: createBuilderId('card-element')
+  }))
+  return clone
+}
+
+export function duplicatePageBuilderFormField(field: PageBuilderFormField): PageBuilderFormField {
+  const clone = cloneBuilderData(field)
+  clone.id = createBuilderId('field')
+  clone.name = `${clone.name || 'field'}_${Math.random().toString(36).slice(2, 6)}`
+  clone.options = clone.options.map((option) => ({
+    ...option,
+    id: createBuilderId('option')
+  }))
   return clone
 }
 
@@ -703,6 +931,19 @@ export function duplicatePageBuilderItem(item: PageBuilderColumnItem): PageBuild
     clone.slides = clone.slides.map(slide => ({
       ...slide,
       id: createBuilderId('slide')
+    }))
+  }
+
+  if (clone.type === 'form') {
+    clone.formKey = `${clone.formKey || 'form'}_${Math.random().toString(36).slice(2, 6)}`
+    clone.sections = clone.sections.map((section) => ({
+      ...section,
+      id: createBuilderId('form-section'),
+      rows: section.rows.map((row) => ({
+        ...row,
+        id: createBuilderId('form-row'),
+        fields: row.fields.map(duplicatePageBuilderFormField)
+      }))
     }))
   }
 

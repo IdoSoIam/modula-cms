@@ -6,12 +6,17 @@ import type {
   CmsHeaderSubmenuAnimation,
   CmsHeaderSubmenuTrigger,
   CmsApplicationPosition,
+  CmsCookieBannerSettings,
+  CmsCookieService,
+  CmsCookieServiceCategory,
+  CmsCookieServiceStorage,
   CmsFooterBlock,
   CmsLocale,
   CmsNavigationItemPayload,
   CmsNavigationMenu,
   CmsNavigationItemType,
   CmsPagePayload,
+  CmsPageSpecialRole,
   CmsPageSeo,
   CmsPageStatus,
   CmsPageTranslation,
@@ -36,10 +41,25 @@ import {
   createEmptyCmsLocalizedText
 } from '~/shared/cms'
 import type { PageBuilderContent, ThemeColorSelection } from '~/shared/pageBuilder'
-import { clonePageBuilderContent, createThemeColorSelection } from '~/shared/pageBuilder'
+import {
+  clonePageBuilderContent,
+  createBadgeItem,
+  createButtonsItem,
+  createCardsItem,
+  createEmptyColumnsSection,
+  createFormItem,
+  createTextItem,
+  createThemeColorSelection,
+  createTitleItem,
+  type PageBuilderCardsItem,
+  type PageBuilderFormItem,
+  type PageBuilderTextItem,
+  type PageBuilderTitleItem
+} from '~/shared/pageBuilder'
 import { CMS_THEME_COLOR_TOKENS } from '~/shared/cms'
-import { getPageBuilderContent } from '~/server/utils/pageBuilder'
+import { getPageBuilderContent, normalizePageBuilderContent } from '~/server/utils/pageBuilder'
 import { getSetting, setSetting, SETTING_KEYS } from '~/server/utils/settings'
+import { createCustomAdminEmailTemplate, findAdminEmailTemplateDefinition } from '~/server/utils/adminEmailTemplates'
 
 function isMissingCmsTableError(error: unknown) {
   return Boolean(
@@ -73,6 +93,14 @@ function normalizeLocalizedText(value: unknown) {
   return {
     fr: typeof value.fr === 'string' ? value.fr : '',
     en: typeof value.en === 'string' ? value.en : ''
+  }
+}
+
+function normalizeLocalizedTextWithFallback(value: unknown, fallback: { fr: string, en: string }) {
+  const normalized = normalizeLocalizedText(value)
+  return {
+    fr: normalized.fr || fallback.fr,
+    en: normalized.en || fallback.en
   }
 }
 
@@ -242,12 +270,7 @@ function normalizeTranslation(value: unknown): CmsPageTranslation {
     title: typeof value.title === 'string' ? value.title : '',
     navigationLabel: typeof value.navigationLabel === 'string' ? value.navigationLabel : '',
     seo: normalizeSeo(value.seo),
-    content: isObject(value.content) && value.content.version === 1 && Array.isArray(value.content.sections)
-      ? {
-          version: 1,
-          sections: value.content.sections
-        }
-      : fallback.content
+    content: normalizePageBuilderContent(value.content, fallback.content)
   }
 }
 
@@ -282,6 +305,47 @@ function synchronizeSharedPageContent(translations: Record<CmsLocale, CmsPageTra
   }
 }
 
+async function ensureFormEmailTemplateActions(payload: CmsPagePayload) {
+  const sharedContent = pickSharedPageContent(payload.translations)
+  for (const section of sharedContent.sections) {
+    for (const column of section.columns) {
+      for (const item of column.items) {
+        if (item.type !== 'form' || item.action.type !== 'email') continue
+        if (item.action.templateAction) {
+          const existing = await findAdminEmailTemplateDefinition(item.action.templateAction)
+          if (existing) continue
+        }
+
+        const created = await createCustomAdminEmailTemplate({
+          label: `Formulaire ${payload.slug} ${item.formKey || item.id}`,
+          description: `Template email généré pour le formulaire ${item.formKey || item.id} de la page ${payload.path}`,
+          group: 'Formulaires',
+          subgroup: 'CMS',
+          variables: [
+            'formTitle',
+            'pageTitle',
+            'pagePath',
+            'submittedAt',
+            'fieldsSummary',
+            'replyToEmail'
+          ]
+        })
+        item.action.templateAction = created.action
+      }
+    }
+  }
+  payload.translations = synchronizeSharedPageContent({
+    fr: {
+      ...payload.translations.fr,
+      content: clonePageBuilderContent(sharedContent)
+    },
+    en: {
+      ...payload.translations.en,
+      content: clonePageBuilderContent(sharedContent)
+    }
+  })
+}
+
 function normalizeTranslations(value: unknown, path = '/'): Record<CmsLocale, CmsPageTranslation> {
   const fallback = createDefaultCmsPagePayload(path).translations
   if (!isObject(value)) return fallback
@@ -307,6 +371,353 @@ function normalizePath(path: string) {
   const trimmed = path.trim()
   if (!trimmed || trimmed === '/') return '/'
   return `/${trimmed.replace(/^\/+|\/+$/g, '')}`
+}
+
+function isCmsPageSpecialRole(value: unknown): value is CmsPageSpecialRole {
+  return typeof value === 'string' && CMS_PAGE_SPECIAL_ROLES.has(value as CmsPageSpecialRole)
+}
+
+function isCmsCookieServiceCategory(value: unknown): value is CmsCookieServiceCategory {
+  return typeof value === 'string' && CMS_COOKIE_SERVICE_CATEGORIES.has(value as CmsCookieServiceCategory)
+}
+
+function isCmsCookieServiceStorage(value: unknown): value is CmsCookieServiceStorage {
+  return typeof value === 'string' && CMS_COOKIE_SERVICE_STORAGES.has(value as CmsCookieServiceStorage)
+}
+
+function createSimpleContentPage(options: {
+  sectionId: string
+  badge?: { fr: string, en: string }
+  title: { fr: string, en: string }
+  paragraphs: Array<{ fr: string, en: string }>
+}) {
+  const section = createEmptyColumnsSection(options.sectionId, 1)
+  if (options.badge) {
+    const badge = createBadgeItem(`${options.sectionId}-badge`)
+    badge.text = options.badge
+    section.columns[0]?.items.push(badge)
+  }
+  const title = createTitleItem(`${options.sectionId}-title`)
+  title.headingTag = 'h1'
+  title.size = '2xl'
+  title.text = options.title
+  section.columns[0]?.items.push(title)
+
+  for (const [index, paragraph] of options.paragraphs.entries()) {
+    const text = createTextItem(`${options.sectionId}-text-${index + 1}`)
+    text.size = 'md'
+    text.text = paragraph
+    section.columns[0]?.items.push(text)
+  }
+
+  return {
+    version: 1 as const,
+    sections: [section]
+  }
+}
+
+function createDefaultConstructionPageContent() {
+  return createSimpleContentPage({
+    sectionId: 'construction',
+    badge: { fr: 'Mise à jour', en: 'Update' },
+    title: { fr: 'Site en cours de construction', en: 'Site under construction' },
+    paragraphs: [
+      {
+        fr: 'La ferme prépare actuellement son site public. Revenez très bientôt pour découvrir les paniers, les actualités et les informations pratiques.',
+        en: 'The farm is currently preparing its public site. Please check back soon for baskets, news and practical information.'
+      }
+    ]
+  })
+}
+
+function createDefaultLegalPageContent(options: {
+  sectionId: string
+  title: { fr: string, en: string }
+  intro: { fr: string, en: string }
+  blocks: Array<{ title: { fr: string, en: string }, text: { fr: string, en: string } }>
+}) {
+  const section = createEmptyColumnsSection(options.sectionId, 1)
+  const title = createTitleItem(`${options.sectionId}-title`)
+  title.headingTag = 'h1'
+  title.size = '2xl'
+  title.text = options.title
+  const intro = createTextItem(`${options.sectionId}-intro`)
+  intro.text = options.intro
+  section.columns[0]?.items.push(title, intro)
+
+  const cards = createCardsItem(`${options.sectionId}-cards`) as PageBuilderCardsItem
+  cards.display = 'stack'
+  cards.cards = options.blocks.map((block, index) => ({
+    id: `${options.sectionId}-card-${index + 1}`,
+    title: block.title,
+    text: block.text,
+    icon: 'mdi:file-document-outline',
+    elements: [],
+    tone: 'soft',
+    size: 'md',
+    titleSize: 'md',
+    textSize: 'sm',
+    backgroundColor: null,
+    textColor: null,
+    iconColor: null,
+    iconBackgroundColor: null,
+    borderColor: null,
+    backdropBlur: false,
+    primaryButton: null,
+    secondaryButton: null
+  }))
+  section.columns[0]?.items.push(cards)
+
+  return {
+    version: 1 as const,
+    sections: [section]
+  }
+}
+
+function createDefaultContactPageContent() {
+  const introSection = createEmptyColumnsSection('contact-intro', 2)
+  const leftTitle = createTitleItem('contact-title') as PageBuilderTitleItem
+  leftTitle.headingTag = 'h1'
+  leftTitle.size = '2xl'
+  leftTitle.text = { fr: 'Contact', en: 'Contact' }
+  const leftText = createTextItem('contact-text') as PageBuilderTextItem
+  leftText.text = {
+    fr: 'Une question sur les paniers, la vente directe ou les horaires ? Utilisez le formulaire ci-dessous pour nous écrire.',
+    en: 'A question about baskets, direct sales or opening hours? Use the form below to contact us.'
+  }
+  const form = createFormItem('contact-form') as PageBuilderFormItem
+  form.formKey = 'contact'
+  form.title = { fr: 'Nous écrire', en: 'Send us a message' }
+  form.intro = {
+    fr: 'Les champs marqués d’un astérisque sont obligatoires.',
+    en: 'Fields marked with an asterisk are required.'
+  }
+  form.submitLabel = { fr: 'Envoyer le message', en: 'Send message' }
+  form.successMessage = { fr: 'Votre message a été envoyé.', en: 'Your message has been sent.' }
+  form.action = {
+    type: 'email',
+    to: '',
+    templateAction: 'contact',
+    replyToFieldName: 'email'
+  }
+  form.sections = [
+    {
+      id: 'contact-form-section',
+      title: { fr: '', en: '' },
+      description: { fr: '', en: '' },
+      rows: [
+        {
+          id: 'contact-row-1',
+          fields: [
+            {
+              id: 'contact-name',
+              name: 'name',
+              type: 'text',
+              width: 1,
+              label: { fr: 'Nom', en: 'Name' },
+              placeholder: { fr: 'Votre nom', en: 'Your name' },
+              helpText: { fr: '', en: '' },
+              required: true,
+              defaultValue: '',
+              defaultChecked: false,
+              regexPattern: '',
+              errorMessage: { fr: 'Veuillez renseigner votre nom.', en: 'Please provide your name.' },
+              textareaMinLines: 4,
+              options: []
+            },
+            {
+              id: 'contact-email',
+              name: 'email',
+              type: 'email',
+              width: 1,
+              label: { fr: 'Email', en: 'Email' },
+              placeholder: { fr: 'vous@exemple.fr', en: 'you@example.com' },
+              helpText: { fr: '', en: '' },
+              required: true,
+              defaultValue: '',
+              defaultChecked: false,
+              regexPattern: '',
+              errorMessage: { fr: 'Veuillez saisir un email valide.', en: 'Please provide a valid email.' },
+              textareaMinLines: 4,
+              options: []
+            }
+          ]
+        },
+        {
+          id: 'contact-row-2',
+          fields: [
+            {
+              id: 'contact-message',
+              name: 'message',
+              type: 'textarea',
+              width: 2,
+              label: { fr: 'Message', en: 'Message' },
+              placeholder: { fr: 'Décrivez votre demande', en: 'Describe your request' },
+              helpText: { fr: '', en: '' },
+              required: true,
+              defaultValue: '',
+              defaultChecked: false,
+              regexPattern: '',
+              errorMessage: { fr: 'Veuillez saisir un message.', en: 'Please enter a message.' },
+              textareaMinLines: 6,
+              options: []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+
+  const infoCards = createCardsItem('contact-info-cards') as PageBuilderCardsItem
+  infoCards.display = 'stack'
+  infoCards.cards = [
+    {
+      id: 'contact-info-1',
+      title: { fr: 'Coordonnées', en: 'Contact details' },
+      text: { fr: 'Adresse, téléphone et email publics issus des réglages du site.', en: 'Public address, phone and email pulled from site settings.' },
+      icon: 'mdi:map-marker-outline',
+      elements: [
+        {
+          id: 'contact-info-1-title',
+          kind: 'title',
+          source: 'custom',
+          icon: '',
+          title: { fr: 'Nos coordonnées', en: 'Contact details' },
+          text: { fr: '', en: '' },
+          titleSize: 'lg',
+          textSize: 'sm'
+        },
+        {
+          id: 'contact-info-1-address',
+          kind: 'text',
+          source: 'address',
+          icon: 'mdi:map-marker',
+          title: { fr: 'Adresse', en: 'Address' },
+          text: { fr: '', en: '' },
+          titleSize: 'sm',
+          textSize: 'sm'
+        },
+        {
+          id: 'contact-info-1-phone',
+          kind: 'text',
+          source: 'phone',
+          icon: 'mdi:phone',
+          title: { fr: 'Téléphone', en: 'Phone' },
+          text: { fr: '', en: '' },
+          titleSize: 'sm',
+          textSize: 'sm'
+        },
+        {
+          id: 'contact-info-1-email',
+          kind: 'text',
+          source: 'email',
+          icon: 'mdi:email',
+          title: { fr: 'Email', en: 'Email' },
+          text: { fr: '', en: '' },
+          titleSize: 'sm',
+          textSize: 'sm'
+        }
+      ],
+      tone: 'soft',
+      size: 'md',
+      titleSize: 'md',
+      textSize: 'sm',
+      backgroundColor: null,
+      textColor: null,
+      iconColor: null,
+      iconBackgroundColor: null,
+      borderColor: null,
+      backdropBlur: false,
+      primaryButton: null,
+      secondaryButton: null
+    },
+    {
+      id: 'contact-info-2',
+      title: { fr: 'Horaires', en: 'Opening hours' },
+      text: { fr: 'Les horaires de retrait et de vente directe restent synchronisés avec les réglages globaux.', en: 'Pickup and direct sale opening hours stay synced with global settings.' },
+      icon: 'mdi:clock-outline',
+      elements: [
+        {
+          id: 'contact-info-2-title',
+          kind: 'title',
+          source: 'custom',
+          icon: '',
+          title: { fr: 'Horaires d’ouverture', en: 'Opening hours' },
+          text: { fr: '', en: '' },
+          titleSize: 'lg',
+          textSize: 'sm'
+        },
+        {
+          id: 'contact-info-2-hours',
+          kind: 'text',
+          source: 'opening-hours',
+          icon: 'mdi:clock',
+          title: { fr: 'Vente directe à la ferme', en: 'Farm direct sale' },
+          text: { fr: '', en: '' },
+          titleSize: 'sm',
+          textSize: 'sm'
+        }
+      ],
+      tone: 'soft',
+      size: 'md',
+      titleSize: 'md',
+      textSize: 'sm',
+      backgroundColor: null,
+      textColor: null,
+      iconColor: null,
+      iconBackgroundColor: null,
+      borderColor: null,
+      backdropBlur: false,
+      primaryButton: null,
+      secondaryButton: null
+    }
+  ]
+  introSection.columns[0]?.items.push(leftTitle, leftText, form)
+  introSection.columns[1]?.items.push(infoCards)
+
+  return {
+    version: 1 as const,
+    sections: [introSection]
+  }
+}
+
+function normalizeCookieService(value: unknown, index: number, fallback: CmsCookieService): CmsCookieService {
+  if (!isObject(value)) return fallback
+  return {
+    id: typeof value.id === 'string' && value.id.trim() ? value.id.trim() : fallback.id,
+    name: normalizeLocalizedTextWithFallback(value.name, fallback.name),
+    description: normalizeLocalizedTextWithFallback(value.description, fallback.description),
+    category: isCmsCookieServiceCategory(value.category) ? value.category : fallback.category,
+    storage: isCmsCookieServiceStorage(value.storage) ? value.storage : fallback.storage,
+    keys: Array.isArray(value.keys)
+      ? value.keys.map((entry) => typeof entry === 'string' ? entry.trim() : '').filter(Boolean)
+      : fallback.keys,
+    required: typeof value.required === 'boolean' ? value.required : fallback.required,
+    enabled: typeof value.enabled === 'boolean' ? value.enabled : true
+  }
+}
+
+function normalizeCookieBannerSettings(value: unknown, fallback: CmsCookieBannerSettings): CmsCookieBannerSettings {
+  const source = isObject(value) ? value : {}
+  const fallbackServices = fallback.services
+  return {
+    enabled: typeof source.enabled === 'boolean' ? source.enabled : fallback.enabled,
+    title: normalizeLocalizedTextWithFallback(source.title, fallback.title),
+    text: normalizeLocalizedTextWithFallback(source.text, fallback.text),
+    acceptLabel: normalizeLocalizedTextWithFallback(source.acceptLabel, fallback.acceptLabel),
+    refuseLabel: normalizeLocalizedTextWithFallback(source.refuseLabel, fallback.refuseLabel),
+    customizeLabel: normalizeLocalizedTextWithFallback(source.customizeLabel, fallback.customizeLabel),
+    saveLabel: normalizeLocalizedTextWithFallback(source.saveLabel, fallback.saveLabel),
+    privacyPagePath: typeof source.privacyPagePath === 'string' && source.privacyPagePath.trim()
+      ? normalizePath(source.privacyPagePath)
+      : fallback.privacyPagePath,
+    cookieName: typeof source.cookieName === 'string' && source.cookieName.trim()
+      ? source.cookieName.trim()
+      : fallback.cookieName,
+    services: Array.isArray(source.services)
+      ? source.services.map((service, index) => normalizeCookieService(service, index, fallbackServices[index] ?? fallbackServices[0]!))
+      : fallback.services
+  }
 }
 
 function isCmsPageType(value: unknown): value is CmsPageType {
@@ -351,6 +762,7 @@ function pageRowToPayload(row: CmsPage): CmsPagePayload {
     slug: row.slug,
     pageType: row.pageType as CmsPageType,
     status: row.status as CmsPageStatus,
+    specialRole: isCmsPageSpecialRole(row.specialRole) ? row.specialRole : null,
     templateKey: row.templateKey,
     rendererKey: row.rendererKey || '',
     applicationPosition: row.applicationPosition as CmsApplicationPosition,
@@ -430,6 +842,7 @@ function createLegacyRootResolvedPage(locale: string): Promise<ResolvedCmsPage> 
     slug: 'home',
     pageType: 'CMS',
     status: 'PUBLISHED',
+    specialRole: null,
     templateKey: 'default',
     rendererKey: '',
     applicationPosition: 'AFTER_CONTENT',
@@ -454,6 +867,7 @@ function createLegacyBasketsResolvedPage(locale: string): ResolvedCmsPage {
     slug: 'paniers',
     pageType: 'APPLICATION',
     status: 'PUBLISHED',
+    specialRole: null,
     templateKey: 'default',
     rendererKey: 'baskets',
     applicationPosition: 'AFTER_CONTENT',
@@ -478,6 +892,7 @@ function createLegacyNewsResolvedPage(locale: string): ResolvedCmsPage {
     slug: 'news',
     pageType: 'APPLICATION',
     status: 'PUBLISHED',
+    specialRole: null,
     templateKey: 'default',
     rendererKey: 'news',
     applicationPosition: 'AFTER_CONTENT',
@@ -618,7 +1033,8 @@ export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
             : fallback.newsPage.excerptLines,
           cardBackgroundColor: normalizeThemeColorSelection(parsed.newsPage.cardBackgroundColor, fallback.newsPage.cardBackgroundColor || createThemeColorSelection('base-200'))
         }
-      : fallback.newsPage
+      : fallback.newsPage,
+    cookieBanner: normalizeCookieBannerSettings(parsed.cookieBanner, fallback.cookieBanner)
   }
 }
 
@@ -655,6 +1071,28 @@ export async function getCmsPageByPath(path: string) {
     async () => null
   )
   return row ? { id: row.id, ...pageRowToPayload(row) } : null
+}
+
+export async function getCmsSpecialPagePath(role: CmsPageSpecialRole) {
+  await ensureCmsSystemPages()
+  const row = await withCmsTableFallback(
+    () => prisma.cmsPage.findFirst({
+      where: {
+        specialRole: role,
+        status: 'PUBLISHED'
+      },
+      orderBy: {
+        updatedAt: 'desc'
+      }
+    }),
+    async () => null
+  )
+
+  if (row?.path) {
+    return normalizePath(row.path)
+  }
+
+  return role === 'construction' ? '/construction' : null
 }
 
 export async function ensureCmsRootPage() {
@@ -740,19 +1178,183 @@ async function ensureCmsApplicationPage(path: string, slug: string, titleFr: str
   return created?.id ?? null
 }
 
+async function ensureCmsStandardPage(options: {
+  path: string
+  slug: string
+  titleFr: string
+  titleEn: string
+  seoFr: CmsPageSeo
+  seoEn: CmsPageSeo
+  content: PageBuilderContent
+  specialRole?: CmsPageSpecialRole | null
+}) {
+  const existing = await withCmsTableFallback(
+    () => prisma.cmsPage.findFirst({
+      where: {
+        OR: [
+          { path: options.path },
+          ...(options.specialRole ? [{ specialRole: options.specialRole }] : [])
+        ]
+      }
+    }),
+    async () => null
+  )
+
+  if (existing) {
+    const payload = pageRowToPayload(existing)
+    if (payload.path === options.path && payload.specialRole === (options.specialRole ?? null)) {
+      return existing.id
+    }
+  }
+
+  const created = await saveCmsPage(existing?.id ?? null, {
+    ...createDefaultCmsPagePayload(options.path, options.titleFr),
+    path: options.path,
+    slug: options.slug,
+    pageType: 'CMS',
+    status: 'PUBLISHED',
+    specialRole: options.specialRole ?? null,
+    title: options.titleFr,
+    translations: {
+      fr: {
+        title: options.titleFr,
+        navigationLabel: options.titleFr,
+        seo: options.seoFr,
+        content: options.content
+      },
+      en: {
+        title: options.titleEn,
+        navigationLabel: options.titleEn,
+        seo: options.seoEn,
+        content: options.content
+      }
+    }
+  })
+
+  return created?.id ?? null
+}
+
 export async function ensureCmsSystemPages() {
   await ensureCmsRootPage()
   await ensureCmsApplicationPage('/paniers', 'paniers', 'Paniers', 'Baskets', 'baskets')
   await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
+  await ensureCmsStandardPage({
+    path: '/construction',
+    slug: 'construction',
+    titleFr: 'Site en construction',
+    titleEn: 'Site under construction',
+    specialRole: 'construction',
+    seoFr: {
+      metaTitle: 'Site en construction',
+      metaDescription: 'Le site public est momentanément en préparation.',
+      ogImage: '',
+      noindex: true
+    },
+    seoEn: {
+      metaTitle: 'Site under construction',
+      metaDescription: 'The public site is currently being prepared.',
+      ogImage: '',
+      noindex: true
+    },
+    content: createDefaultConstructionPageContent()
+  })
+  await ensureCmsStandardPage({
+    path: '/contact',
+    slug: 'contact',
+    titleFr: 'Contact',
+    titleEn: 'Contact',
+    seoFr: {
+      metaTitle: 'Contact',
+      metaDescription: 'Contactez la Ferme du Campeyrigoux pour vos questions, paniers et horaires.',
+      ogImage: '',
+      noindex: false
+    },
+    seoEn: {
+      metaTitle: 'Contact',
+      metaDescription: 'Contact Ferme du Campeyrigoux for questions, baskets and opening hours.',
+      ogImage: '',
+      noindex: false
+    },
+    content: createDefaultContactPageContent()
+  })
+  await ensureCmsStandardPage({
+    path: '/terms',
+    slug: 'terms',
+    titleFr: 'Conditions d’utilisation',
+    titleEn: 'Terms of use',
+    seoFr: {
+      metaTitle: 'Conditions d’utilisation',
+      metaDescription: 'Consultez les conditions d’utilisation applicables aux services numériques de la Ferme du Campeyrigoux.',
+      ogImage: '',
+      noindex: false
+    },
+    seoEn: {
+      metaTitle: 'Terms of use',
+      metaDescription: 'Read the terms of use for the Ferme du Campeyrigoux digital services.',
+      ogImage: '',
+      noindex: false
+    },
+    content: createDefaultLegalPageContent({
+      sectionId: 'terms',
+      title: { fr: 'Conditions d’utilisation', en: 'Terms of use' },
+      intro: { fr: 'Dernière mise à jour : 25/04/2026', en: 'Last update: 2026-04-25' },
+      blocks: [
+        {
+          title: { fr: 'Acceptation des conditions', en: 'Acceptance of terms' },
+          text: { fr: 'En utilisant ce site, vous acceptez les présentes conditions d’utilisation.', en: 'By using this website, you agree to these terms of use.' }
+        },
+        {
+          title: { fr: 'Description du service', en: 'Service description' },
+          text: { fr: 'Le site présente les activités de la ferme et permet certains contacts ou réservations.', en: 'The site presents the farm activities and allows some contact or reservation workflows.' }
+        },
+        {
+          title: { fr: 'Responsabilités de l’utilisateur', en: 'User responsibilities' },
+          text: { fr: 'Vous êtes responsable des informations transmises via le site et du respect des règles applicables.', en: 'You are responsible for the information sent through the site and for complying with applicable rules.' }
+        }
+      ]
+    })
+  })
+  await ensureCmsStandardPage({
+    path: '/privacy',
+    slug: 'privacy',
+    titleFr: 'Politique de confidentialité',
+    titleEn: 'Privacy policy',
+    seoFr: {
+      metaTitle: 'Politique de confidentialité',
+      metaDescription: 'Consultez la politique de confidentialité relative aux services numériques de la Ferme du Campeyrigoux.',
+      ogImage: '',
+      noindex: false
+    },
+    seoEn: {
+      metaTitle: 'Privacy policy',
+      metaDescription: 'Read the privacy policy for the Ferme du Campeyrigoux digital services.',
+      ogImage: '',
+      noindex: false
+    },
+    content: createDefaultLegalPageContent({
+      sectionId: 'privacy',
+      title: { fr: 'Politique de confidentialité', en: 'Privacy policy' },
+      intro: { fr: 'Dernière mise à jour : 25/04/2026', en: 'Last update: 2026-04-25' },
+      blocks: [
+        {
+          title: { fr: 'Collecte des données', en: 'Data collection' },
+          text: { fr: 'Le site collecte uniquement les données nécessaires au fonctionnement des formulaires, de la langue et des intégrations activées.', en: 'The site only collects the data required for forms, language handling and enabled integrations.' }
+        },
+        {
+          title: { fr: 'Utilisation des données', en: 'Use of data' },
+          text: { fr: 'Les données servent à traiter vos demandes, administrer le site et améliorer son fonctionnement.', en: 'Data is used to handle your requests, administer the site and improve operations.' }
+        },
+        {
+          title: { fr: 'Vos droits', en: 'Your rights' },
+          text: { fr: 'Vous pouvez nous contacter pour toute demande liée à vos données ou à vos préférences.', en: 'You can contact us for any request related to your data or preferences.' }
+        }
+      ]
+    })
+  })
 }
 
 export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCmsPage, locale: CmsLocale) {
-  if (resolvedPage.path === '/') {
-    const id = await ensureCmsRootPage()
-    return id ? await getCmsPageById(id) : null
-  }
-
-  if (resolvedPage.path === '/paniers' || resolvedPage.path === '/news') {
+  if (resolvedPage.path === '/' || resolvedPage.path === '/paniers' || resolvedPage.path === '/news' || resolvedPage.path === '/construction' || resolvedPage.path === '/contact' || resolvedPage.path === '/terms' || resolvedPage.path === '/privacy') {
     await ensureCmsSystemPages()
     return await getCmsPageByPath(resolvedPage.path)
   }
@@ -779,6 +1381,7 @@ export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCms
 }
 
 export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
+  await ensureFormEmailTemplateActions(payload)
   const normalizedPath = normalizePath(payload.path)
   const translations = synchronizeSharedPageContent(payload.translations)
   const data = {
@@ -787,10 +1390,23 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
     title: payload.title,
     pageType: payload.pageType,
     status: payload.status,
+    specialRole: payload.specialRole ?? null,
     templateKey: payload.templateKey || 'default',
     rendererKey: payload.rendererKey || null,
     applicationPosition: payload.applicationPosition,
     translationsJson: JSON.stringify(translations)
+  }
+
+  if (payload.specialRole) {
+    await withCmsTableFallback(() => prisma.cmsPage.updateMany({
+      where: {
+        specialRole: payload.specialRole,
+        ...(id ? { NOT: { id } } : {})
+      },
+      data: {
+        specialRole: null
+      }
+    }), async () => ({ count: 0 }))
   }
 
   if (id) {
@@ -989,6 +1605,7 @@ export async function getPublicSiteShell(locale: string): Promise<PublicSiteShel
 }
 
 export async function resolvePublicCmsPage(path: string, locale: string, includeDraft = false): Promise<ResolvedCmsPage | null> {
+  await ensureCmsSystemPages()
   const normalizedPath = normalizePath(path)
   const where = includeDraft
     ? { path: normalizedPath }
@@ -1009,6 +1626,7 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
       slug: payload.slug,
       pageType: payload.pageType,
       status: payload.status,
+      specialRole: payload.specialRole ?? null,
       templateKey: payload.templateKey,
       rendererKey: payload.rendererKey,
       applicationPosition: payload.applicationPosition,
@@ -1056,6 +1674,7 @@ export function validateCmsPagePayload(value: unknown): CmsPagePayload {
     slug: typeof value.slug === 'string' ? value.slug.trim() : fallback.slug,
     pageType: isCmsPageType(pageType) ? pageType : fallback.pageType,
     status: isCmsPageStatus(status) ? status : fallback.status,
+    specialRole: isCmsPageSpecialRole(value.specialRole) ? value.specialRole : null,
     templateKey: typeof value.templateKey === 'string' && value.templateKey.trim() ? value.templateKey.trim() : fallback.templateKey,
     rendererKey: typeof value.rendererKey === 'string' ? value.rendererKey.trim() : '',
     applicationPosition: isCmsApplicationPosition(applicationPosition) ? applicationPosition : fallback.applicationPosition,
@@ -1079,6 +1698,7 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
   const footerValue = isObject(value.footer) ? value.footer : {}
   const basketsPageValue = isObject(value.basketsPage) ? value.basketsPage : {}
   const newsPageValue = isObject(value.newsPage) ? value.newsPage : {}
+  const cookieBannerValue = isObject(value.cookieBanner) ? value.cookieBanner : {}
 
   return {
     siteName: normalizeLocalizedText(value.siteName),
@@ -1180,7 +1800,8 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
         ? Number(newsPageValue.excerptLines) as 2 | 3 | 4
         : fallback.newsPage.excerptLines,
       cardBackgroundColor: normalizeThemeColorSelection(newsPageValue.cardBackgroundColor, fallback.newsPage.cardBackgroundColor || createThemeColorSelection('base-200'))
-    }
+    },
+    cookieBanner: normalizeCookieBannerSettings(cookieBannerValue, fallback.cookieBanner)
   }
 }
 
@@ -1212,6 +1833,7 @@ export function validateCmsNavigationItemsPayload(value: unknown): Array<CmsNavi
 
 const CMS_PAGE_TYPES = new Set<CmsPageType>(['CMS', 'APPLICATION', 'HYBRID'])
 const CMS_PAGE_STATUSES = new Set<CmsPageStatus>(['DRAFT', 'PUBLISHED'])
+const CMS_PAGE_SPECIAL_ROLES = new Set<CmsPageSpecialRole>(['construction'])
 const CMS_APPLICATION_POSITIONS = new Set<CmsApplicationPosition>(['BEFORE_CONTENT', 'AFTER_CONTENT'])
 const CMS_NAVIGATION_MENUS = new Set<CmsNavigationMenu>(['PRIMARY', 'FOOTER'])
 const CMS_NAVIGATION_ITEM_TYPES = new Set<CmsNavigationItemType>(['CMS_PAGE', 'APPLICATION_ROUTE', 'EXTERNAL_URL'])
@@ -1219,3 +1841,5 @@ const CMS_HEADER_NAVIGATION_STYLES = new Set<CmsHeaderNavigationStyle>(['ghost',
 const CMS_HEADER_SUBMENU_TRIGGERS = new Set<CmsHeaderSubmenuTrigger>(['hover', 'click'])
 const CMS_HEADER_SUBMENU_ANIMATIONS = new Set<CmsHeaderSubmenuAnimation>(['none', 'fade', 'scale', 'slide'])
 const CMS_HEADER_MOBILE_LOGO_POSITIONS = new Set<CmsHeaderMobileLogoPosition>(['left', 'right'])
+const CMS_COOKIE_SERVICE_CATEGORIES = new Set<CmsCookieServiceCategory>(['essential', 'preferences', 'third_party', 'marketing'])
+const CMS_COOKIE_SERVICE_STORAGES = new Set<CmsCookieServiceStorage>(['cookie', 'localStorage', 'sessionStorage', 'script'])

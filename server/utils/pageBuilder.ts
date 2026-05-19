@@ -16,11 +16,18 @@ import {
   createCarouselItem,
   createDefaultPageBuilderContent,
   createEmptyCard,
+  createEmptyCardElement,
   createEmptyColumnsSection,
+  createEmptyFormAction,
+  createEmptyFormField,
+  createEmptyFormFieldOption,
+  createEmptyFormRow,
+  createEmptyFormSection,
   createEmptyContentBlock,
   createEmptySectionBackgroundCarouselSettings,
   createEmptySectionBackgroundImage,
   createEmptySectionBackgroundSlide,
+  createFormItem,
   createImageItem,
   createTextItem,
   createTitleItem,
@@ -93,16 +100,63 @@ function sanitizeIconName(value: unknown) {
   return normalized && isValidIconifyName(normalized) ? normalized : ''
 }
 
+function normalizeCardElements(value: unknown, fallbackId: string, legacy?: { title: { fr: string, en: string }, text: { fr: string, en: string }, icon: string, titleSize: PageBuilderCard['titleSize'], textSize: PageBuilderCard['textSize'] }) {
+  if (Array.isArray(value)) {
+    return value.map((entry, index) => {
+      const element = createEmptyCardElement(`${fallbackId}-element-${index + 1}`)
+      if (!isObject(entry)) return element
+      element.id = typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : element.id
+      element.kind = entry.kind === 'title' ? 'title' : 'text'
+      element.source = entry.source === 'opening-hours' || entry.source === 'email' || entry.source === 'phone' || entry.source === 'address'
+        ? entry.source
+        : 'custom'
+      element.icon = sanitizeIconName(entry.icon)
+      element.title = normalizeLocalizedText(entry.title) || element.title
+      element.text = normalizeLocalizedText(entry.text) || element.text
+      element.titleSize = (typeof entry.titleSize === 'string' ? entry.titleSize : element.titleSize) as typeof element.titleSize
+      element.textSize = (typeof entry.textSize === 'string' ? entry.textSize : element.textSize) as typeof element.textSize
+      return element
+    })
+  }
+
+  if (!legacy) return []
+
+  const elements = []
+  if (legacy.title.fr || legacy.title.en) {
+    const titleElement = createEmptyCardElement(`${fallbackId}-element-1`, 'title')
+    titleElement.icon = legacy.icon
+    titleElement.title = legacy.title
+    titleElement.titleSize = legacy.titleSize
+    elements.push(titleElement)
+  }
+  if (legacy.text.fr || legacy.text.en) {
+    const textElement = createEmptyCardElement(`${fallbackId}-element-${elements.length + 1}`, 'text')
+    textElement.text = legacy.text
+    textElement.textSize = legacy.textSize
+    elements.push(textElement)
+  }
+  return elements
+}
+
 function normalizeCard(value: unknown): PageBuilderCard | null {
   if (!isObject(value)) return null
   const title = normalizeLocalizedText(value.title)
   const text = normalizeLocalizedText(value.text)
   if (!title || !text) return null
+  const id = typeof value.id === 'string' ? value.id : `card-${Math.random().toString(36).slice(2, 8)}`
+  const icon = sanitizeIconName(value.icon)
   return {
-    id: typeof value.id === 'string' ? value.id : `card-${Math.random().toString(36).slice(2, 8)}`,
+    id,
     title,
     text,
-    icon: sanitizeIconName(value.icon),
+    icon,
+    elements: normalizeCardElements(value.elements, id, {
+      title,
+      text,
+      icon,
+      titleSize: (typeof value.titleSize === 'string' ? value.titleSize : 'md') as PageBuilderCard['titleSize'],
+      textSize: (typeof value.textSize === 'string' ? value.textSize : 'sm') as PageBuilderCard['textSize']
+    }),
     tone: (typeof value.tone === 'string' ? value.tone : 'soft') as PageBuilderCard['tone'],
     size: (typeof value.size === 'string' ? value.size : 'md') as PageBuilderCard['size'],
     titleSize: (typeof value.titleSize === 'string' ? value.titleSize : 'md') as PageBuilderCard['titleSize'],
@@ -116,6 +170,74 @@ function normalizeCard(value: unknown): PageBuilderCard | null {
     primaryButton: normalizeButton(value.primaryButton),
     secondaryButton: normalizeButton(value.secondaryButton)
   }
+}
+
+function normalizeFormFieldOption(value: unknown, fallbackId: string) {
+  const option = createEmptyFormFieldOption(fallbackId)
+  if (!isObject(value)) return option
+  option.id = typeof value.id === 'string' && value.id.trim() ? value.id.trim() : fallbackId
+  option.label = normalizeLocalizedText(value.label) || option.label
+  option.value = typeof value.value === 'string' ? value.value : ''
+  return option
+}
+
+function normalizeFormField(value: unknown, fallbackId: string) {
+  const field = createEmptyFormField(fallbackId)
+  if (!isObject(value)) return field
+  field.id = typeof value.id === 'string' && value.id.trim() ? value.id.trim() : fallbackId
+  field.name = typeof value.name === 'string' && value.name.trim()
+    ? value.name.trim().replace(/[^a-zA-Z0-9_]/g, '_')
+    : field.name
+  field.type = typeof value.type === 'string' ? value.type as typeof field.type : field.type
+  field.width = value.width === 1 ? 1 : 2
+  field.label = normalizeLocalizedText(value.label) || field.label
+  field.placeholder = normalizeLocalizedText(value.placeholder) || field.placeholder
+  field.helpText = normalizeLocalizedText(value.helpText) || field.helpText
+  field.required = typeof value.required === 'boolean' ? value.required : field.required
+  field.defaultValue = typeof value.defaultValue === 'string' ? value.defaultValue : field.defaultValue
+  field.defaultChecked = typeof value.defaultChecked === 'boolean' ? value.defaultChecked : field.defaultChecked
+  field.regexPattern = typeof value.regexPattern === 'string' ? value.regexPattern : ''
+  field.errorMessage = normalizeLocalizedText(value.errorMessage) || field.errorMessage
+  field.textareaMinLines = typeof value.textareaMinLines === 'number' && Number.isFinite(value.textareaMinLines)
+    ? Math.max(2, Math.min(20, Math.round(value.textareaMinLines)))
+    : field.textareaMinLines
+  field.options = Array.isArray(value.options)
+    ? value.options.map((option, index) => normalizeFormFieldOption(option, `${field.id}-option-${index + 1}`))
+    : field.options
+  if (field.type !== 'select' && field.type !== 'radio') {
+    field.options = []
+  } else if (!field.options.length) {
+    field.options = [createEmptyFormFieldOption(`${field.id}-option-1`)]
+  }
+  return field
+}
+
+function normalizeFormRow(value: unknown, fallbackId: string) {
+  const row = createEmptyFormRow(fallbackId)
+  if (!isObject(value)) return row
+  row.id = typeof value.id === 'string' && value.id.trim() ? value.id.trim() : fallbackId
+  row.fields = Array.isArray(value.fields)
+    ? value.fields.slice(0, 2).map((field, index) => normalizeFormField(field, `${row.id}-field-${index + 1}`))
+    : row.fields
+  if (!row.fields.length) {
+    row.fields = [createEmptyFormField(`${row.id}-field-1`)]
+  }
+  return row
+}
+
+function normalizeFormSection(value: unknown, fallbackId: string) {
+  const section = createEmptyFormSection(fallbackId)
+  if (!isObject(value)) return section
+  section.id = typeof value.id === 'string' && value.id.trim() ? value.id.trim() : fallbackId
+  section.title = normalizeLocalizedText(value.title) || section.title
+  section.description = normalizeLocalizedText(value.description) || section.description
+  section.rows = Array.isArray(value.rows)
+    ? value.rows.map((row, index) => normalizeFormRow(row, `${section.id}-row-${index + 1}`))
+    : section.rows
+  if (!section.rows.length) {
+    section.rows = [createEmptyFormRow(`${section.id}-row-1`)]
+  }
+  return section
 }
 
 function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
@@ -178,6 +300,38 @@ function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
       item.framed = typeof value.framed === 'boolean' ? value.framed : true
       item.slides = normalizeSectionBackgroundSlides(value.slides, item.id)
       item.settings = normalizeCarouselSettings(value.settings)
+      return item
+    }
+    case 'form': {
+      const item = createFormItem(typeof value.id === 'string' ? value.id : `form-${Math.random().toString(36).slice(2, 8)}`)
+      item.formKey = typeof value.formKey === 'string' && value.formKey.trim() ? value.formKey.trim() : item.formKey
+      item.title = normalizeLocalizedText(value.title) || item.title
+      item.intro = normalizeLocalizedText(value.intro) || item.intro
+      item.submitLabel = normalizeLocalizedText(value.submitLabel) || item.submitLabel
+      item.successMessage = normalizeLocalizedText(value.successMessage) || item.successMessage
+      item.submitButtonTone = (typeof value.submitButtonTone === 'string' ? value.submitButtonTone : item.submitButtonTone) as typeof item.submitButtonTone
+      item.cardBackgroundColor = normalizeThemeColorSelection(value.cardBackgroundColor, 'base-100')
+      item.labelColor = normalizeThemeColorSelection(value.labelColor, 'base-content')
+      item.submitButtonBackgroundColor = normalizeThemeColorSelection(value.submitButtonBackgroundColor, 'primary')
+      item.submitButtonTextColor = normalizeThemeColorSelection(value.submitButtonTextColor, 'primary-content')
+      item.submitButtonBorderColor = normalizeThemeColorSelection(value.submitButtonBorderColor, 'transparent')
+      item.sections = Array.isArray(value.sections)
+        ? value.sections.map((section, index) => normalizeFormSection(section, `${item.id}-section-${index + 1}`))
+        : item.sections
+      if (isObject(value.action)) {
+        if (value.action.type === 'internalWebhook') {
+          item.action = {
+            type: 'internalWebhook',
+            actionKey: typeof value.action.actionKey === 'string' ? value.action.actionKey.trim() : ''
+          }
+        } else {
+          const action = createEmptyFormAction()
+          action.to = typeof value.action.to === 'string' ? value.action.to.trim() : ''
+          action.templateAction = typeof value.action.templateAction === 'string' ? value.action.templateAction.trim() : ''
+          action.replyToFieldName = typeof value.action.replyToFieldName === 'string' ? value.action.replyToFieldName.trim() : ''
+          item.action = action
+        }
+      }
       return item
     }
     default:
@@ -393,7 +547,7 @@ function normalizeSection(value: unknown): PageBuilderSection | null {
   return section
 }
 
-function normalizePageBuilderContent(value: unknown, fallback: PageBuilderContent): PageBuilderContent {
+export function normalizePageBuilderContent(value: unknown, fallback: PageBuilderContent): PageBuilderContent {
   if (!isObject(value) || value.version !== 1) {
     return fallback
   }

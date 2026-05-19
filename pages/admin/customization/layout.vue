@@ -1,5 +1,5 @@
 <template>
-  <div v-if="model" class="space-y-8">
+  <div v-if="model" class="min-w-0 space-y-8">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold">{{ t('admin.customizationLayoutPage.title') }}</h1>
@@ -14,19 +14,19 @@
       </button>
     </div>
 
-    <div>
+    <div class="min-w-0">
     <div class="flex flex-wrap items-end gap-4">
-      <div class="tabs tabs-lift w-fit">
+      <div class="tabs tabs-lift w-full max-w-full sm:w-fit">
         <button type="button" class="tab" :class="previewLocale === 'fr' ? 'tab-active' : 'border-0'" @click="previewLocale = 'fr'">{{ t('admin.customizationLayoutPage.previewFr') }}</button>
         <button type="button" class="tab" :class="previewLocale === 'en' ? 'tab-active' : 'border-0'" @click="previewLocale = 'en'">{{ t('admin.customizationLayoutPage.previewEn') }}</button>
       </div>
-      <div class="tabs tabs-box w-fit">
+      <div class="tabs tabs-box w-full max-w-full sm:w-fit">
         <button type="button" class="tab" :class="previewDevice === 'desktop' ? 'tab-active' : ''" @click="previewDevice = 'desktop'">Vue desktop</button>
         <button type="button" class="tab" :class="previewDevice === 'mobile' ? 'tab-active' : ''" @click="previewDevice = 'mobile'">Vue mobile</button>
       </div>
     </div>
 
-    <section class="rounded-box rounded-bottom rounded-topright border border-base-300 bg-base-100 p-6 space-y-5">
+    <section class="min-w-0 space-y-5 rounded-box rounded-bottom rounded-topright border border-base-300 bg-base-100 p-4 sm:p-6">
       <div>
         <h2 class="text-xl font-semibold">{{ t('admin.customizationLayoutPage.headerTitle') }}</h2>
         <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationLayoutPage.headerDescription') }}</p>
@@ -34,12 +34,12 @@
 
       
 
-        <div class="space-y-3">
+        <div class="min-w-0 space-y-3">
           <div class="text-sm font-medium">{{ t('admin.customizationLayoutPage.previewTitle') }}</div>
 
           <div
             v-if="previewDevice === 'desktop'"
-            class="overflow-visible rounded-[2rem] border border-base-300 bg-base-200 shadow-sm"
+            class="min-w-0 overflow-visible rounded-[2rem] border border-base-300 bg-base-200 shadow-sm"
           >
             <Navigation
               :preview-locale="previewLocale"
@@ -52,7 +52,7 @@
 
           <div
             v-else
-            class="mx-auto max-w-[390px] overflow-hidden rounded-[2rem] border border-base-300 bg-base-200 shadow-sm"
+            class="mx-auto w-full max-w-[390px] overflow-hidden rounded-[2rem] border border-base-300 bg-base-200 shadow-sm"
           >
             <Navigation
               :preview-locale="previewLocale"
@@ -68,30 +68,30 @@
           </div>
         </div>
 
-      <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div class="space-y-5">
-          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <label class="form-control gap-2">
+      <div class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+        <div class="min-w-0 space-y-5">
+          <div class="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.headerHeight') }}</span></span>
               <input v-model.number="model.settings.header.heightPx" type="number" min="56" max="180" class="input input-bordered w-full" />
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.desktopLogoHeight') }}</span></span>
               <input v-model.number="model.settings.header.logoHeightPx" type="number" min="24" max="140" class="input input-bordered w-full" />
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.mobileLogoHeight') }}</span></span>
               <input v-model.number="model.settings.header.mobileLogoHeightPx" type="number" min="24" max="120" class="input input-bordered w-full" />
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">Hauteur mobile</span></span>
               <input v-model.number="model.settings.header.mobileHeightPx" type="number" min="56" max="160" class="input input-bordered w-full" />
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.navigationStyle') }}</span></span>
               <select v-model="model.settings.header.navigationStyle" class="select select-bordered w-full">
                 <option v-for="style in CMS_HEADER_NAVIGATION_STYLES" :key="style" :value="style">
@@ -100,7 +100,7 @@
               </select>
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">Ouverture du sous-menu</span></span>
               <select v-model="model.settings.header.submenuTrigger" class="select select-bordered w-full">
                 <option v-for="trigger in CMS_HEADER_SUBMENU_TRIGGERS" :key="trigger" :value="trigger">
@@ -109,7 +109,7 @@
               </select>
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">Animation du sous-menu</span></span>
               <select v-model="model.settings.header.submenuAnimation" class="select select-bordered w-full">
                 <option v-for="animation in CMS_HEADER_SUBMENU_ANIMATIONS" :key="animation" :value="animation">
@@ -118,12 +118,12 @@
               </select>
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">Radius du sous-menu</span></span>
               <input v-model.number="model.settings.header.submenuRadiusPx" type="number" min="0" max="40" class="input input-bordered w-full" />
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">Position du logo mobile</span></span>
               <select v-model="model.settings.header.mobileHeaderLogoPosition" class="select select-bordered w-full">
                 <option v-for="position in CMS_HEADER_MOBILE_LOGO_POSITIONS" :key="position" :value="position">
@@ -132,7 +132,7 @@
               </select>
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">Position du burger mobile</span></span>
               <select v-model="model.settings.header.mobileBurgerPosition" class="select select-bordered w-full">
                 <option v-for="position in CMS_HEADER_MOBILE_LOGO_POSITIONS" :key="`burger-${position}`" :value="position">
@@ -151,63 +151,79 @@
             </label>
           </div>
 
-          <div class="grid gap-4 lg:grid-cols-2">
-            <ThemeColorPicker
-              v-model="model.settings.header.backgroundColor"
-              :label="t('admin.customizationLayoutPage.headerBackground')"
-              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
-              :allow-custom="false"
-              default-token="base-100"
-            />
-            <ThemeColorPicker
-              v-model="model.settings.header.textColor"
-              :label="t('admin.customizationLayoutPage.headerText')"
-              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
-              :allow-custom="false"
-              default-token="base-content"
-            />
-            <ThemeColorPicker
-              v-model="model.settings.header.navigationActiveBackgroundColor"
-              label="Couleur de fond active de la navigation"
-              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
-              :allow-custom="false"
-              default-token="primary"
-            />
-            <ThemeColorPicker
-              v-model="model.settings.header.navigationActiveTextColor"
-              label="Couleur du texte actif de la navigation"
-              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
-              :allow-custom="false"
-              default-token="primary-content"
-            />
-            <ThemeColorPicker
-              v-model="model.settings.header.navigationHoverBackgroundColor"
-              label="Couleur de survol de la navigation"
-              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
-              :allow-custom="false"
-              default-token="base-200"
-            />
-            <ThemeColorPicker
-              v-model="model.settings.header.navigationHoverTextColor"
-              label="Couleur du texte au survol"
-              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
-              :allow-custom="false"
-              default-token="base-content"
-            />
-            <ThemeColorPicker
-              v-model="model.settings.header.submenuBackgroundColor"
-              label="Fond du sous-menu"
-              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
-              :allow-custom="false"
-              default-token="base-100"
-            />
-            <ThemeColorPicker
-              v-model="model.settings.header.submenuTextColor"
-              label="Texte du sous-menu"
-              :allowed-tokens="CMS_THEME_COLOR_TOKENS"
-              :allow-custom="false"
-              default-token="base-content"
-            />
+          <div class="grid min-w-0 gap-4 lg:grid-cols-2">
+            <div class="min-w-0">
+              <ThemeColorPicker
+                v-model="model.settings.header.backgroundColor"
+                :label="t('admin.customizationLayoutPage.headerBackground')"
+                :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+                :allow-custom="false"
+                default-token="base-100"
+              />
+            </div>
+            <div class="min-w-0">
+              <ThemeColorPicker
+                v-model="model.settings.header.textColor"
+                :label="t('admin.customizationLayoutPage.headerText')"
+                :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+                :allow-custom="false"
+                default-token="base-content"
+              />
+            </div>
+            <div class="min-w-0">
+              <ThemeColorPicker
+                v-model="model.settings.header.navigationActiveBackgroundColor"
+                label="Couleur de fond active de la navigation"
+                :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+                :allow-custom="false"
+                default-token="primary"
+              />
+            </div>
+            <div class="min-w-0">
+              <ThemeColorPicker
+                v-model="model.settings.header.navigationActiveTextColor"
+                label="Couleur du texte actif de la navigation"
+                :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+                :allow-custom="false"
+                default-token="primary-content"
+              />
+            </div>
+            <div class="min-w-0">
+              <ThemeColorPicker
+                v-model="model.settings.header.navigationHoverBackgroundColor"
+                label="Couleur de survol de la navigation"
+                :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+                :allow-custom="false"
+                default-token="base-200"
+              />
+            </div>
+            <div class="min-w-0">
+              <ThemeColorPicker
+                v-model="model.settings.header.navigationHoverTextColor"
+                label="Couleur du texte au survol"
+                :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+                :allow-custom="false"
+                default-token="base-content"
+              />
+            </div>
+            <div class="min-w-0">
+              <ThemeColorPicker
+                v-model="model.settings.header.submenuBackgroundColor"
+                label="Fond du sous-menu"
+                :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+                :allow-custom="false"
+                default-token="base-100"
+              />
+            </div>
+            <div class="min-w-0">
+              <ThemeColorPicker
+                v-model="model.settings.header.submenuTextColor"
+                label="Texte du sous-menu"
+                :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+                :allow-custom="false"
+                default-token="base-content"
+              />
+            </div>
           </div>
 
           <div class="grid gap-3">
@@ -287,7 +303,7 @@
       </div>
     </section>
 </div>
-    <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5">
+    <section class="min-w-0 space-y-5 rounded-box border border-base-300 bg-base-100 p-4 sm:p-6">
       <div class="flex items-center justify-between gap-3">
         <div>
           <h2 class="text-xl font-semibold">{{ t('admin.customizationLayoutPage.socialLinksTitle') }}</h2>
@@ -296,11 +312,11 @@
         <button class="btn btn-outline btn-sm" @click="addSocialLink">{{ t('admin.common.add') }}</button>
       </div>
 
-      <div class="space-y-4">
+      <div class="min-w-0 space-y-4">
         <article
           v-for="(link, index) in model.settings.socialLinks"
           :key="link.id"
-          class="rounded-2xl border border-base-300 p-5"
+          class="min-w-0 rounded-2xl border border-base-300 p-5"
         >
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="togglePanel(link.id)">
@@ -315,15 +331,15 @@
             <button class="btn btn-outline btn-error btn-xs" @click="model.settings.socialLinks.splice(index, 1)">{{ t('admin.common.delete') }}</button>
           </div>
 
-          <div v-if="isPanelOpen(link.id)" class="grid gap-4 lg:grid-cols-2">
-            <label class="form-control gap-2">
+          <div v-if="isPanelOpen(link.id)" class="grid min-w-0 gap-4 lg:grid-cols-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.idField') }}</span></span>
               <input v-model="link.id" class="input input-bordered w-full" />
             </label>
 
             <AdminIconPicker v-model="link.icon" :label="t('admin.customizationLayoutPage.iconField')" />
 
-            <label class="form-control gap-2 lg:col-span-2">
+            <label class="form-control min-w-0 gap-2 lg:col-span-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.urlField') }}</span></span>
               <input v-model="link.href" class="input input-bordered w-full" />
             </label>
@@ -336,14 +352,14 @@
       </div>
     </section>
 
-    <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5">
+    <section class="min-w-0 space-y-5 rounded-box border border-base-300 bg-base-100 p-4 sm:p-6">
       <div>
         <h2 class="text-xl font-semibold">{{ t('admin.customizationLayoutPage.footerTitle') }}</h2>
         <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationLayoutPage.footerDescription') }}</p>
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-2">
-        <label class="form-control gap-2">
+      <div class="grid min-w-0 gap-4 lg:grid-cols-2">
+        <label class="form-control min-w-0 gap-2">
           <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.footerContainerWidth') }}</span></span>
           <select v-model="model.settings.footer.containerWidth" class="select select-bordered w-full">
             <option v-for="width in SECTION_CONTAINER_WIDTHS" :key="width" :value="width">
@@ -351,26 +367,30 @@
             </option>
           </select>
         </label>
-        <label class="form-control gap-2">
+        <label class="form-control min-w-0 gap-2">
           <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.footerContainerAlign') }}</span></span>
           <select v-model="model.settings.footer.containerAlign" class="select select-bordered w-full">
             <option v-for="(label, value) in CMS_FOOTER_CONTAINER_ALIGN_LABELS" :key="value" :value="value">{{ label }}</option>
           </select>
         </label>
-        <ThemeColorPicker
-          v-model="model.settings.footer.backgroundColor"
-          :label="t('admin.customizationLayoutPage.footerBackground')"
-          :allowed-tokens="CMS_THEME_COLOR_TOKENS"
-          :allow-custom="false"
-          default-token="neutral"
-        />
-        <ThemeColorPicker
-          v-model="model.settings.footer.textColor"
-          :label="t('admin.customizationLayoutPage.footerText')"
-          :allowed-tokens="CMS_THEME_COLOR_TOKENS"
-          :allow-custom="false"
-          default-token="neutral-content"
-        />
+        <div class="min-w-0">
+          <ThemeColorPicker
+            v-model="model.settings.footer.backgroundColor"
+            :label="t('admin.customizationLayoutPage.footerBackground')"
+            :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+            :allow-custom="false"
+            default-token="neutral"
+          />
+        </div>
+        <div class="min-w-0">
+          <ThemeColorPicker
+            v-model="model.settings.footer.textColor"
+            :label="t('admin.customizationLayoutPage.footerText')"
+            :allowed-tokens="CMS_THEME_COLOR_TOKENS"
+            :allow-custom="false"
+            default-token="neutral-content"
+          />
+        </div>
       </div>
 
       <div class="overflow-hidden rounded-[2rem] border border-base-300">
@@ -380,11 +400,11 @@
         />
       </div>
 
-      <div class="space-y-6">
+      <div class="min-w-0 space-y-6">
         <article
           v-for="(column, columnIndex) in model.settings.footer.columns"
           :key="column.id"
-          class="rounded-2xl border border-base-300 p-5"
+          class="min-w-0 rounded-2xl border border-base-300 p-5"
         >
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="togglePanel(column.id)">
@@ -399,37 +419,37 @@
             <button v-if="isPanelOpen(column.id)" type="button" class="btn btn-outline btn-sm" @click="addFooterBlock(column, 'text')">{{ t('admin.customizationLayoutPage.addBlock') }}</button>
           </div>
 
-          <label v-if="isPanelOpen(column.id)" class="form-control gap-2 mb-4">
+          <label v-if="isPanelOpen(column.id)" class="form-control mb-4 min-w-0 gap-2">
             <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.technicalId') }}</span></span>
             <input v-model="column.id" class="input input-bordered w-full" />
           </label>
 
-          <div v-if="isPanelOpen(column.id)" class="grid gap-4 md:grid-cols-3 mb-4">
-            <label class="form-control gap-2">
+          <div v-if="isPanelOpen(column.id)" class="mb-4 grid min-w-0 gap-4 md:grid-cols-3">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.horizontalAlign') }}</span></span>
               <select v-model="column.align" class="select select-bordered w-full">
                 <option v-for="(label, value) in CMS_FOOTER_ALIGN_LABELS" :key="value" :value="value">{{ label }}</option>
               </select>
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.verticalAlign') }}</span></span>
               <select v-model="column.verticalAlign" class="select select-bordered w-full">
                 <option v-for="align in VERTICAL_ALIGNS" :key="align" :value="align">{{ align }}</option>
               </select>
             </label>
 
-            <label class="form-control gap-2">
+            <label class="form-control min-w-0 gap-2">
               <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.gapBetweenItems') }}</span></span>
               <input v-model.number="column.gapPx" type="number" min="4" max="64" step="2" class="input input-bordered w-full" />
             </label>
           </div>
 
-          <div v-if="isPanelOpen(column.id)" class="space-y-4">
+          <div v-if="isPanelOpen(column.id)" class="min-w-0 space-y-4">
             <article
               v-for="(block, blockIndex) in column.blocks"
               :key="block.id"
-              class="rounded-xl border border-base-300 p-4"
+              class="min-w-0 rounded-xl border border-base-300 p-4"
             >
               <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="togglePanel(block.id)">
@@ -449,7 +469,7 @@
                 </div>
               </div>
 
-              <label v-if="isPanelOpen(block.id)" class="form-control gap-2">
+              <label v-if="isPanelOpen(block.id)" class="form-control min-w-0 gap-2">
                 <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.blockType') }}</span></span>
                 <select v-model="block.type" class="select select-bordered w-full">
                   <option v-for="type in footerBlockTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
@@ -461,7 +481,7 @@
               </div>
 
               <div v-if="isPanelOpen(block.id) && block.type === 'navigation'" class="mt-4">
-                <label class="form-control gap-2">
+                <label class="form-control min-w-0 gap-2">
                   <span class="label"><span class="label-text">{{ t('admin.customizationLayoutPage.injectedMenu') }}</span></span>
                   <select v-model="block.navigationMenu" class="select select-bordered w-full">
                     <option value="PRIMARY">{{ t('admin.customizationLayoutPage.headerTitle') }}</option>

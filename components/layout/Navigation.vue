@@ -2,10 +2,11 @@
   <div
     ref="headerRef"
     id="site-header"
-    class="navbar z-50 border-b border-base-200 bg-base-100 px-4 sm:px-6 lg:px-8"
+    class="navbar border-b border-base-200 bg-base-100 px-4 sm:px-6 lg:px-8"
     :class="[
       headerSettings.sticky ? 'sticky top-0 shadow-sm' : '',
-      previewForceMobile ? 'site-header--mobile-preview' : ''
+      previewForceMobile ? 'site-header--mobile-preview' : '',
+      previewSiteConfig ? '' : 'z-50'
     ]"
     :style="headerStyle"
   >

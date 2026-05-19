@@ -167,6 +167,7 @@
                   <button type="button" class="btn btn-xs btn-outline" @click="addColumnItem('cards')">Cartes</button>
                   <button type="button" class="btn btn-xs btn-outline" @click="addColumnItem('image')">Image</button>
                   <button type="button" class="btn btn-xs btn-outline" @click="addColumnItem('carousel')">Carousel</button>
+                  <button type="button" class="btn btn-xs btn-outline" @click="addColumnItem('form')">Formulaire</button>
                 </div>
               </div>
 
@@ -339,6 +340,190 @@
                   <div v-else-if="isItemPanelOpen(item.id) && item.type === 'carousel'" class="space-y-4">
                     <AdminPageBuilderCarouselFields :carousel="item" />
                   </div>
+
+                  <div v-else-if="isItemPanelOpen(item.id) && item.type === 'form'" class="space-y-5">
+                    <div class="grid gap-4 md:grid-cols-2">
+                      <label class="form-control">
+                        <span class="label"><span class="label-text">Clé technique</span></span>
+                        <input v-model="item.formKey" class="input input-bordered w-full" />
+                      </label>
+                      <div class="form-control">
+                        <label class="label"><span class="label-text">Style du bouton</span></label>
+                        <select v-model="item.submitButtonTone" class="select select-bordered w-full">
+                          <option value="primary">primary</option>
+                          <option value="secondary">secondary</option>
+                          <option value="accent">accent</option>
+                          <option value="neutral">neutral</option>
+                          <option value="outline">outline</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="grid gap-4 lg:grid-cols-2">
+                      <ThemeColorPicker v-model="item.cardBackgroundColor" label="Fond de la carte du formulaire" default-token="base-100" />
+                      <ThemeColorPicker v-model="item.labelColor" label="Couleur des labels" default-token="base-content" />
+                      <ThemeColorPicker v-model="item.submitButtonBackgroundColor" label="Fond du bouton d’envoi" default-token="primary" />
+                      <ThemeColorPicker v-model="item.submitButtonTextColor" label="Texte du bouton d’envoi" default-token="primary-content" />
+                      <ThemeColorPicker v-model="item.submitButtonBorderColor" label="Bordure du bouton d’envoi" default-token="transparent" />
+                    </div>
+
+                    <AdminPageBuilderTranslationTabs :model-value="item.title" label="Titre du formulaire" />
+                    <AdminPageBuilderTranslationTabs :model-value="item.intro" label="Introduction" multiline />
+                    <AdminPageBuilderTranslationTabs :model-value="item.submitLabel" label="Libellé du bouton" />
+                    <AdminPageBuilderTranslationTabs :model-value="item.successMessage" label="Message de succès" multiline />
+
+                    <div class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-4">
+                      <div class="flex items-center justify-between gap-3">
+                        <div class="font-medium">Action à la soumission</div>
+                        <select v-model="item.action.type" class="select select-bordered select-sm">
+                          <option value="email">Email</option>
+                          <option value="internalWebhook">Fonction interne</option>
+                        </select>
+                      </div>
+
+                      <template v-if="item.action.type === 'email'">
+                        <label class="form-control">
+                          <span class="label"><span class="label-text">Email destinataire</span></span>
+                          <input v-model="item.action.to" class="input input-bordered w-full" placeholder="contact@site.fr" />
+                        </label>
+                        <label class="form-control">
+                          <span class="label"><span class="label-text">Action template email</span></span>
+                          <input v-model="item.action.templateAction" class="input input-bordered w-full" placeholder="contact ou action custom" />
+                        </label>
+                        <label class="form-control">
+                          <span class="label"><span class="label-text">Champ utilisé en reply-to</span></span>
+                          <input v-model="item.action.replyToFieldName" class="input input-bordered w-full" placeholder="email" />
+                        </label>
+                      </template>
+
+                      <template v-else>
+                        <label class="form-control">
+                          <span class="label"><span class="label-text">Action interne</span></span>
+                          <input v-model="item.action.actionKey" class="input input-bordered w-full" placeholder="log_submission" />
+                        </label>
+                      </template>
+                    </div>
+
+                    <div class="space-y-4">
+                      <div
+                        v-for="(formSection, sectionIndex) in item.sections"
+                        :key="formSection.id"
+                        class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-4"
+                      >
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                          <div class="font-medium">Section formulaire {{ sectionIndex + 1 }}</div>
+                          <div class="flex gap-2">
+                            <button type="button" class="btn btn-xs btn-outline" @click="addFormRow(formSection)">Ajouter une ligne</button>
+                            <button type="button" class="btn btn-xs btn-outline btn-error" @click="item.sections.splice(sectionIndex, 1)">Supprimer</button>
+                          </div>
+                        </div>
+
+                        <AdminPageBuilderTranslationTabs :model-value="formSection.title" label="Titre de section" />
+                        <AdminPageBuilderTranslationTabs :model-value="formSection.description" label="Description" multiline />
+
+                        <div
+                          v-for="(row, rowIndex) in formSection.rows"
+                          :key="row.id"
+                          class="rounded-xl border border-base-300 bg-base-200 p-4 space-y-4"
+                        >
+                          <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="font-medium">Ligne {{ rowIndex + 1 }}</div>
+                            <div class="flex gap-2">
+                              <button type="button" class="btn btn-xs btn-outline" @click="addFormField(row)">Ajouter un champ</button>
+                              <button type="button" class="btn btn-xs btn-outline btn-error" @click="formSection.rows.splice(rowIndex, 1)">Supprimer</button>
+                            </div>
+                          </div>
+
+                          <div
+                            v-for="(field, fieldIndex) in row.fields"
+                            :key="field.id"
+                            class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-4"
+                          >
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                              <div class="font-medium">Champ {{ fieldIndex + 1 }}</div>
+                              <button type="button" class="btn btn-xs btn-outline btn-error" @click="row.fields.splice(fieldIndex, 1)">Supprimer</button>
+                            </div>
+
+                            <div class="grid gap-4 md:grid-cols-2">
+                              <label class="form-control">
+                                <span class="label"><span class="label-text">Nom technique</span></span>
+                                <input v-model="field.name" class="input input-bordered w-full" />
+                              </label>
+                              <div class="form-control">
+                                <label class="label"><span class="label-text">Type</span></label>
+                                <select v-model="field.type" class="select select-bordered w-full" @change="onFormFieldTypeChange(field)">
+                                  <option v-for="type in PAGE_BUILDER_FORM_FIELD_TYPES" :key="type" :value="type">
+                                    {{ PAGE_BUILDER_FORM_FIELD_TYPE_LABELS[type] }}
+                                  </option>
+                                </select>
+                              </div>
+                              <div class="form-control">
+                                <label class="label"><span class="label-text">Largeur</span></label>
+                                <select v-model="field.width" class="select select-bordered w-full">
+                                  <option :value="1">{{ PAGE_BUILDER_FORM_FIELD_WIDTH_LABELS[1] }}</option>
+                                  <option :value="2">{{ PAGE_BUILDER_FORM_FIELD_WIDTH_LABELS[2] }}</option>
+                                </select>
+                              </div>
+                              <label class="label cursor-pointer justify-start gap-3">
+                                <input v-model="field.required" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
+                                <span class="label-text">Champ obligatoire</span>
+                              </label>
+                            </div>
+
+                            <AdminPageBuilderTranslationTabs :model-value="field.label" label="Label" />
+                            <AdminPageBuilderTranslationTabs :model-value="field.placeholder" label="Placeholder" />
+                            <AdminPageBuilderTranslationTabs :model-value="field.helpText" label="Aide" multiline />
+                            <AdminPageBuilderTranslationTabs :model-value="field.errorMessage" label="Message d’erreur" multiline />
+
+                            <div class="grid gap-4 md:grid-cols-2">
+                              <label class="form-control">
+                                <span class="label"><span class="label-text">Valeur par défaut</span></span>
+                                <input v-model="field.defaultValue" class="input input-bordered w-full" />
+                              </label>
+                              <label v-if="field.type === 'textarea'" class="form-control">
+                                <span class="label"><span class="label-text">Nombre de lignes minimum</span></span>
+                                <input v-model.number="field.textareaMinLines" type="number" min="2" max="20" class="input input-bordered w-full" />
+                              </label>
+                              <label v-if="field.type !== 'checkbox'" class="form-control md:col-span-2">
+                                <span class="label"><span class="label-text">Regex de validation</span></span>
+                                <input v-model="field.regexPattern" class="input input-bordered w-full" placeholder="^[A-Z0-9-]+$" />
+                              </label>
+                            </div>
+
+                            <label v-if="field.type === 'checkbox'" class="label cursor-pointer justify-start gap-3">
+                              <input v-model="field.defaultChecked" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
+                              <span class="label-text">Coché par défaut</span>
+                            </label>
+
+                            <div v-if="field.type === 'select' || field.type === 'radio'" class="space-y-3 rounded-xl border border-base-300 bg-base-200 p-4">
+                              <div class="flex items-center justify-between gap-2">
+                                <div class="font-medium">Options</div>
+                                <button type="button" class="btn btn-xs btn-outline" @click="addFormFieldOption(field)">Ajouter une option</button>
+                              </div>
+                              <div
+                                v-for="(option, optionIndex) in field.options"
+                                :key="option.id"
+                                class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-3"
+                              >
+                                <div class="flex justify-end">
+                                  <button type="button" class="btn btn-xs btn-outline btn-error" @click="field.options.splice(optionIndex, 1)">Supprimer</button>
+                                </div>
+                                <label class="form-control">
+                                  <span class="label"><span class="label-text">Valeur</span></span>
+                                  <input v-model="option.value" class="input input-bordered w-full" />
+                                </label>
+                                <AdminPageBuilderTranslationTabs :model-value="option.label" label="Label de l’option" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="flex justify-end">
+                        <button type="button" class="btn btn-sm btn-primary" @click="addFormSection(item)">Ajouter une section de formulaire</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -356,7 +541,7 @@ import AdminPageBuilderCarouselFields from '~/components/admin/page-builder/Caro
 import AdminPageBuilderCardFields from '~/components/admin/page-builder/CardFields.vue'
 import AdminPageBuilderSectionBackgroundFields from '~/components/admin/page-builder/SectionBackgroundFields.vue'
 import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, SectionColumnCount } from '~/shared/pageBuilder'
+import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderFormSection, SectionColumnCount } from '~/shared/pageBuilder'
 import {
   CARDS_DISPLAY_LABELS,
   CARDS_DISPLAYS,
@@ -367,8 +552,14 @@ import {
   createCardsItem,
   createEmptyButton,
   createEmptyCard,
+  createEmptyCardElement,
   createEmptyColumnsSection,
   createEmptyContentBlock,
+  createEmptyFormField,
+  createEmptyFormFieldOption,
+  createEmptyFormRow,
+  createEmptyFormSection,
+  createFormItem,
   createImageItem,
   createTextItem,
   createTitleItem,
@@ -379,6 +570,9 @@ import {
   HEADING_TAGS,
   IMAGE_ASPECTS,
   IMAGE_FITS,
+  PAGE_BUILDER_FORM_FIELD_TYPE_LABELS,
+  PAGE_BUILDER_FORM_FIELD_TYPES,
+  PAGE_BUILDER_FORM_FIELD_WIDTH_LABELS,
   SECTION_COLUMN_COUNTS,
   SECTION_COLUMN_COUNT_LABELS,
   SECTION_CONTAINER_WIDTH_LABELS,
@@ -507,6 +701,10 @@ const addColumnItem = (type: PageBuilderColumnItem['type']) => {
       newId = createId('carousel')
       selectedColumn.value.items.push(createCarouselItem(newId))
       break
+    case 'form':
+      newId = createId('form')
+      selectedColumn.value.items.push(createFormItem(newId))
+      break
   }
   if (newId) openPanel(newId)
 }
@@ -532,6 +730,7 @@ const itemLabel = (item: PageBuilderColumnItem) => {
     case 'cards': return 'Cartes'
     case 'image': return 'Image'
     case 'carousel': return 'Carousel'
+    case 'form': return 'Formulaire'
   }
 }
 
@@ -568,15 +767,27 @@ const itemSummary = (item: PageBuilderColumnItem) => {
       return `${item.cards.length} carte${item.cards.length > 1 ? 's' : ''}`
     case 'carousel':
       return `${item.slides.filter(slide => slide.imageUrl.trim()).length} slide${item.slides.filter(slide => slide.imageUrl.trim()).length > 1 ? 's' : ''}`
+    case 'form':
+      return `${item.sections.reduce((count, section) => count + section.rows.reduce((rowCount, row) => rowCount + row.fields.length, 0), 0)} champ${item.sections.reduce((count, section) => count + section.rows.reduce((rowCount, row) => rowCount + row.fields.length, 0), 0) > 1 ? 's' : ''}`
   }
 }
 
-const cardSummary = (card: { title: { fr: string, en: string }, text: { fr: string, en: string } }) =>
-  card.title.fr || card.title.en || card.text.fr || card.text.en || 'Carte sans contenu'
+const cardSummary = (card: { elements?: Array<{ title: { fr: string, en: string }, text: { fr: string, en: string } }>, title: { fr: string, en: string }, text: { fr: string, en: string } }) =>
+  card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.title.fr
+  || card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.title.en
+  || card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.text.fr
+  || card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.text.en
+  || card.title.fr || card.title.en || card.text.fr || card.text.en || 'Carte sans contenu'
 
 const addCard = (cards: Array<{ id: string }>) => {
   const newId = createId('card')
-  cards.push(createEmptyCard(newId))
+  cards.push({
+    ...createEmptyCard(newId),
+    elements: [
+      createEmptyCardElement(`${newId}-element-1`, 'title'),
+      createEmptyCardElement(`${newId}-element-2`, 'text')
+    ]
+  })
   openPanel(newId)
 }
 
@@ -586,6 +797,36 @@ const duplicateCard = (cards: PageBuilderCard[], index: number) => {
   const clone = duplicatePageBuilderCard(card)
   cards.splice(index + 1, 0, clone)
   openPanel(clone.id)
+}
+
+const addFormSection = (item: PageBuilderFormItem) => {
+  item.sections.push(createEmptyFormSection(createId('form-section')))
+}
+
+const addFormRow = (section: PageBuilderFormSection) => {
+  section.rows.push(createEmptyFormRow(createId('form-row')))
+}
+
+const addFormField = (row: PageBuilderFormRow) => {
+  if (row.fields.length >= 2) return
+  row.fields.push(createEmptyFormField(createId('form-field')))
+}
+
+const addFormFieldOption = (field: PageBuilderFormField) => {
+  field.options.push(createEmptyFormFieldOption(createId('form-option')))
+}
+
+const onFormFieldTypeChange = (field: PageBuilderFormField) => {
+  if (field.type === 'select' || field.type === 'radio') {
+    if (!field.options.length) {
+      field.options = [createEmptyFormFieldOption(createId('form-option'))]
+    }
+    return
+  }
+  field.options = []
+  if (field.type !== 'checkbox') {
+    field.defaultChecked = false
+  }
 }
 
 watch(selectedColumn, (column) => {

@@ -49,6 +49,7 @@
 <script setup lang="ts">
 import type { CmsLocale, CmsPagePayload, ResolvedCmsPage } from '~/shared/cms'
 import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
+import type { PageBuilderButton, PageBuilderCard, PageBuilderColumnItem, PageBuilderSection } from '~/shared/pageBuilder'
 import CmsPageRenderer from '~/components/cms/CmsPageRenderer.vue'
 import PageEditModal from '~/components/page-builder/PageEditModal.vue'
 import { useAuthStore } from '~/stores/auth'
@@ -128,6 +129,121 @@ function getErrorMessage(error: any, fallback: string) {
     || fallback
 }
 
+function allSections() {
+  return editableResolvedPage.value.content.sections || []
+}
+
+function findSectionById(id: string) {
+  return allSections().find(section => section.id === id) || null
+}
+
+function findItemById(id: string) {
+  for (const section of allSections()) {
+    for (const column of section.columns) {
+      const itemIndex = column.items.findIndex(item => item.id === id)
+      if (itemIndex >= 0) {
+        return {
+          section,
+          column,
+          item: column.items[itemIndex] as PageBuilderColumnItem,
+          itemIndex
+        }
+      }
+    }
+  }
+  return null
+}
+
+function findCardById(id: string) {
+  for (const section of allSections()) {
+    for (const column of section.columns) {
+      for (const item of column.items) {
+        if (item.type !== 'cards') continue
+        const cardIndex = item.cards.findIndex(card => card.id === id)
+        if (cardIndex >= 0) {
+          return {
+            section,
+            column,
+            item,
+            card: item.cards[cardIndex] as PageBuilderCard,
+            cardIndex
+          }
+        }
+      }
+    }
+  }
+  return null
+}
+
+function sameButton(a: PageBuilderButton | null | undefined, b: PageBuilderButton | null | undefined) {
+  return Boolean(
+    a && b
+    && a.href === b.href
+    && a.label.fr === b.label.fr
+    && a.label.en === b.label.en
+    && a.tone === b.tone
+    && a.size === b.size
+  )
+}
+
+function resolveLiveEditTarget(target: PageBuilderEditTarget): PageBuilderEditTarget {
+  if (target.kind === 'section') {
+    const sections = allSections()
+    const section = findSectionById(target.section.id) || sections[target.sectionIndex] || target.section
+    const sectionIndex = Math.max(0, sections.indexOf(section as PageBuilderSection))
+    return { ...target, section: section as PageBuilderSection, sections, sectionIndex }
+  }
+
+  if (target.kind === 'column') {
+    const section = findSectionById(target.section.id) || allSections()[target.sectionIndex] || target.section
+    const column = section?.columns[target.columnIndex] || target.column
+    return { ...target, section: section as PageBuilderSection, column, columnIndex: target.columnIndex }
+  }
+
+  if (target.kind === 'item') {
+    const found = findItemById(target.item.id)
+    if (!found) return target
+    return {
+      ...target,
+      item: found.item,
+      parentItems: found.column.items,
+      itemIndex: found.itemIndex
+    }
+  }
+
+  if (target.kind === 'card') {
+    const found = findCardById(target.card.id)
+    if (!found) return target
+    return {
+      ...target,
+      card: found.card,
+      parentCards: found.item.cards,
+      cardIndex: found.cardIndex
+    }
+  }
+
+  if (target.kind === 'button') {
+    for (const section of allSections()) {
+      for (const column of section.columns) {
+        for (const item of column.items) {
+          if (item.type === 'buttons') {
+            if (sameButton(item.primaryButton, target.button)) return { ...target, button: item.primaryButton! }
+            if (sameButton(item.secondaryButton, target.button)) return { ...target, button: item.secondaryButton! }
+          }
+          if (item.type === 'cards') {
+            for (const card of item.cards) {
+              if (sameButton(card.primaryButton, target.button)) return { ...target, button: card.primaryButton! }
+              if (sameButton(card.secondaryButton, target.button)) return { ...target, button: card.secondaryButton! }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return target
+}
+
 async function bootstrapCurrentPage() {
   const page = await $fetch<CmsPageEditor>('/api/admin/cms/bootstrap-current', {
     method: 'POST',
@@ -188,7 +304,7 @@ async function reloadEditorPage() {
 async function openLiveEditor(target: PageBuilderEditTarget) {
   const page = await ensureEditorPage()
   if (!page) return
-  activeTarget.value = target
+  activeTarget.value = resolveLiveEditTarget(target)
   modalOpen.value = true
 }
 

@@ -143,24 +143,51 @@
                       label="Carte"
                       @edit="emit('edit', { kind: 'card', label: `Carte colonne ${columnIndex + 1}`, card, parentCards: item.cards, cardIndex })"
                     >
-                      <div
-                        class="rounded-2xl border p-5 shadow-sm"
-                        :class="[cardClass(card), cardSizeClass(card, item.display)]"
-                        :style="cardStyle(card)"
-                      >
-                        <div class="flex items-center gap-3">
-                          <div v-if="card.icon" class="mb-3 w-fit rounded-xl p-3" :style="iconWrapperStyle(card)">
-                            <Icon :name="card.icon" size="22" />
+                        <div
+                          class="rounded-2xl border p-5 shadow-sm"
+                          :class="[cardClass(card), cardSizeClass(card, item.display)]"
+                          :style="cardStyle(card)"
+                        >
+                          <div class="space-y-4">
+                            <div
+                              v-for="element in resolvedCardElements(card)"
+                              :key="element.id"
+                              class="flex items-center gap-3 justify-start"
+                            >
+                              <div v-if="element.icon" class="mt-1 w-fit rounded-xl flex p-2.5" :style="iconWrapperStyle(card)">
+                                <Icon :name="element.icon" size="20" />
+                              </div>
+                              <div class="min-w-0 flex-1 space-y-1">
+                                <div
+                                  v-if="element.kind === 'title'"
+                                  class="font-semibold"
+                                  :class="cardTitleSizeClass(element.titleSize)"
+                                  :style="textColorStyle(card.textColor)"
+                                >
+                                  {{ pickLocalizedText(locale, element.title) }}
+                                </div>
+                                <template v-else>
+                                  <div
+                                    v-if="pickLocalizedText(locale, element.title)"
+                                    class="font-medium"
+                                    :class="cardTitleSizeClass(element.titleSize)"
+                                    :style="textColorStyle(card.textColor)"
+                                  >
+                                    {{ pickLocalizedText(locale, element.title) }}
+                                  </div>
+                                  <p
+                                    v-if="resolvedCardElementText(element as any)"
+                                    class="whitespace-pre-line"
+                                    :class="cardTextSizeClass(element.textSize)"
+                                    :style="textColorStyle(card.textColor, 0.8)"
+                                  >
+                                    {{ resolvedCardElementText(element as any) }}
+                                  </p>
+                                </template>
+                              </div>
+                            </div>
                           </div>
-                          <div class="font-semibold" :class="cardTitleSizeClass(card.titleSize)" :style="textColorStyle(card.textColor)">
-                            {{ pickLocalizedText(locale, card.title) }}
-                          </div>
-                        </div>
-                        
-                        <p class="mt-2" :class="cardTextSizeClass(card.textSize)" :style="textColorStyle(card.textColor, 0.8)">
-                          {{ pickLocalizedText(locale, card.text) }}
-                        </p>
-                        <div v-if="hasButton(card.primaryButton) || hasButton(card.secondaryButton)" class="mt-4 flex flex-wrap gap-2">
+                          <div v-if="hasButton(card.primaryButton) || hasButton(card.secondaryButton)" class="mt-4 flex flex-wrap gap-2">
                           <PageEditable
                             v-if="hasButton(card.primaryButton)"
                             inline
@@ -221,6 +248,16 @@
                     <div v-else class="px-4 text-sm opacity-60">Carousel vide</div>
                   </div>
                 </PageEditable>
+
+                <PageEditable
+                  v-else-if="item.type === 'form' && (editable || item.sections.length)"
+                  :editable="editable"
+                  label="Formulaire"
+                  button-position="top-left"
+                  @edit="emit('edit', { kind: 'item', label: `Formulaire colonne ${columnIndex + 1}`, item, parentItems: column.items, itemIndex })"
+                >
+                  <PageFormBlock :item="item" :locale="locale" />
+                </PageEditable>
               </template>
             </div>
             </PageEditable>
@@ -245,6 +282,7 @@ import type {
 } from '~/shared/pageBuilder'
 import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
 import PageEditable from '~/components/page-builder/PageEditable.vue'
+import PageFormBlock from '~/components/page-builder/PageFormBlock.vue'
 import PageMediaCarousel from '~/components/page-builder/PageMediaCarousel.vue'
 import PageSectionBackground from '~/components/page-builder/PageSectionBackground.vue'
 import { pickLocalizedText } from '~/shared/pageBuilder'
@@ -262,6 +300,11 @@ const emit = defineEmits<{
 }>()
 
 const localePath = useLocalePath()
+const siteConfigState = useSiteConfigState()
+
+if (process.server && !siteConfigState.value) {
+  await ensureSiteConfigState()
+}
 
 const THEME_COLOR_VARIABLES = {
   'base-100': '--color-base-100',
@@ -528,6 +571,61 @@ const buttonStyle = (button: PageBuilderButton) => {
   if (border) style.borderColor = border
   if (background || border) style.boxShadow = 'none'
   return style
+}
+
+const publicContactEmail = computed(() => siteConfigState.value?.contactEmail || siteConfigState.value?.adminEmail || '')
+const publicPhone = computed(() => siteConfigState.value?.adminPhone || '')
+const publicAddress = computed(() => siteConfigState.value?.farmPickup?.address || '')
+const openingHoursText = computed(() => {
+  const farmPickup = siteConfigState.value?.farmPickup
+  if (!farmPickup) return ''
+  const dayLabel = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][farmPickup.dayOfWeek] || ''
+  return [farmPickup.slotLabel, dayLabel && farmPickup.startTime && farmPickup.endTime ? `${dayLabel} de ${farmPickup.startTime} à ${farmPickup.endTime}` : '']
+    .filter(Boolean)
+    .join('\n')
+})
+
+const resolvedCardElementText = (element: PageBuilderCard['elements'][number]) => {
+  switch (element.source) {
+    case 'opening-hours':
+      return openingHoursText.value
+    case 'email':
+      return publicContactEmail.value
+    case 'phone':
+      return publicPhone.value
+    case 'address':
+      return publicAddress.value
+    default:
+      return pickLocalizedText(props.locale, element.text)
+  }
+}
+
+const resolvedCardElements = (card: PageBuilderCard) => {
+  if (card.elements?.length) return card.elements
+  const fallback = []
+  if (pickLocalizedText(props.locale, card.title)) {
+    fallback.push({
+      id: `${card.id}-legacy-title`,
+      kind: 'title',
+      icon: card.icon || '',
+      title: card.title,
+      text: { fr: '', en: '' },
+      titleSize: card.titleSize,
+      textSize: card.textSize
+    })
+  }
+  if (pickLocalizedText(props.locale, card.text)) {
+    fallback.push({
+      id: `${card.id}-legacy-text`,
+      kind: 'text',
+      icon: '',
+      title: { fr: '', en: '' },
+      text: card.text,
+      titleSize: 'sm' as const,
+      textSize: card.textSize
+    })
+  }
+  return fallback
 }
 
 const cardStyle = (card: PageBuilderCard) => {
