@@ -1099,7 +1099,7 @@
         "recipientCurrentUser": "Current user",
         "recipientFieldLabel": "Email field",
         "recipientEmail": "Recipient email",
-        "recipientEmailPlaceholder": "recipient@example.com",
+        "recipientEmailPlaceholder": "recipient email",
         "replyToField": "Reply-to field"
       },
       "saved": "Page saved",
