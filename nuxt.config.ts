@@ -3,7 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
-  debug: false,
+  debug: true,
   experimental: {
     appManifest: false
   },
@@ -122,6 +122,8 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    imageStorageDriver: process.env.IMAGE_STORAGE_DRIVER ?? 'r2',
+    imageFilesystemDir: process.env.IMAGE_FILESYSTEM_DIR ?? 'public/uploads',
     public: {
       inDevelopment: process.env.NUXT_PUBLIC_IN_DEVELOPMENT ?? 'false',
       facebookAppId: process.env.FACEBOOK_APP_ID,

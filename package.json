@@ -25,7 +25,11 @@
     "db:d1:push:prod": "node ./scripts/d1-sync.mjs d1-local-to-remote",
     "db:d1:pull:prod": "node ./scripts/d1-sync.mjs d1-remote-to-local",
     "r2:push:prod": "node ./scripts/r2-sync.mjs local-to-remote",
-    "r2:pull:prod": "node ./scripts/r2-sync.mjs remote-to-local"
+    "r2:pull:prod": "node ./scripts/r2-sync.mjs remote-to-local",
+    "images:optimize:r2:remote": "node ./scripts/optimize-r2-images.mjs --remote",
+    "images:optimize:r2:remote:dry": "node ./scripts/optimize-r2-images.mjs --remote --dry-run",
+    "images:optimize:r2:local": "node ./scripts/optimize-r2-images.mjs --local",
+    "images:optimize:r2:local:dry": "node ./scripts/optimize-r2-images.mjs --local --dry-run"
   },
   "dependencies": {
     "@nuxt/devtools": "3.2.4",

@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
 
   const object = await getUploadObject(filename)
   if (!object) {
-    throw createError({ statusCode: 404, statusMessage: 'Image introuvable dans R2' })
+    throw createError({ statusCode: 404, statusMessage: 'Image introuvable dans le stockage' })
   }
 
   setHeader(event, 'Content-Type', object.httpMetadata?.contentType || image.mimeType || 'application/octet-stream')
