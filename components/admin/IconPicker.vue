@@ -22,6 +22,12 @@
         v-if="isOpen"
         class="z-50 w-full rounded-xl border border-base-300 bg-base-100 p-3 shadow-lg"
       >
+        <div v-if="isLoading" class="flex items-center gap-2 py-6 text-sm opacity-70">
+          <span class="loading loading-spinner loading-sm" />
+          Chargement de la bibliothèque d’icônes…
+        </div>
+
+        <template v-else>
         <input
           v-model="search"
           class="input input-bordered input-sm mb-2 w-full"
@@ -56,14 +62,13 @@
             Faites défiler pour charger plus d’icônes
           </div>
         </div>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { icons as mdiIconSet } from '@iconify-json/mdi'
-
 const props = withDefaults(defineProps<{
   modelValue?: string
   label?: string
@@ -76,16 +81,56 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const ALL_ICONS = Object.keys(mdiIconSet.icons)
-  .map(name => `${mdiIconSet.prefix}:${name}`)
-  .sort((a, b) => a.localeCompare(b))
-
 const isOpen = ref(false)
+const isLoading = ref(false)
 const search = ref('')
 const visibleCount = ref(120)
+const allIcons = ref<string[]>([])
+
+const extractIconNames = (moduleValue: unknown): string[] => {
+  if (!moduleValue || typeof moduleValue !== 'object') {
+    return []
+  }
+
+  const record = moduleValue as Record<string, unknown>
+  const directIcons = record.icons
+
+  if (directIcons && typeof directIcons === 'object') {
+    const directRecord = directIcons as Record<string, unknown>
+
+    if (directRecord.icons && typeof directRecord.icons === 'object') {
+      return Object.keys(directRecord.icons as Record<string, unknown>)
+    }
+
+    return Object.keys(directRecord)
+  }
+
+  if (record.default && typeof record.default === 'object') {
+    return extractIconNames(record.default)
+  }
+
+  return []
+}
+
+const ensureIconsLoaded = async () => {
+  if (allIcons.value.length || isLoading.value) {
+    return
+  }
+
+  isLoading.value = true
+
+  try {
+    const mdiIconSet = await import('@iconify-json/mdi')
+    allIcons.value = extractIconNames(mdiIconSet)
+      .map(name => `mdi:${name}`)
+      .sort((a, b) => a.localeCompare(b))
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const filteredIcons = computed(() =>
-  ALL_ICONS.filter(icon => icon.toLowerCase().includes(search.value.toLowerCase().trim()))
+  allIcons.value.filter(icon => icon.toLowerCase().includes(search.value.toLowerCase().trim()))
 )
 
 const visibleIcons = computed(() => filteredIcons.value.slice(0, visibleCount.value))
@@ -110,5 +155,11 @@ const onScroll = (event: Event) => {
 
 watch([search, isOpen], () => {
   visibleCount.value = 120
+})
+
+watch(isOpen, (open) => {
+  if (open) {
+    void ensureIconsLoaded()
+  }
 })
 </script>

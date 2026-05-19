@@ -81,7 +81,6 @@ export default defineNuxtConfig({
       include: [
         '@vue/devtools-core',
         '@vue/devtools-kit',
-        '@tanstack/vue-query',
         '@iconify-json/mdi',
         '@tiptap/vue-3',
         '@tiptap/starter-kit',

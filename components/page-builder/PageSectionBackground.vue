@@ -6,6 +6,9 @@
         :alt="pickLocalizedText(locale, section.backgroundImage.alt)"
         class="h-full w-full"
         :class="mediaClass(section.backgroundImage.fit, section.backgroundImage.verticalAlign)"
+        :loading="priority ? 'eager' : 'lazy'"
+        :fetchpriority="priority ? 'high' : 'auto'"
+        decoding="async"
       />
       <div
         v-if="overlayStyle"
@@ -22,6 +25,7 @@
       :locale="locale"
       :overlay-style="overlayStyle"
       :overlay-blur="section.backgroundImage.blur"
+      :priority="priority"
     />
   </div>
 </template>
@@ -34,6 +38,7 @@ import PageMediaCarousel from '~/components/page-builder/PageMediaCarousel.vue'
 const props = defineProps<{
   section: PageBuilderSection
   locale: string
+  priority?: boolean
 }>()
 
 const THEME_COLOR_VARIABLES = {

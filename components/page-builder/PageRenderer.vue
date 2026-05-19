@@ -1,13 +1,14 @@
 <template>
   <div class="bg-base-100">
     <PageColumnsSection
-      v-for="section in enabledSections"
+      v-for="(section, sectionIndex) in enabledSections"
       :key="section.id"
       :section="section"
       :sections="content.sections"
       :section-index="content.sections.findIndex(item => item.id === section.id)"
       :locale="locale"
       :editable="editable"
+      :priority="sectionIndex === 0"
       @edit="$emit('edit', $event)"
     />
   </div>

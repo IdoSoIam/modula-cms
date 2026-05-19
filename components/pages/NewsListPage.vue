@@ -45,7 +45,7 @@
                 @click="navigateToArticle(a.slug)"
               >
                 <figure v-if="effectiveSettings.showCoverImage && a.coverUrl" class="h-48">
-                  <img :src="a.coverUrl" :alt="a.title" class="h-full w-full object-cover" />
+                  <img :src="a.coverUrl" :alt="a.title" class="h-full w-full object-cover" loading="lazy" decoding="async" />
                 </figure>
                 <div class="card-body">
                   <h2 class="card-title">{{ a.title }}</h2>
@@ -69,7 +69,7 @@
                 @click="navigateToArticle(a.slug)"
               >
                 <figure v-if="effectiveSettings.showCoverImage && a.coverUrl" class="shrink-0 lg:w-48">
-                  <img :src="a.coverUrl" :alt="a.title" class="h-48 w-full object-cover lg:h-full" />
+                  <img :src="a.coverUrl" :alt="a.title" class="h-48 w-full object-cover lg:h-full" loading="lazy" decoding="async" />
                 </figure>
                 <div class="card-body">
                   <h2 class="card-title">{{ a.title }}</h2>
@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import FacebookFeed from '~/components/FacebookFeed.vue'
+import { defineAsyncComponent } from 'vue'
 import type { CmsNewsPageSettings } from '~/shared/cms'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
 
@@ -113,6 +113,8 @@ const props = defineProps<{
   disableSeo?: boolean
 }>()
 
+const FacebookFeed = defineAsyncComponent(() => import('~/components/FacebookFeed.vue'))
+
 const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const router = useRouter()
@@ -123,7 +125,7 @@ const effectiveSettings = computed(() => props.settings || siteConfig.value?.cms
 
 const { data: articlesRaw, pending: articlesPending } = await useAsyncData<ArticleSummary[]>(
   'public-articles',
-  () => $fetch<ArticleSummary[]>('/api/articles' as string),
+  () => useArticles.value ? $fetch<ArticleSummary[]>('/api/articles' as string) : Promise.resolve([]),
   { watch: [useArticles], immediate: true }
 )
 

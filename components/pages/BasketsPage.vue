@@ -28,6 +28,9 @@
             :src="singleBasket.imageUrl"
             :alt="singleBasket.name"
             class="h-full w-full object-cover"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
           />
           <div v-else class="flex h-full items-center justify-center bg-base-200 text-base-content/40">
             <Icon name="mdi:basket-outline" size="96" />
@@ -99,7 +102,7 @@
         :style="cardStyle"
       >
         <figure v-if="effectiveSettings.showImages && basket.imageUrl" class="h-48 overflow-hidden">
-          <img :src="basket.imageUrl" :alt="basket.name" class="h-full w-full object-cover" />
+          <img :src="basket.imageUrl" :alt="basket.name" class="h-full w-full object-cover" loading="lazy" decoding="async" />
         </figure>
 
         <div class="card-body">
@@ -143,7 +146,7 @@
                       v-if="item.vegetable.imageUrl && hoveredVegetableKey === `${basket.id}-${idx}`"
                       class="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden rounded-box border border-base-300 bg-base-100 p-2 shadow-xl md:block"
                     >
-                      <img :src="item.vegetable.imageUrl" :alt="item.vegetable.name" class="h-40 w-40 rounded object-cover" />
+                      <img :src="item.vegetable.imageUrl" :alt="item.vegetable.name" class="h-40 w-40 rounded object-cover" loading="lazy" decoding="async" />
                     </div>
 
                     <span>{{ item.vegetable.name }} - {{ item.quantity }}{{ item.vegetable.unit === 'KG' ? ' kg' : ' x' }}</span>
@@ -434,6 +437,8 @@
           :src="vegetablePreview.url"
           :alt="vegetablePreview.name"
           class="max-h-[70vh] w-full rounded-box object-contain"
+          loading="lazy"
+          decoding="async"
         />
         <div class="modal-action">
           <button class="btn" @click="closeVegetablePreview">{{ $t('common.close') }}</button>

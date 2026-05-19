@@ -23,11 +23,10 @@
 </template>
 
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue'
 import type { ResolvedCmsPage } from '~/shared/cms'
 import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
 import PageRenderer from '~/components/page-builder/PageRenderer.vue'
-import BasketsPage from '~/components/pages/BasketsPage.vue'
-import NewsListPage from '~/components/pages/NewsListPage.vue'
 
 const props = defineProps<{
   resolvedPage: ResolvedCmsPage
@@ -38,6 +37,9 @@ const props = defineProps<{
 defineEmits<{
   edit: [target: PageBuilderEditTarget]
 }>()
+
+const BasketsPage = defineAsyncComponent(() => import('~/components/pages/BasketsPage.vue'))
+const NewsListPage = defineAsyncComponent(() => import('~/components/pages/NewsListPage.vue'))
 
 const siteConfig = useSiteConfigState()
 const cmsSettings = computed(() => siteConfig.value?.cms?.settings)

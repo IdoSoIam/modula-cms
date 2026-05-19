@@ -1,6 +1,8 @@
 import { prisma } from '../../prisma/client'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  setResponseHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800')
+
   const cities = await prisma.tourCity.findMany({
     select: { city: true, postalCodes: true },
     orderBy: { city: 'asc' }

@@ -9,6 +9,7 @@
         v-if="hasBackgroundMedia"
         :section="section"
         :locale="locale"
+        :priority="priority"
       />
 
       <div class="relative z-10 mx-auto flex w-full flex-col px-4 sm:px-6 lg:px-8" :class="containerWidthClass" :style="contentFrameStyle">
@@ -118,18 +119,33 @@
                   <div class="w-full" :class="[imageAspectClass(item.aspect), imageFrameClass(item), !item.imageUrl ? 'grid place-items-center border-dashed' : '']">
                     <template v-if="item.imageUrl">
                       <button
+                        v-if="item.lightboxEnabled"
                         type="button"
-                        class="block h-full w-full"
-                        :class="item.lightboxEnabled ? 'cursor-zoom-in' : 'cursor-default'"
-                        @click="item.lightboxEnabled && openLightbox([toLightboxSlide(item.imageUrl, item.alt, item.fit, item.verticalAlign)], 0)"
+                        class="block h-full w-full cursor-zoom-in"
+                        aria-label="Ouvrir l'image"
+                        @click="openLightbox([toLightboxSlide(item.imageUrl, item.alt, item.fit, item.verticalAlign)], 0)"
                       >
                         <img
                           :src="item.imageUrl"
                           :alt="pickLocalizedText(locale, item.alt)"
                           class="h-full w-full"
                           :class="imageClass(item)"
+                          :loading="priority && columnIndex === 0 && itemIndex === 0 ? 'eager' : 'lazy'"
+                          :fetchpriority="priority && columnIndex === 0 && itemIndex === 0 ? 'high' : 'auto'"
+                          decoding="async"
                         />
                       </button>
+                      <div v-else class="h-full w-full">
+                        <img
+                          :src="item.imageUrl"
+                          :alt="pickLocalizedText(locale, item.alt)"
+                          class="h-full w-full"
+                          :class="imageClass(item)"
+                          :loading="priority && columnIndex === 0 && itemIndex === 0 ? 'eager' : 'lazy'"
+                          :fetchpriority="priority && columnIndex === 0 && itemIndex === 0 ? 'high' : 'auto'"
+                          decoding="async"
+                        />
+                      </div>
                     </template>
                     <div v-else class="px-4 text-sm opacity-60">Image vide</div>
                   </div>
@@ -268,6 +284,7 @@
                       :settings="item.settings"
                       :locale="locale"
                       :interactive="item.lightboxEnabled"
+                      :priority="priority && columnIndex === 0 && itemIndex === 0"
                       @open="(index) => openLightbox(item.slides.filter(slide => slide.imageUrl.trim()), index)"
                     />
                     <div v-else class="px-4 text-sm opacity-60">Carousel vide</div>
@@ -327,6 +344,7 @@ const props = defineProps<{
   sectionIndex: number
   locale: string
   editable?: boolean
+  priority?: boolean
 }>()
 
 const emit = defineEmits<{

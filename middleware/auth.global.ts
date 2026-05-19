@@ -4,11 +4,20 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const authStore = useAuthStore()
   const localePath = useLocalePath()
   const normalizedPath = to.path.replace(/^\/en(?=\/|$)/, '') || '/'
+  const adminRoutes = ['/admin', '/facebook-test']
+  const protectedRoutes = ['/profile', '/commandes']
+  const authAwareRoutes = ['/login', '/construction']
+  const needsAuthState = hasAuthSessionCookie()
+    || adminRoutes.some(route => normalizedPath.startsWith(route))
+    || protectedRoutes.some(route => normalizedPath.startsWith(route))
+    || authAwareRoutes.includes(normalizedPath)
 
-  try {
-    await authStore.ensureInitialized()
-  } catch (error) {
-    console.debug('Auth check failed:', error)
+  if (needsAuthState) {
+    try {
+      await authStore.ensureInitialized()
+    } catch (error) {
+      console.debug('Auth check failed:', error)
+    }
   }
 
   let inDevelopment = false
@@ -24,8 +33,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
     console.debug('Site config check failed:', error)
   }
 
-  const adminRoutes = ['/admin', '/facebook-test']
-  const protectedRoutes = ['/profile', '/commandes']
   const publicAllowedInDevelopment = ['/login', '/construction', constructionPath]
 
   if (

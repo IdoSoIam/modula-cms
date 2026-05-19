@@ -6,6 +6,12 @@ export default defineEventHandler(async (event) => {
   const locale = typeof query.locale === 'string' ? query.locale : 'fr'
   const includeDraft = query.includeDraft === 'true'
 
+  if (!includeDraft) {
+    setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
+  } else {
+    setResponseHeader(event, 'Cache-Control', 'no-store')
+  }
+
   const page = await resolvePublicCmsPage(path, locale, includeDraft)
 
   if (!page) {

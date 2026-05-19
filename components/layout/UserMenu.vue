@@ -24,7 +24,7 @@
           </div>
         </template>
         <div class="px-3 py-2 hover:bg-base-200">
-          <a class="inline-flex text-sm text-primary cursor-pointer" @click="handleLogout">{{ $t('auth.logout') }}</a>
+          <button type="button" class="inline-flex cursor-pointer text-sm text-primary" @click="handleLogout">{{ $t('auth.logout') }}</button>
         </div>
       </template>
     </ul>

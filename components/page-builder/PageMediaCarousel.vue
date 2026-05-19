@@ -13,9 +13,10 @@
         :class="currentIndex === slideIndex ? 'z-[1] opacity-100' : 'pointer-events-none opacity-0'"
       >
         <button
+          v-if="interactive"
           type="button"
-          class="block h-full w-full"
-          :class="interactive ? 'cursor-zoom-in' : 'cursor-default'"
+          class="block h-full w-full cursor-zoom-in"
+          :aria-label="slideButtonLabel(slideIndex)"
           @click="openViewer(slideIndex)"
         >
           <img
@@ -23,8 +24,22 @@
             :alt="pickLocalizedText(locale, slide.alt)"
             class="h-full w-full"
             :class="mediaClass(slide.fit, slide.verticalAlign)"
+            :loading="imageLoading(slideIndex)"
+            :fetchpriority="imageFetchPriority(slideIndex)"
+            decoding="async"
           >
         </button>
+        <div v-else class="h-full w-full">
+          <img
+            :src="slide.imageUrl"
+            :alt="pickLocalizedText(locale, slide.alt)"
+            class="h-full w-full"
+            :class="mediaClass(slide.fit, slide.verticalAlign)"
+            :loading="imageLoading(slideIndex)"
+            :fetchpriority="imageFetchPriority(slideIndex)"
+            decoding="async"
+          >
+        </div>
       </div>
     </template>
 
@@ -42,9 +57,10 @@
           :style="slideStyle"
         >
           <button
+            v-if="interactive"
             type="button"
-            class="block h-full w-full"
-            :class="interactive ? 'cursor-zoom-in' : 'cursor-default'"
+            class="block h-full w-full cursor-zoom-in"
+            :aria-label="slideButtonLabel(currentIndex)"
             @click="openViewer(currentIndex)"
           >
             <img
@@ -52,8 +68,22 @@
               :alt="pickLocalizedText(locale, slide.alt)"
               class="h-full w-full"
               :class="mediaClass(slide.fit, slide.verticalAlign)"
+              :loading="imageLoading(slideIndex)"
+              :fetchpriority="imageFetchPriority(slideIndex)"
+              decoding="async"
             >
           </button>
+          <div v-else class="h-full w-full">
+            <img
+              :src="slide.imageUrl"
+              :alt="pickLocalizedText(locale, slide.alt)"
+              class="h-full w-full"
+              :class="mediaClass(slide.fit, slide.verticalAlign)"
+              :loading="imageLoading(slideIndex)"
+              :fetchpriority="imageFetchPriority(slideIndex)"
+              decoding="async"
+            >
+          </div>
         </div>
       </div>
     </template>
@@ -75,6 +105,7 @@
         type="button"
         class="pointer-events-auto btn btn-xs btn-circle border-white/40 bg-black/25 text-white hover:bg-black/45"
         :class="currentIndex === slideIndex ? 'ring-2 ring-white/70' : ''"
+        :aria-label="dotButtonLabel(slideIndex)"
         @click="goTo(slideIndex)"
       />
     </div>
@@ -86,6 +117,7 @@
       <button
         type="button"
         class="pointer-events-auto btn btn-circle btn-sm border-white/40 bg-black/25 text-white hover:bg-black/45"
+        aria-label="Image précédente"
         @click="prev"
       >
         <Icon name="mdi:chevron-left" size="18" />
@@ -93,6 +125,7 @@
       <button
         type="button"
         class="pointer-events-auto btn btn-circle btn-sm border-white/40 bg-black/25 text-white hover:bg-black/45"
+        aria-label="Image suivante"
         @click="next"
       >
         <Icon name="mdi:chevron-right" size="18" />
@@ -115,6 +148,7 @@ const props = defineProps<{
   overlayStyle?: Record<string, string> | null
   overlayBlur?: boolean
   interactive?: boolean
+  priority?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -176,6 +210,16 @@ const openViewer = (index: number) => {
   if (!props.interactive) return
   emit('open', index)
 }
+
+const prioritySlideIndex = computed(() => {
+  if (!props.priority || !props.slides.length) return -1
+  return props.settings.animation === 'slide' && useInfiniteSlideMode.value ? 1 : 0
+})
+
+const imageLoading = (slideIndex: number) => slideIndex === prioritySlideIndex.value ? 'eager' : 'lazy'
+const imageFetchPriority = (slideIndex: number) => slideIndex === prioritySlideIndex.value ? 'high' : 'auto'
+const slideButtonLabel = (slideIndex: number) => `Ouvrir l'image ${slideIndex + 1}`
+const dotButtonLabel = (slideIndex: number) => `Afficher l'image ${slideIndex + 1}`
 
 const stopAutoplay = () => {
   if (autoplayTimer) {

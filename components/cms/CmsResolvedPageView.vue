@@ -47,11 +47,11 @@
 </template>
 
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue'
 import type { CmsLocale, CmsPagePayload, ResolvedCmsPage } from '~/shared/cms'
 import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
 import type { PageBuilderButton, PageBuilderCard, PageBuilderColumnItem, PageBuilderSection } from '~/shared/pageBuilder'
 import CmsPageRenderer from '~/components/cms/CmsPageRenderer.vue'
-import PageEditModal from '~/components/page-builder/PageEditModal.vue'
 import { useAuthStore } from '~/stores/auth'
 
 interface CmsPageEditor extends CmsPagePayload {
@@ -61,6 +61,8 @@ interface CmsPageEditor extends CmsPagePayload {
 const props = defineProps<{
   resolvedPage: ResolvedCmsPage
 }>()
+
+const PageEditModal = defineAsyncComponent(() => import('~/components/page-builder/PageEditModal.vue'))
 
 const route = useRoute()
 const { locale } = useI18n()
