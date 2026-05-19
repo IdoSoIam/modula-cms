@@ -23,14 +23,14 @@
     <div v-else-if="singleBasket" class="overflow-hidden rounded-[2rem] border border-base-300 bg-base-100 shadow-xl">
       <div class="grid gap-0 lg:grid-cols-[1.1fr_.9fr]">
         <div class="relative min-h-[320px] bg-base-200">
-          <img
+          <AppImage
             v-if="effectiveSettings.showImages && singleBasket.imageUrl"
             :src="singleBasket.imageUrl"
             :alt="singleBasket.name"
             class="h-full w-full object-cover"
+            sizes="(max-width: 1024px) 100vw, 55vw"
             loading="eager"
             fetchpriority="high"
-            decoding="async"
           />
           <div v-else class="flex h-full items-center justify-center bg-base-200 text-base-content/40">
             <Icon name="mdi:basket-outline" size="96" />
@@ -102,7 +102,7 @@
         :style="cardStyle"
       >
         <figure v-if="effectiveSettings.showImages && basket.imageUrl" class="h-48 overflow-hidden">
-          <img :src="basket.imageUrl" :alt="basket.name" class="h-full w-full object-cover" loading="lazy" decoding="async" />
+          <AppImage :src="basket.imageUrl" :alt="basket.name" class="h-full w-full object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" loading="lazy" />
         </figure>
 
         <div class="card-body">
@@ -146,7 +146,7 @@
                       v-if="item.vegetable.imageUrl && hoveredVegetableKey === `${basket.id}-${idx}`"
                       class="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden rounded-box border border-base-300 bg-base-100 p-2 shadow-xl md:block"
                     >
-                      <img :src="item.vegetable.imageUrl" :alt="item.vegetable.name" class="h-40 w-40 rounded object-cover" loading="lazy" decoding="async" />
+                      <AppImage :src="item.vegetable.imageUrl" :alt="item.vegetable.name" class="h-40 w-40 rounded object-cover" sizes="160px" loading="lazy" />
                     </div>
 
                     <span>{{ item.vegetable.name }} - {{ item.quantity }}{{ item.vegetable.unit === 'KG' ? ' kg' : ' x' }}</span>
@@ -432,13 +432,13 @@
     <dialog ref="vegetablePreviewDialog" class="modal">
       <div class="modal-box max-w-md">
         <h3 class="mb-3 text-lg font-bold">{{ vegetablePreview.name }}</h3>
-        <img
+        <AppImage
           v-if="vegetablePreview.url"
           :src="vegetablePreview.url"
           :alt="vegetablePreview.name"
           class="max-h-[70vh] w-full rounded-box object-contain"
+          sizes="(max-width: 768px) 100vw, 480px"
           loading="lazy"
-          decoding="async"
         />
         <div class="modal-action">
           <button class="btn" @click="closeVegetablePreview">{{ $t('common.close') }}</button>

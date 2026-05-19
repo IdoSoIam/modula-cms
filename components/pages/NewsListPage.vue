@@ -45,7 +45,7 @@
                 @click="navigateToArticle(a.slug)"
               >
                 <figure v-if="effectiveSettings.showCoverImage && a.coverUrl" class="h-48">
-                  <img :src="a.coverUrl" :alt="a.title" class="h-full w-full object-cover" loading="lazy" decoding="async" />
+                  <AppImage :src="a.coverUrl" :alt="a.title" class="h-full w-full object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" loading="lazy" />
                 </figure>
                 <div class="card-body">
                   <h2 class="card-title">{{ a.title }}</h2>
@@ -69,7 +69,7 @@
                 @click="navigateToArticle(a.slug)"
               >
                 <figure v-if="effectiveSettings.showCoverImage && a.coverUrl" class="shrink-0 lg:w-48">
-                  <img :src="a.coverUrl" :alt="a.title" class="h-48 w-full object-cover lg:h-full" loading="lazy" decoding="async" />
+                  <AppImage :src="a.coverUrl" :alt="a.title" class="h-48 w-full object-cover lg:h-full" sizes="(max-width: 1024px) 100vw, 320px" loading="lazy" />
                 </figure>
                 <div class="card-body">
                   <h2 class="card-title">{{ a.title }}</h2>

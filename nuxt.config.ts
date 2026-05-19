@@ -1,9 +1,19 @@
 import tailwindcss from '@tailwindcss/vite'
 
+const imageDeliveryMode = process.env.IMAGE_DELIVERY_MODE ?? (process.env.IMAGE_STORAGE_DRIVER === 'r2' ? 'cloudflare' : 'ipx')
+const imageCloudflareBaseURL = process.env.IMAGE_CLOUDFLARE_BASE_URL ?? process.env.SITE_URL ?? '/'
+const imageCloudflareHostname = (() => {
+  try {
+    return new URL(imageCloudflareBaseURL).host
+  } catch {
+    return ''
+  }
+})()
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
-  debug: true,
+  debug: false,
   experimental: {
     appManifest: false
   },
@@ -93,6 +103,14 @@ export default defineNuxtConfig({
     '@/assets/css/tailwind.css',
     '@/assets/css/main.css',
   ],
+  image: {
+    quality: 80,
+    format: ['webp'],
+    densities: [1, 2],
+    cloudflare: {
+      baseURL: imageCloudflareBaseURL
+    }
+  },
   i18n: {
     strategy: 'prefix_except_default',
     customRoutes: 'meta',
@@ -122,10 +140,24 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    ipx: {
+      http: {
+        domains: [
+          'localhost:3000',
+          '127.0.0.1:3000',
+          'localhost',
+          '127.0.0.1',
+          imageCloudflareHostname
+        ].filter(Boolean).join(',')
+      }
+    },
     imageStorageDriver: process.env.IMAGE_STORAGE_DRIVER ?? 'r2',
     imageFilesystemDir: process.env.IMAGE_FILESYSTEM_DIR ?? 'public/uploads',
     public: {
       inDevelopment: process.env.NUXT_PUBLIC_IN_DEVELOPMENT ?? 'false',
+      imageStorageDriver: process.env.IMAGE_STORAGE_DRIVER ?? 'r2',
+      imageDeliveryMode,
+      imageCloudflareBaseURL,
       facebookAppId: process.env.FACEBOOK_APP_ID,
       facebookPageId: process.env.FACEBOOK_PAGE_ID
     }

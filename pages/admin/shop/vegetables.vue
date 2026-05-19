@@ -24,7 +24,7 @@
         <tbody>
           <tr v-for="v in vegetables" :key="v.id">
             <td>
-              <img v-if="v.imageUrl" :src="v.imageUrl" :alt="v.name" class="w-12 h-12 object-cover rounded" />
+              <AppImage v-if="v.imageUrl" :src="v.imageUrl" :alt="v.name" class="w-12 h-12 object-cover rounded" sizes="48px" />
               <div v-else class="w-12 h-12 bg-base-300 rounded flex items-center justify-center">
                 <Icon name="mdi:image-off-outline" size="18" class="opacity-40" />
               </div>

@@ -10,10 +10,11 @@
       >
         <template v-for="block in column.blocks" :key="block.id">
           <div v-if="block.type === 'logo'" class="max-w-[220px]">
-            <img
-              :src="cms?.settings.logo.src"
+            <AppImage
+              :src="logoSrc"
               :alt="pickText(cms?.settings.logo.alt)"
               class="h-auto max-h-24 w-auto"
+              sizes="220px"
             />
           </div>
 
@@ -168,6 +169,12 @@ const siteName = computed(() => effectiveLocale.value === 'en'
 const siteTagline = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.siteTagline.en || ''
   : cms.value?.settings.siteTagline.fr || '')
+const logoSrc = computed(() => {
+  const src = cms.value?.settings.logo.src?.trim()
+  if (!src) return '/images/logo-removebg-preview.png'
+  if (src.startsWith('/') || /^[a-z]+:\/\//i.test(src) || src.startsWith('data:')) return src
+  return `/images/${src.replace(/^\.?\//, '')}`
+})
 const copyrightText = computed(() => {
   const value = cms.value?.settings.footer.copyright
   return effectiveLocale.value === 'en' ? value?.en || '' : value?.fr || ''

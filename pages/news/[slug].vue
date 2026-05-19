@@ -11,7 +11,7 @@
         {{ $t('pages.news.publishedOn') }} {{ formatDate(article.publishedAt) }}
       </p>
       <figure v-if="article.coverUrl" class="mb-6 rounded-box overflow-hidden">
-        <img :src="article.coverUrl" :alt="article.title" class="w-full max-h-96 object-cover" />
+        <AppImage :src="article.coverUrl" :alt="article.title" class="w-full max-h-96 object-cover" sizes="(max-width: 768px) 100vw, 768px" loading="eager" fetchpriority="high" />
       </figure>
       <div class="prose max-w-none article-content" v-html="article.content" />
     </article>

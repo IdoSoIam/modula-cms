@@ -1,19 +1,19 @@
 <template>
   <div class="absolute inset-0 overflow-hidden">
     <template v-if="section.backgroundMode === 'image' && section.backgroundImage.imageUrl">
-      <img
+      <AppImage
         :src="section.backgroundImage.imageUrl"
         :alt="pickLocalizedText(locale, section.backgroundImage.alt)"
         class="h-full w-full"
         :class="mediaClass(section.backgroundImage.fit, section.backgroundImage.verticalAlign)"
+        sizes="100vw"
         :loading="priority ? 'eager' : 'lazy'"
         :fetchpriority="priority ? 'high' : 'auto'"
-        decoding="async"
       />
       <div
         v-if="overlayStyle"
         class="absolute inset-0"
-        :class="section.backgroundImage.blur ? 'backdrop-blur-sm' : ''"
+        :class="section.backgroundImage.blur ? 'md:backdrop-blur-sm' : ''"
         :style="overlayStyle"
       />
     </template>

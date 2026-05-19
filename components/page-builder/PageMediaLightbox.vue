@@ -43,14 +43,15 @@
             @pointercancel="onPointerUp"
             @pointerleave="onPointerUp"
           >
-            <img
+            <AppImage
               v-if="currentSlide"
               :src="currentSlide.imageUrl"
               :alt="currentSlideAlt"
               class="max-h-full max-w-full select-none object-contain transition-transform duration-100"
               :style="imageTransformStyle"
+              fit="contain"
               draggable="false"
-            >
+            />
           </div>
 
           <button
@@ -77,12 +78,13 @@
               :class="slideIndex === currentSlideIndex ? 'border-white ring-2 ring-white/50' : 'border-white/15 opacity-80 hover:opacity-100'"
               @click="goTo(slideIndex)"
             >
-              <img
+              <AppImage
                 :src="slide.imageUrl"
                 :alt="pickLocalizedText(locale, slide.alt)"
                 class="h-full w-full object-cover"
+                sizes="80px"
                 draggable="false"
-              >
+              />
             </button>
           </div>
         </div>

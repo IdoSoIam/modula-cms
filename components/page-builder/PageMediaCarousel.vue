@@ -9,7 +9,7 @@
       <div
         v-for="(slide, slideIndex) in slides"
         :key="slide.id"
-        class="absolute inset-0 transition-opacity duration-700"
+        class="absolute inset-0 transition-opacity duration-500 motion-reduce:transition-none"
         :class="currentIndex === slideIndex ? 'z-[1] opacity-100' : 'pointer-events-none opacity-0'"
       >
         <button
@@ -19,33 +19,33 @@
           :aria-label="slideButtonLabel(slideIndex)"
           @click="openViewer(slideIndex)"
         >
-          <img
+          <AppImage
             :src="slide.imageUrl"
             :alt="pickLocalizedText(locale, slide.alt)"
             class="h-full w-full"
             :class="mediaClass(slide.fit, slide.verticalAlign)"
+            sizes="100vw"
             :loading="imageLoading(slideIndex)"
             :fetchpriority="imageFetchPriority(slideIndex)"
-            decoding="async"
-          >
+          />
         </button>
         <div v-else class="h-full w-full">
-          <img
+          <AppImage
             :src="slide.imageUrl"
             :alt="pickLocalizedText(locale, slide.alt)"
             class="h-full w-full"
             :class="mediaClass(slide.fit, slide.verticalAlign)"
+            sizes="100vw"
             :loading="imageLoading(slideIndex)"
             :fetchpriority="imageFetchPriority(slideIndex)"
-            decoding="async"
-          >
+          />
         </div>
       </div>
     </template>
 
     <template v-else>
       <div
-        class="flex h-full"
+        class="flex h-full transform-gpu"
         :class="trackTransitionClass"
         :style="slideTrackStyle"
         @transitionend="handleSlideTransitionEnd"
@@ -63,26 +63,26 @@
             :aria-label="slideButtonLabel(currentIndex)"
             @click="openViewer(currentIndex)"
           >
-            <img
+            <AppImage
               :src="slide.imageUrl"
               :alt="pickLocalizedText(locale, slide.alt)"
               class="h-full w-full"
               :class="mediaClass(slide.fit, slide.verticalAlign)"
+              sizes="100vw"
               :loading="imageLoading(slideIndex)"
               :fetchpriority="imageFetchPriority(slideIndex)"
-              decoding="async"
-            >
+            />
           </button>
           <div v-else class="h-full w-full">
-            <img
+            <AppImage
               :src="slide.imageUrl"
               :alt="pickLocalizedText(locale, slide.alt)"
               class="h-full w-full"
               :class="mediaClass(slide.fit, slide.verticalAlign)"
+              sizes="100vw"
               :loading="imageLoading(slideIndex)"
               :fetchpriority="imageFetchPriority(slideIndex)"
-              decoding="async"
-            >
+            />
           </div>
         </div>
       </div>
@@ -91,7 +91,7 @@
     <div
       v-if="overlayStyle"
       class="pointer-events-none absolute inset-0"
-      :class="overlayBlur ? 'backdrop-blur-sm' : ''"
+      :class="overlayBlur ? 'md:backdrop-blur-sm' : ''"
       :style="overlayStyle"
     />
 
@@ -180,7 +180,7 @@ const renderedSlides = computed<PageBuilderSectionBackgroundCarouselSlide[]>(() 
 })
 
 const trackTransitionClass = computed(() =>
-  isTransitionEnabled.value ? 'transition-transform duration-700 ease-out' : ''
+  isTransitionEnabled.value ? 'transition-transform duration-500 ease-out motion-reduce:transition-none' : ''
 )
 
 const slideWidthPercent = computed(() =>

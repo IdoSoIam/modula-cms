@@ -23,7 +23,7 @@
           class="relative group aspect-square overflow-hidden rounded border border-base-300 hover:border-primary"
           @click="select(img)"
         >
-          <img :src="img.url" :alt="img.filename" class="w-full h-full object-cover" loading="lazy" />
+          <AppImage :src="img.url" :alt="img.filename" class="w-full h-full object-cover" sizes="160px" loading="lazy" />
         </button>
       </div>
 

@@ -4,7 +4,7 @@
     <aside class="min-h-full w-80 space-y-4 overflow-y-auto bg-base-100 p-4">
       <div class="rounded-2xl border border-base-300 bg-base-200/40 p-4">
         <div class="flex items-center gap-3" :class="mobileBrandClass">
-          <img :src="logoSrc" :alt="logoAlt" class="h-auto w-auto shrink-0" :style="{ height: `${headerSettings.mobileLogoHeightPx + 8}px` }" />
+          <AppImage :src="logoSrc" :alt="logoAlt" class="h-auto w-auto shrink-0" sizes="180px" :style="{ height: `${headerSettings.mobileLogoHeightPx + 8}px` }" />
           <div v-if="showMobileMenuBrandText" class="min-w-0">
             <div v-if="headerSettings.mobileMenuShowSiteName" class="whitespace-normal break-words text-base font-bold leading-tight">
               {{ siteName }}
@@ -232,7 +232,14 @@ const siteName = computed(() => effectiveLocale.value === 'en'
 const siteTagline = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.siteTagline.en || ''
   : cms.value?.settings.siteTagline.fr || '')
-const logoSrc = computed(() => cms.value?.settings.logo.src || '/images/logo-removebg-preview.png')
+const normalizeLogoSrc = (value?: string | null) => {
+  const src = value?.trim()
+  if (!src) return '/images/logo-removebg-preview.png'
+  if (src.startsWith('/') || /^[a-z]+:\/\//i.test(src) || src.startsWith('data:')) return src
+  return `/images/${src.replace(/^\.?\//, '')}`
+}
+
+const logoSrc = computed(() => normalizeLogoSrc(cms.value?.settings.logo.src))
 const logoAlt = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.logo.alt.en || 'Logo'
   : cms.value?.settings.logo.alt.fr || 'Logo')

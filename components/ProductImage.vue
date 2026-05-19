@@ -15,12 +15,13 @@
 
 <template>
   <div :class="customClass">
-    <img
+    <AppImage
       v-if="src && !hasError"
       :src="src"
       :alt="alt"
       @error="handleError"
       class="w-full h-full object-cover"
+      sizes="(max-width: 768px) 100vw, 33vw"
     />
     <ImagePlaceholder
       v-else

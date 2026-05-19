@@ -28,6 +28,10 @@
     "GOOGLE_CLIENT_ID": "20869168628-br2ql6hphfmocsd6f2a671m4krp335vn.apps.googleusercontent.com",
     "GOOGLE_REDIRECT_URI": "https://ferme-du-campeyrigoux.ferme-du-campeyrigoux.workers.dev/api/auth/gmail/callback",
     "FACEBOOK_APP_ID": "9776316235782895",
-    "FACEBOOK_PAGE_ID": "61576375959577"
+    "FACEBOOK_PAGE_ID": "61576375959577",
+    "IMAGE_STORAGE_DRIVER": "r2",
+    "IMAGE_FILESYSTEM_DIR": "public/uploads",
+    "IMAGE_DELIVERY_MODE": "cloudflare",
+    "IMAGE_CLOUDFLARE_BASE_URL": "https://ferme-du-campeyrigoux.ferme-du-campeyrigoux.workers.dev"
   }
 }

@@ -24,7 +24,7 @@
         class="group overflow-hidden rounded-box border border-base-300 bg-base-100 text-left transition hover:border-primary"
         @click="openEditor(img)"
       >
-        <img :src="img.url" :alt="img.filename" class="aspect-square w-full object-cover" loading="lazy" />
+        <AppImage :src="img.url" :alt="img.filename" class="aspect-square w-full object-cover" sizes="200px" loading="lazy" />
         <div class="space-y-1 p-2 text-[10px]">
           <div class="truncate font-medium">{{ img.filename }}</div>
           <div class="opacity-60">
@@ -40,7 +40,7 @@
 
         <div v-if="editing" class="space-y-4">
           <div class="overflow-hidden rounded-box border border-base-300">
-            <img :src="displayedImageUrl" :alt="editing.filename" class="max-h-80 w-full object-contain bg-base-200" />
+            <AppImage :src="displayedImageUrl" :alt="editing.filename" class="max-h-80 w-full object-contain bg-base-200" fit="contain" sizes="640px" />
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">

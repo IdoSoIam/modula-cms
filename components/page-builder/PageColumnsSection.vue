@@ -125,25 +125,25 @@
                         aria-label="Ouvrir l'image"
                         @click="openLightbox([toLightboxSlide(item.imageUrl, item.alt, item.fit, item.verticalAlign)], 0)"
                       >
-                        <img
+                        <AppImage
                           :src="item.imageUrl"
                           :alt="pickLocalizedText(locale, item.alt)"
                           class="h-full w-full"
                           :class="imageClass(item)"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                           :loading="priority && columnIndex === 0 && itemIndex === 0 ? 'eager' : 'lazy'"
                           :fetchpriority="priority && columnIndex === 0 && itemIndex === 0 ? 'high' : 'auto'"
-                          decoding="async"
                         />
                       </button>
                       <div v-else class="h-full w-full">
-                        <img
+                        <AppImage
                           :src="item.imageUrl"
                           :alt="pickLocalizedText(locale, item.alt)"
                           class="h-full w-full"
                           :class="imageClass(item)"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                           :loading="priority && columnIndex === 0 && itemIndex === 0 ? 'eager' : 'lazy'"
                           :fetchpriority="priority && columnIndex === 0 && itemIndex === 0 ? 'high' : 'auto'"
-                          decoding="async"
                         />
                       </div>
                     </template>

@@ -31,7 +31,7 @@
                 '--site-header-logo-height-mobile': `${headerSettings.mobileLogoHeightPx}px`
               }"
             >
-              <img :src="logoSrc" :alt="logoAlt" class="site-header-logo w-auto shrink-0" />
+              <AppImage :src="logoSrc" :alt="logoAlt" class="site-header-logo w-auto shrink-0" sizes="160px" />
             </NuxtLink>
           </div>
 
@@ -69,7 +69,7 @@
                 '--site-header-logo-height-mobile': `${headerSettings.mobileLogoHeightPx}px`
               }"
             >
-              <img :src="logoSrc" :alt="logoAlt" class="site-header-logo w-auto shrink-0" />
+              <AppImage :src="logoSrc" :alt="logoAlt" class="site-header-logo w-auto shrink-0" sizes="160px" />
             </NuxtLink>
           </div>
         </div>
@@ -84,7 +84,7 @@
           '--site-header-logo-height-mobile': `${headerSettings.mobileLogoHeightPx}px`
         }"
       >
-        <img :src="logoSrc" :alt="logoAlt" class="site-header-logo w-auto shrink-0" />
+        <AppImage :src="logoSrc" :alt="logoAlt" class="site-header-logo w-auto shrink-0" sizes="220px" />
 
         <div class="min-w-0">
           <div v-if="showDesktopSiteName" class="whitespace-normal break-words font-bold leading-tight">
@@ -242,7 +242,14 @@ const siteTagline = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.siteTagline.en || ''
   : cms.value?.settings.siteTagline.fr || '')
 
-const logoSrc = computed(() => cms.value?.settings.logo.src || '/images/logo-removebg-preview.png')
+const normalizeLogoSrc = (value?: string | null) => {
+  const src = value?.trim()
+  if (!src) return '/images/logo-removebg-preview.png'
+  if (src.startsWith('/') || /^[a-z]+:\/\//i.test(src) || src.startsWith('data:')) return src
+  return `/images/${src.replace(/^\.?\//, '')}`
+}
+
+const logoSrc = computed(() => normalizeLogoSrc(cms.value?.settings.logo.src))
 const logoAlt = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings.logo.alt.en || 'Logo'
   : cms.value?.settings.logo.alt.fr || 'Logo')
