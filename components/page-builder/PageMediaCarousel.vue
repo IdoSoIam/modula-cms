@@ -24,7 +24,8 @@
             :alt="pickLocalizedText(locale, slide.alt)"
             class="h-full w-full"
             :class="mediaClass(slide.fit, slide.verticalAlign)"
-            sizes="100vw"
+            :width="baseWidth"
+            :sizes="sizes"
             :loading="imageLoading(slideIndex)"
             :fetchpriority="imageFetchPriority(slideIndex)"
           />
@@ -35,7 +36,8 @@
             :alt="pickLocalizedText(locale, slide.alt)"
             class="h-full w-full"
             :class="mediaClass(slide.fit, slide.verticalAlign)"
-            sizes="100vw"
+            :width="baseWidth"
+            :sizes="sizes"
             :loading="imageLoading(slideIndex)"
             :fetchpriority="imageFetchPriority(slideIndex)"
           />
@@ -68,7 +70,8 @@
               :alt="pickLocalizedText(locale, slide.alt)"
               class="h-full w-full"
               :class="mediaClass(slide.fit, slide.verticalAlign)"
-              sizes="100vw"
+              :width="baseWidth"
+              :sizes="sizes"
               :loading="imageLoading(slideIndex)"
               :fetchpriority="imageFetchPriority(slideIndex)"
             />
@@ -79,7 +82,8 @@
               :alt="pickLocalizedText(locale, slide.alt)"
               class="h-full w-full"
               :class="mediaClass(slide.fit, slide.verticalAlign)"
-              sizes="100vw"
+              :width="baseWidth"
+              :sizes="sizes"
               :loading="imageLoading(slideIndex)"
               :fetchpriority="imageFetchPriority(slideIndex)"
             />
@@ -149,6 +153,8 @@ const props = defineProps<{
   overlayBlur?: boolean
   interactive?: boolean
   priority?: boolean
+  baseWidth?: number | string
+  sizes?: string
 }>()
 
 const emit = defineEmits<{

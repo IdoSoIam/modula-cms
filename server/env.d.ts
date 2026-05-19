@@ -4,7 +4,8 @@ declare module 'h3' {
       request: Request
       env: {
         DB: D1Database
-        IMAGES: R2Bucket
+        UPLOADS_BUCKET: R2Bucket
+        IMAGE_RESIZER: any
       }
       context: ExecutionContext
     }

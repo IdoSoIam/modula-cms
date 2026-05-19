@@ -6,6 +6,7 @@
         :alt="pickLocalizedText(locale, section.backgroundImage.alt)"
         class="h-full w-full"
         :class="mediaClass(section.backgroundImage.fit, section.backgroundImage.verticalAlign)"
+        width="1600"
         sizes="100vw"
         :loading="priority ? 'eager' : 'lazy'"
         :fetchpriority="priority ? 'high' : 'auto'"
@@ -26,6 +27,8 @@
       :overlay-style="overlayStyle"
       :overlay-blur="section.backgroundImage.blur"
       :priority="priority"
+      :base-width="1600"
+      sizes="100vw"
     />
   </div>
 </template>

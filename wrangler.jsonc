@@ -11,11 +11,14 @@
   "upload_source_maps": true,
   "r2_buckets": [
     {
-      "binding": "IMAGES",
+      "binding": "UPLOADS_BUCKET",
       "bucket_name": "ferme-du-campeyrigoux-images",
       "remote": true
     }
   ],
+  "images": {
+    "binding": "IMAGE_RESIZER"
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -31,7 +34,6 @@
     "FACEBOOK_PAGE_ID": "61576375959577",
     "IMAGE_STORAGE_DRIVER": "r2",
     "IMAGE_FILESYSTEM_DIR": "public/uploads",
-    "IMAGE_DELIVERY_MODE": "cloudflare",
-    "IMAGE_CLOUDFLARE_BASE_URL": "https://ferme-du-campeyrigoux.ferme-du-campeyrigoux.workers.dev"
+    "IMAGE_DELIVERY_MODE": "worker"
   }
 }

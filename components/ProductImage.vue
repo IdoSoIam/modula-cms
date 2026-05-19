@@ -21,6 +21,7 @@
       :alt="alt"
       @error="handleError"
       class="w-full h-full object-cover"
+      width="640"
       sizes="(max-width: 768px) 100vw, 33vw"
     />
     <ImagePlaceholder

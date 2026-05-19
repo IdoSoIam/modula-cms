@@ -1,9 +1,24 @@
 <template>
   <img
-    v-if="usesNativeImage"
+    v-if="usesUploadRoute"
+    v-bind="attrs"
+    :src="uploadSrc"
+    :srcset="uploadSrcset"
+    :sizes="uploadSizes"
+    :alt="alt"
+    :width="width"
+    :height="height"
+    :loading="loading"
+    :fetchpriority="fetchpriority"
+    :decoding="decoding"
+  >
+  <img
+    v-else-if="usesNativeImage"
     v-bind="attrs"
     :src="normalizedSrc"
     :alt="alt"
+    :width="width"
+    :height="height"
     :loading="loading"
     :fetchpriority="fetchpriority"
     :decoding="decoding"
@@ -12,7 +27,7 @@
     v-else
     v-bind="attrs"
     :provider="resolvedProvider"
-    :src="renderSrc"
+    :src="normalizedSrc"
     :alt="alt"
     :width="width"
     :height="height"
@@ -22,7 +37,7 @@
     :decoding="decoding"
     :quality="quality"
     :format="resolvedFormat"
-    :densities="resolvedDensities"
+    :densities="resolvedNuxtDensities"
     :preload="preload"
     :modifiers="resolvedModifiers"
   />
@@ -69,14 +84,10 @@ const props = withDefaults(defineProps<{
 })
 
 const attrs = useAttrs()
-const runtimeConfig = useRuntimeConfig()
-const requestURL = useRequestURL()
 
 const stripUrlSuffix = (value: string) => value.replace(/[?#].*$/, '')
 
 const isSvgSource = (value: string) => /\.svg$/i.test(stripUrlSuffix(value))
-
-const isLocalHostname = (value: string) => ['localhost', '127.0.0.1', '::1'].includes(value)
 
 const normalizeSrc = (value: string) => {
   const trimmed = value.trim()
@@ -88,71 +99,93 @@ const normalizeSrc = (value: string) => {
   return `/uploads/${trimmed.replace(/^\.?\//, '')}`
 }
 
-const normalizedSrc = computed(() => normalizeSrc(props.src || ''))
-
-const isCloudflareEligible = (value: string, baseURL: string) => {
-  if (!value || value.startsWith('data:') || isSvgSource(value)) {
-    return false
-  }
-
-  if (value.startsWith('/')) {
-    return true
-  }
-
-  if (!/^https?:\/\//i.test(value) || !baseURL) {
-    return false
-  }
-
-  try {
-    return new URL(value).origin === new URL(baseURL).origin
-  } catch {
-    return false
+const normalizeFit = (value: ImageFit | undefined) => {
+  switch (value) {
+    case 'cover':
+    case 'contain':
+      return value
+    case 'fill':
+      return 'pad'
+    case 'inside':
+    case 'outside':
+      return 'scale-down'
+    default:
+      return undefined
   }
 }
+
+const parseDensityCandidates = (value: string | number | undefined) => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return [value]
+  }
+
+  if (typeof value !== 'string' || !value.trim()) {
+    return [1, 2]
+  }
+
+  return value
+    .split(/[,\s]+/)
+    .map((part) => part.trim().replace(/x$/i, ''))
+    .map((part) => Number.parseFloat(part))
+    .filter((part, index, values) => Number.isFinite(part) && part > 0 && values.indexOf(part) === index)
+}
+
+const parseBaseWidth = (value: number | string | undefined, sizes: string | undefined) => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.round(value)
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10)
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed
+    }
+  }
+
+  if (typeof sizes === 'string') {
+    const matches = [...sizes.matchAll(/(\d+)px/gi)]
+    const lastMatch = matches.at(-1)
+    if (lastMatch && lastMatch[1]) {
+      return Number.parseInt(lastMatch[1], 10)
+    }
+  }
+
+  return undefined
+}
+
+const normalizeQueryParam = (value: number | string | undefined) => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return String(Math.round(value))
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  return undefined
+}
+
+const normalizedSrc = computed(() => normalizeSrc(props.src || ''))
+
+const usesUploadRoute = computed(() => normalizedSrc.value.startsWith('/uploads/'))
 
 const usesNativeImage = computed(() =>
   !normalizedSrc.value
   || normalizedSrc.value.startsWith('data:')
   || isSvgSource(normalizedSrc.value)
-  || (
-    resolvedProvider.value === 'ipx'
-    && runtimeConfig.public.imageStorageDriver === 'r2'
-    && normalizedSrc.value.startsWith('/uploads/')
-  )
 )
 
-const resolvedProvider = computed(() => {
-  if (props.provider) {
-    return props.provider
-  }
-
-  const mode = runtimeConfig.public.imageDeliveryMode || 'ipx'
-  const baseURL = runtimeConfig.public.imageCloudflareBaseURL || ''
-  const currentHostname = import.meta.client ? window.location.hostname : requestURL.hostname
-
-  if (
-    mode === 'cloudflare'
-    && !isLocalHostname(currentHostname)
-    && !import.meta.dev
-    && isCloudflareEligible(normalizedSrc.value, baseURL)
-  ) {
-    return 'cloudflare'
-  }
-
-  return 'ipx' as const
-})
-
-const renderSrc = computed(() => normalizedSrc.value)
+const resolvedProvider = computed(() => props.provider || 'ipx')
 
 const resolvedFormat = computed(() => {
   if (Array.isArray(props.format)) {
-    return props.format[0]
+    return props.format[0] || undefined
   }
 
   return props.format
 })
 
-const resolvedDensities = computed(() => {
+const resolvedNuxtDensities = computed(() => {
   if (typeof props.densities === 'number') {
     return String(props.densities)
   }
@@ -169,4 +202,55 @@ const resolvedModifiers = computed(() => {
 
   return modifiers
 })
+
+const uploadBaseWidth = computed(() => parseBaseWidth(props.width, props.sizes))
+
+const uploadDensityCandidates = computed(() => parseDensityCandidates(props.densities))
+
+const uploadFit = computed(() => normalizeFit(props.fit))
+
+const buildUploadUrl = (density: number) => {
+  const query = new URLSearchParams()
+  const baseWidth = uploadBaseWidth.value
+  const normalizedHeight = normalizeQueryParam(props.height)
+  const normalizedQuality = normalizeQueryParam(props.quality)
+  const format = resolvedFormat.value
+
+  if (baseWidth) {
+    query.set('w', String(Math.max(1, Math.round(baseWidth * density))))
+  }
+
+  if (normalizedHeight) {
+    query.set('h', normalizedHeight)
+  }
+
+  if (normalizedQuality) {
+    query.set('q', normalizedQuality)
+  }
+
+  if (uploadFit.value) {
+    query.set('fit', uploadFit.value)
+  }
+
+  if (typeof format === 'string' && format) {
+    query.set('format', format)
+  }
+
+  const queryString = query.toString()
+  return queryString ? `${normalizedSrc.value}?${queryString}` : normalizedSrc.value
+}
+
+const uploadSrc = computed(() => buildUploadUrl(1))
+
+const uploadSrcset = computed(() => {
+  if (!uploadBaseWidth.value || uploadDensityCandidates.value.length <= 1) {
+    return undefined
+  }
+
+  return uploadDensityCandidates.value
+    .map((density) => `${buildUploadUrl(density)} ${density}x`)
+    .join(', ')
+})
+
+const uploadSizes = computed(() => (uploadSrcset.value ? props.sizes : undefined))
 </script>

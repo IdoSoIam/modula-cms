@@ -4,7 +4,13 @@
     <aside class="min-h-full w-80 space-y-4 overflow-y-auto bg-base-100 p-4">
       <div class="rounded-2xl border border-base-300 bg-base-200/40 p-4">
         <div class="flex items-center gap-3" :class="mobileBrandClass">
-          <AppImage :src="logoSrc" :alt="logoAlt" class="h-auto w-auto shrink-0" sizes="180px" :style="{ height: `${headerSettings.mobileLogoHeightPx + 8}px` }" />
+          <AppImage
+            :src="logoSrc"
+            :alt="logoAlt"
+            class="h-auto w-auto shrink-0"
+            sizes="180px"
+            :style="{ height: `${headerSettings.mobileLogoHeightPx + 8}px` }"
+          />
           <div v-if="showMobileMenuBrandText" class="min-w-0">
             <div v-if="headerSettings.mobileMenuShowSiteName" class="whitespace-normal break-words text-base font-bold leading-tight">
               {{ siteName }}

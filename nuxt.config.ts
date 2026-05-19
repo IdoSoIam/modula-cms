@@ -1,10 +1,19 @@
 import tailwindcss from '@tailwindcss/vite'
 
-const imageDeliveryMode = process.env.IMAGE_DELIVERY_MODE ?? (process.env.IMAGE_STORAGE_DRIVER === 'r2' ? 'cloudflare' : 'ipx')
-const imageCloudflareBaseURL = process.env.IMAGE_CLOUDFLARE_BASE_URL ?? process.env.SITE_URL ?? '/'
+const imageDeliveryMode = process.env.IMAGE_DELIVERY_MODE ?? (process.env.IMAGE_STORAGE_DRIVER === 'r2' ? 'worker' : 'ipx')
+const siteURL = process.env.SITE_URL ?? '/'
+const imageCloudflareBaseURL = process.env.IMAGE_CLOUDFLARE_BASE_URL ?? siteURL
+const imageSourceBaseURL = process.env.IMAGE_SOURCE_BASE_URL ?? imageCloudflareBaseURL
 const imageCloudflareHostname = (() => {
   try {
     return new URL(imageCloudflareBaseURL).host
+  } catch {
+    return ''
+  }
+})()
+const imageSourceHostname = (() => {
+  try {
+    return new URL(imageSourceBaseURL).host
   } catch {
     return ''
   }
@@ -147,7 +156,8 @@ export default defineNuxtConfig({
           '127.0.0.1:3000',
           'localhost',
           '127.0.0.1',
-          imageCloudflareHostname
+          imageCloudflareHostname,
+          imageSourceHostname
         ].filter(Boolean).join(',')
       }
     },
@@ -158,6 +168,7 @@ export default defineNuxtConfig({
       imageStorageDriver: process.env.IMAGE_STORAGE_DRIVER ?? 'r2',
       imageDeliveryMode,
       imageCloudflareBaseURL,
+      imageSourceBaseURL,
       facebookAppId: process.env.FACEBOOK_APP_ID,
       facebookPageId: process.env.FACEBOOK_PAGE_ID
     }

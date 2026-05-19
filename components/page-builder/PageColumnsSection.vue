@@ -130,7 +130,8 @@
                           :alt="pickLocalizedText(locale, item.alt)"
                           class="h-full w-full"
                           :class="imageClass(item)"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                          :width="columnMediaWidth(columnIndex)"
+                          :sizes="columnMediaSizes(columnIndex)"
                           :loading="priority && columnIndex === 0 && itemIndex === 0 ? 'eager' : 'lazy'"
                           :fetchpriority="priority && columnIndex === 0 && itemIndex === 0 ? 'high' : 'auto'"
                         />
@@ -141,7 +142,8 @@
                           :alt="pickLocalizedText(locale, item.alt)"
                           class="h-full w-full"
                           :class="imageClass(item)"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                          :width="columnMediaWidth(columnIndex)"
+                          :sizes="columnMediaSizes(columnIndex)"
                           :loading="priority && columnIndex === 0 && itemIndex === 0 ? 'eager' : 'lazy'"
                           :fetchpriority="priority && columnIndex === 0 && itemIndex === 0 ? 'high' : 'auto'"
                         />
@@ -285,6 +287,8 @@
                       :locale="locale"
                       :interactive="item.lightboxEnabled"
                       :priority="priority && columnIndex === 0 && itemIndex === 0"
+                      :base-width="columnMediaWidth(columnIndex)"
+                      :sizes="columnMediaSizes(columnIndex)"
                       @open="(index) => openLightbox(item.slides.filter(slide => slide.imageUrl.trim()), index)"
                     />
                     <div v-else class="px-4 text-sm opacity-60">Carousel vide</div>
@@ -436,6 +440,17 @@ const containerWidthClass = computed(() => {
   }
 })
 
+const CONTAINER_MAX_WIDTHS: Record<PageBuilderSection['containerWidth'], number> = {
+  narrow: 896,
+  default: 1152,
+  wide: 1280,
+  xwide: 1440,
+  edge: 1760,
+  full: 1600
+}
+
+const sectionContainerMaxWidth = computed(() => CONTAINER_MAX_WIDTHS[props.section.containerWidth] || 1152)
+
 const gridClass = computed(() => {
   const count = props.section.columnCount
   const reverse = props.section.reverseOnDesktop && count === 2
@@ -444,6 +459,35 @@ const gridClass = computed(() => {
   if (count === 3) return 'md:grid-cols-2 xl:grid-cols-3'
   return 'md:grid-cols-2 xl:grid-cols-4'
 })
+
+const columnDesktopFraction = (columnIndex: number) => {
+  if (props.section.columnCount <= 1) return 1
+
+  if (props.section.columnCount === 2) {
+    const leading = props.section.reverseOnDesktop ? 0.45 : 0.55
+    return columnIndex === 0 ? leading : 1 - leading
+  }
+
+  if (props.section.columnCount === 3) return 1 / 3
+  return 1 / 4
+}
+
+const columnMediaWidth = (columnIndex: number) =>
+  Math.max(320, Math.round(sectionContainerMaxWidth.value * columnDesktopFraction(columnIndex)))
+
+const columnMediaSizes = (columnIndex: number) => {
+  const desktopWidth = `${columnMediaWidth(columnIndex)}px`
+
+  if (props.section.columnCount <= 1) {
+    return `(max-width: 768px) 100vw, ${desktopWidth}`
+  }
+
+  if (props.section.columnCount === 2) {
+    return `(max-width: 1024px) 100vw, ${desktopWidth}`
+  }
+
+  return `(max-width: 768px) 100vw, (max-width: 1280px) 50vw, ${desktopWidth}`
+}
 
 const sectionContentVerticalAlignClass = computed(() => {
   switch (props.section.contentVerticalAlign) {

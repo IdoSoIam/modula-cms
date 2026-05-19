@@ -7,11 +7,13 @@
       @edit="openLiveEditor"
     />
 
-    <PageEditModal
-      :open="liveEditEnabled && modalOpen"
-      :target="activeTarget"
-      @close="modalOpen = false"
-    />
+    <ClientOnly>
+      <PageEditModal
+        :open="liveEditEnabled && modalOpen"
+        :target="activeTarget"
+        @close="modalOpen = false"
+      />
+    </ClientOnly>
 
     <div
       v-if="liveEditEnabled"
@@ -197,7 +199,7 @@ function resolveLiveEditTarget(target: PageBuilderEditTarget): PageBuilderEditTa
   }
 
   if (target.kind === 'column') {
-    const section = findSectionById(target.section.id) || allSections()[target.sectionIndex] || target.section
+    const section = findSectionById(target.section.id) || allSections()[target.columnIndex] || target.section
     const column = section?.columns[target.columnIndex] || target.column
     return { ...target, section: section as PageBuilderSection, column, columnIndex: target.columnIndex }
   }

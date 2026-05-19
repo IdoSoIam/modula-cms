@@ -28,6 +28,7 @@
             :src="singleBasket.imageUrl"
             :alt="singleBasket.name"
             class="h-full w-full object-cover"
+            width="1280"
             sizes="(max-width: 1024px) 100vw, 55vw"
             loading="eager"
             fetchpriority="high"
@@ -102,7 +103,14 @@
         :style="cardStyle"
       >
         <figure v-if="effectiveSettings.showImages && basket.imageUrl" class="h-48 overflow-hidden">
-          <AppImage :src="basket.imageUrl" :alt="basket.name" class="h-full w-full object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" loading="lazy" />
+          <AppImage
+            :src="basket.imageUrl"
+            :alt="basket.name"
+            class="h-full w-full object-cover"
+            width="640"
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            loading="lazy"
+          />
         </figure>
 
         <div class="card-body">
@@ -452,6 +460,7 @@
 <script setup lang="ts">
 import type { CmsBasketsPageSettings } from '~/shared/cms'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
+import { formatLocalizedDate } from '~/shared/date'
 interface PublicBasket {
   id: number
   name: string
@@ -589,7 +598,7 @@ const itemCardStyle = computed(() => ({
 }))
 
 const formatLongDate = (value: string) =>
-  new Date(value).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', {
+  formatLocalizedDate(value, locale.value, {
     day: '2-digit',
     month: 'long',
     year: 'numeric'
@@ -785,7 +794,7 @@ const closeVegetablePreview = () => vegetablePreviewDialog.value?.close()
 const formatTourLabel = (tour: DeliveryTour) => `${tour.name} - ${tour.startTime}-${tour.endTime}`
 
 const formatNextDate = (value: string) =>
-  new Date(value).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', {
+  formatLocalizedDate(value, locale.value, {
     weekday: 'long',
     day: '2-digit',
     month: 'long'

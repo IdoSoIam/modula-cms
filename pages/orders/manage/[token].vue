@@ -141,6 +141,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatLocalizedDate } from '~/shared/date'
 const localePath = useLocalePath()
 const { t, locale } = useI18n()
 
@@ -224,7 +225,7 @@ const introText = computed(() => {
 })
 
 const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', {
+  formatLocalizedDate(value, locale.value, {
     weekday: 'long',
     day: '2-digit',
     month: 'long',

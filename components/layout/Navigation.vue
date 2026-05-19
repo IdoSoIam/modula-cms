@@ -31,7 +31,12 @@
                 '--site-header-logo-height-mobile': `${headerSettings.mobileLogoHeightPx}px`
               }"
             >
-              <AppImage :src="logoSrc" :alt="logoAlt" class="site-header-logo w-auto shrink-0" sizes="160px" />
+              <AppImage
+                :src="logoSrc"
+                :alt="logoAlt"
+                class="site-header-logo w-auto shrink-0"
+                sizes="160px"
+              />
             </NuxtLink>
           </div>
 
@@ -69,7 +74,12 @@
                 '--site-header-logo-height-mobile': `${headerSettings.mobileLogoHeightPx}px`
               }"
             >
-              <AppImage :src="logoSrc" :alt="logoAlt" class="site-header-logo w-auto shrink-0" sizes="160px" />
+              <AppImage
+                :src="logoSrc"
+                :alt="logoAlt"
+                class="site-header-logo w-auto shrink-0"
+                sizes="160px"
+              />
             </NuxtLink>
           </div>
         </div>
@@ -84,7 +94,12 @@
           '--site-header-logo-height-mobile': `${headerSettings.mobileLogoHeightPx}px`
         }"
       >
-        <AppImage :src="logoSrc" :alt="logoAlt" class="site-header-logo w-auto shrink-0" sizes="220px" />
+        <AppImage
+          :src="logoSrc"
+          :alt="logoAlt"
+          class="site-header-logo w-auto shrink-0"
+          sizes="220px"
+        />
 
         <div class="min-w-0">
           <div v-if="showDesktopSiteName" class="whitespace-normal break-words font-bold leading-tight">

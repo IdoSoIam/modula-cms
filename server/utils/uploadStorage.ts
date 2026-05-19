@@ -2,7 +2,7 @@ import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/p
 import { basename, extname, join, resolve } from 'node:path'
 
 interface CloudflareStorageEnv {
-  IMAGES?: R2Bucket
+  UPLOADS_BUCKET?: R2Bucket
 }
 
 type UploadStorageDriver = 'r2' | 'filesystem'
@@ -33,7 +33,7 @@ function getCloudflareEnv(): CloudflareStorageEnv | undefined {
 }
 
 function getUploadsBucket() {
-  return getCloudflareEnv()?.IMAGES
+  return getCloudflareEnv()?.UPLOADS_BUCKET
 }
 
 function getStorageDriver(): UploadStorageDriver {
@@ -169,7 +169,7 @@ export function requireUploadsBucket() {
   if (!bucket) {
     throw createError({
       statusCode: 503,
-      statusMessage: 'Bucket R2 IMAGES indisponible dans ce runtime'
+      statusMessage: 'Bucket R2 UPLOADS_BUCKET indisponible dans ce runtime'
     })
   }
 

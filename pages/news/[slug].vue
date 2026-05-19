@@ -20,6 +20,7 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
+import { formatLocalizedDate } from '~/shared/date'
 
 interface Article {
   id: number
@@ -43,7 +44,7 @@ const { data: article } = await useFetch<Article>(() => `/api/articles/${slug.va
 })
 
 const formatDate = (s: string) =>
-  new Date(s).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+  formatLocalizedDate(s, locale.value, { day: '2-digit', month: 'long', year: 'numeric' })
 
 const articleDescription = computed(() => {
   if (!article.value) return ''

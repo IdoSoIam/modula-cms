@@ -45,7 +45,14 @@
                 @click="navigateToArticle(a.slug)"
               >
                 <figure v-if="effectiveSettings.showCoverImage && a.coverUrl" class="h-48">
-                  <AppImage :src="a.coverUrl" :alt="a.title" class="h-full w-full object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" loading="lazy" />
+                  <AppImage
+                    :src="a.coverUrl"
+                    :alt="a.title"
+                    class="h-full w-full object-cover"
+                    width="640"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                    loading="lazy"
+                  />
                 </figure>
                 <div class="card-body">
                   <h2 class="card-title">{{ a.title }}</h2>
@@ -94,6 +101,7 @@
 import { defineAsyncComponent } from 'vue'
 import type { CmsNewsPageSettings } from '~/shared/cms'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
+import { formatLocalizedDate } from '~/shared/date'
 
 interface ArticleSummary {
   id: number
@@ -204,5 +212,5 @@ const navigateToArticle = (slug: string) => {
 }
 
 const formatDate = (value: string | null) =>
-  value ? new Date(value).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''
+  formatLocalizedDate(value, locale.value, { day: '2-digit', month: 'long', year: 'numeric' })
 </script>
