@@ -107,7 +107,7 @@ function normalizeCardElements(value: unknown, fallbackId: string, legacy?: { ti
       if (!isObject(entry)) return element
       element.id = typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : element.id
       element.kind = entry.kind === 'title' ? 'title' : 'text'
-      element.source = entry.source === 'opening-hours' || entry.source === 'email' || entry.source === 'phone' || entry.source === 'address'
+      element.source = entry.source === 'opening-hours' || entry.source === 'email' || entry.source === 'phone' || entry.source === 'address' || entry.source === 'social-links'
         ? entry.source
         : 'custom'
       element.icon = sanitizeIconName(entry.icon)
@@ -292,12 +292,14 @@ function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
       item.verticalAlign = (typeof value.verticalAlign === 'string' ? value.verticalAlign : 'center') as typeof item.verticalAlign
       item.enlarge = typeof value.enlarge === 'boolean' ? value.enlarge : false
       item.framed = typeof value.framed === 'boolean' ? value.framed : true
+      item.lightboxEnabled = typeof value.lightboxEnabled === 'boolean' ? value.lightboxEnabled : false
       return item
     }
     case 'carousel': {
       const item = createCarouselItem(typeof value.id === 'string' ? value.id : `carousel-${Math.random().toString(36).slice(2, 8)}`)
       item.aspect = (typeof value.aspect === 'string' ? value.aspect : 'landscape') as typeof item.aspect
       item.framed = typeof value.framed === 'boolean' ? value.framed : true
+      item.lightboxEnabled = typeof value.lightboxEnabled === 'boolean' ? value.lightboxEnabled : false
       item.slides = normalizeSectionBackgroundSlides(value.slides, item.id)
       item.settings = normalizeCarouselSettings(value.settings)
       return item
@@ -326,9 +328,13 @@ function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
           }
         } else {
           const action = createEmptyFormAction()
+          action.toMode = value.action.toMode === 'field' || value.action.toMode === 'current-user' ? value.action.toMode : 'custom'
           action.to = typeof value.action.to === 'string' ? value.action.to.trim() : ''
+          action.toFieldName = typeof value.action.toFieldName === 'string' ? value.action.toFieldName.trim() : ''
           action.templateAction = typeof value.action.templateAction === 'string' ? value.action.templateAction.trim() : ''
           action.replyToFieldName = typeof value.action.replyToFieldName === 'string' ? value.action.replyToFieldName.trim() : ''
+          action.cc = typeof value.action.cc === 'string' ? value.action.cc.trim() : ''
+          action.bcc = typeof value.action.bcc === 'string' ? value.action.bcc.trim() : ''
           item.action = action
         }
       }

@@ -22,10 +22,10 @@
 
     <div class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-4">
       <div class="flex items-center justify-between gap-2">
-        <div class="font-medium">Éléments de contenu</div>
+        <div class="font-medium">{{ t('admin.pageEditorPage.cardBuilder.contentElements') }}</div>
         <div class="flex flex-wrap gap-2">
-          <button class="btn btn-xs btn-outline" @click="addElement('title')">Ajouter un titre</button>
-          <button class="btn btn-xs btn-outline" @click="addElement('text')">Ajouter un texte</button>
+          <button class="btn btn-xs btn-outline" @click="addElement('title')">{{ t('admin.pageEditorPage.cardBuilder.addTitle') }}</button>
+          <button class="btn btn-xs btn-outline" @click="addElement('text')">{{ t('admin.pageEditorPage.cardBuilder.addText') }}</button>
         </div>
       </div>
 
@@ -40,9 +40,9 @@
               {{ element.kind === 'title' ? 'Titre' : 'Texte' }} {{ elementIndex + 1 }}
             </div>
             <div class="flex flex-wrap gap-2">
-              <button type="button" class="btn btn-xs" :disabled="elementIndex === 0" @click="moveElement(elementIndex, -1)">Monter</button>
-              <button type="button" class="btn btn-xs" :disabled="elementIndex === card.elements.length - 1" @click="moveElement(elementIndex, 1)">Descendre</button>
-              <button type="button" class="btn btn-xs btn-outline btn-error" @click="card.elements.splice(elementIndex, 1)">Supprimer</button>
+              <button type="button" class="btn btn-xs" :disabled="elementIndex === 0" @click="moveElement(elementIndex, -1)">{{ t('admin.customizationLayoutPage.moveUp') }}</button>
+              <button type="button" class="btn btn-xs" :disabled="elementIndex === card.elements.length - 1" @click="moveElement(elementIndex, 1)">{{ t('admin.customizationLayoutPage.moveDown') }}</button>
+              <button type="button" class="btn btn-xs btn-outline btn-error" @click="card.elements.splice(elementIndex, 1)">{{ t('admin.common.delete') }}</button>
             </div>
           </div>
 
@@ -51,7 +51,7 @@
               <label class="label"><span class="label-text">Type</span></label>
               <select v-model="element.kind" class="select select-bordered w-full">
                 <option v-for="kind in PAGE_BUILDER_CARD_ELEMENT_KINDS" :key="kind" :value="kind">
-                  {{ PAGE_BUILDER_CARD_ELEMENT_KIND_LABELS[kind] }}
+                  {{ cardElementKindLabels[kind] }}
                 </option>
               </select>
             </div>
@@ -63,13 +63,13 @@
             <label class="label"><span class="label-text">Source du contenu</span></label>
             <select v-model="element.source" class="select select-bordered w-full">
               <option v-for="source in PAGE_BUILDER_CARD_ELEMENT_SOURCES" :key="source" :value="source">
-                {{ PAGE_BUILDER_CARD_ELEMENT_SOURCE_LABELS[source] }}
+                {{ cardElementSourceLabels[source] }}
               </option>
             </select>
           </div>
 
           <AdminPageBuilderTranslationTabs
-            v-if="element.kind != PAGE_BUILDER_CARD_ELEMENT_SOURCE_LABELS.custom"
+            v-if="element.kind === 'title' || element.kind === 'text'"
             :model-value="element.title"
             :size="element.titleSize"
             :label="element.kind === 'title' ? 'Titre' : 'Libellé'"
@@ -134,6 +134,19 @@ import {
 const props = defineProps<{
   card: PageBuilderCard
 }>()
+const { t } = useI18n()
+const cardElementKindLabels = computed(() => ({
+  title: t('admin.pageEditorPage.cardBuilder.kindTitle'),
+  text: t('admin.pageEditorPage.cardBuilder.kindText')
+}))
+const cardElementSourceLabels = computed(() => ({
+  custom: t('admin.pageEditorPage.cardBuilder.customSource'),
+  'opening-hours': t('admin.pageEditorPage.cardBuilder.openingHoursSource'),
+  email: t('admin.pageEditorPage.cardBuilder.emailSource'),
+  phone: t('admin.pageEditorPage.cardBuilder.phoneSource'),
+  address: t('admin.pageEditorPage.cardBuilder.addressSource'),
+  'social-links': t('admin.pageEditorPage.cardBuilder.socialLinksSource')
+}))
 
 if (!props.card.elements?.length && (
   props.card.title.fr || props.card.title.en || props.card.text.fr || props.card.text.en || props.card.icon

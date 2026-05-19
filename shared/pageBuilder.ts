@@ -48,10 +48,11 @@ export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
 export type SectionColumnCount = 1 | 2 | 3 | 4
 export type CardsDisplay = 'stack' | 'grid-2' | 'grid-3' | 'grid-4'
 export type PageBuilderCardElementKind = 'title' | 'text'
-export type PageBuilderCardElementSource = 'custom' | 'opening-hours' | 'email' | 'phone' | 'address'
+export type PageBuilderCardElementSource = 'custom' | 'opening-hours' | 'email' | 'phone' | 'address' | 'social-links'
 export type PageBuilderFormFieldType = 'text' | 'email' | 'tel' | 'textarea' | 'select' | 'radio' | 'checkbox'
 export type PageBuilderFormFieldWidth = 1 | 2
 export type PageBuilderFormActionType = 'email' | 'internalWebhook'
+export type PageBuilderFormEmailRecipientMode = 'custom' | 'field' | 'current-user'
 
 export interface ThemeColorSelection {
   token: ThemeColorToken
@@ -149,6 +150,7 @@ export interface PageBuilderImageItem {
   verticalAlign: VerticalAlign
   enlarge: boolean
   framed: boolean
+  lightboxEnabled: boolean
 }
 
 export interface PageBuilderCarouselItem {
@@ -156,6 +158,7 @@ export interface PageBuilderCarouselItem {
   type: 'carousel'
   aspect: ImageAspect
   framed: boolean
+  lightboxEnabled: boolean
   slides: PageBuilderSectionBackgroundCarouselSlide[]
   settings: PageBuilderSectionBackgroundCarouselSettings
 }
@@ -197,9 +200,13 @@ export interface PageBuilderFormSection {
 
 export interface PageBuilderFormActionEmail {
   type: 'email'
+  toMode: PageBuilderFormEmailRecipientMode
   to: string
+  toFieldName: string
   templateAction: string
   replyToFieldName: string
+  cc: string
+  bcc: string
 }
 
 export interface PageBuilderFormActionInternalWebhook {
@@ -316,7 +323,7 @@ export const HEADING_TAGS: HeadingTag[] = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
 export const BUTTON_SIZES: ButtonSize[] = ['xs', 'sm', 'md', 'lg']
 export const CARDS_DISPLAYS: CardsDisplay[] = ['stack', 'grid-2', 'grid-3', 'grid-4']
 export const PAGE_BUILDER_CARD_ELEMENT_KINDS: PageBuilderCardElementKind[] = ['title', 'text']
-export const PAGE_BUILDER_CARD_ELEMENT_SOURCES: PageBuilderCardElementSource[] = ['custom', 'opening-hours', 'email', 'phone', 'address']
+export const PAGE_BUILDER_CARD_ELEMENT_SOURCES: PageBuilderCardElementSource[] = ['custom', 'opening-hours', 'email', 'phone', 'address', 'social-links']
 export const CAROUSEL_ANIMATIONS: CarouselAnimation[] = ['slide', 'fade']
 export const PAGE_BUILDER_FORM_FIELD_TYPES: PageBuilderFormFieldType[] = ['text', 'email', 'tel', 'textarea', 'select', 'radio', 'checkbox']
 export const PAGE_BUILDER_FORM_FIELD_WIDTHS: PageBuilderFormFieldWidth[] = [1, 2]
@@ -383,7 +390,8 @@ export const PAGE_BUILDER_CARD_ELEMENT_SOURCE_LABELS: Record<PageBuilderCardElem
   'opening-hours': 'Horaires d’ouverture',
   email: 'Email public',
   phone: 'Téléphone public',
-  address: 'Adresse publique'
+  address: 'Adresse publique',
+  'social-links': 'Réseaux sociaux'
 }
 
 export const CAROUSEL_ANIMATION_LABELS: Record<CarouselAnimation, string> = {
@@ -589,7 +597,8 @@ export function createImageItem(id: string): PageBuilderImageItem {
     fit: 'cover',
     verticalAlign: 'center',
     enlarge: false,
-    framed: true
+    framed: true,
+    lightboxEnabled: false
   }
 }
 
@@ -599,6 +608,7 @@ export function createCarouselItem(id: string): PageBuilderCarouselItem {
     type: 'carousel',
     aspect: 'landscape',
     framed: true,
+    lightboxEnabled: false,
     slides: [createEmptySectionBackgroundSlide(`${id}-slide-1`)],
     settings: createEmptySectionBackgroundCarouselSettings()
   }
@@ -866,9 +876,13 @@ export function createEmptyFormSection(id: string): PageBuilderFormSection {
 export function createEmptyFormAction(): PageBuilderFormActionEmail {
   return {
     type: 'email',
+    toMode: 'custom',
     to: '',
+    toFieldName: '',
     templateAction: '',
-    replyToFieldName: ''
+    replyToFieldName: '',
+    cc: '',
+    bcc: ''
   }
 }
 

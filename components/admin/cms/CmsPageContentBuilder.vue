@@ -287,6 +287,11 @@
                       <input v-model="item.enlarge" type="checkbox" class="toggle toggle-primary" />
                       <span class="label-text">Forcer un affichage plus grand</span>
                     </label>
+
+                    <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+                      <input v-model="item.lightboxEnabled" type="checkbox" class="toggle toggle-primary" />
+                      <span class="label-text">Ouvrir l'image en grand</span>
+                    </label>
                   </div>
 
                   <div v-else-if="isItemPanelOpen(item.id) && item.type === 'cards'" class="space-y-4">
@@ -382,18 +387,60 @@
                       </div>
 
                       <template v-if="item.action.type === 'email'">
-                        <label class="form-control">
-                          <span class="label"><span class="label-text">Email destinataire</span></span>
-                          <input v-model="item.action.to" class="input input-bordered w-full" placeholder="contact@site.fr" />
-                        </label>
+                        <div class="grid gap-4 lg:grid-cols-2">
+                          <label class="form-control">
+                            <span class="label"><span class="label-text">Destinataire</span></span>
+                            <select v-model="item.action.toMode" class="select select-bordered w-full">
+                              <option value="custom">Email personnalisé</option>
+                              <option value="field">Email du formulaire</option>
+                              <option value="current-user">Utilisateur courant</option>
+                            </select>
+                          </label>
+                          <label v-if="item.action.toMode === 'field'" class="form-control">
+                            <span class="label"><span class="label-text">Champ email</span></span>
+                            <select v-model="item.action.toFieldName" class="select select-bordered w-full">
+                              <option value="">--</option>
+                              <option
+                                v-for="field in item.sections.flatMap(section => section.rows.flatMap(row => row.fields)).filter(field => field.type === 'email')"
+                                :key="field.id"
+                                :value="field.name"
+                              >
+                                {{ field.name }}
+                              </option>
+                            </select>
+                          </label>
+                          <label v-else class="form-control">
+                            <span class="label"><span class="label-text">Email destinataire</span></span>
+                            <input v-model="item.action.to" :disabled="item.action.toMode !== 'custom'" class="input input-bordered w-full" placeholder="contact@site.fr" />
+                          </label>
+                        </div>
                         <label class="form-control">
                           <span class="label"><span class="label-text">Action template email</span></span>
                           <input v-model="item.action.templateAction" class="input input-bordered w-full" placeholder="contact ou action custom" />
                         </label>
-                        <label class="form-control">
-                          <span class="label"><span class="label-text">Champ utilisé en reply-to</span></span>
-                          <input v-model="item.action.replyToFieldName" class="input input-bordered w-full" placeholder="email" />
-                        </label>
+                        <div class="grid gap-4 lg:grid-cols-2">
+                          <label class="form-control">
+                            <span class="label"><span class="label-text">Champ utilisé en reply-to</span></span>
+                            <select v-model="item.action.replyToFieldName" class="select select-bordered w-full">
+                              <option value="">--</option>
+                              <option
+                                v-for="field in item.sections.flatMap(section => section.rows.flatMap(row => row.fields)).filter(field => field.type === 'email')"
+                                :key="field.id"
+                                :value="field.name"
+                              >
+                                {{ field.name }}
+                              </option>
+                            </select>
+                          </label>
+                          <label class="form-control">
+                            <span class="label"><span class="label-text">CC</span></span>
+                            <input v-model="item.action.cc" class="input input-bordered w-full" placeholder="email1@example.com, email2@example.com" />
+                          </label>
+                          <label class="form-control lg:col-span-2">
+                            <span class="label"><span class="label-text">CCI</span></span>
+                            <input v-model="item.action.bcc" class="input input-bordered w-full" placeholder="email1@example.com, email2@example.com" />
+                          </label>
+                        </div>
                       </template>
 
                       <template v-else>
@@ -413,6 +460,8 @@
                         <div class="flex flex-wrap items-center justify-between gap-2">
                           <div class="font-medium">Section formulaire {{ sectionIndex + 1 }}</div>
                           <div class="flex gap-2">
+                            <button type="button" class="btn btn-xs" :disabled="sectionIndex === 0" @click="moveInList(item.sections, sectionIndex, -1)">Monter</button>
+                            <button type="button" class="btn btn-xs" :disabled="sectionIndex === item.sections.length - 1" @click="moveInList(item.sections, sectionIndex, 1)">Descendre</button>
                             <button type="button" class="btn btn-xs btn-outline" @click="addFormRow(formSection)">Ajouter une ligne</button>
                             <button type="button" class="btn btn-xs btn-outline btn-error" @click="item.sections.splice(sectionIndex, 1)">Supprimer</button>
                           </div>
@@ -429,6 +478,8 @@
                           <div class="flex flex-wrap items-center justify-between gap-2">
                             <div class="font-medium">Ligne {{ rowIndex + 1 }}</div>
                             <div class="flex gap-2">
+                              <button type="button" class="btn btn-xs" :disabled="rowIndex === 0" @click="moveInList(formSection.rows, rowIndex, -1)">Monter</button>
+                              <button type="button" class="btn btn-xs" :disabled="rowIndex === formSection.rows.length - 1" @click="moveInList(formSection.rows, rowIndex, 1)">Descendre</button>
                               <button type="button" class="btn btn-xs btn-outline" @click="addFormField(row)">Ajouter un champ</button>
                               <button type="button" class="btn btn-xs btn-outline btn-error" @click="formSection.rows.splice(rowIndex, 1)">Supprimer</button>
                             </div>
@@ -779,7 +830,7 @@ const cardSummary = (card: { elements?: Array<{ title: { fr: string, en: string 
   || card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.text.en
   || card.title.fr || card.title.en || card.text.fr || card.text.en || 'Carte sans contenu'
 
-const addCard = (cards: Array<{ id: string }>) => {
+const addCard = (cards: Array<{ id: string, elements: Array<{ id: string, source: string, title: { fr: string, en: string }, text: { fr: string, en: string } }> }>) => {
   const newId = createId('card')
   cards.push({
     ...createEmptyCard(newId),
@@ -805,6 +856,14 @@ const addFormSection = (item: PageBuilderFormItem) => {
 
 const addFormRow = (section: PageBuilderFormSection) => {
   section.rows.push(createEmptyFormRow(createId('form-row')))
+}
+
+const moveInList = <T,>(list: T[], index: number, direction: -1 | 1) => {
+  const next = index + direction
+  if (next < 0 || next >= list.length) return
+  const [item] = list.splice(index, 1)
+  if (!item) return
+  list.splice(next, 0, item)
 }
 
 const addFormField = (row: PageBuilderFormRow) => {

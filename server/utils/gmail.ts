@@ -187,6 +187,9 @@ export interface GoogleCalendarEventResource {
 function buildMimeMessage(options: {
   from: string
   to: string
+  cc?: string[]
+  bcc?: string[]
+  replyTo?: string
   subject: string
   textBody: string
   htmlBody?: string
@@ -200,6 +203,9 @@ function buildMimeMessage(options: {
   const lines: string[] = [
     `From: ${options.from}`,
     `To: ${options.to}`,
+    ...(options.cc?.length ? [`Cc: ${options.cc.join(', ')}`] : []),
+    ...(options.bcc?.length ? [`Bcc: ${options.bcc.join(', ')}`] : []),
+    ...(options.replyTo ? [`Reply-To: ${options.replyTo}`] : []),
     `Subject: ${encodeHeader(options.subject)}`,
     'MIME-Version: 1.0',
     `Date: ${new Date().toUTCString()}`,
@@ -292,6 +298,9 @@ function buildMimeMessage(options: {
 
 async function sendGmailDirect(opts: {
   to: string
+  cc?: string[]
+  bcc?: string[]
+  replyTo?: string
   subject: string
   body: string
   htmlBody?: string
@@ -305,6 +314,9 @@ async function sendGmailDirect(opts: {
   const raw = base64UrlEncode(buildMimeMessage({
     from,
     to: opts.to,
+    cc: opts.cc,
+    bcc: opts.bcc,
+    replyTo: opts.replyTo,
     subject: opts.subject,
     textBody: opts.body,
     htmlBody: opts.htmlBody,
@@ -350,6 +362,9 @@ async function getMailProviderRouting() {
 
 async function sendWithProvider(provider: MailProvider, opts: {
   to: string
+  cc?: string[]
+  bcc?: string[]
+  replyTo?: string
   subject: string
   body: string
   htmlBody?: string
@@ -407,6 +422,9 @@ async function sendFallbackReport(options: {
 
 export async function sendGmail(opts: {
   to: string
+  cc?: string[]
+  bcc?: string[]
+  replyTo?: string
   subject: string
   body: string
   htmlBody?: string

@@ -1,5 +1,5 @@
 <template>
-  <div class="form-control gap-3 flex">
+  <div class="form-control gap-3 flex items-center">
     <label class="label">
       <span class="label-text">{{ label }}</span>
     </label>

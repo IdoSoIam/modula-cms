@@ -117,12 +117,19 @@
                 >
                   <div class="w-full" :class="[imageAspectClass(item.aspect), imageFrameClass(item), !item.imageUrl ? 'grid place-items-center border-dashed' : '']">
                     <template v-if="item.imageUrl">
-                    <img
-                      :src="item.imageUrl"
-                      :alt="pickLocalizedText(locale, item.alt)"
-                      class="h-full w-full"
-                      :class="imageClass(item)"
-                    />
+                      <button
+                        type="button"
+                        class="block h-full w-full"
+                        :class="item.lightboxEnabled ? 'cursor-zoom-in' : 'cursor-default'"
+                        @click="item.lightboxEnabled && openLightbox([toLightboxSlide(item.imageUrl, item.alt, item.fit, item.verticalAlign)], 0)"
+                      >
+                        <img
+                          :src="item.imageUrl"
+                          :alt="pickLocalizedText(locale, item.alt)"
+                          class="h-full w-full"
+                          :class="imageClass(item)"
+                        />
+                      </button>
                     </template>
                     <div v-else class="px-4 text-sm opacity-60">Image vide</div>
                   </div>
@@ -175,8 +182,24 @@
                                   >
                                     {{ pickLocalizedText(locale, element.title) }}
                                   </div>
+                                  <div
+                                    v-if="element?.source === 'social-links' && publicSocialLinks.length"
+                                    class="flex flex-wrap gap-3 pt-1"
+                                  >
+                                    <a
+                                      v-for="link in publicSocialLinks"
+                                      :key="link.id"
+                                      :href="link.href"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      class="btn btn-circle btn-outline btn-sm"
+                                      :aria-label="pickLocalizedText(locale, link.label) || link.href"
+                                    >
+                                      <Icon :name="link.icon || 'mdi:link-variant'" size="20" />
+                                    </a>
+                                  </div>
                                   <p
-                                    v-if="resolvedCardElementText(element as any)"
+                                    v-else-if="resolvedCardElementText(element as any)"
                                     class="whitespace-pre-line"
                                     :class="cardTextSizeClass(element.textSize)"
                                     :style="textColorStyle(card.textColor, 0.8)"
@@ -244,6 +267,8 @@
                       :slides="item.slides.filter(slide => slide.imageUrl.trim())"
                       :settings="item.settings"
                       :locale="locale"
+                      :interactive="item.lightboxEnabled"
+                      @open="(index) => openLightbox(item.slides.filter(slide => slide.imageUrl.trim()), index)"
                     />
                     <div v-else class="px-4 text-sm opacity-60">Carousel vide</div>
                   </div>
@@ -264,6 +289,14 @@
           </div>
         </div>
       </div>
+      <PageMediaLightbox
+        :open="lightboxOpen"
+        :slides="lightboxSlides"
+        :locale="locale"
+        :current-index="lightboxIndex"
+        @close="lightboxOpen = false"
+        @update:current-index="lightboxIndex = $event"
+      />
     </section>
   </PageEditable>
 </template>
@@ -284,6 +317,7 @@ import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
 import PageEditable from '~/components/page-builder/PageEditable.vue'
 import PageFormBlock from '~/components/page-builder/PageFormBlock.vue'
 import PageMediaCarousel from '~/components/page-builder/PageMediaCarousel.vue'
+import PageMediaLightbox from '~/components/page-builder/PageMediaLightbox.vue'
 import PageSectionBackground from '~/components/page-builder/PageSectionBackground.vue'
 import { pickLocalizedText } from '~/shared/pageBuilder'
 
@@ -301,6 +335,9 @@ const emit = defineEmits<{
 
 const localePath = useLocalePath()
 const siteConfigState = useSiteConfigState()
+const lightboxOpen = ref(false)
+const lightboxSlides = ref<Array<{ id: string, imageUrl: string, alt: { fr: string, en: string }, fit: 'cover' | 'contain', verticalAlign: 'start' | 'center' | 'end' }>>([])
+const lightboxIndex = ref(0)
 
 if (process.server && !siteConfigState.value) {
   await ensureSiteConfigState()
@@ -576,11 +613,27 @@ const buttonStyle = (button: PageBuilderButton) => {
 const publicContactEmail = computed(() => siteConfigState.value?.contactEmail || siteConfigState.value?.adminEmail || '')
 const publicPhone = computed(() => siteConfigState.value?.adminPhone || '')
 const publicAddress = computed(() => siteConfigState.value?.farmPickup?.address || '')
+const publicSocialLinks = computed(() =>
+  (siteConfigState.value?.cms?.socialLinks ?? [])
+    .filter((link: any) => link.visible !== false && (link.href || '').trim())
+)
+const toLightboxSlide = (
+  imageUrl: string,
+  alt: { fr: string; en: string },
+  fit: 'cover' | 'contain',
+  verticalAlign: 'start' | 'center' | 'end'
+) => ({
+  id: `lightbox-${imageUrl}`,
+  imageUrl,
+  alt,
+  fit,
+  verticalAlign
+})
 const openingHoursText = computed(() => {
   const farmPickup = siteConfigState.value?.farmPickup
   if (!farmPickup) return ''
   const dayLabel = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][farmPickup.dayOfWeek] || ''
-  return [farmPickup.slotLabel, dayLabel && farmPickup.startTime && farmPickup.endTime ? `${dayLabel} de ${farmPickup.startTime} à ${farmPickup.endTime}` : '']
+  return [dayLabel && farmPickup.startTime && farmPickup.endTime ? `${dayLabel} de ${farmPickup.startTime} à ${farmPickup.endTime}` : '']
     .filter(Boolean)
     .join('\n')
 })
@@ -595,9 +648,21 @@ const resolvedCardElementText = (element: PageBuilderCard['elements'][number]) =
       return publicPhone.value
     case 'address':
       return publicAddress.value
+    case 'social-links':
+      return ''
     default:
       return pickLocalizedText(props.locale, element.text)
   }
+}
+
+const openLightbox = (
+  slides: Array<{ id: string, imageUrl: string, alt: { fr: string, en: string }, fit: 'cover' | 'contain', verticalAlign: 'start' | 'center' | 'end' }>,
+  index: number
+) => {
+  if (!slides.length) return
+  lightboxSlides.value = slides
+  lightboxIndex.value = Math.max(0, Math.min(index, slides.length - 1))
+  lightboxOpen.value = true
 }
 
 const resolvedCardElements = (card: PageBuilderCard) => {
@@ -610,6 +675,7 @@ const resolvedCardElements = (card: PageBuilderCard) => {
       icon: card.icon || '',
       title: card.title,
       text: { fr: '', en: '' },
+      source: 'custom',
       titleSize: card.titleSize,
       textSize: card.textSize
     })
@@ -621,6 +687,7 @@ const resolvedCardElements = (card: PageBuilderCard) => {
       icon: '',
       title: { fr: '', en: '' },
       text: card.text,
+      source: 'custom',
       titleSize: 'sm' as const,
       textSize: card.textSize
     })

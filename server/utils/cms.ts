@@ -59,7 +59,7 @@ import {
 import { CMS_THEME_COLOR_TOKENS } from '~/shared/cms'
 import { getPageBuilderContent, normalizePageBuilderContent } from '~/server/utils/pageBuilder'
 import { getSetting, setSetting, SETTING_KEYS } from '~/server/utils/settings'
-import { createCustomAdminEmailTemplate, findAdminEmailTemplateDefinition } from '~/server/utils/adminEmailTemplates'
+import { createCustomAdminEmailTemplate, findAdminEmailTemplateDefinition, syncCustomAdminEmailTemplateDefinition } from '~/server/utils/adminEmailTemplates'
 
 function isMissingCmsTableError(error: unknown) {
   return Boolean(
@@ -306,14 +306,45 @@ function synchronizeSharedPageContent(translations: Record<CmsLocale, CmsPageTra
 }
 
 async function ensureFormEmailTemplateActions(payload: CmsPagePayload) {
+  const getFormTemplateVariables = (item: PageBuilderFormItem) => {
+    const fieldNames = item.sections
+      .flatMap(section => section.rows.flatMap(row => row.fields.map(field => field.name.trim())))
+      .filter(Boolean)
+
+    const aliases = new Set<string>(['formTitle', 'pageTitle', 'pagePath', 'submittedAt', 'fieldsSummary', 'replyToEmail'])
+    for (const fieldName of fieldNames) {
+      if (/name|nom/i.test(fieldName)) aliases.add('contactName')
+      if (/mail|email|courriel/i.test(fieldName)) aliases.add('contactEmail')
+      if (/message|msg|demande|contenu/i.test(fieldName)) aliases.add('contactMessage')
+      if (/phone|telephone|tel|mobile/i.test(fieldName)) aliases.add('contactPhone')
+    }
+
+    return Array.from(new Set([
+      ...aliases,
+      ...fieldNames,
+      ...fieldNames.map(name => `field_${name}`)
+    ])).sort()
+  }
+
   const sharedContent = pickSharedPageContent(payload.translations)
   for (const section of sharedContent.sections) {
     for (const column of section.columns) {
       for (const item of column.items) {
         if (item.type !== 'form' || item.action.type !== 'email') continue
+        const variables = getFormTemplateVariables(item)
         if (item.action.templateAction) {
           const existing = await findAdminEmailTemplateDefinition(item.action.templateAction)
-          if (existing) continue
+          if (existing) {
+            await syncCustomAdminEmailTemplateDefinition({
+              action: existing.action,
+              label: `Formulaire ${payload.slug} ${item.formKey || item.id}`,
+              description: `Template email généré pour le formulaire ${item.formKey || item.id} de la page ${payload.path}`,
+              group: 'Formulaires',
+              subgroup: 'CMS',
+              variables
+            })
+            continue
+          }
         }
 
         const created = await createCustomAdminEmailTemplate({
@@ -321,14 +352,7 @@ async function ensureFormEmailTemplateActions(payload: CmsPagePayload) {
           description: `Template email généré pour le formulaire ${item.formKey || item.id} de la page ${payload.path}`,
           group: 'Formulaires',
           subgroup: 'CMS',
-          variables: [
-            'formTitle',
-            'pageTitle',
-            'pagePath',
-            'submittedAt',
-            'fieldsSummary',
-            'replyToEmail'
-          ]
+          variables
         })
         item.action.templateAction = created.action
       }
@@ -496,9 +520,13 @@ function createDefaultContactPageContent() {
   form.successMessage = { fr: 'Votre message a été envoyé.', en: 'Your message has been sent.' }
   form.action = {
     type: 'email',
+    toMode: 'custom',
     to: '',
+    toFieldName: '',
     templateAction: 'contact',
-    replyToFieldName: 'email'
+    replyToFieldName: 'email',
+    cc: '',
+    bcc: ''
   }
   form.sections = [
     {
@@ -1597,6 +1625,7 @@ export async function getPublicSiteShell(locale: string): Promise<PublicSiteShel
 
   return {
     settings,
+    socialLinks: settings.socialLinks,
     navigation: {
       primary: primary.sort((a, b) => a.position - b.position),
       footer: footer.sort((a, b) => a.position - b.position)

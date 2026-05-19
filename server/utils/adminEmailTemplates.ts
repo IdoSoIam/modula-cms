@@ -691,6 +691,55 @@ export async function createCustomAdminEmailTemplate(input: {
   } satisfies AdminEmailTemplateDefinition
 }
 
+export async function syncCustomAdminEmailTemplateDefinition(input: {
+  action: string
+  label?: string
+  description?: string
+  group?: string
+  subgroup?: string
+  variables?: string[]
+}) {
+  const raw = await getSetting(SETTING_KEYS.CUSTOM_EMAIL_TEMPLATE_DEFINITIONS)
+  const existing = parseCustomTemplateDefinitions(raw)
+  const index = existing.findIndex(definition => definition.action === input.action)
+  if (index < 0) return null
+
+  const current = existing[index]!
+  existing[index] = {
+    action: current.action,
+    label: input.label?.trim()
+      ? localized(input.label.trim(), input.label.trim())
+      : current.label,
+    description: input.description?.trim()
+      ? localized(input.description.trim(), input.description.trim())
+      : current.description,
+    group: input.group?.trim()
+      ? localized(input.group.trim(), input.group.trim())
+      : current.group,
+    subgroup: input.subgroup?.trim()
+      ? localized(input.subgroup.trim(), input.subgroup.trim())
+      : current.subgroup,
+    variables: Array.from(new Set((input.variables ?? current.variables).map(value => value.trim()).filter(Boolean))).sort()
+  }
+
+  await setSetting(
+    SETTING_KEYS.CUSTOM_EMAIL_TEMPLATE_DEFINITIONS,
+    serializeCustomTemplateDefinitions(existing)
+  )
+
+  return {
+    action: existing[index]!.action,
+    settingKey: getCustomTemplateSettingKey(existing[index]!.action),
+    label: existing[index]!.label,
+    description: existing[index]!.description,
+    group: existing[index]!.group,
+    subgroup: existing[index]!.subgroup,
+    variables: existing[index]!.variables,
+    locked: false,
+    system: false
+  } satisfies AdminEmailTemplateDefinition
+}
+
 export async function deleteCustomAdminEmailTemplate(action: string) {
   const raw = await getSetting(SETTING_KEYS.CUSTOM_EMAIL_TEMPLATE_DEFINITIONS)
   const existing = parseCustomTemplateDefinitions(raw)

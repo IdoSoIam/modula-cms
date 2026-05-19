@@ -265,6 +265,7 @@ export interface ResolvedCmsPage {
 
 export interface PublicSiteShell {
   settings: CmsSiteSettings
+  socialLinks: any[]
   navigation: {
     primary: ResolvedCmsNavigationItem[]
     footer: ResolvedCmsNavigationItem[]

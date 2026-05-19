@@ -8,7 +8,7 @@
             <div class="text-sm opacity-60">Mode edition</div>
             <h3 class="text-xl font-bold">{{ target?.label }}</h3>
           </div>
-          <button type="button" class="btn btn-sm btn-circle btn-ghost" @click="$emit('close')">x</button>
+          <button type="button" class="btn btn-sm btn-circle btn-ghost" @click="$emit('close')"><span class="iconify i-mdi:close" aria-hidden="true" style="font-size:24px;"></span></button>
         </div>
 
         <div class="overflow-y-auto p-5" :style="bodyStyle">
@@ -109,6 +109,7 @@ const props = defineProps({
 })
 
 defineEmits<{ close: [] }>()
+const { t } = useI18n()
 
 const panelRef = ref<HTMLElement | null>(null)
 const panelPosition = ref({ x: 32, y: 32 })
@@ -330,7 +331,8 @@ const ItemEditor = defineComponent({
             h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement vertical')]), h('select', { class: 'select select-bordered w-full', value: item.verticalAlign, onChange: (e: Event) => { item.verticalAlign = (e.target as HTMLSelectElement).value as any } }, VERTICAL_ALIGNS.map(a => h('option', { value: a }, a)))])
           ]),
           h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.framed, onChange: (e: Event) => { item.framed = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, "Afficher l'image dans une carte")]),
-          h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.enlarge, onChange: (e: Event) => { item.enlarge = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Forcer un affichage plus grand')])
+          h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.enlarge, onChange: (e: Event) => { item.enlarge = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Forcer un affichage plus grand')]),
+          h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.lightboxEnabled, onChange: (e: Event) => { item.lightboxEnabled = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Ouvrir l’image en grand')])
         ])
       }
 
@@ -342,6 +344,7 @@ const ItemEditor = defineComponent({
       }
 
       if (item.type === 'form') {
+        const formFields = item.sections.flatMap(section => section.rows.flatMap(row => row.fields))
         return h('div', { class: 'space-y-4' }, [
           header,
           h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
@@ -366,13 +369,13 @@ const ItemEditor = defineComponent({
           h(TranslationFields, { modelValue: item.submitLabel, label: 'Libellé du bouton' }),
           h(TranslationFields, { modelValue: item.successMessage, label: 'Message de succès', multiline: true }),
           h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4 space-y-3' }, [
-            h('div', { class: 'flex items-center justify-between gap-2' }, [
-              h('div', { class: 'font-medium' }, 'Action à la soumission'),
+              h('div', { class: 'flex items-center justify-between gap-2' }, [
+              h('div', { class: 'font-medium' }, t('admin.pageEditorPage.formBuilder.submitAction')),
               h('select', { class: 'select select-bordered select-sm', value: item.action.type, onChange: (e: Event) => {
                 const type = (e.target as HTMLSelectElement).value
                 item.action = type === 'internalWebhook'
                   ? { type: 'internalWebhook', actionKey: '' }
-                  : { type: 'email', to: '', templateAction: '', replyToFieldName: '' }
+                  : { type: 'email', toMode: 'custom', to: '', toFieldName: '', templateAction: '', replyToFieldName: '', cc: '', bcc: '' }
               } }, [
                 h('option', { value: 'email' }, 'Email'),
                 h('option', { value: 'internalWebhook' }, 'Fonction interne')
@@ -380,9 +383,72 @@ const ItemEditor = defineComponent({
             ]),
             item.action.type === 'email'
               ? h('div', { class: 'space-y-3' }, [
-                  h('input', { class: 'input input-bordered w-full', placeholder: 'Email destinataire', value: item.action.to, onInput: (e: Event) => { item.action.type === 'email' && (item.action.to = (e.target as HTMLInputElement).value) } }),
+                  h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
+                    h('div', { class: 'form-control' }, [
+                      h('label', { class: 'label' }, [h('span', { class: 'label-text' }, t('admin.pageEditorPage.formBuilder.recipientMode'))]),
+                      h('select', {
+                        class: 'select select-bordered w-full',
+                        value: item.action.toMode,
+                        onChange: (e: Event) => {
+                          if (item.action.type === 'email') {
+                            item.action.toMode = (e.target as HTMLSelectElement).value as any
+                          }
+                        }
+                      }, [
+                        h('option', { value: 'custom' }, t('admin.pageEditorPage.formBuilder.recipientCustom')),
+                        h('option', { value: 'field' }, t('admin.pageEditorPage.formBuilder.recipientField')),
+                        h('option', { value: 'current-user' }, t('admin.pageEditorPage.formBuilder.recipientCurrentUser'))
+                      ])
+                    ]),
+                    item.action.toMode === 'field'
+                      ? h('div', { class: 'form-control' }, [
+                          h('label', { class: 'label' }, [h('span', { class: 'label-text' }, t('admin.pageEditorPage.formBuilder.recipientFieldLabel'))]),
+                          h('select', {
+                            class: 'select select-bordered w-full',
+                            value: item.action.toFieldName,
+                            onChange: (e: Event) => { item.action.type === 'email' && (item.action.toFieldName = (e.target as HTMLSelectElement).value) }
+                          }, [
+                            h('option', { value: '' }, '--'),
+                            ...formFields
+                              .filter(field => field.type === 'email')
+                              .map(field => h('option', { value: field.name }, field.name))
+                          ])
+                        ])
+                      : h('div', { class: 'form-control' }, [
+                          h('label', { class: 'label' }, [h('span', { class: 'label-text' }, t('admin.pageEditorPage.formBuilder.recipientEmail'))]),
+                          h('input', {
+                            class: 'input input-bordered w-full',
+                            placeholder: t('admin.pageEditorPage.formBuilder.recipientEmailPlaceholder'),
+                            value: item.action.to,
+                            disabled: item.action.toMode !== 'custom',
+                            onInput: (e: Event) => { item.action.type === 'email' && (item.action.to = (e.target as HTMLInputElement).value) }
+                          })
+                        ])
+                  ]),
                   h('input', { class: 'input input-bordered w-full', placeholder: 'Action template email', value: item.action.templateAction, onInput: (e: Event) => { item.action.type === 'email' && (item.action.templateAction = (e.target as HTMLInputElement).value) } }),
-                  h('input', { class: 'input input-bordered w-full', placeholder: 'Champ reply-to', value: item.action.replyToFieldName, onInput: (e: Event) => { item.action.type === 'email' && (item.action.replyToFieldName = (e.target as HTMLInputElement).value) } })
+                  h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
+                    h('div', { class: 'form-control' }, [
+                      h('label', { class: 'label' }, [h('span', { class: 'label-text' }, t('admin.pageEditorPage.formBuilder.replyToField'))]),
+                      h('select', {
+                        class: 'select select-bordered w-full',
+                        value: item.action.replyToFieldName,
+                        onChange: (e: Event) => { item.action.type === 'email' && (item.action.replyToFieldName = (e.target as HTMLSelectElement).value) }
+                      }, [
+                        h('option', { value: '' }, '--'),
+                        ...formFields
+                          .filter(field => field.type === 'email')
+                          .map(field => h('option', { value: field.name }, field.name))
+                      ])
+                    ]),
+                    h('div', { class: 'form-control' }, [
+                      h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'CC')]),
+                      h('input', { class: 'input input-bordered w-full', placeholder: 'email1@example.com, email2@example.com', value: item.action.cc, onInput: (e: Event) => { item.action.type === 'email' && (item.action.cc = (e.target as HTMLInputElement).value) } })
+                    ]),
+                    h('div', { class: 'form-control md:col-span-2' }, [
+                      h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'CCI')]),
+                      h('input', { class: 'input input-bordered w-full', placeholder: 'email1@example.com, email2@example.com', value: item.action.bcc, onInput: (e: Event) => { item.action.type === 'email' && (item.action.bcc = (e.target as HTMLInputElement).value) } })
+                    ])
+                  ])
                 ])
               : h('input', { class: 'input input-bordered w-full', placeholder: 'Action interne', value: item.action.actionKey, onInput: (e: Event) => { item.action.type === 'internalWebhook' && (item.action.actionKey = (e.target as HTMLInputElement).value) } })
           ]),
@@ -394,6 +460,8 @@ const ItemEditor = defineComponent({
               h('div', { class: 'flex flex-wrap items-center justify-between gap-2' }, [
                 h('div', { class: 'font-medium' }, `Section formulaire ${sectionIndex + 1}`),
                 h('div', { class: 'flex gap-2' }, [
+                  h('button', { type: 'button', class: 'btn btn-xs', disabled: sectionIndex === 0, onClick: () => moveItem(item.sections, sectionIndex, -1) }, t('admin.customizationLayoutPage.moveUp')),
+                  h('button', { type: 'button', class: 'btn btn-xs', disabled: sectionIndex === item.sections.length - 1, onClick: () => moveItem(item.sections, sectionIndex, 1) }, t('admin.customizationLayoutPage.moveDown')),
                   h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => section.rows.push(createEmptyFormRow(createId('form-row'))) }, 'Ajouter une ligne'),
                   h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => item.sections.splice(sectionIndex, 1) }, 'Supprimer')
                 ])
@@ -404,6 +472,8 @@ const ItemEditor = defineComponent({
                 h('div', { class: 'flex flex-wrap items-center justify-between gap-2' }, [
                   h('div', { class: 'font-medium' }, `Ligne ${rowIndex + 1}`),
                   h('div', { class: 'flex gap-2' }, [
+                    h('button', { type: 'button', class: 'btn btn-xs', disabled: rowIndex === 0, onClick: () => moveItem(section.rows, rowIndex, -1) }, t('admin.customizationLayoutPage.moveUp')),
+                    h('button', { type: 'button', class: 'btn btn-xs', disabled: rowIndex === section.rows.length - 1, onClick: () => moveItem(section.rows, rowIndex, 1) }, t('admin.customizationLayoutPage.moveDown')),
                     h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => row.fields.push(createEmptyFormField(createId('field'))) }, 'Ajouter un champ'),
                     h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => section.rows.splice(rowIndex, 1) }, 'Supprimer')
                   ])
@@ -411,7 +481,11 @@ const ItemEditor = defineComponent({
                 ...row.fields.map((field, fieldIndex) => h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4 space-y-3', key: field.id }, [
                   h('div', { class: 'flex flex-wrap items-center justify-between gap-2' }, [
                     h('div', { class: 'font-medium' }, `Champ ${fieldIndex + 1}`),
-                    h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => row.fields.splice(fieldIndex, 1) }, 'Supprimer')
+                    h('div', { class: 'flex gap-2' }, [
+                      h('button', { type: 'button', class: 'btn btn-xs', disabled: fieldIndex === 0, onClick: () => moveItem(row.fields, fieldIndex, -1) }, t('admin.layoutPage.moveUp')),
+                      h('button', { type: 'button', class: 'btn btn-xs', disabled: fieldIndex === row.fields.length - 1, onClick: () => moveItem(row.fields, fieldIndex, 1) }, t('admin.layoutPage.moveDown')),
+                      h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => row.fields.splice(fieldIndex, 1) }, 'Supprimer')
+                    ])
                   ]),
                   h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
                     h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Nom technique')]), h('input', { class: 'input input-bordered w-full', value: field.name, onInput: (e: Event) => { field.name = (e.target as HTMLInputElement).value } })]),

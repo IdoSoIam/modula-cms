@@ -12,12 +12,19 @@
         class="absolute inset-0 transition-opacity duration-700"
         :class="currentIndex === slideIndex ? 'z-[1] opacity-100' : 'pointer-events-none opacity-0'"
       >
-        <img
-          :src="slide.imageUrl"
-          :alt="pickLocalizedText(locale, slide.alt)"
-          class="h-full w-full"
-          :class="mediaClass(slide.fit, slide.verticalAlign)"
+        <button
+          type="button"
+          class="block h-full w-full"
+          :class="interactive ? 'cursor-zoom-in' : 'cursor-default'"
+          @click="openViewer(slideIndex)"
         >
+          <img
+            :src="slide.imageUrl"
+            :alt="pickLocalizedText(locale, slide.alt)"
+            class="h-full w-full"
+            :class="mediaClass(slide.fit, slide.verticalAlign)"
+          >
+        </button>
       </div>
     </template>
 
@@ -34,12 +41,19 @@
           class="h-full shrink-0 grow-0"
           :style="slideStyle"
         >
-          <img
-            :src="slide.imageUrl"
-            :alt="pickLocalizedText(locale, slide.alt)"
-            class="h-full w-full"
-            :class="mediaClass(slide.fit, slide.verticalAlign)"
+          <button
+            type="button"
+            class="block h-full w-full"
+            :class="interactive ? 'cursor-zoom-in' : 'cursor-default'"
+            @click="openViewer(currentIndex)"
           >
+            <img
+              :src="slide.imageUrl"
+              :alt="pickLocalizedText(locale, slide.alt)"
+              class="h-full w-full"
+              :class="mediaClass(slide.fit, slide.verticalAlign)"
+            >
+          </button>
         </div>
       </div>
     </template>
@@ -53,13 +67,13 @@
 
     <div
       v-if="settings.showDots && slides.length > 1"
-      class="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 gap-2"
+      class="pointer-events-none absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 gap-2"
     >
       <button
         v-for="(slide, slideIndex) in slides"
         :key="`${slide.id}-nav`"
         type="button"
-        class="btn btn-xs btn-circle border-white/40 bg-black/25 text-white hover:bg-black/45"
+        class="pointer-events-auto btn btn-xs btn-circle border-white/40 bg-black/25 text-white hover:bg-black/45"
         :class="currentIndex === slideIndex ? 'ring-2 ring-white/70' : ''"
         @click="goTo(slideIndex)"
       />
@@ -67,18 +81,18 @@
 
     <div
       v-if="settings.showArrows && slides.length > 1"
-      class="absolute inset-y-0 left-0 right-0 z-10 flex items-center justify-between px-4"
+      class="pointer-events-none absolute inset-y-0 left-0 right-0 z-10 flex items-center justify-between px-4"
     >
       <button
         type="button"
-        class="btn btn-circle btn-sm border-white/40 bg-black/25 text-white hover:bg-black/45"
+        class="pointer-events-auto btn btn-circle btn-sm border-white/40 bg-black/25 text-white hover:bg-black/45"
         @click="prev"
       >
         <Icon name="mdi:chevron-left" size="18" />
       </button>
       <button
         type="button"
-        class="btn btn-circle btn-sm border-white/40 bg-black/25 text-white hover:bg-black/45"
+        class="pointer-events-auto btn btn-circle btn-sm border-white/40 bg-black/25 text-white hover:bg-black/45"
         @click="next"
       >
         <Icon name="mdi:chevron-right" size="18" />
@@ -100,6 +114,11 @@ const props = defineProps<{
   locale: string
   overlayStyle?: Record<string, string> | null
   overlayBlur?: boolean
+  interactive?: boolean
+}>()
+
+const emit = defineEmits<{
+  open: [index: number]
 }>()
 
 const currentIndex = ref(0)
@@ -151,6 +170,11 @@ const mediaClass = (fit: string, verticalAlign: string) => {
       ? 'object-bottom'
       : 'object-center'
   return `${fitClass} ${alignClass}`
+}
+
+const openViewer = (index: number) => {
+  if (!props.interactive) return
+  emit('open', index)
 }
 
 const stopAutoplay = () => {

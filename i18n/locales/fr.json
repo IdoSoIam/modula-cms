@@ -1089,6 +1089,30 @@
       "rendererBaskets": "Paniers",
       "rendererShop": "Boutique",
       "rendererEvents": "Événements",
+      "cardBuilder": {
+        "contentElements": "Éléments de contenu",
+        "addTitle": "Ajouter un titre",
+        "addText": "Ajouter un texte",
+        "kindTitle": "Titre",
+        "kindText": "Texte",
+        "customSource": "Texte libre",
+        "openingHoursSource": "Horaires d’ouverture",
+        "emailSource": "Email public",
+        "phoneSource": "Téléphone public",
+        "addressSource": "Adresse publique",
+        "socialLinksSource": "Réseaux sociaux"
+      },
+      "formBuilder": {
+        "submitAction": "Action à la soumission",
+        "recipientMode": "Destinataire",
+        "recipientCustom": "Email personnalisé",
+        "recipientField": "Email du formulaire",
+        "recipientCurrentUser": "Utilisateur courant",
+        "recipientFieldLabel": "Champ email",
+        "recipientEmail": "Email destinataire",
+        "recipientEmailPlaceholder": "destinataire example.com",
+        "replyToField": "Champ reply-to"
+      },
       "saved": "Page enregistrée",
       "saveError": "Erreur lors de l'enregistrement",
       "notFound": "Page CMS introuvable"

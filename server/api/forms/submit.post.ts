@@ -3,9 +3,12 @@ import { pickLocalizedText } from '~/shared/pageBuilder'
 import { resolvePublicCmsPage } from '~/server/utils/cms'
 import { resolveAdminEmailTemplate } from '~/server/utils/adminEmailTemplates'
 import { applyTemplateVars } from '~/server/utils/orderEmailContent'
+import { buildGenericEmail } from '~/server/utils/orderEmails'
+import { getReservationEmailHtmlLang } from '~/server/utils/orderEmailContent'
 import { sendGmail } from '~/server/utils/gmail'
 import { getContactEmail } from '~/server/utils/settings'
 import { enforceRateLimit } from '~/server/utils/rateLimit'
+import { AuthService } from '~/server/services/auth/authService'
 
 interface FormSubmitBody {
   pagePath?: string
@@ -46,6 +49,59 @@ function stringifyFieldValue(field: PageBuilderFormField, value: string | boolea
     return value === true ? 'Oui' : 'Non'
   }
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function parseEmailList(value: string) {
+  return value
+    .split(',')
+    .map(entry => entry.trim())
+    .filter(Boolean)
+}
+
+function firstNonEmptyFieldValue(fields: PageBuilderFormField[], values: Record<string, string | boolean>, pattern: RegExp) {
+  for (const field of fields) {
+    if (!pattern.test(field.name)) continue
+    const value = values[field.name]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return ''
+}
+
+function buildTemplateVariables(
+  locale: 'fr' | 'en',
+  fields: PageBuilderFormField[],
+  values: Record<string, string | boolean>,
+  page: { title: string; path: string },
+  form: PageBuilderFormItem,
+  replyToEmail: string,
+  currentUserEmail: string
+) {
+  const fieldEntries = fields.map((field) => [field.name, stringifyFieldValue(field, values[field.name] ?? '')] as const)
+  const fieldVars = Object.fromEntries(fieldEntries)
+  const prefixedFieldVars = Object.fromEntries(fieldEntries.map(([key, value]) => [`field_${key}`, value]))
+  const contactName = firstNonEmptyFieldValue(fields, values, /name|nom/i)
+  const contactEmail = firstNonEmptyFieldValue(fields, values, /mail|email|courriel/i)
+  const contactMessage = firstNonEmptyFieldValue(fields, values, /message|msg|demande|contenu/i)
+  const contactPhone = firstNonEmptyFieldValue(fields, values, /phone|telephone|tel|mobile/i)
+  const fieldsSummary = fields
+    .map((field) => `${pickLocalizedText(locale, field.label) || field.name}: ${stringifyFieldValue(field, values[field.name] as string | boolean)}`)
+    .join('\n')
+
+  return {
+    formTitle: pickLocalizedText(locale, form.title) || form.formKey || 'Formulaire',
+    pageTitle: page.title,
+    pagePath: page.path,
+    submittedAt: new Date().toLocaleString(locale === 'en' ? 'en-GB' : 'fr-FR'),
+    fieldsSummary,
+    replyToEmail,
+    currentUserEmail,
+    contactName,
+    contactEmail,
+    contactMessage,
+    contactPhone,
+    ...fieldVars,
+    ...prefixedFieldVars
+  }
 }
 
 function validateField(locale: string, field: PageBuilderFormField, rawValue: string | boolean | undefined) {
@@ -159,12 +215,22 @@ export default defineEventHandler(async (event) => {
   const normalizedValues = Object.fromEntries(
     fields.map((field) => [field.name, values[field.name] ?? (field.type === 'checkbox' ? false : '')])
   )
-  const fieldsSummary = fields
-    .map((field) => `${pickLocalizedText(locale, field.label) || field.name}: ${stringifyFieldValue(field, normalizedValues[field.name] as string | boolean)}`)
-    .join('\n')
 
   if (form.action.type === 'email') {
-    const to = form.action.to || await getContactEmail()
+    const authService = new AuthService()
+    const currentUser = await authService.getUserFromSession(event)
+    const currentUserEmail = currentUser?.email?.trim() || ''
+    const replyToValue = form.action.replyToFieldName
+      ? normalizedValues[form.action.replyToFieldName]
+      : ''
+    const replyToEmail = typeof replyToValue === 'string' ? replyToValue.trim() : ''
+    const to = form.action.toMode === 'current-user'
+      ? currentUserEmail
+      : form.action.toMode === 'field'
+        ? typeof normalizedValues[form.action.toFieldName] === 'string'
+          ? String(normalizedValues[form.action.toFieldName]).trim()
+          : ''
+        : (form.action.to || await getContactEmail())
     if (!to) {
       throw createError({
         statusCode: 503,
@@ -173,26 +239,24 @@ export default defineEventHandler(async (event) => {
     }
 
     const template = await resolveAdminEmailTemplate(form.action.templateAction || 'contact', locale)
-    const replyToValue = form.action.replyToFieldName
-      ? normalizedValues[form.action.replyToFieldName]
-      : ''
-    const replyToEmail = typeof replyToValue === 'string' ? replyToValue : ''
+    const compiled = applyTemplateVars(
+      template,
+      buildTemplateVariables(locale, fields, normalizedValues, page, form, replyToEmail, currentUserEmail)
+    )
 
-    const compiled = applyTemplateVars(template, {
-      formTitle: pickLocalizedText(locale, form.title) || form.formKey || 'Formulaire',
-      pageTitle: page.title,
-      pagePath: page.path,
-      submittedAt: new Date().toLocaleString(locale === 'en' ? 'en-GB' : 'fr-FR'),
-      fieldsSummary,
-      replyToEmail
-    })
-
-    const textBody = `${fieldsSummary}\n\nPage: ${page.path}`
     await sendGmail({
       to,
       subject: compiled.subject,
-      body: textBody,
-      htmlBody: compiled.body
+      cc: parseEmailList(form.action.cc),
+      bcc: parseEmailList(form.action.bcc),
+      replyTo: replyToEmail || undefined,
+      body: compiled.body,
+      htmlBody: buildGenericEmail({
+        title: compiled.subject,
+        body: compiled.body,
+        accent: '#2563eb',
+        lang: getReservationEmailHtmlLang(locale)
+      })
     })
   } else {
     await executeInternalWebhook(form.action.actionKey, {

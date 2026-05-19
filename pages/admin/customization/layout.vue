@@ -49,26 +49,11 @@
             />
             <div class="pointer-events-none h-28" aria-hidden="true" />
           </div>
-
-          <div
-            v-else
-            class="mx-auto w-full max-w-[390px] overflow-hidden rounded-[2rem] border border-base-300 bg-base-200 shadow-sm"
-          >
-            <Navigation
-              :preview-locale="previewLocale"
-              :preview-site-config="previewSiteConfig"
-              :preview-show-utility-controls="false"
-              :preview-force-mobile="true"
-            />
-            <MobileMenu
-              :preview-locale="previewLocale"
-              :preview-site-config="previewSiteConfig"
-              :preview-static="true"
-            />
-          </div>
         </div>
 
-      <div class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+      <div 
+      class="grid min-w-0 gap-6"
+      :class="[previewDevice === 'mobile' ? 'xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]' : '']">
         <div class="min-w-0 space-y-5">
           <div class="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <label class="form-control min-w-0 gap-2">
@@ -298,6 +283,27 @@
                 <div class="text-sm opacity-70">{{ t('admin.customizationLayoutPage.stickyHeaderHelp') }}</div>
               </div>
             </label>
+          </div>
+        </div>
+
+        <div
+         v-if="previewDevice === 'mobile'"
+         class="min-w-0 space-y-3">
+          <div class="text-sm font-medium">{{ t('admin.customizationLayoutPage.previewTitle') }}</div>
+
+
+          <div class="mx-auto w-full max-w-[390px] overflow-hidden rounded-[2rem] border border-base-300 bg-base-200 shadow-sm">
+            <Navigation
+              :preview-locale="previewLocale"
+              :preview-site-config="previewSiteConfig"
+              :preview-show-utility-controls="false"
+              :preview-force-mobile="true"
+            />
+            <MobileMenu
+              :preview-locale="previewLocale"
+              :preview-site-config="previewSiteConfig"
+              :preview-static="true"
+            />
           </div>
         </div>
       </div>

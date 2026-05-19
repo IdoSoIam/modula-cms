@@ -1078,6 +1078,30 @@
       "rendererBaskets": "Baskets",
       "rendererShop": "Shop",
       "rendererEvents": "Events",
+      "cardBuilder": {
+        "contentElements": "Content elements",
+        "addTitle": "Add title",
+        "addText": "Add text",
+        "kindTitle": "Title",
+        "kindText": "Text",
+        "customSource": "Custom text",
+        "openingHoursSource": "Opening hours",
+        "emailSource": "Public email",
+        "phoneSource": "Public phone",
+        "addressSource": "Public address",
+        "socialLinksSource": "Social links"
+      },
+      "formBuilder": {
+        "submitAction": "Submit action",
+        "recipientMode": "Recipient",
+        "recipientCustom": "Custom email",
+        "recipientField": "Form email",
+        "recipientCurrentUser": "Current user",
+        "recipientFieldLabel": "Email field",
+        "recipientEmail": "Recipient email",
+        "recipientEmailPlaceholder": "recipient@example.com",
+        "replyToField": "Reply-to field"
+      },
       "saved": "Page saved",
       "saveError": "Error while saving",
       "notFound": "CMS page not found"

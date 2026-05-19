@@ -14,6 +14,11 @@
       <span class="label-text">Afficher le carousel dans une carte</span>
     </label>
 
+    <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+      <input v-model="carousel.lightboxEnabled" type="checkbox" class="toggle toggle-primary" />
+      <span class="label-text">Ouvrir le carousel en grand</span>
+    </label>
+
     <div class="grid gap-4 md:grid-cols-2">
       <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
         <input :checked="carousel.settings.autoplay" type="checkbox" class="toggle toggle-primary" @change="carousel.settings.autoplay = ($event.target as HTMLInputElement).checked">
