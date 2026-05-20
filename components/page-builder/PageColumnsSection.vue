@@ -130,8 +130,8 @@
                           :alt="pickLocalizedText(locale, item.alt)"
                           class="h-full w-full"
                           :class="imageClass(item)"
-                          :width="columnMediaWidth(columnIndex)"
-                          :sizes="columnMediaSizes(columnIndex)"
+                          :width="columnMediaWidth(columnIndex, item.requestedWidthPx)"
+                          :sizes="columnMediaSizes(columnIndex, item.requestedWidthPx)"
                           :loading="priority && columnIndex === 0 && itemIndex === 0 ? 'eager' : 'lazy'"
                           :fetchpriority="priority && columnIndex === 0 && itemIndex === 0 ? 'high' : 'auto'"
                         />
@@ -142,8 +142,8 @@
                           :alt="pickLocalizedText(locale, item.alt)"
                           class="h-full w-full"
                           :class="imageClass(item)"
-                          :width="columnMediaWidth(columnIndex)"
-                          :sizes="columnMediaSizes(columnIndex)"
+                          :width="columnMediaWidth(columnIndex, item.requestedWidthPx)"
+                          :sizes="columnMediaSizes(columnIndex, item.requestedWidthPx)"
                           :loading="priority && columnIndex === 0 && itemIndex === 0 ? 'eager' : 'lazy'"
                           :fetchpriority="priority && columnIndex === 0 && itemIndex === 0 ? 'high' : 'auto'"
                         />
@@ -287,8 +287,8 @@
                       :locale="locale"
                       :interactive="item.lightboxEnabled"
                       :priority="priority && columnIndex === 0 && itemIndex === 0"
-                      :base-width="columnMediaWidth(columnIndex)"
-                      :sizes="columnMediaSizes(columnIndex)"
+                      :base-width="columnMediaWidth(columnIndex, item.requestedWidthPx)"
+                      :sizes="columnMediaSizes(columnIndex, item.requestedWidthPx)"
                       @open="(index) => openLightbox(item.slides.filter(slide => slide.imageUrl.trim()), index)"
                     />
                     <div v-else class="px-4 text-sm opacity-60">Carousel vide</div>
@@ -472,11 +472,27 @@ const columnDesktopFraction = (columnIndex: number) => {
   return 1 / 4
 }
 
-const columnMediaWidth = (columnIndex: number) =>
-  Math.max(320, Math.round(sectionContainerMaxWidth.value * columnDesktopFraction(columnIndex)))
+const defaultColumnMediaWidth = (columnIndex: number) => {
+  const baseWidth = Math.round(sectionContainerMaxWidth.value * columnDesktopFraction(columnIndex))
 
-const columnMediaSizes = (columnIndex: number) => {
-  const desktopWidth = `${columnMediaWidth(columnIndex)}px`
+  if (props.section.columnCount === 1) return Math.max(1280, baseWidth)
+  if (props.section.columnCount === 2) return Math.max(744, Math.round(baseWidth * 1.12))
+  return Math.max(344, Math.round(baseWidth * 1.18))
+}
+
+const resolvedRequestedWidth = (requestedWidthPx?: number | null) =>
+  typeof requestedWidthPx === 'number' && Number.isFinite(requestedWidthPx) && requestedWidthPx > 0
+    ? Math.min(2400, Math.round(requestedWidthPx))
+    : null
+
+const columnMediaWidth = (columnIndex: number, requestedWidthPx?: number | null) => {
+  const defaultWidth = defaultColumnMediaWidth(columnIndex)
+  const requestedWidth = resolvedRequestedWidth(requestedWidthPx)
+  return requestedWidth ? Math.max(defaultWidth, requestedWidth) : defaultWidth
+}
+
+const columnMediaSizes = (columnIndex: number, requestedWidthPx?: number | null) => {
+  const desktopWidth = `${columnMediaWidth(columnIndex, requestedWidthPx)}px`
 
   if (props.section.columnCount <= 1) {
     return `(max-width: 768px) 100vw, ${desktopWidth}`

@@ -1,6 +1,11 @@
 import type { H3Event, EventHandlerRequest } from 'h3'
 import { prisma } from '../../../prisma/client'
 import { getUploadObject } from '~/server/utils/uploadStorage'
+import {
+  createStoredImageVariant,
+  findStoredImageVariant,
+  normalizeImageVariantSignature
+} from '~/server/utils/imageVariants'
 
 type OutputFormat = 'image/avif' | 'image/webp' | 'image/png' | 'image/jpeg' | 'image/gif'
 type ImageResizerBinding = {
@@ -126,6 +131,8 @@ export default defineEventHandler(async (event) => {
   const image = await prisma.image.findFirst({
     where: { filename },
     select: {
+      id: true,
+      filename: true,
       mimeType: true,
       createdAt: true
     }
@@ -147,6 +154,23 @@ export default defineEventHandler(async (event) => {
   const shouldTransform = Object.keys(transform).length > 0 || Boolean(requestedFormat)
   const resizer = event.context.cloudflare?.env?.IMAGE_RESIZER as ImageResizerBinding | undefined
 
+  if (shouldTransform) {
+    const outputFormat = resolveOutputFormat(getHeader(event, 'accept') || '', requestedFormat, sourceMimeType)
+    const signature = normalizeImageVariantSignature({
+      width: typeof transform.width === 'number' ? transform.width : undefined,
+      height: typeof transform.height === 'number' ? transform.height : undefined,
+      fit: typeof transform.fit === 'string' ? transform.fit : undefined,
+      quality,
+      format: outputFormat
+    })
+    const existingVariant = await findStoredImageVariant(image.id, signature)
+
+    if (existingVariant) {
+      setBaseHeaders(event, existingVariant.variant.mimeType, existingVariant.variant.createdAt)
+      return new Response(existingVariant.object.body)
+    }
+  }
+
   if (
     shouldTransform
     && resizer
@@ -164,8 +188,25 @@ export default defineEventHandler(async (event) => {
         })
     ).response()
 
-    setBaseHeaders(event, outputFormat, lastModified)
-    return response
+    const arrayBuffer = await response.arrayBuffer()
+    const body = new Uint8Array(arrayBuffer)
+    const storedVariant = await createStoredImageVariant({
+      imageId: image.id,
+      originalFilename: image.filename,
+      mimeType: outputFormat,
+      size: body.byteLength,
+      data: body,
+      signature: {
+        width: typeof transform.width === 'number' ? transform.width : undefined,
+        height: typeof transform.height === 'number' ? transform.height : undefined,
+        fit: typeof transform.fit === 'string' ? transform.fit : undefined,
+        quality,
+        format: outputFormat
+      }
+    })
+
+    setBaseHeaders(event, storedVariant.mimeType, storedVariant.createdAt)
+    return new Response(body)
   }
 
   setBaseHeaders(event, sourceMimeType, lastModified)

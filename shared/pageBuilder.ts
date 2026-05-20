@@ -145,6 +145,7 @@ export interface PageBuilderImageItem {
   type: 'image'
   imageUrl: string
   alt: LocalizedText
+  requestedWidthPx?: number | null
   aspect: ImageAspect
   fit: ImageFit
   verticalAlign: VerticalAlign
@@ -156,6 +157,7 @@ export interface PageBuilderImageItem {
 export interface PageBuilderCarouselItem {
   id: string
   type: 'carousel'
+  requestedWidthPx?: number | null
   aspect: ImageAspect
   framed: boolean
   lightboxEnabled: boolean
@@ -239,6 +241,7 @@ export interface PageBuilderFormItem {
 export interface PageBuilderSectionBackgroundImage {
   imageUrl: string
   alt: LocalizedText
+  requestedWidthPx?: number | null
   fit: ImageFit
   verticalAlign: VerticalAlign
   overlayColor?: ThemeColorSelection | null
@@ -593,6 +596,7 @@ export function createImageItem(id: string): PageBuilderImageItem {
     type: 'image',
     imageUrl: '',
     alt: createEmptyLocalizedText(),
+    requestedWidthPx: null,
     aspect: 'landscape',
     fit: 'cover',
     verticalAlign: 'center',
@@ -606,6 +610,7 @@ export function createCarouselItem(id: string): PageBuilderCarouselItem {
   return {
     id,
     type: 'carousel',
+    requestedWidthPx: null,
     aspect: 'landscape',
     framed: true,
     lightboxEnabled: false,
@@ -618,6 +623,7 @@ export function createEmptySectionBackgroundImage(): PageBuilderSectionBackgroun
   return {
     imageUrl: '',
     alt: createEmptyLocalizedText(),
+    requestedWidthPx: null,
     fit: 'cover',
     verticalAlign: 'center',
     overlayColor: null,

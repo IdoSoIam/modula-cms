@@ -7,6 +7,36 @@
           <option v-for="aspect in IMAGE_ASPECTS" :key="aspect" :value="aspect">{{ aspect }}</option>
         </select>
       </div>
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Largeur chargee</span>
+          <span class="label-text-alt">{{ carousel.requestedWidthPx ? `${carousel.requestedWidthPx}px` : 'Auto' }}</span>
+        </label>
+        <input
+          :value="carousel.requestedWidthPx ?? 0"
+          type="range"
+          min="0"
+          max="1800"
+          step="20"
+          class="range range-primary range-sm"
+          @input="updateRequestedWidth(Number(($event.target as HTMLInputElement).value))"
+        >
+        <div class="mt-2 flex items-center gap-3">
+          <input
+            class="input input-bordered w-32"
+            type="number"
+            min="0"
+            max="2400"
+            step="20"
+            :value="carousel.requestedWidthPx ?? 0"
+            @input="updateRequestedWidth(Number(($event.target as HTMLInputElement).value))"
+          >
+          <button type="button" class="btn btn-sm btn-outline" @click="carousel.requestedWidthPx = null">
+            Auto
+          </button>
+        </div>
+      </div>
     </div>
 
     <label class="label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3">
@@ -189,5 +219,10 @@ const duplicateSlide = (index: number) => {
   clone.id = createId('slide')
   props.carousel.slides.splice(index + 1, 0, clone)
   openSlide(clone.id)
+}
+
+const updateRequestedWidth = (value: number) => {
+  const normalized = Number.isFinite(value) ? Math.max(0, Math.min(2400, Math.round(value))) : 0
+  props.carousel.requestedWidthPx = normalized > 0 ? normalized : null
 }
 </script>

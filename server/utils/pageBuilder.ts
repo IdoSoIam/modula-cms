@@ -70,6 +70,12 @@ function sanitizeSectionMinHeight(value: unknown) {
   return normalized > 0 ? normalized : null
 }
 
+function sanitizeRequestedImageWidth(value: unknown) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  const normalized = Math.max(0, Math.min(2400, Math.round(value)))
+  return normalized > 0 ? normalized : null
+}
+
 function normalizeThemeColorSelection(value: unknown, fallbackToken: ThemeColorToken = 'primary'): ThemeColorSelection | null {
   if (!isObject(value)) return null
   return {
@@ -287,6 +293,7 @@ function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
       const item = createImageItem(typeof value.id === 'string' ? value.id : `image-${Math.random().toString(36).slice(2, 8)}`)
       item.imageUrl = typeof value.imageUrl === 'string' ? value.imageUrl : ''
       item.alt = normalizeLocalizedText(value.alt) || item.alt
+      item.requestedWidthPx = sanitizeRequestedImageWidth(value.requestedWidthPx)
       item.aspect = (typeof value.aspect === 'string' ? value.aspect : 'landscape') as typeof item.aspect
       item.fit = (typeof value.fit === 'string' ? value.fit : 'cover') as typeof item.fit
       item.verticalAlign = (typeof value.verticalAlign === 'string' ? value.verticalAlign : 'center') as typeof item.verticalAlign
@@ -297,6 +304,7 @@ function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
     }
     case 'carousel': {
       const item = createCarouselItem(typeof value.id === 'string' ? value.id : `carousel-${Math.random().toString(36).slice(2, 8)}`)
+      item.requestedWidthPx = sanitizeRequestedImageWidth(value.requestedWidthPx)
       item.aspect = (typeof value.aspect === 'string' ? value.aspect : 'landscape') as typeof item.aspect
       item.framed = typeof value.framed === 'boolean' ? value.framed : true
       item.lightboxEnabled = typeof value.lightboxEnabled === 'boolean' ? value.lightboxEnabled : false
@@ -364,6 +372,7 @@ function normalizeSectionBackgroundImage(value: unknown) {
   if (!isObject(value)) return background
   background.imageUrl = typeof value.imageUrl === 'string' ? value.imageUrl : ''
   background.alt = normalizeLocalizedText(value.alt) || background.alt
+  background.requestedWidthPx = sanitizeRequestedImageWidth(value.requestedWidthPx)
   background.fit = (typeof value.fit === 'string' ? value.fit : 'cover') as typeof background.fit
   background.verticalAlign = (typeof value.verticalAlign === 'string' ? value.verticalAlign : 'center') as typeof background.verticalAlign
   background.overlayColor = normalizeThemeColorSelection(value.overlayColor, 'neutral')
@@ -592,4 +601,7 @@ export async function savePageBuilderContent(content: PageBuilderContent) {
   const fallback = createDefaultPageBuilderContent(farmPickup.address)
   const normalized = normalizePageBuilderContent(content, fallback)
   await setSetting(SETTING_KEYS.PAGE_BUILDER_CONTENT, JSON.stringify(normalized))
+
+  const { syncImageUsageTable } = await import('./imageReferences')
+  await syncImageUsageTable()
 }

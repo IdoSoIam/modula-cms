@@ -173,6 +173,36 @@
     </template>
 
     <template v-if="section.backgroundMode !== 'none'">
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text">Largeur chargee</span>
+          <span class="label-text-alt">{{ section.backgroundImage.requestedWidthPx ? `${section.backgroundImage.requestedWidthPx}px` : 'Auto' }}</span>
+        </label>
+        <input
+          :value="section.backgroundImage.requestedWidthPx ?? 0"
+          type="range"
+          min="0"
+          max="2200"
+          step="20"
+          class="range range-primary range-sm"
+          @input="updateBackgroundRequestedWidth(Number(($event.target as HTMLInputElement).value))"
+        >
+        <div class="mt-2 flex items-center gap-3">
+          <input
+            class="input input-bordered w-32"
+            type="number"
+            min="0"
+            max="2400"
+            step="20"
+            :value="section.backgroundImage.requestedWidthPx ?? 0"
+            @input="updateBackgroundRequestedWidth(Number(($event.target as HTMLInputElement).value))"
+          >
+          <button type="button" class="btn btn-sm btn-outline" @click="section.backgroundImage.requestedWidthPx = null">
+            Auto
+          </button>
+        </div>
+      </div>
+
       <ThemeColorPicker
         v-model="section.backgroundImage.overlayColor"
         label="Couleur d overlay"
@@ -273,5 +303,10 @@ const duplicateSlide = (index: number) => {
 const updateMinHeight = (value: number) => {
   const normalized = Number.isFinite(value) ? Math.max(0, Math.min(2400, Math.round(value))) : 0
   props.section.minHeightPx = normalized > 0 ? normalized : null
+}
+
+const updateBackgroundRequestedWidth = (value: number) => {
+  const normalized = Number.isFinite(value) ? Math.max(0, Math.min(2400, Math.round(value))) : 0
+  props.section.backgroundImage.requestedWidthPx = normalized > 0 ? normalized : null
 }
 </script>

@@ -279,8 +279,43 @@ model Image {
   uploadedById Int?
   createdAt    DateTime @default(now())
   uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  variants     ImageVariant[]
+  usages       ImageUsage[]
 
   @@index([createdAt])
+}
+
+model ImageVariant {
+  id         Int      @id @default(autoincrement())
+  imageId    Int
+  storageKey String   @unique
+  mimeType   String
+  size       Int
+  width      Int?
+  height     Int?
+  fit        String?
+  quality    Int?
+  format     String
+  createdAt  DateTime @default(now())
+  image      Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  @@unique([imageId, width, height, fit, quality, format], name: "ImageVariant_unique_signature")
+  @@index([imageId, createdAt])
+}
+
+model ImageUsage {
+  id        Int      @id @default(autoincrement())
+  imageId   Int
+  scopeType String
+  scopeId   String
+  fieldKey  String
+  label     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  image     Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  @@unique([imageId, scopeType, scopeId, fieldKey], name: "ImageUsage_unique_scope")
+  @@index([imageId, scopeType])
 }
 
 enum CmsPageType {

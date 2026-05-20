@@ -1068,6 +1068,9 @@ export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
 
 export async function saveCmsSiteSettings(settings: CmsSiteSettings) {
   await setSetting(SETTING_KEYS.CMS_SITE_SETTINGS, JSON.stringify(settings))
+
+  const { syncImageUsageTable } = await import('./imageReferences')
+  await syncImageUsageTable()
 }
 
 export async function listCmsPages() {
@@ -1444,21 +1447,31 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
     )
     if (!existing) return null
 
-    return await withCmsTableFallback(
+    const updated = await withCmsTableFallback(
       () => prisma.cmsPage.update({
         where: { id },
         data
       }),
       async () => null
     )
+    if (updated) {
+      const { syncImageUsageTable } = await import('./imageReferences')
+      await syncImageUsageTable()
+    }
+    return updated
   }
 
-  return await withCmsTableFallback(
+  const created = await withCmsTableFallback(
     () => prisma.cmsPage.create({
       data
     }),
     async () => null
   )
+  if (created) {
+    const { syncImageUsageTable } = await import('./imageReferences')
+    await syncImageUsageTable()
+  }
+  return created
 }
 
 export async function deleteCmsPage(id: number) {
@@ -1472,6 +1485,9 @@ export async function deleteCmsPage(id: number) {
       where: { id }
     })
   }, async () => undefined)
+
+  const { syncImageUsageTable } = await import('./imageReferences')
+  await syncImageUsageTable()
 }
 
 export async function duplicateCmsPage(id: number) {

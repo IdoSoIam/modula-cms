@@ -22,7 +22,9 @@ const appTables = [
   'ReservationOccurrence',
   'ReservationNotification',
   'Article',
-  'Image'
+  'Image',
+  'ImageUsage',
+  'ImageVariant'
 ]
 const userScopedTables = [
   'User',

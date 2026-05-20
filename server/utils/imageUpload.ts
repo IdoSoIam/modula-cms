@@ -2,7 +2,15 @@ import { randomUUID } from 'node:crypto'
 import { extname } from 'node:path'
 import { slugify } from '~/server/utils/slug'
 
-export const ALLOWED_IMAGE_UPLOAD_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'] as const
+export const ALLOWED_IMAGE_UPLOAD_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+  'image/x-icon',
+  'image/vnd.microsoft.icon'
+] as const
 export const MAX_IMAGE_UPLOAD_SIZE = 20 * 1024 * 1024
 
 type OptimizableMimeType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/avif'
@@ -23,6 +31,7 @@ function normalizeExtension(extension: string, mimeType: string) {
   if (mimeType === 'image/webp') return '.webp'
   if (mimeType === 'image/avif') return '.avif'
   if (mimeType === 'image/gif') return '.gif'
+  if (mimeType === 'image/x-icon' || mimeType === 'image/vnd.microsoft.icon') return '.ico'
   return lowered || `.${mimeType.split('/')[1] || 'bin'}`
 }
 

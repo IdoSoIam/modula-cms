@@ -21,7 +21,7 @@
       <label class="btn btn-sm btn-outline">
         <Icon name="mdi:upload" size="16" />
         Importer
-        <input type="file" accept="image/*" class="hidden" @change="onFile" />
+        <input type="file" accept="image/*,.ico,image/x-icon,image/vnd.microsoft.icon" class="hidden" @change="onFile" />
       </label>
     </div>
     <ImagePicker v-model:open="pickerOpen" @select="onPick" />

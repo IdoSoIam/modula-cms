@@ -132,9 +132,9 @@ const defaultSettings = createDefaultCmsSiteSettings().newsPage
 const effectiveSettings = computed(() => props.settings || siteConfig.value?.cms?.settings?.newsPage || defaultSettings)
 
 const { data: articlesRaw, pending: articlesPending } = await useAsyncData<ArticleSummary[]>(
-  'public-articles',
-  () => useArticles.value ? $fetch<ArticleSummary[]>('/api/articles' as string) : Promise.resolve([]),
-  { watch: [useArticles], immediate: true }
+  () => `public-articles:${locale.value}`,
+  () => $fetch<ArticleSummary[]>('/api/articles'),
+  { watch: [locale], immediate: true }
 )
 
 const sortBy = ref<SortOption>('dateDesc')

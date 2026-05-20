@@ -6,7 +6,7 @@
         :alt="pickLocalizedText(locale, section.backgroundImage.alt)"
         class="h-full w-full"
         :class="mediaClass(section.backgroundImage.fit, section.backgroundImage.verticalAlign)"
-        width="1600"
+        :width="backgroundMediaWidth"
         sizes="100vw"
         :loading="priority ? 'eager' : 'lazy'"
         :fetchpriority="priority ? 'high' : 'auto'"
@@ -27,7 +27,7 @@
       :overlay-style="overlayStyle"
       :overlay-blur="section.backgroundImage.blur"
       :priority="priority"
-      :base-width="1600"
+      :base-width="backgroundMediaWidth"
       sizes="100vw"
     />
   </div>
@@ -103,6 +103,25 @@ const overlayStyle = computed(() => {
 const carouselSlides = computed(() =>
   props.section.backgroundCarousel.filter(slide => slide.imageUrl.trim())
 )
+
+const backgroundMediaWidth = computed(() => {
+  const explicitWidth = props.section.backgroundImage.requestedWidthPx
+  if (typeof explicitWidth === 'number' && Number.isFinite(explicitWidth) && explicitWidth > 0) {
+    return Math.min(2400, Math.round(explicitWidth))
+  }
+
+  switch (props.section.containerWidth) {
+    case 'full':
+    case 'edge':
+      return 1920
+    case 'xwide':
+      return 1760
+    case 'wide':
+      return 1600
+    default:
+      return 1440
+  }
+})
 
 const mediaClass = (fit: string, verticalAlign: string) => {
   const fitClass = fit === 'contain' ? 'object-contain' : 'object-cover'

@@ -1,6 +1,7 @@
 import type { PageBuilderContent } from '~/shared/pageBuilder'
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { savePageBuilderContent } from '~/server/utils/pageBuilder'
+import { syncImageUsageTable } from '~/server/utils/imageReferences'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -14,5 +15,6 @@ export default defineEventHandler(async (event) => {
   }
 
   await savePageBuilderContent(body)
+  await syncImageUsageTable()
   return { ok: true }
 })

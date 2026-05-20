@@ -330,6 +330,42 @@ const ItemEditor = defineComponent({
             h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Placement')]), h('select', { class: 'select select-bordered w-full', value: item.fit, onChange: (e: Event) => { item.fit = (e.target as HTMLSelectElement).value as any } }, IMAGE_FITS.map(f => h('option', { value: f }, f)))]),
             h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement vertical')]), h('select', { class: 'select select-bordered w-full', value: item.verticalAlign, onChange: (e: Event) => { item.verticalAlign = (e.target as HTMLSelectElement).value as any } }, VERTICAL_ALIGNS.map(a => h('option', { value: a }, a)))])
           ]),
+          h('div', { class: 'form-control' }, [
+            h('label', { class: 'label' }, [
+              h('span', { class: 'label-text' }, 'Largeur chargee'),
+              h('span', { class: 'label-text-alt' }, item.requestedWidthPx ? `${item.requestedWidthPx}px` : 'Auto'),
+              ' '
+            ]),
+            h('input', {
+              class: 'range range-primary range-sm',
+              type: 'range',
+              min: '0',
+              max: '1800',
+              step: '20',
+              value: item.requestedWidthPx ?? 0,
+              onInput: (e: Event) => {
+                const value = Number((e.target as HTMLInputElement).value)
+                const normalized = Number.isFinite(value) ? Math.max(0, Math.min(2400, Math.round(value))) : 0
+                item.requestedWidthPx = normalized > 0 ? normalized : null
+              }
+            }),
+            h('div', { class: 'mt-2 flex items-center gap-3' }, [
+              h('input', {
+                class: 'input input-bordered w-32',
+                type: 'number',
+                min: '0',
+                max: '2400',
+                step: '20',
+                value: item.requestedWidthPx ?? 0,
+                onInput: (e: Event) => {
+                  const value = Number((e.target as HTMLInputElement).value)
+                  const normalized = Number.isFinite(value) ? Math.max(0, Math.min(2400, Math.round(value))) : 0
+                  item.requestedWidthPx = normalized > 0 ? normalized : null
+                }
+              }),
+              h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => { item.requestedWidthPx = null } }, 'Auto')
+            ])
+          ]),
           h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.framed, onChange: (e: Event) => { item.framed = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, "Afficher l'image dans une carte")]),
           h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.enlarge, onChange: (e: Event) => { item.enlarge = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Forcer un affichage plus grand')]),
           h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: item.lightboxEnabled, onChange: (e: Event) => { item.lightboxEnabled = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Ouvrir l’image en grand')])

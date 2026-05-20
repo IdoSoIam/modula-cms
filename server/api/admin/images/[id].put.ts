@@ -1,9 +1,10 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
-import { updateImageReferences } from '~/server/utils/imageReferences'
+import { syncImageUsageTable, updateImageReferences } from '~/server/utils/imageReferences'
 import { slugify } from '~/server/utils/slug'
 import { extname } from 'node:path'
 import { putUploadObject, renameUploadObject, deleteUploadObject } from '~/server/utils/uploadStorage'
+import { deleteImageVariants } from '~/server/utils/imageVariants'
 import {
   ALLOWED_IMAGE_UPLOAD_MIME_TYPES,
   MAX_IMAGE_UPLOAD_SIZE,
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event) => {
   if (filePart?.data) {
     const mime = filePart.type || 'application/octet-stream'
     if (!ALLOWED_IMAGE_UPLOAD_MIME_TYPES.includes(mime as (typeof ALLOWED_IMAGE_UPLOAD_MIME_TYPES)[number])) {
-      throw createError({ statusCode: 400, statusMessage: 'Format non supporte (jpg, png, webp, gif, avif)' })
+      throw createError({ statusCode: 400, statusMessage: 'Format non supporte (jpg, png, webp, gif, avif, ico)' })
     }
     if (filePart.data.length > MAX_IMAGE_UPLOAD_SIZE) {
       throw createError({ statusCode: 400, statusMessage: 'Image trop lourde (max 20 Mo)' })
@@ -60,6 +61,7 @@ export default defineEventHandler(async (event) => {
     nextWidth = prepared.width
     nextHeight = prepared.height
 
+    await deleteImageVariants(image.id)
     await putUploadObject(nextFilename, prepared.buffer, prepared.mimeType)
     if (image.filename !== nextFilename) {
       await deleteUploadObject(image.filename)
@@ -75,7 +77,7 @@ export default defineEventHandler(async (event) => {
     await updateImageReferences(image.url, nextUrl)
   }
 
-  return await prisma.image.update({
+  const updated = await prisma.image.update({
     where: { id },
     data: {
       filename: nextFilename,
@@ -86,4 +88,7 @@ export default defineEventHandler(async (event) => {
       height: nextHeight
     }
   })
+
+  await syncImageUsageTable()
+  return updated
 })

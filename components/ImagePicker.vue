@@ -4,7 +4,7 @@
       <h3 class="font-bold text-lg mb-4">Bibliothèque d'images</h3>
 
       <div class="flex items-center gap-2 mb-4">
-        <input ref="fileInput" type="file" accept="image/*" class="file-input file-input-bordered file-input-sm" @change="onFileChange" />
+        <input ref="fileInput" type="file" accept="image/*,.ico,image/x-icon,image/vnd.microsoft.icon" class="file-input file-input-bordered file-input-sm" @change="onFileChange" />
         <span v-if="uploading" class="loading loading-spinner loading-sm" />
         <span class="text-xs opacity-60 ml-auto">{{ images.length }} image(s)</span>
       </div>

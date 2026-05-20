@@ -1,6 +1,7 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
 import { putUploadObject } from '~/server/utils/uploadStorage'
+import { syncImageUsageTable } from '~/server/utils/imageReferences'
 import {
   ALLOWED_IMAGE_UPLOAD_MIME_TYPES,
   MAX_IMAGE_UPLOAD_SIZE,
@@ -18,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   const mime = filePart.type || 'application/octet-stream'
   if (!ALLOWED_IMAGE_UPLOAD_MIME_TYPES.includes(mime as (typeof ALLOWED_IMAGE_UPLOAD_MIME_TYPES)[number])) {
-    throw createError({ statusCode: 400, statusMessage: 'Format non supporte (jpg, png, webp, gif, avif)' })
+    throw createError({ statusCode: 400, statusMessage: 'Format non supporte (jpg, png, webp, gif, avif, ico)' })
   }
 
   if (filePart.data.length > MAX_IMAGE_UPLOAD_SIZE) {
@@ -37,7 +38,7 @@ export default defineEventHandler(async (event) => {
 
   await putUploadObject(filename, prepared.buffer, prepared.mimeType)
 
-  return await prisma.image.create({
+  const created = await prisma.image.create({
     data: {
       filename,
       url,
@@ -48,4 +49,7 @@ export default defineEventHandler(async (event) => {
       uploadedById: user.id
     }
   })
+
+  await syncImageUsageTable()
+  return created
 })
