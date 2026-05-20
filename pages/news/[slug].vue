@@ -5,13 +5,13 @@
       {{ $t('pages.news.backToNews') }}
     </NuxtLink>
 
-    <article v-if="article" class="max-w-3xl mx-auto">
+    <article v-if="article" class="mx-auto">
       <h1 class="text-4xl font-bold mb-2">{{ article.title }}</h1>
       <p v-if="article.publishedAt" class="text-sm opacity-60 mb-6">
         {{ $t('pages.news.publishedOn') }} {{ formatDate(article.publishedAt) }}
       </p>
       <figure v-if="article.coverUrl" class="mb-6 rounded-box overflow-hidden">
-        <AppImage :src="article.coverUrl" :alt="article.title" class="w-full max-h-96 object-cover" sizes="(max-width: 768px) 100vw, 768px" loading="eager" fetchpriority="high" />
+        <AppImage :src="article.coverUrl" :alt="article.title" class="w-full object-cover" sizes="(max-width: 868px) 100vw, 868px" loading="eager" fetchpriority="high" />
       </figure>
       <div class="prose max-w-none article-content" v-html="article.content" />
     </article>

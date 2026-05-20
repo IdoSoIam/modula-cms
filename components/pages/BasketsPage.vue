@@ -193,15 +193,15 @@
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div class="form-control gap-3 flex">
+          <div class="form-control gap-3 flex flex-col">
             <label class="label"><span class="label-text">{{ $t('pages.baskets.fullName') }} *</span></label>
             <input v-model="form.customerName" class="input input-bordered w-full" />
           </div>
-          <div class="form-control gap-3 flex">
+          <div class="form-control gap-3 flex flex-col">
             <label class="label"><span class="label-text">{{ $t('auth.email') }} *</span></label>
             <input v-model="form.email" type="email" class="input input-bordered w-full" />
           </div>
-          <div class="form-control gap-3 flex md:col-span-2">
+          <div class="form-control gap-3 flex flex-col md:col-span-2">
             <label class="label"><span class="label-text">{{ $t('pages.baskets.phone') }}</span></label>
             <input v-model="form.phone" type="tel" class="input input-bordered w-full" />
           </div>
@@ -272,11 +272,11 @@
             <span class="label-text">{{ $t('pages.baskets.proposeAnotherSlot') }}</span>
           </label>
           <div v-if="form.farmAlternateEnabled" class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div class="form-control gap-3 flex">
+            <div class="form-control gap-3 flex flex-col">
               <label class="label"><span class="label-text">{{ $t('pages.baskets.alternateDate') }}</span></label>
               <input v-model="form.farmAlternateDate" type="date" class="input input-bordered w-full" />
             </div>
-            <div class="form-control gap-3 flex">
+            <div class="form-control gap-3 flex flex-col">
               <label class="label"><span class="label-text">{{ $t('pages.baskets.alternateTime') }}</span></label>
               <input v-model="form.farmAlternateTime" type="time" class="input input-bordered w-full" />
             </div>
@@ -333,7 +333,7 @@
           </div>
 
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div class="form-control gap-3 flex relative">
+            <div class="form-control gap-3 flex relative flex-col">
               <label class="label"><span class="label-text">{{ $t('pages.baskets.city') }} *</span></label>
               <div class="dropdown w-full" :class="{ 'dropdown-open': showCityDropdown }">
                 <input
@@ -363,13 +363,13 @@
               </p>
             </div>
 
-            <div class="form-control gap-3 flex">
+            <div class="form-control gap-3 flex flex-col">
               <label class="label"><span class="label-text">{{ $t('pages.baskets.postalCode') }}</span></label>
               <input v-model="form.deliveryPostalCode" class="input input-bordered w-full" placeholder="31000" />
             </div>
           </div>
 
-          <div class="form-control gap-3 flex">
+          <div class="form-control gap-3 flex flex-col">
             <label class="label"><span class="label-text">{{ $t('pages.baskets.address') }} *</span></label>
             <textarea v-model="form.deliveryAddress" class="textarea textarea-bordered w-full" rows="2" />
           </div>
@@ -384,7 +384,7 @@
             <span>{{ $t('pages.baskets.cityNotServed', { city: form.deliveryCity }) }}</span>
           </div>
 
-          <div class="form-control gap-3 flex">
+          <div class="form-control gap-3 flex flex-col">
             <label class="label"><span class="label-text">{{ $t('pages.baskets.selectTour') }} *</span></label>
             <select v-if="availableTours.length" v-model.number="form.deliveryTourId" class="select select-bordered w-full">
               <option :value="null" disabled>--</option>
@@ -421,7 +421,7 @@
           </p>
         </div>
 
-        <div class="form-control gap-3 flex">
+        <div class="form-control gap-3 flex flex-col">
           <label class="label"><span class="label-text">{{ $t('pages.baskets.messageOptional') }}</span></label>
           <textarea v-model="form.message" class="textarea textarea-bordered w-full" rows="3" />
         </div>

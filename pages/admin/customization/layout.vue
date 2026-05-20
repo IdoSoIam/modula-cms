@@ -39,7 +39,7 @@
 
           <div
             v-if="previewDevice === 'desktop'"
-            class="min-w-0 overflow-visible rounded-[2rem] border border-base-300 bg-base-200 shadow-sm"
+            class="min-w-0 overflow-visible border border-base-300 bg-base-200 shadow-sm"
           >
             <Navigation
               :preview-locale="previewLocale"

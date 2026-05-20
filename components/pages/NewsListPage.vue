@@ -7,13 +7,11 @@
       </header>
 
       <div class="max-w-4xl mx-auto">
-        <FacebookFeed v-if="!useArticles" />
-
-        <template v-else>
-          <div v-if="articlesPending" class="py-12 text-center">
+        <div v-if="showArticles">
+          <div v-if="articlesPending && !articles?.length" class="py-12 text-center">
             <span class="loading loading-spinner loading-lg" />
           </div>
-          <div v-else-if="!articlesRaw?.length" class="py-12 text-center opacity-60">
+          <div v-else-if="!articles?.length" class="py-12 text-center opacity-60">
             {{ $t('pages.news.noArticles') }}
           </div>
           <div v-else>
@@ -91,26 +89,19 @@
               </article>
             </div>
           </div>
-        </template>
+        </div>
+
+        <NewsFacebookContent v-else />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent } from 'vue'
 import type { CmsNewsPageSettings } from '~/shared/cms'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
 import { formatLocalizedDate } from '~/shared/date'
-
-interface ArticleSummary {
-  id: number
-  title: string
-  slug: string
-  excerpt: string | null
-  coverUrl: string | null
-  publishedAt: string | null
-}
+import NewsFacebookContent from '~/components/pages/NewsFacebookContent.vue'
 
 type SortOption = 'dateDesc' | 'dateAsc' | 'title'
 type ViewMode = 'grid' | 'list'
@@ -118,24 +109,23 @@ type ViewMode = 'grid' | 'list'
 const props = defineProps<{
   settings?: CmsNewsPageSettings | null
   forceArticles?: boolean
+  showArticles?: boolean
   disableSeo?: boolean
 }>()
-
-const FacebookFeed = defineAsyncComponent(() => import('~/components/FacebookFeed.vue'))
 
 const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const router = useRouter()
-const siteConfig = await useSiteConfig()
-const useArticles = computed(() => props.forceArticles === true || siteConfig.value?.facebookFluxDeactivated === true)
+
+const showArticles = props.forceArticles === true || props.showArticles === true
+
 const defaultSettings = createDefaultCmsSiteSettings().newsPage
+const siteConfig = await useSiteConfig()
 const effectiveSettings = computed(() => props.settings || siteConfig.value?.cms?.settings?.newsPage || defaultSettings)
 
-const { data: articlesRaw, pending: articlesPending } = await useAsyncData<ArticleSummary[]>(
-  () => `public-articles:${locale.value}`,
-  () => $fetch<ArticleSummary[]>('/api/articles'),
-  { watch: [locale], immediate: true }
-)
+const { data: articles, pending: articlesPending } = showArticles
+  ? usePublicArticles()
+  : { data: ref(null), pending: ref(false) }
 
 const sortBy = ref<SortOption>('dateDesc')
 const viewMode = ref<ViewMode>(effectiveSettings.value.defaultViewMode)
@@ -157,7 +147,7 @@ if (!props.disableSeo) {
 }
 
 const sortedArticles = computed(() => {
-  const list = [...(articlesRaw.value || [])]
+  const list = [...(articles.value || [])]
   switch (sortBy.value) {
     case 'dateDesc':
       return list.sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''))

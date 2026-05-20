@@ -1,9 +1,12 @@
 <template>
   <div class="bg-base-100">
-    <component
-      :is="applicationComponent"
-      v-bind="applicationProps"
-      v-if="showApplication && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
+    <NewsListPage
+      v-if="showApplication && resolvedPage.rendererKey === 'news' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
+      v-bind="newsPageProps"
+    />
+    <BasketsPage
+      v-else-if="showApplication && resolvedPage.rendererKey === 'baskets' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
+      v-bind="basketsPageProps"
     />
 
     <PageRenderer
@@ -14,19 +17,24 @@
       @edit="$emit('edit', $event)"
     />
 
-    <component
-      :is="applicationComponent"
-      v-bind="applicationProps"
-      v-if="showApplication && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
+    <NewsListPage
+      v-if="showApplication && resolvedPage.rendererKey === 'news' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
+      v-bind="newsPageProps"
     />
+    <BasketsPage
+      v-else-if="showApplication && resolvedPage.rendererKey === 'baskets' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
+      v-bind="basketsPageProps"
+    />
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent } from 'vue'
 import type { ResolvedCmsPage } from '~/shared/cms'
 import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
 import PageRenderer from '~/components/page-builder/PageRenderer.vue'
+import BasketsPage from '~/components/pages/BasketsPage.vue'
+import NewsListPage from '~/components/pages/NewsListPage.vue'
 
 const props = defineProps<{
   resolvedPage: ResolvedCmsPage
@@ -38,33 +46,18 @@ defineEmits<{
   edit: [target: PageBuilderEditTarget]
 }>()
 
-const BasketsPage = defineAsyncComponent(() => import('~/components/pages/BasketsPage.vue'))
-const NewsListPage = defineAsyncComponent(() => import('~/components/pages/NewsListPage.vue'))
-
-const siteConfig = useSiteConfigState()
+const siteConfig = await useSiteConfig()
 const cmsSettings = computed(() => siteConfig.value?.cms?.settings)
+const newsShowArticles = siteConfig.value?.facebookFluxDeactivated === true
 
-const applicationComponent = computed(() => {
-  switch (props.resolvedPage.rendererKey) {
-    case 'baskets':
-      return BasketsPage
-    case 'news':
-      return NewsListPage
-    default:
-      return null
-  }
-})
+const basketsPageProps = computed(() => ({
+  settings: cmsSettings.value?.basketsPage ?? null
+}))
 
-const applicationProps = computed(() => {
-  switch (props.resolvedPage.rendererKey) {
-    case 'baskets':
-      return { settings: cmsSettings.value?.basketsPage ?? null }
-    case 'news':
-      return { settings: cmsSettings.value?.newsPage ?? null }
-    default:
-      return {}
-  }
-})
+const newsPageProps = computed(() => ({
+  settings: cmsSettings.value?.newsPage ?? null,
+  showArticles: newsShowArticles
+}))
 
 const showContent = computed(() =>
   props.resolvedPage.pageType !== 'APPLICATION'
@@ -74,6 +67,6 @@ const showContent = computed(() =>
 
 const showApplication = computed(() =>
   (props.resolvedPage.pageType === 'APPLICATION' || props.resolvedPage.pageType === 'HYBRID')
-  && Boolean(applicationComponent.value)
+  && (props.resolvedPage.rendererKey === 'news' || props.resolvedPage.rendererKey === 'baskets')
 )
 </script>
