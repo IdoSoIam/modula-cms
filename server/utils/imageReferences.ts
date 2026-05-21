@@ -458,7 +458,7 @@ export async function syncImageUsageTable() {
             imageId: backgroundImageId,
             scopeType: 'cms-page',
             scopeId: String(page.id),
-            fieldKey: 'section-background-image',
+            fieldKey: `section-background-image:${section.id}`,
             label: `Page "${pageLabel}" (${page.path}) - section "${sectionLabel}" - fond`,
             createdAt: now,
             updatedAt: now
@@ -472,7 +472,7 @@ export async function syncImageUsageTable() {
             imageId,
             scopeType: 'cms-page',
             scopeId: String(page.id),
-            fieldKey: `section-background-carousel:${slide.id}`,
+            fieldKey: `section-background-carousel:${section.id}:${slide.id}`,
             label: `Page "${pageLabel}" (${page.path}) - section "${sectionLabel}" - carousel de fond`,
             createdAt: now,
             updatedAt: now
@@ -488,7 +488,7 @@ export async function syncImageUsageTable() {
                 imageId,
                 scopeType: 'cms-page',
                 scopeId: String(page.id),
-                fieldKey: `column-image:${columnIndex + 1}:${item.id}`,
+                fieldKey: `column-image:${section.id}:${columnIndex + 1}:${item.id}`,
                 label: `Page "${pageLabel}" (${page.path}) - section "${sectionLabel}" - colonne ${columnIndex + 1} - image`,
                 createdAt: now,
                 updatedAt: now
@@ -503,7 +503,7 @@ export async function syncImageUsageTable() {
                   imageId,
                   scopeType: 'cms-page',
                   scopeId: String(page.id),
-                  fieldKey: `column-carousel:${columnIndex + 1}:${item.id}:${slide.id}`,
+                  fieldKey: `column-carousel:${section.id}:${columnIndex + 1}:${item.id}:${slide.id}`,
                   label: `Page "${pageLabel}" (${page.path}) - section "${sectionLabel}" - colonne ${columnIndex + 1} - carousel`,
                   createdAt: now,
                   updatedAt: now

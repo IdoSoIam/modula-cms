@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto w-full px-4 py-10 sm:px-6 lg:px-8" :class="containerClass">
+  <div class="mx-auto w-full py-10 sm:px-6 lg:px-8" :class="[containerClass, preview ? '' : ' px-4']">
     <header class="mb-10 text-center">
       <h1 class="mb-2 text-4xl font-bold">{{ pageTitle }}</h1>
       <p v-if="pageSubtitle" class="mx-auto max-w-2xl opacity-70">
@@ -526,6 +526,7 @@ interface SiteConfig {
 
 const props = defineProps<{
   settings?: CmsBasketsPageSettings | null
+  preview?: boolean
 }>()
 
 interface DeliveryOptions {

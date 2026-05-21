@@ -57,7 +57,7 @@
         </div>
       </header>
 
-      <main class="px-4 py-6 sm:px-6 lg:px-8">
+      <main class="lg:px-4 px-1 py-6 sm:px-6 lg:px-8">
         <div
           id="toast"
           popover="manual"

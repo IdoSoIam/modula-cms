@@ -62,3 +62,22 @@
 .custom-fb-feed :deep(.fb-share-button) {
   margin: 0.5rem;
 }
+
+@media (max-width: 639px) {
+  .modal {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .modal > .modal-box {
+    width: 100vw;
+    max-width: none;
+    min-height: 100dvh;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}

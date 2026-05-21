@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <section class="min-w-0 space-y-5 rounded-box rounded-bottom rounded-topright border border-base-300 bg-base-100 p-4 sm:p-6">
+    <section class="min-w-0 space-y-5 rounded-box rounded-bottom rounded-topright border border-base-300 bg-base-100 xl:p-4 p-2 sm:p-6">
       <div>
         <h2 class="text-xl font-semibold">{{ t('admin.customizationLayoutPage.headerTitle') }}</h2>
         <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationLayoutPage.headerDescription') }}</p>

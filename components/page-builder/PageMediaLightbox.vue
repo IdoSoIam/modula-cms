@@ -120,6 +120,7 @@ const translateY = ref(0)
 const activePointers = new Map<number, { x: number; y: number }>()
 const dragStart = ref<{ x: number; y: number; translateX: number; translateY: number } | null>(null)
 const pinchStart = ref<{ distance: number; scale: number } | null>(null)
+const swipeStart = ref<{ x: number; y: number; at: number } | null>(null)
 
 const currentSlideIndex = computed(() => {
   if (!props.slides.length) return 0
@@ -151,6 +152,7 @@ function resetTransform() {
   translateY.value = 0
   dragStart.value = null
   pinchStart.value = null
+  swipeStart.value = null
   activePointers.clear()
 }
 
@@ -202,12 +204,20 @@ function onPointerDown(event: PointerEvent) {
   viewportRef.value.setPointerCapture(event.pointerId)
   activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
 
-  if (activePointers.size === 1 && scale.value > 1) {
-    dragStart.value = {
-      x: event.clientX,
-      y: event.clientY,
-      translateX: translateX.value,
-      translateY: translateY.value
+  if (activePointers.size === 1) {
+    if (scale.value > 1) {
+      dragStart.value = {
+        x: event.clientX,
+        y: event.clientY,
+        translateX: translateX.value,
+        translateY: translateY.value
+      }
+    } else {
+      swipeStart.value = {
+        x: event.clientX,
+        y: event.clientY,
+        at: Date.now()
+      }
     }
   }
 
@@ -217,6 +227,7 @@ function onPointerDown(event: PointerEvent) {
       scale: scale.value
     }
     dragStart.value = null
+    swipeStart.value = null
   }
 }
 
@@ -243,12 +254,30 @@ function onPointerMove(event: PointerEvent) {
 }
 
 function onPointerUp(event: PointerEvent) {
+  const start = swipeStart.value
+  const endX = event.clientX
+  const endY = event.clientY
   activePointers.delete(event.pointerId)
+
+  if (start && scale.value === 1) {
+    const deltaX = endX - start.x
+    const deltaY = endY - start.y
+    const elapsed = Date.now() - start.at
+    if (elapsed < 700 && Math.abs(deltaX) > 48 && Math.abs(deltaY) < 32) {
+      if (deltaX < 0) {
+        next()
+      } else {
+        prev()
+      }
+    }
+  }
+
   if (activePointers.size < 2) {
     pinchStart.value = null
   }
   if (!activePointers.size) {
     dragStart.value = null
+    swipeStart.value = null
   }
 }
 

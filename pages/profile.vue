@@ -91,7 +91,7 @@
 
           <form v-else @submit.prevent="updatePersonalInfo" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="form-control gap-3 flex">
+              <div class="form-control gap-3 flex flex-col">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.firstName') }}</span>
                 </label>
@@ -102,7 +102,7 @@
                   required
                 />
               </div>
-              <div class="form-control gap-3 flex">
+              <div class="form-control gap-3 flex flex-col">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.lastName') }}</span>
                 </label>
@@ -114,7 +114,7 @@
                 />
               </div>
             </div>
-            <div class="form-control gap-3 flex">
+            <div class="form-control gap-3 flex flex-col">
               <label class="label">
                 <span class="label-text">{{ $t('profile.email') }}</span>
               </label>
@@ -269,7 +269,7 @@
             </div>
             
             <form @submit.prevent="changePassword" class="space-y-4">
-              <div class="form-control gap-3 flex">
+              <div class="form-control gap-3 flex flex-col">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.currentPassword') }}</span>
                 </label>
@@ -280,7 +280,7 @@
                   required
                 />
               </div>
-              <div class="form-control gap-3 flex">
+              <div class="form-control gap-3 flex flex-col">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.newPassword') }}</span>
                 </label>
@@ -292,7 +292,7 @@
                   required
                 />
               </div>
-              <div class="form-control gap-3 flex">
+              <div class="form-control gap-3 flex flex-col">
                 <label class="label">
                   <span class="label-text">{{ $t('profile.confirmNewPassword') }}</span>
                 </label>
@@ -453,7 +453,7 @@ const resetShippingFields = () => {
   shippingInfo.country = ''
 }
 
-const hydrateFormsFromUser = (user: typeof authStore.user.value) => {
+const hydrateFormsFromUser = (user: typeof authStore.user) => {
   if (user) {
     personalInfo.firstName = user.firstName || ''
     personalInfo.lastName = user.lastName || ''

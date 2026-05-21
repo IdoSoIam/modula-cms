@@ -1,6 +1,6 @@
 <template>
   <div class="bg-base-100">
-    <div class="mx-auto w-full px-4 py-10 sm:px-6 lg:px-8" :class="containerClass">
+    <div class="mx-auto w-full py-10 sm:px-6 lg:px-8" :class="[containerClass, preview ? '' : ' px-4']">
       <header class="mx-auto mb-8 max-w-4xl text-center">
         <h1 class="text-4xl font-bold">{{ pageTitle }}</h1>
         <p v-if="pageSubtitle" class="mx-auto mt-3 max-w-2xl opacity-70">{{ pageSubtitle }}</p>
@@ -111,6 +111,7 @@ const props = defineProps<{
   forceArticles?: boolean
   showArticles?: boolean
   disableSeo?: boolean
+  preview?: boolean
 }>()
 
 const { locale, t } = useI18n()

@@ -80,9 +80,7 @@
         <h2 class="text-xl font-semibold">{{ t('admin.customizationNewsPage.previewTitle') }}</h2>
         <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationNewsPage.previewDescription') }}</p>
       </div>
-      <div class="rounded-[2rem] border border-base-300 bg-base-200 p-4">
-        <NewsListPage :settings="model.settings.newsPage" :force-articles="true" :disable-seo="true" />
-      </div>
+      <NewsListPage :settings="model.settings.newsPage" :force-articles="true" :preview="true" :disable-seo="true" />
     </section>
   </div>
 </template>

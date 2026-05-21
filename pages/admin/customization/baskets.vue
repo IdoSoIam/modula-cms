@@ -34,27 +34,27 @@
       <div class="grid gap-4 md:grid-cols-2">
         <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 bg-base-200 px-4 py-3">
           <input v-model="model.settings.basketsPage.showOrdersBanner" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-          <span class="label-text">{{ t('admin.customizationBasketsPage.showOrdersBanner') }}</span>
+          <span class="label-text text-wrap">{{ t('admin.customizationBasketsPage.showOrdersBanner') }}</span>
         </label>
         <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 bg-base-200 px-4 py-3">
           <input v-model="model.settings.basketsPage.showImages" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-          <span class="label-text">{{ t('admin.customizationBasketsPage.showImages') }}</span>
+          <span class="label-text text-wrap">{{ t('admin.customizationBasketsPage.showImages') }}</span>
         </label>
         <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 bg-base-200 px-4 py-3">
           <input v-model="model.settings.basketsPage.showDescriptions" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-          <span class="label-text">{{ t('admin.customizationBasketsPage.showDescriptions') }}</span>
+          <span class="label-text text-wrap">{{ t('admin.customizationBasketsPage.showDescriptions') }}</span>
         </label>
         <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 bg-base-200 px-4 py-3">
           <input v-model="model.settings.basketsPage.showComposition" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-          <span class="label-text">{{ t('admin.customizationBasketsPage.showComposition') }}</span>
+          <span class="label-text text-wrap">{{ t('admin.customizationBasketsPage.showComposition') }}</span>
         </label>
         <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 bg-base-200 px-4 py-3">
           <input v-model="model.settings.basketsPage.showAvailabilityBadges" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-          <span class="label-text">{{ t('admin.customizationBasketsPage.showAvailabilityBadges') }}</span>
+          <span class="label-text text-wrap">{{ t('admin.customizationBasketsPage.showAvailabilityBadges') }}</span>
         </label>
         <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 bg-base-200 px-4 py-3">
           <input v-model="model.settings.basketsPage.showPrice" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-          <span class="label-text">{{ t('admin.customizationBasketsPage.showPrice') }}</span>
+          <span class="label-text text-wrap">{{ t('admin.customizationBasketsPage.showPrice') }}</span>
       </label>
       </div>
 
@@ -64,14 +64,12 @@
       </div>
     </section>
 
-    <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-4">
-      <div>
+    <section class="rounded-box border border-base-300 bg-base-100 p-2 space-y-4">
+      <div class="px-4 py-2">
         <h2 class="text-xl font-semibold">{{ t('admin.customizationBasketsPage.previewTitle') }}</h2>
         <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationBasketsPage.previewDescription') }}</p>
       </div>
-      <div class="rounded-[2rem] border border-base-300 bg-base-200 p-4">
-        <BasketsPage :settings="model.settings.basketsPage" />
-      </div>
+      <BasketsPage :preview="true" :settings="model.settings.basketsPage" />
     </section>
   </div>
 </template>

@@ -137,7 +137,7 @@
             <div class="flex gap-2">
               <label class="label cursor-pointer gap-2">
                 <input v-model="service.enabled" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-                <span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.active') }}</span>
+                <span class="label-text text-wrap">{{ t('admin.settingsGlobalPage.cookieConsent.active') }}</span>
               </label>
               <button type="button" class="btn btn-xs btn-outline btn-error" @click="model.settings.cookieBanner.services.splice(serviceIndex, 1)">{{ t('common.delete') }}</button>
             </div>
@@ -145,15 +145,15 @@
 
           <div class="grid gap-4 lg:grid-cols-2">
             <label class="form-control gap-2">
-              <span class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.serviceId') }}</span></span>
+              <span class="label"><span class="label-text text-wrap">{{ t('admin.settingsGlobalPage.cookieConsent.serviceId') }}</span></span>
               <input v-model="service.id" class="input input-bordered w-full" />
             </label>
             <label class="form-control gap-2">
-              <span class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.serviceKeys') }}</span></span>
+              <span class="label"><span class="label-text text-wrap">{{ t('admin.settingsGlobalPage.cookieConsent.serviceKeys') }}</span></span>
               <input :value="service.keys.join(', ')" class="input input-bordered w-full" @input="updateCookieServiceKeys(serviceIndex, ($event.target as HTMLInputElement).value)" />
             </label>
             <div class="form-control">
-              <label class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.cookieConsent.category') }}</span></label>
+              <label class="label"><span class="label-text text-wrap">{{ t('admin.settingsGlobalPage.cookieConsent.category') }}</span></label>
               <select v-model="service.category" class="select select-bordered w-full">
                 <option value="essential">{{ t('admin.settingsGlobalPage.cookieConsent.categories.essential') }}</option>
                 <option value="preferences">{{ t('admin.settingsGlobalPage.cookieConsent.categories.preferences') }}</option>

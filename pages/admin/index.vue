@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1 class="mb-6 text-3xl font-bold">{{ t('admin.dashboardPage.title') }}</h1>
+    <h1 class="mb-6 flex items-center justify-center text-3xl font-bold">{{ t('admin.dashboardPage.title') }}</h1>
 
     <div class="card bg-base-100 p-8">
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
