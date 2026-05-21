@@ -269,7 +269,7 @@
           </div>
           <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 bg-base-200 px-4 py-3">
             <input v-model="form.farmAlternateEnabled" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-            <span class="label-text">{{ $t('pages.baskets.proposeAnotherSlot') }}</span>
+            <span class="label-text text-wrap">{{ $t('pages.baskets.proposeAnotherSlot') }}</span>
           </label>
           <div v-if="form.farmAlternateEnabled" class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div class="form-control gap-3 flex flex-col">
@@ -288,7 +288,7 @@
           <span>{{ $t('pages.baskets.pickupNotice') }}</span>
         </div>
 
-        <div v-if="form.deliveryType === 'PICKUP'" class="form-control gap-3 flex mb-3">
+        <div v-if="form.deliveryType === 'PICKUP'" class="form-control gap-3 flex mb-3 flex-col">
           <label class="label"><span class="label-text">{{ $t('pages.baskets.selectPickup') }} *</span></label>
           <div v-if="deliveryOptionsLoading" class="flex items-center gap-2 rounded-xl bg-base-200 px-4 py-3 text-sm opacity-70">
             <span class="loading loading-spinner loading-sm" />
