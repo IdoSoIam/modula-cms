@@ -4,7 +4,7 @@
 
 Le site couvre deja les briques principales pour publier une version utile :
 
-- page d'accueil et page `paniers`
+- page CMS racine et page `paniers`
 - reservation de paniers cote client
 - 3 modes de retrait / livraison :
   - retrait a la ferme
@@ -131,10 +131,10 @@ Les abonnements et l'inscription publique sont maintenant pilotables depuis [pag
    - `PICKUP` : point relais
    - `TOUR` : tournee de livraison
 5. Pour `FARM`, le formulaire propose par defaut le creneau configure dans l'admin, avec possibilite pour le client de demander une autre date / heure.
-6. La reservation est creee en `PENDING` via [server/api/reservations/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/reservations/index.post.ts:1).
+6. La reservation est creee en `PENDING` via [server/api/orders/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/orders/index.post.ts:1).
 7. Si le retrait est a la ferme, un historique de propositions de creneaux est conserve et le client peut accepter ou contre-proposer depuis le lien public.
 8. L'admin recoit une notification email.
-9. L'admin confirme / refuse / annule depuis [pages/admin/reservations.vue](/D:/Works/ferme-campeyrigoux/pages/admin/reservations.vue:1).
+9. L'admin confirme / refuse / annule depuis [pages/admin/shop/orders.vue](/D:/Works/ferme-campeyrigoux/pages/admin/shop/orders.vue:1).
 10. Pour `FARM`, l'admin peut soit confirmer le creneau, soit envoyer une contre-proposition.
 11. Le client recoit ensuite l'email de decision avec, si besoin, un lien public de gestion.
 
@@ -209,9 +209,9 @@ Les abonnements et l'inscription publique sont maintenant pilotables depuis [pag
 
 - [components/AuthForm.vue](/D:/Works/ferme-campeyrigoux/components/AuthForm.vue:1) exposait encore l'inscription publique
 - [server/api/auth/register.post.ts](/D:/Works/ferme-campeyrigoux/server/api/auth/register.post.ts:1) acceptait encore l'inscription
-- [server/api/reservations/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/reservations/index.post.ts:1) devait revalider plus strictement la coherence `tournee <-> ville`
+- [server/api/orders/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/orders/index.post.ts:1) devait revalider plus strictement la coherence `tournee <-> ville`
 - [pages/paniers.vue](/D:/Works/ferme-campeyrigoux/pages/paniers.vue:1) contient encore des points de friction UX
-- [pages/admin/reservations.vue](/D:/Works/ferme-campeyrigoux/pages/admin/reservations.vue:1) est deja riche, mais depend fortement de la qualite des parametres et des textes email
+- [pages/admin/shop/orders.vue](/D:/Works/ferme-campeyrigoux/pages/admin/shop/orders.vue:1) est deja riche, mais depend fortement de la qualite des parametres et des textes email
 
 ## Recommandation simple pour publier vite
 
@@ -230,12 +230,12 @@ Les abonnements et l'inscription publique sont maintenant pilotables depuis [pag
 - client :
   - [pages/index.vue](/D:/Works/ferme-campeyrigoux/pages/index.vue:1)
   - [pages/paniers.vue](/D:/Works/ferme-campeyrigoux/pages/paniers.vue:1)
-  - [pages/reservation/manage/[token].vue](/D:/Works/ferme-campeyrigoux/pages/reservation/manage/[token].vue:1)
+  - [pages/orders/manage/[token].vue](/D:/Works/ferme-campeyrigoux/pages/orders/manage/[token].vue:1)
 - reservation :
-  - [server/api/reservations/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/reservations/index.post.ts:1)
-  - [server/utils/reservationFulfillment.ts](/D:/Works/ferme-campeyrigoux/server/utils/reservationFulfillment.ts:1)
-  - [server/utils/reservationEmails.ts](/D:/Works/ferme-campeyrigoux/server/utils/reservationEmails.ts:1)
+  - [server/api/orders/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/orders/index.post.ts:1)
+  - [server/utils/orderFulfillment.ts](/D:/Works/ferme-campeyrigoux/server/utils/orderFulfillment.ts:1)
+  - [server/utils/orderEmails.ts](/D:/Works/ferme-campeyrigoux/server/utils/orderEmails.ts:1)
 - admin :
-  - [pages/admin/reservations.vue](/D:/Works/ferme-campeyrigoux/pages/admin/reservations.vue:1)
+  - [pages/admin/shop/orders.vue](/D:/Works/ferme-campeyrigoux/pages/admin/shop/orders.vue:1)
   - [pages/admin/livraison.vue](/D:/Works/ferme-campeyrigoux/pages/admin/livraison.vue:1)
   - [pages/admin/parametres.vue](/D:/Works/ferme-campeyrigoux/pages/admin/parametres.vue:1)

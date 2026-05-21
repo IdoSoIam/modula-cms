@@ -1,17 +1,20 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
-import { updateImageReferences } from '~/server/utils/imageReferences'
+import { syncImageUsageTable, updateImageReferences } from '~/server/utils/imageReferences'
 import { slugify } from '~/server/utils/slug'
 import { extname } from 'node:path'
-import { randomUUID } from 'node:crypto'
 import { putUploadObject, renameUploadObject, deleteUploadObject } from '~/server/utils/uploadStorage'
+import { deleteImageVariants } from '~/server/utils/imageVariants'
+import {
+  ALLOWED_IMAGE_UPLOAD_MIME_TYPES,
+  MAX_IMAGE_UPLOAD_SIZE,
+  buildImageFilename,
+  prepareImageUpload
+} from '~/server/utils/imageUpload'
 
-const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
-const MAX_SIZE = 8 * 1024 * 1024
-
-function buildFilename(baseName: string, ext: string) {
+function buildRenamedFilename(baseName: string, currentExtension: string) {
   const safeBase = slugify(baseName || 'image')
-  return `${safeBase}-${randomUUID().slice(0, 8)}${ext}`
+  return buildImageFilename(safeBase, currentExtension)
 }
 
 export default defineEventHandler(async (event) => {
@@ -28,35 +31,44 @@ export default defineEventHandler(async (event) => {
   const filenamePart = parts.find(p => p.name === 'filename')
   const nextBaseName = (filenamePart?.data ? Buffer.from(filenamePart.data).toString('utf8').trim() : '') || image.filename.replace(/\.[^.]+$/, '')
   const filePart = parts.find(p => p.name === 'file' && p.filename)
+
   let nextFilename = image.filename
   let nextUrl = image.url
   let nextMimeType = image.mimeType
   let nextSize = image.size
-  let nextData: Uint8Array | null = null
+  let nextWidth = image.width
+  let nextHeight = image.height
 
   if (filePart?.data) {
     const mime = filePart.type || 'application/octet-stream'
-    if (!ALLOWED.includes(mime)) {
-      throw createError({ statusCode: 400, statusMessage: 'Format non supporte (jpg, png, webp, gif, avif)' })
+    if (!ALLOWED_IMAGE_UPLOAD_MIME_TYPES.includes(mime as (typeof ALLOWED_IMAGE_UPLOAD_MIME_TYPES)[number])) {
+      throw createError({ statusCode: 400, statusMessage: 'Format non supporte (jpg, png, webp, gif, avif, ico)' })
     }
-    if (filePart.data.length > MAX_SIZE) {
-      throw createError({ statusCode: 400, statusMessage: 'Image trop lourde (max 8 Mo)' })
+    if (filePart.data.length > MAX_IMAGE_UPLOAD_SIZE) {
+      throw createError({ statusCode: 400, statusMessage: 'Image trop lourde (max 20 Mo)' })
     }
 
-    const ext = (extname(filePart.filename || '').toLowerCase() || `.${mime.split('/')[1]}`).slice(0, 8)
-    nextFilename = buildFilename(nextBaseName, ext)
+    const prepared = await prepareImageUpload({
+      data: new Uint8Array(filePart.data),
+      mimeType: mime,
+      originalFilename: filePart.filename
+    })
+
+    nextFilename = buildImageFilename(nextBaseName, prepared.extension)
     nextUrl = `/uploads/${nextFilename}`
-    nextMimeType = mime
-    nextSize = filePart.data.length
-    const fileData = new Uint8Array(filePart.data)
+    nextMimeType = prepared.mimeType
+    nextSize = prepared.size
+    nextWidth = prepared.width
+    nextHeight = prepared.height
 
-    await putUploadObject(nextFilename, fileData, mime)
+    await deleteImageVariants(image.id)
+    await putUploadObject(nextFilename, prepared.buffer, prepared.mimeType)
     if (image.filename !== nextFilename) {
       await deleteUploadObject(image.filename)
     }
   } else if (nextBaseName !== image.filename.replace(/\.[^.]+$/, '')) {
-    const ext = extname(image.filename)
-    nextFilename = buildFilename(nextBaseName, ext)
+    const extension = extname(image.filename)
+    nextFilename = buildRenamedFilename(nextBaseName, extension)
     nextUrl = `/uploads/${nextFilename}`
     await renameUploadObject(image.filename, nextFilename, image.mimeType)
   }
@@ -65,14 +77,18 @@ export default defineEventHandler(async (event) => {
     await updateImageReferences(image.url, nextUrl)
   }
 
-  return prisma.image.update({
+  const updated = await prisma.image.update({
     where: { id },
     data: {
       filename: nextFilename,
       url: nextUrl,
       mimeType: nextMimeType,
       size: nextSize,
-      data: nextData
+      width: nextWidth,
+      height: nextHeight
     }
   })
+
+  await syncImageUsageTable()
+  return updated
 })

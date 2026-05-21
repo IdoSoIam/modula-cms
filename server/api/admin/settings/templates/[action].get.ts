@@ -1,12 +1,11 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { getSetting } from '~/server/utils/settings'
-import { TEMPLATE_DEFINITIONS, resolveReservationTemplate, type TemplateAction } from '~/server/utils/reservationEmailContent'
+import { findAdminEmailTemplateDefinition, resolveAdminEmailTemplate } from '~/server/utils/adminEmailTemplates'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const action = getRouterParam(event, 'action') as TemplateAction | undefined
-  const definition = TEMPLATE_DEFINITIONS.find((template) => template.action === action)
+  const action = getRouterParam(event, 'action')
+  const definition = action ? await findAdminEmailTemplateDefinition(action) : null
 
   if (!action || !definition) {
     throw createError({
@@ -15,13 +14,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const raw = await getSetting(definition.settingKey)
-
   return {
     action,
     templates: {
-      fr: resolveReservationTemplate(raw, action, 'fr'),
-      en: resolveReservationTemplate(raw, action, 'en')
+      fr: await resolveAdminEmailTemplate(action, 'fr'),
+      en: await resolveAdminEmailTemplate(action, 'en')
     }
   }
 })

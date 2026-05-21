@@ -1,4 +1,5 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
+import { syncImageUsageTable } from '~/server/utils/imageReferences'
 import { serializeBasket } from '~/server/utils/baskets'
 import { prisma } from '../../../../prisma/client'
 
@@ -44,5 +45,6 @@ export default defineEventHandler(async (event) => {
     },
     include: { items: { include: { vegetable: true } } }
   })
+  await syncImageUsageTable()
   return serializeBasket(basket)
 })

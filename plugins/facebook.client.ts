@@ -1,19 +1,38 @@
 import type { FacebookInitParams } from '~/types/facebook-sdk'
+import { hasCookieConsentForCategory, useCookieConsentCookie } from '~/composables/useCookieConsent'
 
 export default defineNuxtPlugin(async () => {
   const config = useRuntimeConfig()
+  const consentCookie = useCookieConsentCookie()
+
+  const hasThirdPartyConsent = () => hasCookieConsentForCategory(consentCookie.value, 'third_party')
 
   // Fetch site config to check if Facebook is deactivated
   let facebookDeactivated = false
   try {
     const siteConfig = await ensureSiteConfigState()
-    facebookDeactivated = siteConfig.facebookFluxDeactivated === true
+    facebookDeactivated = siteConfig?.facebookFluxDeactivated === true
   } catch (e) {
     console.log('[Facebook Plugin] Failed to fetch site config, assuming enabled')
   }
 
   if (facebookDeactivated) {
-    console.log('[Facebook Plugin] Facebook is deactivated, skipping SDK load')
+    //console.log('[Facebook Plugin] Facebook is deactivated, skipping SDK load')
+    return
+  }
+
+  if (!hasThirdPartyConsent()) {
+    const onConsentUpdate = () => {
+      if (!hasThirdPartyConsent()) return
+      window.removeEventListener('cookie-consent:updated', onConsentUpdate)
+      if (process.client) {
+        loadFacebookSDK()
+      }
+    }
+
+    if (process.client) {
+      window.addEventListener('cookie-consent:updated', onConsentUpdate)
+    }
     return
   }
 

@@ -4,7 +4,7 @@
       <h3 class="font-bold text-lg mb-4">Bibliothèque d'images</h3>
 
       <div class="flex items-center gap-2 mb-4">
-        <input ref="fileInput" type="file" accept="image/*" class="file-input file-input-bordered file-input-sm" @change="onFileChange" />
+        <input ref="fileInput" type="file" accept="image/*,.ico,image/x-icon,image/vnd.microsoft.icon" class="file-input file-input-bordered file-input-sm" @change="onFileChange" />
         <span v-if="uploading" class="loading loading-spinner loading-sm" />
         <span class="text-xs opacity-60 ml-auto">{{ images.length }} image(s)</span>
       </div>
@@ -23,7 +23,7 @@
           class="relative group aspect-square overflow-hidden rounded border border-base-300 hover:border-primary"
           @click="select(img)"
         >
-          <img :src="img.url" :alt="img.filename" class="w-full h-full object-cover" loading="lazy" />
+          <AppImage :src="img.url" :alt="img.filename" class="w-full h-full object-cover" sizes="160px" loading="lazy" />
         </button>
       </div>
 

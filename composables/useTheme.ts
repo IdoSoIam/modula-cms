@@ -1,35 +1,57 @@
-export const AVAILABLE_THEMES = [
-  { value: 'recolte',    label: 'Récolte',          preview: '#fbf1e0' },
-  { value: 'ferme',      label: 'Champ ensoleillé', preview: '#fbf6ec' },
-  { value: 'ferme-dark', label: "Nuit à l'étable",  preview: '#221c14' }
-] as const
+import { buildPublicDaisyUiThemeConfig, createDefaultDaisyUiThemeConfig } from '~/shared/themes'
 
-export type ThemeValue = typeof AVAILABLE_THEMES[number]['value']
+export type ThemeValue = string
 
-const DEFAULT_THEME: ThemeValue = 'recolte'
 const STORAGE_KEY = 'theme'
+const FALLBACK_PUBLIC_THEME_CONFIG = buildPublicDaisyUiThemeConfig(createDefaultDaisyUiThemeConfig())
+export const AVAILABLE_THEMES = FALLBACK_PUBLIC_THEME_CONFIG.themeSelectorThemes.map((theme) => ({
+  label: theme.displayName,
+  value: theme.name
+}))
+
+function getFallbackPublicThemeConfig() {
+  return FALLBACK_PUBLIC_THEME_CONFIG
+}
 
 export const useTheme = () => {
-  const theme = useState<ThemeValue>('theme', () => DEFAULT_THEME)
+  const siteConfig = useSiteConfigState()
+  const fallbackConfig = getFallbackPublicThemeConfig()
+  const publicThemeConfig = computed(() => siteConfig.value?.themes ?? fallbackConfig)
+  const defaultTheme = computed(() => publicThemeConfig.value.defaultTheme)
+  const defaultDarkTheme = computed(() =>
+    publicThemeConfig.value.allThemeNames.find((name) => name.includes('dark')) || defaultTheme.value
+  )
+  const theme = useState<ThemeValue>('theme', () => defaultTheme.value)
 
   const setTheme = (value: ThemeValue) => {
-    theme.value = value
+    const allowedThemes = publicThemeConfig.value.allThemeNames
+    const nextTheme = allowedThemes.includes(value) ? value : defaultTheme.value
+    theme.value = nextTheme
     if (!import.meta.client) return
-    document.documentElement.setAttribute('data-theme', value)
-    if (value === DEFAULT_THEME) {
+    document.documentElement.setAttribute('data-theme', nextTheme)
+    if (nextTheme === defaultTheme.value) {
       localStorage.removeItem(STORAGE_KEY)
     } else {
-      localStorage.setItem(STORAGE_KEY, value)
+      localStorage.setItem(STORAGE_KEY, nextTheme)
     }
   }
 
+  watch(defaultTheme, (value) => {
+    if (!theme.value || !publicThemeConfig.value.allThemeNames.includes(theme.value)) {
+      theme.value = value
+    }
+  }, { immediate: true })
+
   const toggleLightDark = () => {
-    setTheme(theme.value === 'ferme-dark' ? 'ferme' : 'ferme-dark')
+    setTheme(theme.value === defaultDarkTheme.value ? defaultTheme.value : defaultDarkTheme.value)
   }
 
   return {
     theme,
-    availableThemes: AVAILABLE_THEMES,
+    availableThemes: computed(() => publicThemeConfig.value.themeSelectorThemes),
+    themeControllerEnabled: computed(() => publicThemeConfig.value.enableThemeController),
+    defaultTheme,
+    defaultDarkTheme,
     setTheme,
     toggleLightDark
   }

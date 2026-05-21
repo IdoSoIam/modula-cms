@@ -100,7 +100,9 @@ export async function syncReservationToGoogleCalendar(reservation: ReservationFo
   )
 
   if (!event?.id) {
-    return { synced: false as const, eventId: null, reason: 'Google Calendar n a pas accepte l evenement.' }
+    return {
+      synced: false as const, eventId: null, reason: "Google Calendar n'a pas accepté l'événement."
+    }
   }
 
   await prisma.reservation.update({

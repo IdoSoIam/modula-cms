@@ -1,7 +1,9 @@
 import { serializeBasket } from '~/server/utils/baskets'
 import { prisma } from '../../../prisma/client'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
+
   const baskets = await prisma.basket.findMany({
     where: { active: true },
     orderBy: [{ position: 'asc' }, { id: 'asc' }],

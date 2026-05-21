@@ -5,13 +5,13 @@
       {{ $t('pages.news.backToNews') }}
     </NuxtLink>
 
-    <article v-if="article" class="max-w-3xl mx-auto">
+    <article v-if="article" class="mx-auto">
       <h1 class="text-4xl font-bold mb-2">{{ article.title }}</h1>
       <p v-if="article.publishedAt" class="text-sm opacity-60 mb-6">
         {{ $t('pages.news.publishedOn') }} {{ formatDate(article.publishedAt) }}
       </p>
       <figure v-if="article.coverUrl" class="mb-6 rounded-box overflow-hidden">
-        <img :src="article.coverUrl" :alt="article.title" class="w-full max-h-96 object-cover" />
+        <AppImage :src="article.coverUrl" :alt="article.title" class="w-full object-cover" sizes="(max-width: 868px) 100vw, 868px" loading="eager" fetchpriority="high" />
       </figure>
       <div class="prose max-w-none article-content" v-html="article.content" />
     </article>
@@ -20,6 +20,7 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
+import { formatLocalizedDate } from '~/shared/date'
 
 interface Article {
   id: number
@@ -43,7 +44,7 @@ const { data: article } = await useFetch<Article>(() => `/api/articles/${slug.va
 })
 
 const formatDate = (s: string) =>
-  new Date(s).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+  formatLocalizedDate(s, locale.value, { day: '2-digit', month: 'long', year: 'numeric' })
 
 const articleDescription = computed(() => {
   if (!article.value) return ''

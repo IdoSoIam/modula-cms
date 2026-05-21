@@ -7,11 +7,28 @@
 <script setup lang="ts">
 const siteConfig = await useSiteConfig()
 const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
+const faviconHref = computed(() => siteConfig.value?.cms?.settings.favicon.src || '/favicon.ico')
+const themeConfig = computed(() => siteConfig.value?.themes)
+const defaultThemeName = computed(() => themeConfig.value?.defaultTheme || 'recolte')
+const validThemes = computed(() => themeConfig.value?.allThemeNames || ['ferme', 'ferme-dark', 'recolte'])
+const generatedThemeCss = computed(() => themeConfig.value?.generatedCss || '')
 
-useHead({
+useHead(() => ({
   htmlAttrs: {
-    'data-theme': 'ferme'
+    'data-theme': defaultThemeName.value
   },
+  link: [
+    {
+      rel: 'icon',
+      href: faviconHref.value
+    }
+  ],
+  style: generatedThemeCss.value ? [
+    {
+      key: 'dynamic-daisyui-themes',
+      innerHTML: generatedThemeCss.value
+    }
+  ] : [],
   meta: inDevelopment.value ? [
     {
       name: 'robots',
@@ -24,10 +41,11 @@ useHead({
   ] : [],
   script: [
     {
+      key: 'theme-bootstrap',
       innerHTML: `
         (function() {
-          const DEFAULT_THEME = 'recolte';
-          const VALID_THEMES = ['ferme','ferme-dark','recolte'];
+          const DEFAULT_THEME = ${JSON.stringify(defaultThemeName.value)};
+          const VALID_THEMES = ${JSON.stringify(validThemes.value)};
           const VALID_LOCALES = ['fr', 'en'];
           const LOCALE_STORAGE_KEY = 'preferred-locale';
           try {
@@ -51,5 +69,5 @@ useHead({
       tagPriority: 'critical'
     }
   ]
-})
+}))
 </script>

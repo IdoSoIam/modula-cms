@@ -25,6 +25,9 @@ export async function getResendConfig() {
 
 export async function sendResend(opts: {
   to: string
+  cc?: string[]
+  bcc?: string[]
+  replyTo?: string
   subject: string
   body: string
   htmlBody?: string
@@ -62,6 +65,9 @@ export async function sendResend(opts: {
       body: {
         from: config.from,
         to: [opts.to],
+        cc: opts.cc?.length ? opts.cc : undefined,
+        bcc: opts.bcc?.length ? opts.bcc : undefined,
+        reply_to: opts.replyTo ? [opts.replyTo] : undefined,
         subject: opts.subject,
         text: opts.body,
         html: opts.htmlBody,

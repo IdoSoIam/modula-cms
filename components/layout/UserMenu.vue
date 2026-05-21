@@ -8,74 +8,24 @@
     </label>
     <ul
       tabindex="0"
-      class="dropdown-content z-[1] menu rounded-box bg-base-100 p-2 shadow w-52"
+      class="dropdown-content z-[1] rounded-box bg-base-100 p-2 shadow w-72"
     >
       <template v-if="!authStore.isAuthenticated">
-        <li><button @click="showAuthModal = true">{{ $t('auth.login') }}</button></li>
+        <li class="menu"><button @click="showAuthModal = true">{{ $t('auth.login') }}</button></li>
       </template>
       <template v-else>
-        <li class="menu-title">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</li>
-        <li><NuxtLink :to="localePath('/profile')">{{ $t('auth.profile') }}</NuxtLink></li>
+        <div class="px-3 py-2 hover:bg-base-200">
+          <div class="text-sm font-semibold">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</div>
+          <NuxtLink :to="localePath('/profile')" class="inline-flex text-sm text-primary">{{ $t('auth.profile') }}</NuxtLink>
+        </div>
         <template v-if="authStore.user?.role === 'admin'">
-          <li class="menu-title mt-2">{{ $t('admin.title') }}</li>
-          <li>
-            <NuxtLink :to="localePath('/admin/accueil')" no-prefetch class="text-primary">
-              <Icon name="mdi:home-edit-outline" size="16" class="mr-1" />
-              Accueil
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink :to="localePath('/admin/paniers')" class="text-primary">
-              <Icon name="mdi:basket-outline" size="16" class="mr-1" />
-              {{ $t('admin.baskets') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink :to="localePath('/admin/legumes')" class="text-primary">
-              <Icon name="mdi:carrot" size="16" class="mr-1" />
-              {{ $t('admin.vegetables') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink :to="localePath('/admin/reservations')" class="text-primary">
-              <Icon name="mdi:calendar-check" size="16" class="mr-1" />
-              {{ $t('admin.reservations') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink :to="localePath('/admin/articles')" class="text-primary">
-              <Icon name="mdi:newspaper-variant-outline" size="18" />
-              {{ $t('admin.articles') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink :to="localePath('/admin/livraison')" class="text-primary">
-              <Icon name="mdi:truck-outline" size="18" />
-              {{ $t('admin.delivery') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink :to="localePath('/admin/images')" class="text-primary">
-              <Icon name="mdi:image-multiple-outline" size="18" />
-              {{ $t('admin.images') }}
-            </NuxtLink>
-          </li>
-          <li>
-            <NuxtLink :to="localePath('/admin/parametres')" no-prefetch class="text-primary">
-              <Icon name="mdi:cog-outline" size="16" class="mr-1" />
-              {{ $t('admin.settings') }}
-            </NuxtLink>
-          </li>
-          <li v-if="!facebookFluxDeactivated">
-            <NuxtLink :to="localePath('/facebook-sync')" class="text-primary">
-              <Icon name="mdi:facebook" size="16" class="mr-1" />
-              {{ $t('admin.facebookSync') }}
-            </NuxtLink>
-          </li>
+          <div class="px-3 py-2 hover:bg-base-200">
+            <NuxtLink :to="localePath('/admin')" class="inline-flex text-sm text-primary">{{ $t('admin.title') }}</NuxtLink>
+          </div>
         </template>
-        <li>
-          <button class="text-error" @click="handleLogout">{{ $t('auth.logout') }}</button>
-        </li>
+        <div class="px-3 py-2 hover:bg-base-200">
+          <button type="button" class="inline-flex cursor-pointer text-sm text-primary" @click="handleLogout">{{ $t('auth.logout') }}</button>
+        </div>
       </template>
     </ul>
   </div>
@@ -105,7 +55,6 @@ const localePath = useLocalePath()
 const showAuthModal = ref(false)
 
 const siteConfig = useSiteConfigState()
-const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated === true)
 const registerEnabled = computed(() => siteConfig.value?.registerEnabled === true)
 
 const handleLogout = async () => {

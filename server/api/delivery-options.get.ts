@@ -1,8 +1,10 @@
 import { prisma } from '../../prisma/client'
-import { getNextDateForDayOfWeek } from '~/server/utils/reservationFulfillment'
+import { getNextDateForDayOfWeek } from '~/server/utils/orderFulfillment'
 import { getFarmPickupConfig } from '~/server/utils/settings'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  setResponseHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800')
+
   const now = new Date()
   const [pickupPoints, tours, farmPickup] = await Promise.all([
     prisma.pickupPoint.findMany({

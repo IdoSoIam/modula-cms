@@ -1,12 +1,20 @@
-import { getContactEmail, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSetting, SETTING_KEYS } from '~/server/utils/settings'
+import { getCmsSpecialPagePath, getPublicSiteShell } from '~/server/utils/cms'
+import { getAdminPhone, getContactEmail, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSetting, SETTING_KEYS } from '~/server/utils/settings'
+import { getPublicDaisyUiThemeConfig } from '~/server/utils/themes'
 
-export default defineEventHandler(async () => {
-  const [fb, ordersWindow, featureFlags, farmPickup, contactEmail] = await Promise.all([
+export default defineEventHandler(async (event) => {
+  setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
+
+  const [fb, ordersWindow, featureFlags, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath] = await Promise.all([
     getSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED),
     getOrdersWindow(),
     getFeatureFlags(),
     getFarmPickupConfig(),
     getContactEmail(),
+    getAdminPhone(),
+    getPublicSiteShell('fr'),
+    getPublicDaisyUiThemeConfig(),
+    getCmsSpecialPagePath('construction')
   ])
   return {
     facebookFluxDeactivated: fb === 'true',
@@ -16,6 +24,10 @@ export default defineEventHandler(async () => {
     subscriptionsEnabled: featureFlags.subscriptionsEnabled,
     farmPickup,
     contactEmail,
-    adminEmail: contactEmail
+    adminEmail: contactEmail,
+    adminPhone,
+    cms: siteShell,
+    themes,
+    constructionPagePath
   }
 })

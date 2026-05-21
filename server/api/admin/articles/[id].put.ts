@@ -1,4 +1,5 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
+import { syncImageUsageTable } from '~/server/utils/imageReferences'
 import { slugify } from '~/server/utils/slug'
 import { prisma } from '../../../../prisma/client'
 
@@ -42,5 +43,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const article = await prisma.article.update({ where: { id }, data })
+  await syncImageUsageTable()
   return article
 })

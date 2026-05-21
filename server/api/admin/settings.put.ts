@@ -1,12 +1,13 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
 import { setSetting, SETTING_KEYS } from '~/server/utils/settings'
-import { TEMPLATE_DEFINITIONS } from '~/server/utils/reservationEmailContent'
+import { findAdminEmailTemplateDefinition } from '~/server/utils/adminEmailTemplates'
 
 interface Body {
   gmailSenderEmail?: string
   resendSenderEmail?: string
   reservationNotificationEmail?: string
   contactEmail?: string
+  adminPhone?: string
   resendApiKey?: string
   mailPrimaryProvider?: 'gmail' | 'resend'
   mailSecondaryProvider?: 'gmail' | 'resend'
@@ -43,6 +44,9 @@ export default defineEventHandler(async (event) => {
   }
   if (typeof body.contactEmail === 'string') {
     await setSetting(SETTING_KEYS.CONTACT_EMAIL, body.contactEmail.trim())
+  }
+  if (typeof body.adminPhone === 'string') {
+    await setSetting(SETTING_KEYS.ADMIN_PHONE, body.adminPhone.trim())
   }
   if (typeof body.resendApiKey === 'string') {
     await setSetting(SETTING_KEYS.RESEND_API_KEY, body.resendApiKey.trim())
@@ -94,7 +98,7 @@ export default defineEventHandler(async (event) => {
   }
   if (body.templates) {
     for (const [action, locales] of Object.entries(body.templates)) {
-      const templateDefinition = TEMPLATE_DEFINITIONS.find((template) => template.action === action)
+      const templateDefinition = await findAdminEmailTemplateDefinition(action)
       if (!templateDefinition) continue
       if (locales.fr || locales.en) {
         const value: Record<string, { subject: string; body: string }> = {}

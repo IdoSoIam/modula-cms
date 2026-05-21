@@ -1,5 +1,4 @@
 <template>
-  <div class="card bg-base-100 shadow-xl max-w-md mx-auto p-6">
     <div v-if="showHeading" class="mb-6">
       <h3 class="text-lg font-semibold">Connexion</h3>
       <p class="mt-1 text-sm opacity-70">
@@ -8,7 +7,7 @@
     </div>
 
     <form @submit.prevent="handleLogin" class="space-y-4">
-      <div class="form-control gap-3 flex">
+      <div class="form-control gap-3 flex flex-col">
         <label class="label">
           <span class="label-text">Email</span>
         </label>
@@ -21,7 +20,7 @@
         />
       </div>
 
-      <div class="form-control gap-3 flex">
+      <div class="form-control gap-3 flex flex-col">
         <label class="label">
           <span class="label-text">Mot de passe</span>
         </label>
@@ -48,7 +47,6 @@
     <div v-if="isLoading" class="flex justify-center mt-4">
       <span class="loading loading-spinner loading-md"></span>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">

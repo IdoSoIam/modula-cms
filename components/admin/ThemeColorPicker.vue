@@ -1,5 +1,5 @@
 <template>
-  <div ref="rootRef" class="form-control gap-3 flex">
+  <div ref="rootRef" class="form-control gap-3 flex flex-col">
     <label class="label">
       <span class="label-text">{{ label }}</span>
     </label>
@@ -22,97 +22,99 @@
         <Icon :name="isOpen ? 'mdi:chevron-up' : 'mdi:chevron-down'" size="20" />
       </button>
 
-      <Teleport to="body">
-        <div
-          v-if="isOpen"
-          ref="panelRef"
-          class="fixed z-[100000] rounded-xl border border-base-300 bg-base-100 p-3 shadow-lg"
-          :style="panelStyle"
-        >
-          <input
-            v-model="search"
-            class="input input-bordered input-sm mb-2 w-full"
-            :placeholder="searchPlaceholder"
-          />
-
-          <div class="mb-2 text-xs opacity-70">
-            {{ filteredOptions.length }} couleurs disponibles.
-          </div>
-
+      <ClientOnly>
+        <Teleport to="body">
           <div
-            class="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3 p-2"
-            @scroll="onScroll"
+            v-if="isOpen"
+            ref="panelRef"
+            class="fixed z-[100000] rounded-xl border border-base-300 bg-base-100 p-3 shadow-lg"
+            :style="panelStyle"
           >
-            <button
-              v-for="option in visibleOptions"
-              :key="option.value"
-              type="button"
-              class="rounded-xl border p-2 text-left transition"
-              :class="modelValue?.token === option.value ? 'ring-2 ring-primary ring-offset-2 ring-offset-base-100' : 'hover:border-primary/40'"
-              @click="selectToken(option.value)"
-            >
-              <div
-                class="mb-2 h-8 rounded-lg border border-base-300"
-                :class="option.className"
-                :style="option.style"
-              />
-              <div class="text-xs font-medium">{{ option.label }}</div>
-            </button>
+            <input
+              v-model="search"
+              class="input input-bordered input-sm mb-2 w-full"
+              :placeholder="searchPlaceholder"
+            />
+
+            <div class="mb-2 text-xs opacity-70">
+              {{ filteredOptions.length }} couleurs disponibles.
+            </div>
 
             <div
-              v-if="visibleCount < filteredOptions.length"
-              class="col-span-full flex justify-center py-2 text-xs opacity-60"
+              class="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3 p-2"
+              @scroll="onScroll"
             >
-              Faites défiler pour charger plus de couleurs
-            </div>
-          </div>
+              <button
+                v-for="option in visibleOptions"
+                :key="option.value"
+                type="button"
+                class="rounded-xl border p-2 text-left transition"
+                :class="modelValue?.token === option.value ? 'ring-2 ring-primary ring-offset-2 ring-offset-base-100' : 'hover:border-primary/40'"
+                @click="selectToken(option.value)"
+              >
+                <div
+                  class="mb-2 h-8 rounded-lg border border-base-300"
+                  :class="option.className"
+                  :style="option.style"
+                />
+                <div class="text-xs font-medium">{{ option.label }}</div>
+              </button>
 
-          <div v-if="modelValue?.token === 'custom'" class="mt-3 rounded-xl border border-base-300 bg-base-200 p-3">
-            <div class="mb-2 text-sm font-medium">Couleur personnalisée</div>
-            <div class="flex gap-2">
-              <input
-                type="color"
-                class="input input-bordered h-10 w-16 p-1"
-                :value="modelValue.customHex || defaultHex"
-                @input="updateCustomHex(($event.target as HTMLInputElement).value)"
-              />
-              <input
-                type="text"
-                class="input input-bordered flex-1"
-                :value="modelValue.customHex || defaultHex"
-                @input="updateCustomHex(($event.target as HTMLInputElement).value)"
-              />
+              <div
+                v-if="visibleCount < filteredOptions.length"
+                class="col-span-full flex justify-center py-2 text-xs opacity-60"
+              >
+                Faites défiler pour charger plus de couleurs
+              </div>
             </div>
-          </div>
 
-          <div v-if="modelValue && modelValue.token !== 'transparent'" class="mt-3 rounded-xl border border-base-300 bg-base-200 p-3">
-            <div class="mb-2 flex items-center justify-between gap-3 text-sm font-medium">
-              <span>Opacité</span>
-              <span class="text-xs opacity-70">{{ currentOpacity }}%</span>
+            <div v-if="modelValue?.token === 'custom'" class="mt-3 rounded-xl border border-base-300 bg-base-200 p-3">
+              <div class="mb-2 text-sm font-medium">Couleur personnalisée</div>
+              <div class="flex gap-2">
+                <input
+                  type="color"
+                  class="input input-bordered h-10 w-16 p-1"
+                  :value="modelValue.customHex || defaultHex"
+                  @input="updateCustomHex(($event.target as HTMLInputElement).value)"
+                />
+                <input
+                  type="text"
+                  class="input input-bordered flex-1"
+                  :value="modelValue.customHex || defaultHex"
+                  @input="updateCustomHex(($event.target as HTMLInputElement).value)"
+                />
+              </div>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              class="range range-primary range-sm"
-              :value="currentOpacity"
-              @input="updateOpacity(($event.target as HTMLInputElement).value)"
-            />
-            <div class="mt-1 flex justify-between text-[11px] opacity-60">
-              <span>0</span>
-              <span>100</span>
+
+            <div v-if="modelValue && modelValue.token !== 'transparent'" class="mt-3 rounded-xl border border-base-300 bg-base-200 p-3">
+              <div class="mb-2 flex items-center justify-between gap-3 text-sm font-medium">
+                <span>Opacité</span>
+                <span class="text-xs opacity-70">{{ currentOpacity }}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                class="range range-primary range-sm"
+                :value="currentOpacity"
+                @input="updateOpacity(($event.target as HTMLInputElement).value)"
+              />
+              <div class="mt-1 flex justify-between text-[11px] opacity-60">
+                <span>0</span>
+                <span>100</span>
+              </div>
             </div>
           </div>
-        </div>
-      </Teleport>
+        </Teleport>
+      </ClientOnly>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { ThemeColorSelection, ThemeColorToken } from '~/shared/homePage'
-import { THEME_COLOR_LABELS, THEME_COLOR_TOKENS, createThemeColorSelection } from '~/shared/homePage'
+import type { ThemeColorSelection, ThemeColorToken } from '~/shared/pageBuilder'
+import { THEME_COLOR_LABELS, THEME_COLOR_TOKENS, createThemeColorSelection } from '~/shared/pageBuilder'
 
 const props = withDefaults(defineProps<{
   modelValue?: ThemeColorSelection | null
@@ -120,12 +122,16 @@ const props = withDefaults(defineProps<{
   defaultToken?: ThemeColorToken
   defaultHex?: string
   searchPlaceholder?: string
+  allowCustom?: boolean
+  allowedTokens?: ThemeColorToken[] | null
 }>(), {
   modelValue: null,
   label: 'Couleur',
   defaultToken: 'primary',
   defaultHex: '#3b4d28',
-  searchPlaceholder: 'Rechercher une couleur'
+  searchPlaceholder: 'Rechercher une couleur',
+  allowCustom: true,
+  allowedTokens: null
 })
 
 const emit = defineEmits<{
@@ -169,14 +175,19 @@ const triggerRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
 const panelStyle = ref<Record<string, string>>({})
 
-const options = THEME_COLOR_TOKENS.map(token => ({
+const selectableTokens = computed(() => {
+  const baseTokens = props.allowedTokens?.length ? props.allowedTokens : THEME_COLOR_TOKENS
+  return baseTokens.filter((token) => props.allowCustom || token !== 'custom')
+})
+
+const options = computed(() => selectableTokens.value.map(token => ({
   value: token,
   label: THEME_COLOR_LABELS[token],
   className: COLOR_SWATCHS[token].className,
   style: COLOR_SWATCHS[token].style
-}))
+})))
 
-const filteredOptions = computed(() => options.filter(option =>
+const filteredOptions = computed(() => options.value.filter(option =>
   option.label.toLowerCase().includes(search.value.toLowerCase().trim()) ||
   option.value.toLowerCase().includes(search.value.toLowerCase().trim())
 ))

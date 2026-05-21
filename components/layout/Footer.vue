@@ -1,64 +1,101 @@
 <template>
-  <footer class="footer footer-center p-10 bg-neutral text-neutral-content w-full">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 w-full max-w-7xl">
-      <!-- Logo et description -->
-      <div class="flex flex-col items-center">
-        <img src="/images/logo-removebg-preview.png" alt="Logo" class="h-20 mb-2" />
-        <p class="font-bold text-lg">Ferme du Campeyrigoux</p>
-        <p class="opacity-80">{{ $t("footer.organic") }}</p>
-      </div>
-
-      <!-- Horaires -->
-      <div class="flex flex-col items-center">
-        <h4 class="footer-title">{{ $t("footer.hours") }}</h4>
-        <div class="space-y-3 opacity-80 text-center">
-          <div>
-            <p>{{ $t("sales.farmTitle") }}</p>
-            <p>{{ farmScheduleText }}</p>
+  <footer :style="footerStyle">
+    <div class="mx-auto flex w-full flex-wrap gap-8 px-6 py-12" :class="[footerContainerWidthClass, footerContainerAlignClass]">
+      <section
+        v-for="column in footerColumns"
+        :key="column.id"
+        class="flex min-w-[220px] flex-1 basis-[240px] flex-col"
+        :class="columnLayoutClass(column)"
+        :style="columnLayoutStyle(column)"
+      >
+        <template v-for="block in column.blocks" :key="block.id">
+          <div v-if="block.type === 'logo'" class="max-w-[220px]">
+            <AppImage
+              :src="logoSrc"
+              :alt="pickText(cms?.settings.logo.alt)"
+              class="h-auto max-h-24 w-auto"
+              sizes="220px"
+            />
           </div>
-          <div>
-            <p>{{ marketSale.title }}</p>
-            <p>{{ marketSale.scheduleText }}</p>
+
+          <div v-else-if="block.type === 'site-name'" class="text-xl font-semibold">
+            {{ siteName }}
           </div>
-        </div>
-      </div>
 
-      <!-- Contact -->
-      <div class="flex flex-col items-center">
-        <h4 class="footer-title">{{ $t("footer.contact") }}</h4>
-        <div class="opacity-80 text-center word-wrap">
-          <p class="whitespace-pre-line">{{ siteConfig?.farmPickup?.address }}</p>
-          <p class="flex items-center gap-2 justify-center">
-            <Icon name="mdi:phone" size="18" />
-            {{ siteConfig?.adminPhone || '07 68 55 06 64' }}
+          <p v-else-if="block.type === 'site-tagline'" class="whitespace-pre-line text-sm leading-6 opacity-85">
+            {{ siteTagline }}
           </p>
-          <p class="flex items-center gap-2 justify-center">
-            <Icon name="mdi:email" size="18" />
-            {{ siteConfig?.contactEmail || siteConfig?.adminEmail }}
-          </p>
-        </div>
-      </div>
 
-      <!-- Réseaux sociaux -->
-      <div class="flex flex-col items-center">
-        <h4 class="footer-title">{{ $t("footer.followUs") }}</h4>
-        <div class="flex gap-4">
-          <a
-            href="https://www.facebook.com/profile.php?id=61571709076079"
-            target="_blank"
-            class="btn btn-circle btn-outline"
-            aria-label="Facebook"
-          >
-            <Icon name="mdi:facebook" size="24" />
-          </a>
-        </div>
-      </div>
+          <div v-else-if="block.type === 'title' && pickText(block.text)" class="text-sm font-semibold uppercase tracking-[0.16em] opacity-80">
+            {{ pickText(block.text) }}
+          </div>
+
+          <p v-else-if="block.type === 'text' && pickText(block.text)" class="whitespace-pre-line text-sm leading-6 opacity-85">
+            {{ pickText(block.text) }}
+          </p>
+
+          <div v-else-if="block.type === 'opening-hours'" class="space-y-2 text-sm opacity-85">
+            <div>{{ farmScheduleText }}</div>
+          </div>
+
+          <div v-else-if="block.type === 'contact'" class="space-y-2 text-sm opacity-85">
+            <div>{{ siteName }}</div>
+            <div v-if="siteConfig?.farmPickup?.address" class="whitespace-pre-line">
+              {{ siteConfig.farmPickup.address }}
+            </div>
+            <div v-if="siteConfig?.adminPhone">{{ siteConfig.adminPhone }}</div>
+            <div v-if="siteConfig?.contactEmail || siteConfig?.adminEmail">{{ siteConfig?.contactEmail || siteConfig?.adminEmail }}</div>
+          </div>
+
+          <div v-else-if="block.type === 'social-links' && socialLinks.length" class="flex flex-wrap gap-3">
+            <a
+              v-for="link in socialLinks"
+              :key="link.id"
+              :href="link.href"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-circle btn-outline btn-sm"
+              :style="socialButtonStyle"
+              :aria-label="pickText(link.label) || link.href"
+            >
+              <Icon :name="link.icon || 'mdi:link-variant'" size="20" />
+            </a>
+          </div>
+
+          <div v-else-if="block.type === 'navigation'" class="space-y-2">
+            <template v-for="item in getNavigationItems(block.navigationMenu || 'FOOTER')" :key="item.id">
+              <a
+                v-if="item.itemType === 'EXTERNAL_URL'"
+                :href="item.href"
+                :target="item.newTab ? '_blank' : undefined"
+                :rel="item.newTab ? 'noopener noreferrer' : undefined"
+                class="block text-sm transition hover:opacity-100"
+              >
+                {{ pickText(item.labels) || item.label }}
+              </a>
+              <NuxtLink
+                v-else
+                :to="localePath(item.href)"
+                class="block text-sm transition hover:opacity-100"
+              >
+                {{ pickText(item.labels) || item.label }}
+              </NuxtLink>
+            </template>
+          </div>
+        </template>
+      </section>
+    </div>
+
+    <div class="border-t px-6 py-4 text-center text-xs opacity-70" :style="footerBorderStyle">
+      {{ copyrightText }}
     </div>
   </footer>
 </template>
 
-
 <script setup lang="ts">
+import type { CmsFooterColumn, CmsLocalizedText, CmsLocale, CmsSocialLink, PublicSiteShell } from '~/shared/cms'
+import type { ThemeColorSelection } from '~/shared/pageBuilder'
+
 interface SiteConfig {
   farmPickup: {
     address: string
@@ -66,21 +103,146 @@ interface SiteConfig {
     startTime: string
     endTime: string
     slotLabel: string
-  },
+  }
   contactEmail?: string | null
   adminEmail?: string | null
-  adminPhone: string
+  adminPhone?: string | null
+  cms?: PublicSiteShell
 }
 
+const props = withDefaults(defineProps<{
+  previewLocale?: CmsLocale | null
+  previewSiteConfig?: SiteConfig | null
+}>(), {
+  previewLocale: null,
+  previewSiteConfig: null
+})
+
 const siteConfigState = useSiteConfigState()
+const { locale } = useI18n()
 
 if (process.server && !siteConfigState.value) {
   await ensureSiteConfigState()
 }
 
-const { formatWeeklySchedule, marketSale } = useSalesInfo()
-const siteConfig = computed(() => siteConfigState.value as SiteConfig | null)
+const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
+const siteConfig = computed(() => (props.previewSiteConfig ?? siteConfigState.value) as SiteConfig | null)
+const cms = computed(() => siteConfig.value?.cms)
+const socialLinks = computed<CmsSocialLink[]>(() => cms.value?.settings.socialLinks || [])
+const footerColumns = computed<CmsFooterColumn[]>(() => cms.value?.settings.footer.columns || [])
+const footerContainerWidthClass = computed(() => {
+  const width = cms.value?.settings.footer.containerWidth || 'xwide'
+  switch (width) {
+    case 'narrow': return 'max-w-3xl'
+    case 'default': return 'max-w-5xl'
+    case 'wide': return 'max-w-6xl'
+    case 'xwide': return 'max-w-7xl'
+    case 'edge': return 'max-w-[90rem]'
+    case 'full': return 'max-w-none'
+    default: return 'max-w-7xl'
+  }
+})
+const footerContainerAlignClass = computed(() => {
+  switch (cms.value?.settings.footer.containerAlign || 'between') {
+    case 'start': return 'justify-start'
+    case 'center': return 'justify-center'
+    case 'between': return 'justify-between'
+    default: return 'justify-between'
+  }
+})
+const dayLabels = {
+  fr: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
+  en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+}
+const formatFooterSchedule = (schedule?: SiteConfig['farmPickup'] | null) => {
+  if (!schedule) return ''
+  const day = dayLabels[effectiveLocale.value === 'en' ? 'en' : 'fr'][schedule.dayOfWeek] || ''
+  if (!day || !schedule.startTime || !schedule.endTime) return ''
+  return effectiveLocale.value === 'en'
+    ? `Every ${day} from ${schedule.startTime.replace(':', 'h')} to ${schedule.endTime.replace(':', 'h')}`
+    : `Tous les ${day} de ${schedule.startTime.replace(':', 'h')} à ${schedule.endTime.replace(':', 'h')}`
+}
+const farmScheduleText = computed(() => formatFooterSchedule(siteConfig.value?.farmPickup || null))
+const siteName = computed(() => effectiveLocale.value === 'en'
+  ? cms.value?.settings.siteName.en || 'Ferme du Campeyrigoux'
+  : cms.value?.settings.siteName.fr || 'Ferme du Campeyrigoux')
+const siteTagline = computed(() => effectiveLocale.value === 'en'
+  ? cms.value?.settings.siteTagline.en || ''
+  : cms.value?.settings.siteTagline.fr || '')
+const logoSrc = computed(() => {
+  const src = cms.value?.settings.logo.src?.trim()
+  if (!src) return '/images/logo-removebg-preview.png'
+  if (src.startsWith('/') || /^[a-z]+:\/\//i.test(src) || src.startsWith('data:')) return src
+  return `/images/${src.replace(/^\.?\//, '')}`
+})
+const copyrightText = computed(() => {
+  const value = cms.value?.settings.footer.copyright
+  return effectiveLocale.value === 'en' ? value?.en || '' : value?.fr || ''
+})
 
-const farmScheduleText = computed(() => formatWeeklySchedule(siteConfig.value?.farmPickup || {}))
+const tokenToCssVar = (token: string) => {
+  if (token === 'white') return 'rgba(255,255,255,1)'
+  if (token === 'white-90') return 'rgba(255,255,255,.9)'
+  if (token === 'white-70') return 'rgba(255,255,255,.7)'
+  if (token === 'white-10') return 'rgba(255,255,255,.1)'
+  if (token === 'transparent') return 'transparent'
+  return `var(--color-${token})`
+}
+
+const colorToCss = (selection?: ThemeColorSelection | null) => {
+  if (!selection) return undefined
+  return {
+    color: tokenToCssVar(selection.token),
+    opacity: selection.opacity !== undefined ? `${selection.opacity / 100}` : undefined
+  }
+}
+
+const backgroundToCss = (selection?: ThemeColorSelection | null) => {
+  if (!selection) return undefined
+  return {
+    backgroundColor: tokenToCssVar(selection.token),
+    opacity: selection.opacity !== undefined ? `${selection.opacity / 100}` : undefined
+  }
+}
+
+const footerStyle = computed(() => ({
+  ...(backgroundToCss(cms.value?.settings.footer.backgroundColor) || {}),
+  ...(colorToCss(cms.value?.settings.footer.textColor) || {})
+}))
+
+const footerBorderStyle = computed(() => ({
+  borderColor: 'rgba(255,255,255,.12)'
+}))
+
+const socialButtonStyle = computed(() => ({
+  borderColor: 'rgba(255,255,255,.25)',
+  color: 'inherit'
+}))
+
+const columnLayoutClass = (column: CmsFooterColumn) => {
+  const horizontalClass = column.align === 'center' ? 'items-center text-center' : 'items-start text-left'
+  const verticalClass = column.verticalAlign === 'center'
+    ? 'justify-center'
+    : column.verticalAlign === 'end'
+      ? 'justify-end'
+      : 'justify-start'
+  return `${horizontalClass} ${verticalClass}`
+}
+
+const columnLayoutStyle = (column: CmsFooterColumn) => ({
+  gap: `${column.gapPx}px`
+})
+
+const pickText = (value: CmsLocalizedText | null | undefined) => {
+  if (!value) return ''
+  return effectiveLocale.value === 'en' ? value.en : value.fr
+}
+
+const getNavigationItems = (menu: 'PRIMARY' | 'FOOTER') => {
+  return menu === 'PRIMARY'
+    ? (cms.value?.navigation.primary || [])
+    : (cms.value?.navigation.footer || [])
+}
+
+const localePath = useLocalePath()
 </script>
-

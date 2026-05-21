@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-base-100">
-    <input id="drawer-toggle" type="checkbox" class="drawer-toggle" />
+    <input id="drawer-toggle" type="checkbox" class="drawer-toggle" aria-hidden="true" tabindex="-1" />
     
     <div class="drawer-content flex min-h-screen flex-col">      <!-- Navigation -->
       <LayoutNavigation />
@@ -24,12 +24,22 @@
 
     <!-- Menu mobile -->
     <LayoutMobileMenu />
+    <LayoutCookieBanner />
   </div>
 </template>
 
 <script setup lang="ts">
+import LayoutCookieBanner from '~/components/layout/CookieBanner.vue'
+import LayoutMobileMenu from '~/components/layout/MobileMenu.vue'
+
 const { locale } = useI18n();
 const switchLocalePath = useSwitchLocalePath();
+const requestUrl = useRequestURL()
+
+const toAbsoluteUrl = (path?: string | null) => {
+  if (!path) return undefined
+  return new URL(path, requestUrl).toString()
+}
 
 useHead({
   htmlAttrs: {
@@ -39,12 +49,12 @@ useHead({
     {
       rel: "alternate",
       hreflang: "fr",
-      href: switchLocalePath("fr"),
+      href: toAbsoluteUrl(switchLocalePath("fr")),
     },
     {
       rel: "alternate",
       hreflang: "en",
-      href: switchLocalePath("en"),
+      href: toAbsoluteUrl(switchLocalePath("en")),
     },
   ],
 });</script>

@@ -1,4 +1,5 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
+import { syncImageUsageTable } from '~/server/utils/imageReferences'
 import { prisma } from '../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {
@@ -14,5 +15,6 @@ export default defineEventHandler(async (event) => {
     })
   }
   await prisma.vegetable.delete({ where: { id } })
+  await syncImageUsageTable()
   return { ok: true }
 })

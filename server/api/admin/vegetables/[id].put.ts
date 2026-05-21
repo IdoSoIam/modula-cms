@@ -1,4 +1,5 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
+import { syncImageUsageTable } from '~/server/utils/imageReferences'
 import { prisma } from '../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {
@@ -19,6 +20,7 @@ export default defineEventHandler(async (event) => {
     if (body.price !== undefined) {
       await recomputeBasketsForVegetable(id)
     }
+    await syncImageUsageTable()
     return { ...v, price: Number(v.price) }
   } catch (e: any) {
     if (e.code === 'P2002') {

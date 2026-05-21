@@ -6,6 +6,7 @@ export const SETTING_KEYS = {
   GMAIL_SENDER_EMAIL: 'gmail_sender_email',
   RESERVATION_NOTIFICATION_EMAIL: 'reservation_notification_email',
   CONTACT_EMAIL: 'contact_email',
+  ADMIN_PHONE: 'admin_phone',
   RESERVATION_TEMPLATE_CONFIRMED: 'reservation_template_confirmed',
   RESERVATION_TEMPLATE_REJECTED: 'reservation_template_rejected',
   RESERVATION_TEMPLATE_CANCELLED: 'reservation_template_cancelled',
@@ -23,6 +24,14 @@ export const SETTING_KEYS = {
   RESERVATION_TEMPLATE_ADMIN_CUSTOMER_CANCELLED: 'reservation_template_admin_customer_cancelled',
   RESERVATION_TEMPLATE_ADMIN_CUSTOMER_STOPPED_SUBSCRIPTION: 'reservation_template_admin_customer_stopped_subscription',
   RESERVATION_TEMPLATE_ADMIN_CUSTOMER_CANCELLED_OCCURRENCE: 'reservation_template_admin_customer_cancelled_occurrence',
+  EVENT_TEMPLATE_CALL_FOR_PARTICIPATION: 'event_template_call_for_participation',
+  EVENT_TEMPLATE_PARTICIPATION_CONFIRMATION: 'event_template_participation_confirmation',
+  EVENT_TEMPLATE_ADMIN_NEW_PARTICIPATION: 'event_template_admin_new_participation',
+  EVENT_TEMPLATE_ADMIN_NEW_PUBLIC_RESERVATION: 'event_template_admin_new_public_reservation',
+  EVENT_TEMPLATE_PUBLIC_RESERVATION_CONFIRMATION: 'event_template_public_reservation_confirmation',
+  SIGNUP_TEMPLATE_REQUEST: 'signup_template_request',
+  SIGNUP_TEMPLATE_REQUEST_CONFIRMATION: 'signup_template_request_confirmation',
+  CUSTOM_EMAIL_TEMPLATE_DEFINITIONS: 'custom_email_template_definitions_v1',
   GMAIL_REFRESH_TOKEN: 'gmail_refresh_token',
   GMAIL_ACCESS_TOKEN: 'gmail_access_token',
   GMAIL_TOKEN_EXPIRY: 'gmail_token_expiry',
@@ -33,7 +42,9 @@ export const SETTING_KEYS = {
   MAIL_SECONDARY_PROVIDER: 'mail_secondary_provider',
   GOOGLE_CALENDAR_ID: 'google_calendar_id',
   GOOGLE_CALENDAR_NAME: 'google_calendar_name',
-  HOME_PAGE_CONTENT: 'home_page_content_v1',
+  PAGE_BUILDER_CONTENT: 'home_page_content_v1',
+  CMS_SITE_SETTINGS: 'cms_site_settings_v1',
+  DAISYUI_THEME_CONFIG: 'daisyui_theme_config_v1',
   FACEBOOK_FLUX_DEACTIVATED: 'facebook_flux_deactivated',
   IN_DEVELOPMENT: 'in_development',
   ORDERS_OPEN_FROM: 'orders_open_from',
@@ -92,6 +103,14 @@ export async function getContactEmail(): Promise<string | null> {
     || settings[SETTING_KEYS.RESERVATION_NOTIFICATION_EMAIL]?.trim()
     || settings[SETTING_KEYS.ADMIN_EMAIL]?.trim()
     || null
+}
+
+export async function getAdminPhone(): Promise<string | null> {
+  const settings = await getSettings([
+    SETTING_KEYS.ADMIN_PHONE
+  ])
+
+  return settings[SETTING_KEYS.ADMIN_PHONE]?.trim() || null
 }
 
 export interface FeatureFlags {

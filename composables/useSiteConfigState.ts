@@ -1,6 +1,10 @@
+import type { PublicSiteShell } from '~/shared/cms'
+import type { PublicDaisyUiThemeConfig } from '~/shared/themes'
+
 interface PublicSiteConfigState {
   facebookFluxDeactivated: boolean
   inDevelopment: boolean
+  siteName: string
   registerEnabled: boolean
   subscriptionsEnabled: boolean
   ordersWindow?: {
@@ -19,6 +23,9 @@ interface PublicSiteConfigState {
   contactEmail?: string | null
   adminEmail?: string | null
   adminPhone?: string | null
+  cms?: PublicSiteShell
+  themes?: PublicDaisyUiThemeConfig
+  constructionPagePath?: string | null
 }
 
 interface SiteConfigNuxtApp {
