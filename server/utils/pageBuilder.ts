@@ -283,6 +283,7 @@ function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
       const item = createTitleItem(typeof value.id === 'string' ? value.id : `title-${Math.random().toString(36).slice(2, 8)}`)
       item.text = text
       item.size = (typeof value.size === 'string' ? value.size : 'xl') as typeof item.size
+      item.headingTag = (typeof value.headingTag === 'string' ? value.headingTag : 'h2') as typeof item.headingTag
       item.align = (typeof value.align === 'string' ? value.align : 'start') as typeof item.align
       item.textColor = normalizeThemeColorSelection(value.textColor, 'base-content')
       return item
@@ -440,6 +441,7 @@ function migrateLegacyItems(value: Record<string, unknown>) {
     const item = createTitleItem(`title-${Math.random().toString(36).slice(2, 8)}`)
     item.text = title
     item.size = (typeof value.titleSize === 'string' ? value.titleSize : 'xl') as typeof item.size
+    item.headingTag = (typeof value.headingTag === 'string' ? value.headingTag : typeof value.titleTag === 'string' ? value.titleTag : 'h2') as typeof item.headingTag
     item.textColor = normalizeThemeColorSelection(value.textColor, 'base-content')
     items.push(item)
   }
