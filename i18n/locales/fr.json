@@ -1072,7 +1072,7 @@
       "seoTitle": "Contenu et SEO",
       "seoDescription": "Titres traduits, menu et métadonnées.",
       "visibleTitle": "Titre visible",
-      "navigationLabel": "Libellé menu",
+      "visibleSubtitle": "Sous-titre visible",
       "metaTitle": "Meta title",
       "metaDescription": "Meta description",
       "ogImage": "OG image",

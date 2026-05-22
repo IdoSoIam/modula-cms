@@ -41,10 +41,12 @@
 
         <button
           type="button"
-          class="absolute bottom-2 right-2 z-20 h-5 w-5 cursor-se-resize rounded bg-base-300/70"
+          class="absolute bottom-2 right-2 z-20 flex h-6 w-6 items-center justify-center rounded bg-base-300/70 text-base-content cursor-se-resize"
           aria-label="Redimensionner"
           @pointerdown.stop="startResize"
-        />
+        >
+          <Icon name="mdi:resize-bottom-right" size="18" aria-hidden="true" />
+        </button>
       </div>
     </div>
   </Teleport>
@@ -78,8 +80,8 @@ import {
   createEmptyCardElement,
   createEmptyFormField,
   createEmptyFormRow,
-  createEmptyFormSection,
   createEmptyContentBlock,
+  createFormItem,
   createImageItem,
   createTextItem,
   createTitleItem,
@@ -287,6 +289,17 @@ const CardEditor = defineComponent({
 const ItemEditor = defineComponent({
   props: { target: { type: Object as PropType<Extract<PageBuilderEditTarget, { kind: 'item' }>>, required: true } },
   setup(props) {
+    const openFormPanelIds = ref<string[]>([])
+    const formTab = ref<'content' | 'action' | 'fields'>('content')
+    const isFormPanelOpen = (id: string) => openFormPanelIds.value.includes(id)
+    const toggleFormPanel = (id: string) => {
+      openFormPanelIds.value = isFormPanelOpen(id)
+        ? openFormPanelIds.value.filter(panelId => panelId !== id)
+        : [...openFormPanelIds.value, id]
+    }
+    const openFormPanel = (id: string) => {
+      if (!isFormPanelOpen(id)) openFormPanelIds.value = [...openFormPanelIds.value, id]
+    }
     return () => {
       const item = props.target.item
       const header = h('div', { class: 'flex justify-end gap-2' }, [
@@ -406,31 +419,38 @@ const ItemEditor = defineComponent({
       }
 
       if (item.type === 'form') {
-        const formFields = item.sections.flatMap(section => section.rows.flatMap(row => row.fields))
-        return h('div', { class: 'space-y-4' }, [
+        const formFields = item.rows.flatMap(row => row.fields)
+        return h('div', [
           header,
-          h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
-            h('div', { class: 'form-control' }, [
-              h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Clé technique')]),
-              h('input', { class: 'input input-bordered w-full', value: item.formKey, onInput: (e: Event) => { item.formKey = (e.target as HTMLInputElement).value } })
+          h('div', { class: 'tabs tabs-lift flex-wrap' }, [
+            h('button', { type: 'button', class: ['tab cursor-pointer', formTab.value === 'content' ? 'tab-active' : 'border-0'], onClick: () => { formTab.value = 'content' } }, 'Style et contenu'),
+            h('button', { type: 'button', class: ['tab cursor-pointer', formTab.value === 'action' ? 'tab-active' : 'border-0'], onClick: () => { formTab.value = 'action' } }, 'Action a la soumission'),
+            h('button', { type: 'button', class: ['tab cursor-pointer', formTab.value === 'fields' ? 'tab-active' : 'border-0'], onClick: () => { formTab.value = 'fields' } }, 'Formulaire')
+          ]),
+          formTab.value === 'content' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 space-y-4' }, [
+            h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
+              h('div', { class: 'form-control' }, [
+                h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Clé technique')]),
+                h('input', { class: 'input input-bordered w-full', value: item.formKey, onInput: (e: Event) => { item.formKey = (e.target as HTMLInputElement).value } })
+              ]),
+              h('div', { class: 'form-control' }, [
+                h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Style du bouton')]),
+                h('select', { class: 'select select-bordered w-full', value: item.submitButtonTone, onChange: (e: Event) => { item.submitButtonTone = (e.target as HTMLSelectElement).value as any } }, BUTTON_TONES.map(tone => h('option', { value: tone }, tone)))
+              ])
             ]),
-            h('div', { class: 'form-control' }, [
-              h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Style du bouton')]),
-              h('select', { class: 'select select-bordered w-full', value: item.submitButtonTone, onChange: (e: Event) => { item.submitButtonTone = (e.target as HTMLSelectElement).value as any } }, BUTTON_TONES.map(tone => h('option', { value: tone }, tone)))
-            ])
-          ]),
-          h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
-            h(ThemeColorPicker, { label: 'Fond de la carte du formulaire', modelValue: item.cardBackgroundColor || null, defaultToken: 'base-100', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.cardBackgroundColor = val } }),
-            h(ThemeColorPicker, { label: 'Couleur des labels', modelValue: item.labelColor || null, defaultToken: 'base-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.labelColor = val } }),
-            h(ThemeColorPicker, { label: 'Fond du bouton d’envoi', modelValue: item.submitButtonBackgroundColor || null, defaultToken: 'primary', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonBackgroundColor = val } }),
-            h(ThemeColorPicker, { label: 'Texte du bouton d’envoi', modelValue: item.submitButtonTextColor || null, defaultToken: 'primary-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonTextColor = val } }),
-            h(ThemeColorPicker, { label: 'Bordure du bouton d’envoi', modelValue: item.submitButtonBorderColor || null, defaultToken: 'transparent', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonBorderColor = val } })
-          ]),
-          h(TranslationFields, { modelValue: item.title, label: 'Titre du formulaire' }),
-          h(TranslationFields, { modelValue: item.intro, label: 'Introduction', multiline: true }),
-          h(TranslationFields, { modelValue: item.submitLabel, label: 'Libellé du bouton' }),
-          h(TranslationFields, { modelValue: item.successMessage, label: 'Message de succès', multiline: true }),
-          h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4 space-y-3' }, [
+            h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
+              h(ThemeColorPicker, { label: 'Fond de la carte du formulaire', modelValue: item.cardBackgroundColor || null, defaultToken: 'base-100', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.cardBackgroundColor = val } }),
+              h(ThemeColorPicker, { label: 'Couleur des labels', modelValue: item.labelColor || null, defaultToken: 'base-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.labelColor = val } }),
+              h(ThemeColorPicker, { label: 'Fond du bouton d’envoi', modelValue: item.submitButtonBackgroundColor || null, defaultToken: 'primary', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonBackgroundColor = val } }),
+              h(ThemeColorPicker, { label: 'Texte du bouton d’envoi', modelValue: item.submitButtonTextColor || null, defaultToken: 'primary-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonTextColor = val } }),
+              h(ThemeColorPicker, { label: 'Bordure du bouton d’envoi', modelValue: item.submitButtonBorderColor || null, defaultToken: 'transparent', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonBorderColor = val } })
+            ]),
+            h(TranslationFields, { modelValue: item.title, label: 'Titre du formulaire' }),
+            h(TranslationFields, { modelValue: item.intro, label: 'Introduction', multiline: true }),
+            h(TranslationFields, { modelValue: item.submitLabel, label: 'Libellé du bouton' }),
+            h(TranslationFields, { modelValue: item.successMessage, label: 'Message de succès', multiline: true })
+          ]) : null,
+          formTab.value === 'action' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 space-y-3' }, [
               h('div', { class: 'flex items-center justify-between gap-2' }, [
               h('div', { class: 'font-medium' }, t('admin.pageEditorPage.formBuilder.submitAction')),
               h('select', { class: 'select select-bordered select-sm', value: item.action.type, onChange: (e: Event) => {
@@ -513,42 +533,52 @@ const ItemEditor = defineComponent({
                   ])
                 ])
               : h('input', { class: 'input input-bordered w-full', placeholder: 'Action interne', value: item.action.actionKey, onInput: (e: Event) => { item.action.type === 'internalWebhook' && (item.action.actionKey = (e.target as HTMLInputElement).value) } })
-          ]),
-          h('div', { class: 'space-y-4' }, [
+          ]) : null,
+          formTab.value === 'fields' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 space-y-4' }, [
             h('div', { class: 'flex justify-end' }, [
-              h('button', { type: 'button', class: 'btn btn-sm btn-primary', onClick: () => item.sections.push(createEmptyFormSection(createId('form-section'))) }, 'Ajouter une section')
+              h('button', { type: 'button', class: 'btn btn-sm btn-primary', onClick: () => {
+                const row = createEmptyFormRow(createId('form-row'))
+                item.rows.push(row)
+                openFormPanel(`row-${row.id}`)
+              } }, 'Ajouter une ligne')
             ]),
-            ...item.sections.map((section, sectionIndex) => h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4 space-y-4', key: section.id }, [
+            ...item.rows.map((row, rowIndex) => h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4 space-y-4', key: row.id }, [
               h('div', { class: 'flex flex-wrap items-center justify-between gap-2' }, [
-                h('div', { class: 'font-medium' }, `Section formulaire ${sectionIndex + 1}`),
+                h('button', { type: 'button', class: 'min-w-0 flex-1 cursor-pointer text-left', onClick: () => toggleFormPanel(`row-${row.id}`) }, [
+                  h('div', { class: 'flex items-center gap-2' }, [
+                    h(resolveComponent('Icon'), { name: isFormPanelOpen(`row-${row.id}`) ? 'mdi:chevron-down' : 'mdi:chevron-right', size: '18' }),
+                    h('div', { class: 'font-medium' }, `Ligne ${rowIndex + 1}`)
+                  ]),
+                  h('div', { class: 'mt-1 pl-6 text-xs opacity-65' }, `${row.fields.length} champ(s)`)
+                ]),
                 h('div', { class: 'flex gap-2' }, [
-                  h('button', { type: 'button', class: 'btn btn-xs', disabled: sectionIndex === 0, onClick: () => moveItem(item.sections, sectionIndex, -1) }, t('admin.customizationLayoutPage.moveUp')),
-                  h('button', { type: 'button', class: 'btn btn-xs', disabled: sectionIndex === item.sections.length - 1, onClick: () => moveItem(item.sections, sectionIndex, 1) }, t('admin.customizationLayoutPage.moveDown')),
-                  h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => section.rows.push(createEmptyFormRow(createId('form-row'))) }, 'Ajouter une ligne'),
-                  h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => item.sections.splice(sectionIndex, 1) }, 'Supprimer')
+                  h('button', { type: 'button', class: 'btn btn-xs', disabled: rowIndex === 0, onClick: () => moveItem(item.rows, rowIndex, -1) }, t('admin.customizationLayoutPage.moveUp')),
+                  h('button', { type: 'button', class: 'btn btn-xs', disabled: rowIndex === item.rows.length - 1, onClick: () => moveItem(item.rows, rowIndex, 1) }, t('admin.customizationLayoutPage.moveDown')),
+                  h('button', { type: 'button', class: 'btn btn-xs btn-outline', disabled: row.fields.length >= 2, onClick: () => {
+                    const field = createEmptyFormField(createId('field'))
+                    row.fields.push(field)
+                    openFormPanel(`row-${row.id}`)
+                    openFormPanel(`field-${field.id}`)
+                  } }, 'Ajouter un champ'),
+                  h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => item.rows.splice(rowIndex, 1) }, 'Supprimer')
                 ])
               ]),
-              h(TranslationFields, { modelValue: section.title, label: 'Titre de section' }),
-              h(TranslationFields, { modelValue: section.description, label: 'Description', multiline: true }),
-              ...section.rows.map((row, rowIndex) => h('div', { class: 'rounded-xl border border-base-300 bg-base-200 p-4 space-y-4', key: row.id }, [
+              ...(isFormPanelOpen(`row-${row.id}`) ? row.fields.map((field, fieldIndex) => h('div', { class: 'rounded-xl border border-base-300 bg-base-200 p-4 space-y-4', key: field.id }, [
                 h('div', { class: 'flex flex-wrap items-center justify-between gap-2' }, [
-                  h('div', { class: 'font-medium' }, `Ligne ${rowIndex + 1}`),
+                  h('button', { type: 'button', class: 'min-w-0 flex-1 cursor-pointer text-left', onClick: () => toggleFormPanel(`field-${field.id}`) }, [
+                    h('div', { class: 'flex items-center gap-2' }, [
+                      h(resolveComponent('Icon'), { name: isFormPanelOpen(`field-${field.id}`) ? 'mdi:chevron-down' : 'mdi:chevron-right', size: '18' }),
+                      h('div', { class: 'font-medium' }, `Champ ${fieldIndex + 1}`)
+                    ]),
+                    h('div', { class: 'mt-1 pl-6 text-xs opacity-65' }, field.label.fr || field.label.en || field.name || 'Sans label')
+                  ]),
                   h('div', { class: 'flex gap-2' }, [
-                    h('button', { type: 'button', class: 'btn btn-xs', disabled: rowIndex === 0, onClick: () => moveItem(section.rows, rowIndex, -1) }, t('admin.customizationLayoutPage.moveUp')),
-                    h('button', { type: 'button', class: 'btn btn-xs', disabled: rowIndex === section.rows.length - 1, onClick: () => moveItem(section.rows, rowIndex, 1) }, t('admin.customizationLayoutPage.moveDown')),
-                    h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => row.fields.push(createEmptyFormField(createId('field'))) }, 'Ajouter un champ'),
-                    h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => section.rows.splice(rowIndex, 1) }, 'Supprimer')
+                    h('button', { type: 'button', class: 'btn btn-xs', disabled: fieldIndex === 0, onClick: () => moveItem(row.fields, fieldIndex, -1) }, t('admin.customizationLayoutPage.moveUp')),
+                    h('button', { type: 'button', class: 'btn btn-xs', disabled: fieldIndex === row.fields.length - 1, onClick: () => moveItem(row.fields, fieldIndex, 1) }, t('admin.customizationLayoutPage.moveDown')),
+                    h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => row.fields.splice(fieldIndex, 1) }, 'Supprimer')
                   ])
                 ]),
-                ...row.fields.map((field, fieldIndex) => h('div', { class: 'rounded-xl border border-base-300 bg-base-100 p-4 space-y-3', key: field.id }, [
-                  h('div', { class: 'flex flex-wrap items-center justify-between gap-2' }, [
-                    h('div', { class: 'font-medium' }, `Champ ${fieldIndex + 1}`),
-                    h('div', { class: 'flex gap-2' }, [
-                      h('button', { type: 'button', class: 'btn btn-xs', disabled: fieldIndex === 0, onClick: () => moveItem(row.fields, fieldIndex, -1) }, t('admin.layoutPage.moveUp')),
-                      h('button', { type: 'button', class: 'btn btn-xs', disabled: fieldIndex === row.fields.length - 1, onClick: () => moveItem(row.fields, fieldIndex, 1) }, t('admin.layoutPage.moveDown')),
-                      h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => row.fields.splice(fieldIndex, 1) }, 'Supprimer')
-                    ])
-                  ]),
+                ...(isFormPanelOpen(`field-${field.id}`) ? [
                   h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
                     h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Nom technique')]), h('input', { class: 'input input-bordered w-full', value: field.name, onInput: (e: Event) => { field.name = (e.target as HTMLInputElement).value } })]),
                     h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Type')]), h('select', { class: 'select select-bordered w-full', value: field.type, onChange: (e: Event) => { field.type = (e.target as HTMLSelectElement).value as any } }, PAGE_BUILDER_FORM_FIELD_TYPES.map(type => h('option', { value: type }, PAGE_BUILDER_FORM_FIELD_TYPE_LABELS[type])))]),
@@ -559,10 +589,10 @@ const ItemEditor = defineComponent({
                   h(TranslationFields, { modelValue: field.placeholder, label: 'Placeholder' }),
                   h(TranslationFields, { modelValue: field.helpText, label: 'Aide', multiline: true }),
                   h(TranslationFields, { modelValue: field.errorMessage, label: 'Message d’erreur', multiline: true })
-                ]))
-              ]))
+                ] : [])
+              ])) : [])
             ]))
-          ])
+          ]) : null
         ])
       }
 
@@ -600,6 +630,7 @@ const ColumnEditor = defineComponent({
           h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createTitleItem(createId('title'))) }, 'Titre'),
           h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createTextItem(createId('text'))) }, 'Texte'),
           h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createButtonsItem(createId('buttons'))) }, 'Boutons'),
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createFormItem(createId('form'))) }, 'Formulaire'),
           h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createCardsItem(createId('cards'))) }, 'Cartes'),
           h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createImageItem(createId('image'))) }, 'Image'),
           h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createCarouselItem(createId('carousel'))) }, 'Carousel')

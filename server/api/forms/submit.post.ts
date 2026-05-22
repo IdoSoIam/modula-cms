@@ -41,7 +41,7 @@ function findFormItem(content: { sections: Array<{ columns: Array<{ items: any[]
 }
 
 function getAllFormFields(item: PageBuilderFormItem): PageBuilderFormField[] {
-  return item.sections.flatMap(section => section.rows.flatMap(row => row.fields))
+  return item.rows.flatMap(row => row.fields)
 }
 
 function stringifyFieldValue(field: PageBuilderFormField, value: string | boolean) {

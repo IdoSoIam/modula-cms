@@ -38,7 +38,7 @@ export type ImageAspect = 'square' | 'landscape' | 'portrait'
 export type ImageFit = 'cover' | 'contain'
 export type ContentAlign = 'start' | 'center' | 'end'
 export type VerticalAlign = 'start' | 'center' | 'end'
-export type SectionContainerWidth = 'narrow' | 'default' | 'wide' | 'xwide' | 'edge' | 'full'
+export type SectionContainerWidth = 'narrow' | 'medium' | 'default' | 'wide' | 'xwide' | 'edge' | 'full'
 export type SectionBackgroundMode = 'none' | 'image' | 'carousel'
 export type CarouselAnimation = 'slide' | 'fade'
 export type CardSize = 'sm' | 'md' | 'lg' | 'xl'
@@ -238,7 +238,7 @@ export interface PageBuilderFormItem {
   submitButtonBackgroundColor?: ThemeColorSelection | null
   submitButtonTextColor?: ThemeColorSelection | null
   submitButtonBorderColor?: ThemeColorSelection | null
-  sections: PageBuilderFormSection[]
+  rows: PageBuilderFormRow[]
   action: PageBuilderFormAction
 }
 
@@ -327,7 +327,7 @@ export const IMAGE_ASPECTS: ImageAspect[] = ['landscape', 'square', 'portrait']
 export const IMAGE_FITS: ImageFit[] = ['cover', 'contain']
 export const CONTENT_ALIGNS: ContentAlign[] = ['start', 'center', 'end']
 export const VERTICAL_ALIGNS: VerticalAlign[] = ['start', 'center', 'end']
-export const SECTION_CONTAINER_WIDTHS: SectionContainerWidth[] = ['narrow', 'default', 'wide', 'xwide', 'edge', 'full']
+export const SECTION_CONTAINER_WIDTHS: SectionContainerWidth[] = ['narrow', 'medium', 'default', 'wide', 'xwide', 'edge', 'full']
 export const SECTION_BACKGROUND_MODES: SectionBackgroundMode[] = ['none', 'image', 'carousel']
 export const SECTION_COLUMN_COUNTS: SectionColumnCount[] = [1, 2, 3, 4]
 export const CARD_SIZES: CardSize[] = ['sm', 'md', 'lg', 'xl']
@@ -343,6 +343,7 @@ export const PAGE_BUILDER_FORM_FIELD_WIDTHS: PageBuilderFormFieldWidth[] = [1, 2
 
 export const SECTION_CONTAINER_WIDTH_LABELS: Record<SectionContainerWidth, string> = {
   narrow: 'Etroit',
+  medium: 'Intermediaire',
   default: 'Standard',
   wide: 'Large',
   xwide: 'Tres large',
@@ -929,7 +930,7 @@ export function createFormItem(id: string): PageBuilderFormItem {
     submitButtonBackgroundColor: null,
     submitButtonTextColor: null,
     submitButtonBorderColor: null,
-    sections: [createEmptyFormSection(`${id}-section-1`)],
+    rows: [createEmptyFormRow(`${id}-row-1`)],
     action: createEmptyFormAction()
   }
 }
@@ -972,14 +973,10 @@ export function duplicatePageBuilderItem(item: PageBuilderColumnItem | PageBuild
 
   if (clone.type === 'form') {
     clone.formKey = `${clone.formKey || 'form'}_${Math.random().toString(36).slice(2, 6)}`
-    clone.sections = clone.sections.map((section) => ({
-      ...section,
-      id: createBuilderId('form-section'),
-      rows: section.rows.map((row) => ({
-        ...row,
-        id: createBuilderId('form-row'),
-        fields: row.fields.map(duplicatePageBuilderFormField)
-      }))
+    clone.rows = clone.rows.map((row) => ({
+      ...row,
+      id: createBuilderId('form-row'),
+      fields: row.fields.map(duplicatePageBuilderFormField)
     }))
   }
 

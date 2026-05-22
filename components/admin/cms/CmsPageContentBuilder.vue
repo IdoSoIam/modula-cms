@@ -495,37 +495,51 @@
                   </div>
 
                   <div v-else-if="isItemPanelOpen(item.id) && item.type === 'form'" class="space-y-5">
-                    <div class="grid gap-4 md:grid-cols-2">
-                      <label class="form-control">
-                        <span class="label"><span class="label-text">Clé technique</span></span>
-                        <input v-model="item.formKey" class="input input-bordered w-full" />
-                      </label>
-                      <div class="form-control">
-                        <label class="label"><span class="label-text">Style du bouton</span></label>
-                        <select v-model="item.submitButtonTone" class="select select-bordered w-full">
-                          <option value="primary">primary</option>
-                          <option value="secondary">secondary</option>
-                          <option value="accent">accent</option>
-                          <option value="neutral">neutral</option>
-                          <option value="outline">outline</option>
-                        </select>
+                    <div role="tablist" class="tabs tabs-lift flex-wrap">
+                      <button type="button" class="tab cursor-pointer" :class="getFormEditorTab(item.id) === 'content' ? 'tab-active' : 'border-0'" @click="setFormEditorTab(item.id, 'content')">
+                        Style et contenu
+                      </button>
+                      <button type="button" class="tab cursor-pointer" :class="getFormEditorTab(item.id) === 'action' ? 'tab-active' : 'border-0'" @click="setFormEditorTab(item.id, 'action')">
+                        Action a la soumission
+                      </button>
+                      <button type="button" class="tab cursor-pointer" :class="getFormEditorTab(item.id) === 'fields' ? 'tab-active' : 'border-0'" @click="setFormEditorTab(item.id, 'fields')">
+                        Formulaire
+                      </button>
+                    </div>
+
+                    <div v-if="getFormEditorTab(item.id) === 'content'" class="rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 space-y-5">
+                      <div class="grid gap-4 md:grid-cols-2">
+                        <label class="form-control">
+                          <span class="label"><span class="label-text">Clé technique</span></span>
+                          <input v-model="item.formKey" class="input input-bordered w-full" />
+                        </label>
+                        <div class="form-control">
+                          <label class="label"><span class="label-text">Style du bouton</span></label>
+                          <select v-model="item.submitButtonTone" class="select select-bordered w-full">
+                            <option value="primary">primary</option>
+                            <option value="secondary">secondary</option>
+                            <option value="accent">accent</option>
+                            <option value="neutral">neutral</option>
+                            <option value="outline">outline</option>
+                          </select>
+                        </div>
                       </div>
+
+                      <div class="grid gap-4 lg:grid-cols-2">
+                        <ThemeColorPicker v-model="item.cardBackgroundColor" label="Fond de la carte du formulaire" default-token="base-100" />
+                        <ThemeColorPicker v-model="item.labelColor" label="Couleur des labels" default-token="base-content" />
+                        <ThemeColorPicker v-model="item.submitButtonBackgroundColor" label="Fond du bouton d’envoi" default-token="primary" />
+                        <ThemeColorPicker v-model="item.submitButtonTextColor" label="Texte du bouton d’envoi" default-token="primary-content" />
+                        <ThemeColorPicker v-model="item.submitButtonBorderColor" label="Bordure du bouton d’envoi" default-token="transparent" />
+                      </div>
+
+                      <AdminPageBuilderTranslationTabs :model-value="item.title" label="Titre du formulaire" />
+                      <AdminPageBuilderTranslationTabs :model-value="item.intro" label="Introduction" multiline />
+                      <AdminPageBuilderTranslationTabs :model-value="item.submitLabel" label="Libellé du bouton" />
+                      <AdminPageBuilderTranslationTabs :model-value="item.successMessage" label="Message de succès" multiline />
                     </div>
 
-                    <div class="grid gap-4 lg:grid-cols-2">
-                      <ThemeColorPicker v-model="item.cardBackgroundColor" label="Fond de la carte du formulaire" default-token="base-100" />
-                      <ThemeColorPicker v-model="item.labelColor" label="Couleur des labels" default-token="base-content" />
-                      <ThemeColorPicker v-model="item.submitButtonBackgroundColor" label="Fond du bouton d’envoi" default-token="primary" />
-                      <ThemeColorPicker v-model="item.submitButtonTextColor" label="Texte du bouton d’envoi" default-token="primary-content" />
-                      <ThemeColorPicker v-model="item.submitButtonBorderColor" label="Bordure du bouton d’envoi" default-token="transparent" />
-                    </div>
-
-                    <AdminPageBuilderTranslationTabs :model-value="item.title" label="Titre du formulaire" />
-                    <AdminPageBuilderTranslationTabs :model-value="item.intro" label="Introduction" multiline />
-                    <AdminPageBuilderTranslationTabs :model-value="item.submitLabel" label="Libellé du bouton" />
-                    <AdminPageBuilderTranslationTabs :model-value="item.successMessage" label="Message de succès" multiline />
-
-                    <div class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-4">
+                    <div v-else-if="getFormEditorTab(item.id) === 'action'" class="rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 space-y-4">
                       <div class="flex items-center justify-between gap-3">
                         <div class="font-medium">Action à la soumission</div>
                         <select v-model="item.action.type" class="select select-bordered select-sm">
@@ -549,7 +563,7 @@
                             <select v-model="item.action.toFieldName" class="select select-bordered w-full">
                               <option value="">--</option>
                               <option
-                                v-for="field in item.sections.flatMap(section => section.rows.flatMap(row => row.fields)).filter(field => field.type === 'email')"
+                                v-for="field in item.rows.flatMap(row => row.fields).filter(field => field.type === 'email')"
                                 :key="field.id"
                                 :value="field.name"
                               >
@@ -572,7 +586,7 @@
                             <select v-model="item.action.replyToFieldName" class="select select-bordered w-full">
                               <option value="">--</option>
                               <option
-                                v-for="field in item.sections.flatMap(section => section.rows.flatMap(row => row.fields)).filter(field => field.type === 'email')"
+                                v-for="field in item.rows.flatMap(row => row.fields).filter(field => field.type === 'email')"
                                 :key="field.id"
                                 :value="field.name"
                               >
@@ -599,50 +613,54 @@
                       </template>
                     </div>
 
-                    <div class="space-y-4">
+                    <div v-else class="rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 space-y-4">
                       <div
-                        v-for="(formSection, sectionIndex) in item.sections"
-                        :key="formSection.id"
+                        v-for="(row, rowIndex) in item.rows"
+                        :key="row.id"
                         class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-4"
                       >
                         <div class="flex flex-wrap items-center justify-between gap-2">
-                          <div class="font-medium">Section formulaire {{ sectionIndex + 1 }}</div>
+                          <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="toggleItemPanel(`form-row-${row.id}`)">
+                            <div class="flex items-center gap-2">
+                              <Icon :name="isItemPanelOpen(`form-row-${row.id}`) ? 'mdi:chevron-down' : 'mdi:chevron-right'" size="18" />
+                              <div class="font-medium">Ligne {{ rowIndex + 1 }}</div>
+                            </div>
+                            <div class="mt-1 pl-6 text-xs opacity-65">
+                              {{ row.fields.length }} champ(s)
+                            </div>
+                          </button>
                           <div class="flex gap-2">
-                            <button type="button" class="btn btn-xs" :disabled="sectionIndex === 0" @click="moveInList(item.sections, sectionIndex, -1)">Monter</button>
-                            <button type="button" class="btn btn-xs" :disabled="sectionIndex === item.sections.length - 1" @click="moveInList(item.sections, sectionIndex, 1)">Descendre</button>
-                            <button type="button" class="btn btn-xs btn-outline" @click="addFormRow(formSection)">Ajouter une ligne</button>
-                            <button type="button" class="btn btn-xs btn-outline btn-error" @click="item.sections.splice(sectionIndex, 1)">Supprimer</button>
+                            <button type="button" class="btn btn-xs" :disabled="rowIndex === 0" @click="moveInList(item.rows, rowIndex, -1)">Monter</button>
+                            <button type="button" class="btn btn-xs" :disabled="rowIndex === item.rows.length - 1" @click="moveInList(item.rows, rowIndex, 1)">Descendre</button>
+                            <button type="button" class="btn btn-xs btn-outline" :disabled="row.fields.length >= 2" @click="addFormField(row)">Ajouter un champ</button>
+                            <button type="button" class="btn btn-xs btn-outline btn-error" @click="item.rows.splice(rowIndex, 1)">Supprimer</button>
                           </div>
                         </div>
 
-                        <AdminPageBuilderTranslationTabs :model-value="formSection.title" label="Titre de section" />
-                        <AdminPageBuilderTranslationTabs :model-value="formSection.description" label="Description" multiline />
-
                         <div
-                          v-for="(row, rowIndex) in formSection.rows"
-                          :key="row.id"
-                          class="rounded-xl border border-base-300 bg-base-200 p-4 space-y-4"
+                          v-for="(field, fieldIndex) in row.fields"
+                          v-if="isItemPanelOpen(`form-row-${row.id}`)"
+                          :key="field.id"
+                          class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-4"
                         >
                           <div class="flex flex-wrap items-center justify-between gap-2">
-                            <div class="font-medium">Ligne {{ rowIndex + 1 }}</div>
+                            <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="toggleItemPanel(`form-field-${field.id}`)">
+                              <div class="flex items-center gap-2">
+                                <Icon :name="isItemPanelOpen(`form-field-${field.id}`) ? 'mdi:chevron-down' : 'mdi:chevron-right'" size="18" />
+                                <div class="font-medium">Champ {{ fieldIndex + 1 }}</div>
+                              </div>
+                              <div class="mt-1 pl-6 text-xs opacity-65">
+                                {{ field.label.fr || field.label.en || field.name || 'Sans label' }}
+                              </div>
+                            </button>
                             <div class="flex gap-2">
-                              <button type="button" class="btn btn-xs" :disabled="rowIndex === 0" @click="moveInList(formSection.rows, rowIndex, -1)">Monter</button>
-                              <button type="button" class="btn btn-xs" :disabled="rowIndex === formSection.rows.length - 1" @click="moveInList(formSection.rows, rowIndex, 1)">Descendre</button>
-                              <button type="button" class="btn btn-xs btn-outline" @click="addFormField(row)">Ajouter un champ</button>
-                              <button type="button" class="btn btn-xs btn-outline btn-error" @click="formSection.rows.splice(rowIndex, 1)">Supprimer</button>
+                              <button type="button" class="btn btn-xs" :disabled="fieldIndex === 0" @click="moveInList(row.fields, fieldIndex, -1)">Monter</button>
+                              <button type="button" class="btn btn-xs" :disabled="fieldIndex === row.fields.length - 1" @click="moveInList(row.fields, fieldIndex, 1)">Descendre</button>
+                              <button type="button" class="btn btn-xs btn-outline btn-error" @click="row.fields.splice(fieldIndex, 1)">Supprimer</button>
                             </div>
                           </div>
 
-                          <div
-                            v-for="(field, fieldIndex) in row.fields"
-                            :key="field.id"
-                            class="rounded-xl border border-base-300 bg-base-100 p-4 space-y-4"
-                          >
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                              <div class="font-medium">Champ {{ fieldIndex + 1 }}</div>
-                              <button type="button" class="btn btn-xs btn-outline btn-error" @click="row.fields.splice(fieldIndex, 1)">Supprimer</button>
-                            </div>
-
+                          <template v-if="isItemPanelOpen(`form-field-${field.id}`)">
                             <div class="grid gap-4 md:grid-cols-2">
                               <label class="form-control">
                                 <span class="label"><span class="label-text">Nom technique</span></span>
@@ -714,12 +732,12 @@
                                 <AdminPageBuilderTranslationTabs :model-value="option.label" label="Label de l’option" />
                               </div>
                             </div>
-                          </div>
+                          </template>
                         </div>
                       </div>
 
                       <div class="flex justify-end">
-                        <button type="button" class="btn btn-sm btn-primary" @click="addFormSection(item)">Ajouter une section de formulaire</button>
+                        <button type="button" class="btn btn-sm btn-primary" @click="addFormRow(item)">Ajouter une ligne</button>
                       </div>
                     </div>
                   </div>
@@ -740,7 +758,7 @@ import AdminPageBuilderCarouselFields from '~/components/admin/page-builder/Caro
 import AdminPageBuilderCardFields from '~/components/admin/page-builder/CardFields.vue'
 import AdminPageBuilderSectionBackgroundFields from '~/components/admin/page-builder/SectionBackgroundFields.vue'
 import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderFormSection, PageBuilderSectionItem, SectionColumnCount } from '~/shared/pageBuilder'
+import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderSectionItem, SectionColumnCount } from '~/shared/pageBuilder'
 import {
   CARDS_DISPLAY_LABELS,
   CARDS_DISPLAYS,
@@ -757,7 +775,6 @@ import {
   createEmptyFormField,
   createEmptyFormFieldOption,
   createEmptyFormRow,
-  createEmptyFormSection,
   createFormItem,
   createImageItem,
   createTextItem,
@@ -788,6 +805,7 @@ const selectedSectionId = ref(props.content.sections[0]?.id || '')
 const sectionColumnTab = ref(0)
 const editorTab = ref<'section' | 'columns'>('section')
 const openPanelIds = ref<string[]>([])
+const formEditorTabs = ref<Record<string, 'content' | 'action' | 'fields'>>({})
 
 const selectedSection = computed(() =>
   props.content.sections.find(section => section.id === selectedSectionId.value) ?? null
@@ -960,6 +978,14 @@ const openPanel = (id: string) => {
   }
 }
 
+const getFormEditorTab = (id: string) => formEditorTabs.value[id] || 'content'
+const setFormEditorTab = (id: string, tab: 'content' | 'action' | 'fields') => {
+  formEditorTabs.value = {
+    ...formEditorTabs.value,
+    [id]: tab
+  }
+}
+
 const isItemPanelOpen = (id: string) => openPanelIds.value.includes(id)
 
 const toggleItemPanel = (id: string) => {
@@ -988,7 +1014,7 @@ const itemSummary = (item: PageBuilderColumnItem) => {
     case 'carousel':
       return `${item.slides.filter(slide => slide.imageUrl.trim()).length} slide${item.slides.filter(slide => slide.imageUrl.trim()).length > 1 ? 's' : ''}`
     case 'form':
-      return `${item.sections.reduce((count, section) => count + section.rows.reduce((rowCount, row) => rowCount + row.fields.length, 0), 0)} champ${item.sections.reduce((count, section) => count + section.rows.reduce((rowCount, row) => rowCount + row.fields.length, 0), 0) > 1 ? 's' : ''}`
+      return `${item.rows.reduce((count, row) => count + row.fields.length, 0)} champ${item.rows.reduce((count, row) => count + row.fields.length, 0) > 1 ? 's' : ''}`
   }
 }
 
@@ -1019,12 +1045,10 @@ const duplicateCard = (cards: PageBuilderCard[], index: number) => {
   openPanel(clone.id)
 }
 
-const addFormSection = (item: PageBuilderFormItem) => {
-  item.sections.push(createEmptyFormSection(createId('form-section')))
-}
-
-const addFormRow = (section: PageBuilderFormSection) => {
-  section.rows.push(createEmptyFormRow(createId('form-row')))
+const addFormRow = (item: PageBuilderFormItem) => {
+  const row = createEmptyFormRow(createId('form-row'))
+  item.rows.push(row)
+  openPanel(`form-row-${row.id}`)
 }
 
 const moveInList = <T,>(list: T[], index: number, direction: -1 | 1) => {
@@ -1037,7 +1061,10 @@ const moveInList = <T,>(list: T[], index: number, direction: -1 | 1) => {
 
 const addFormField = (row: PageBuilderFormRow) => {
   if (row.fields.length >= 2) return
-  row.fields.push(createEmptyFormField(createId('form-field')))
+  const field = createEmptyFormField(createId('form-field'))
+  row.fields.push(field)
+  openPanel(`form-row-${row.id}`)
+  openPanel(`form-field-${field.id}`)
 }
 
 const addFormFieldOption = (field: PageBuilderFormField) => {

@@ -1061,7 +1061,7 @@
       "seoTitle": "Content and SEO",
       "seoDescription": "Translated titles, menu and metadata.",
       "visibleTitle": "Visible title",
-      "navigationLabel": "Menu label",
+      "visibleSubtitle": "Visible subtitle",
       "metaTitle": "Meta title",
       "metaDescription": "Meta description",
       "ogImage": "OG image",

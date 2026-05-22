@@ -247,6 +247,21 @@ function normalizeFormSection(value: unknown, fallbackId: string) {
   return section
 }
 
+function normalizeFormRowsFromLegacySections(value: unknown, fallbackItemId: string) {
+  if (!Array.isArray(value)) {
+    return [createEmptyFormRow(`${fallbackItemId}-row-1`)]
+  }
+
+  const rows = value
+    .flatMap((section, sectionIndex) => normalizeFormSection(section, `${fallbackItemId}-section-${sectionIndex + 1}`).rows)
+    .map((row, rowIndex) => ({
+      ...row,
+      id: row.id || `${fallbackItemId}-row-${rowIndex + 1}`
+    }))
+
+  return rows.length ? rows : [createEmptyFormRow(`${fallbackItemId}-row-1`)]
+}
+
 function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
   if (!isObject(value) || typeof value.type !== 'string') return null
 
@@ -330,9 +345,12 @@ function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
       item.submitButtonBackgroundColor = normalizeThemeColorSelection(value.submitButtonBackgroundColor, 'primary')
       item.submitButtonTextColor = normalizeThemeColorSelection(value.submitButtonTextColor, 'primary-content')
       item.submitButtonBorderColor = normalizeThemeColorSelection(value.submitButtonBorderColor, 'transparent')
-      item.sections = Array.isArray(value.sections)
-        ? value.sections.map((section, index) => normalizeFormSection(section, `${item.id}-section-${index + 1}`))
-        : item.sections
+      item.rows = Array.isArray(value.rows)
+        ? value.rows.map((row, index) => normalizeFormRow(row, `${item.id}-row-${index + 1}`))
+        : normalizeFormRowsFromLegacySections(value.sections, item.id)
+      if (!item.rows.length) {
+        item.rows = [createEmptyFormRow(`${item.id}-row-1`)]
+      }
       if (isObject(value.action)) {
         if (value.action.type === 'internalWebhook') {
           item.action = {

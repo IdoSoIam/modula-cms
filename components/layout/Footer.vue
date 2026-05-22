@@ -162,6 +162,7 @@ const footerContainerWidthClass = computed(() => {
   const width = cms.value?.settings.footer.containerWidth || 'xwide'
   switch (width) {
     case 'narrow': return 'max-w-3xl'
+    case 'medium': return 'max-w-4xl'
     case 'default': return 'max-w-5xl'
     case 'wide': return 'max-w-6xl'
     case 'xwide': return 'max-w-7xl'

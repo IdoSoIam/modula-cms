@@ -118,6 +118,10 @@ const backgroundMediaWidth = computed(() => {
       return 1760
     case 'wide':
       return 1600
+    case 'medium':
+      return 1480
+    case 'default':
+      return 1520
     default:
       return 1440
   }

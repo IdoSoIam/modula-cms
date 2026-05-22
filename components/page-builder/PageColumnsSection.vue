@@ -317,7 +317,7 @@
                 </PageEditable>
 
                 <PageEditable
-                  v-else-if="item.type === 'form' && (editable || item.sections.length)"
+                  v-else-if="item.type === 'form' && (editable || item.rows.length)"
                   :editable="editable"
                   label="Formulaire"
                   button-position="top-left"
@@ -469,6 +469,8 @@ const containerWidthClass = computed(() => {
   switch (props.section.containerWidth) {
     case 'narrow':
       return 'max-w-4xl'
+    case 'medium':
+      return 'max-w-5xl'
     case 'wide':
       return 'max-w-7xl'
     case 'xwide':
@@ -484,6 +486,7 @@ const containerWidthClass = computed(() => {
 
 const CONTAINER_MAX_WIDTHS: Record<PageBuilderSection['containerWidth'], number> = {
   narrow: 896,
+  medium: 1024,
   default: 1152,
   wide: 1280,
   xwide: 1440,
@@ -495,9 +498,8 @@ const sectionContainerMaxWidth = computed(() => CONTAINER_MAX_WIDTHS[props.secti
 
 const gridClass = computed(() => {
   const count = props.section.columnCount
-  const reverse = props.section.reverseOnDesktop && count === 2
   if (count === 1) return 'grid-cols-1'
-  if (count === 2) return reverse ? 'lg:grid-cols-[.9fr_1.1fr]' : 'lg:grid-cols-[1.1fr_.9fr]'
+  if (count === 2) return 'lg:grid-cols-2'
   if (count === 3) return 'md:grid-cols-2 xl:grid-cols-3'
   return 'md:grid-cols-2 xl:grid-cols-4'
 })
@@ -506,8 +508,7 @@ const columnDesktopFraction = (columnIndex: number) => {
   if (props.section.columnCount <= 1) return 1
 
   if (props.section.columnCount === 2) {
-    const leading = props.section.reverseOnDesktop ? 0.45 : 0.55
-    return columnIndex === 0 ? leading : 1 - leading
+    return 0.5
   }
 
   if (props.section.columnCount === 3) return 1 / 3

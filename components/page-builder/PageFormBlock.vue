@@ -15,32 +15,18 @@
         class="pointer-events-none absolute -left-[9999px] top-auto h-px w-px opacity-0"
       >
 
-      <div
-        v-for="section in item.sections"
-        :key="section.id"
-        class="space-y-4"
-      >
-        <div v-if="pickLocalizedText(locale, section.title) || pickLocalizedText(locale, section.description)" class="space-y-1">
-          <h4 v-if="pickLocalizedText(locale, section.title)" class="text-base font-semibold">
-            {{ pickLocalizedText(locale, section.title) }}
-          </h4>
-          <p v-if="pickLocalizedText(locale, section.description)" class="text-sm opacity-70">
-            {{ pickLocalizedText(locale, section.description) }}
-          </p>
-        </div>
-
-        <div class="space-y-4">
+      <div class="space-y-4">
+        <div
+          v-for="row in item.rows"
+          :key="row.id"
+          class="grid gap-4 md:grid-cols-2"
+        >
           <div
-            v-for="row in section.rows"
-            :key="row.id"
-            class="grid gap-4 md:grid-cols-2"
+            v-for="field in row.fields"
+            :key="field.id"
+            :class="field.width === 2 ? 'md:col-span-2' : ''"
+            class="space-y-1.5"
           >
-            <div
-              v-for="field in row.fields"
-              :key="field.id"
-              :class="field.width === 2 ? 'md:col-span-2' : ''"
-              class="space-y-1.5"
-            >
               <label class="block text-sm font-medium" :for="fieldDomId(field)" :style="labelStyle">
                 {{ pickLocalizedText(locale, field.label) || field.name }}
                 <span v-if="field.required" class="text-error">*</span>
@@ -120,7 +106,6 @@
               <p v-if="errors[field.name]" class="text-sm text-error">
                 {{ errors[field.name] }}
               </p>
-            </div>
           </div>
         </div>
       </div>
@@ -194,7 +179,7 @@ const submitButtonStyle = computed(() => {
 })
 
 const allFields = computed(() =>
-  props.item.sections.flatMap(section => section.rows.flatMap(row => row.fields))
+  props.item.rows.flatMap(row => row.fields)
 )
 
 const THEME_COLOR_VARIABLES = {

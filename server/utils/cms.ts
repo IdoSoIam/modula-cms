@@ -307,8 +307,8 @@ function synchronizeSharedPageContent(translations: Record<CmsLocale, CmsPageTra
 
 async function ensureFormEmailTemplateActions(payload: CmsPagePayload) {
   const getFormTemplateVariables = (item: PageBuilderFormItem) => {
-    const fieldNames = item.sections
-      .flatMap(section => section.rows.flatMap(row => row.fields.map(field => field.name.trim())))
+    const fieldNames = item.rows
+      .flatMap(row => row.fields.map(field => field.name.trim()))
       .filter(Boolean)
 
     const aliases = new Set<string>(['formTitle', 'pageTitle', 'pagePath', 'submittedAt', 'fieldsSummary', 'replyToEmail'])
@@ -528,69 +528,62 @@ function createDefaultContactPageContent() {
     cc: '',
     bcc: ''
   }
-  form.sections = [
+  form.rows = [
     {
-      id: 'contact-form-section',
-      title: { fr: '', en: '' },
-      description: { fr: '', en: '' },
-      rows: [
+      id: 'contact-row-1',
+      fields: [
         {
-          id: 'contact-row-1',
-          fields: [
-            {
-              id: 'contact-name',
-              name: 'name',
-              type: 'text',
-              width: 1,
-              label: { fr: 'Nom', en: 'Name' },
-              placeholder: { fr: 'Votre nom', en: 'Your name' },
-              helpText: { fr: '', en: '' },
-              required: true,
-              defaultValue: '',
-              defaultChecked: false,
-              regexPattern: '',
-              errorMessage: { fr: 'Veuillez renseigner votre nom.', en: 'Please provide your name.' },
-              textareaMinLines: 4,
-              options: []
-            },
-            {
-              id: 'contact-email',
-              name: 'email',
-              type: 'email',
-              width: 1,
-              label: { fr: 'Email', en: 'Email' },
-              placeholder: { fr: 'vous@exemple.fr', en: 'you@example.com' },
-              helpText: { fr: '', en: '' },
-              required: true,
-              defaultValue: '',
-              defaultChecked: false,
-              regexPattern: '',
-              errorMessage: { fr: 'Veuillez saisir un email valide.', en: 'Please provide a valid email.' },
-              textareaMinLines: 4,
-              options: []
-            }
-          ]
+          id: 'contact-name',
+          name: 'name',
+          type: 'text',
+          width: 1,
+          label: { fr: 'Nom', en: 'Name' },
+          placeholder: { fr: 'Votre nom', en: 'Your name' },
+          helpText: { fr: '', en: '' },
+          required: true,
+          defaultValue: '',
+          defaultChecked: false,
+          regexPattern: '',
+          errorMessage: { fr: 'Veuillez renseigner votre nom.', en: 'Please provide your name.' },
+          textareaMinLines: 4,
+          options: []
         },
         {
-          id: 'contact-row-2',
-          fields: [
-            {
-              id: 'contact-message',
-              name: 'message',
-              type: 'textarea',
-              width: 2,
-              label: { fr: 'Message', en: 'Message' },
-              placeholder: { fr: 'Décrivez votre demande', en: 'Describe your request' },
-              helpText: { fr: '', en: '' },
-              required: true,
-              defaultValue: '',
-              defaultChecked: false,
-              regexPattern: '',
-              errorMessage: { fr: 'Veuillez saisir un message.', en: 'Please enter a message.' },
-              textareaMinLines: 6,
-              options: []
-            }
-          ]
+          id: 'contact-email',
+          name: 'email',
+          type: 'email',
+          width: 1,
+          label: { fr: 'Email', en: 'Email' },
+          placeholder: { fr: 'vous@exemple.fr', en: 'you@example.com' },
+          helpText: { fr: '', en: '' },
+          required: true,
+          defaultValue: '',
+          defaultChecked: false,
+          regexPattern: '',
+          errorMessage: { fr: 'Veuillez saisir un email valide.', en: 'Please provide a valid email.' },
+          textareaMinLines: 4,
+          options: []
+        }
+      ]
+    },
+    {
+      id: 'contact-row-2',
+      fields: [
+        {
+          id: 'contact-message',
+          name: 'message',
+          type: 'textarea',
+          width: 2,
+          label: { fr: 'Message', en: 'Message' },
+          placeholder: { fr: 'Décrivez votre demande', en: 'Describe your request' },
+          helpText: { fr: '', en: '' },
+          required: true,
+          defaultValue: '',
+          defaultChecked: false,
+          regexPattern: '',
+          errorMessage: { fr: 'Veuillez saisir un message.', en: 'Please enter a message.' },
+          textareaMinLines: 6,
+          options: []
         }
       ]
     }

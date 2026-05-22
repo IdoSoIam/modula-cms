@@ -9,10 +9,10 @@
       </div>
 
       <div class="flex gap-2">
-        <NuxtLink class="btn btn-outline" :to="localePath('/admin/pages')">{{ t('admin.pageEditorPage.back') }}</NuxtLink>
+        <NuxtLink class="btn btn-outline" :to="localePath('/admin/content/pages')">{{ t('admin.pageEditorPage.back') }}</NuxtLink>
         <a
+          v-if="liveEditAvailable"
           class="btn btn-outline"
-          :class="liveEditDisabled ? 'btn-disabled pointer-events-none opacity-50' : ''"
           :href="liveEditUrl"
           target="_blank"
           rel="noreferrer"
@@ -92,8 +92,18 @@
             </button>
 
             <div v-if="isPanelOpen('seo')" class="mt-5 space-y-4">
-              <AdminPageBuilderTranslationTabs :model-value="localizedTitle" :label="t('admin.pageEditorPage.visibleTitle')" @update:model-value="localizedTitle = $event" />
-              <AdminPageBuilderTranslationTabs :model-value="localizedNavigationLabel" :label="t('admin.pageEditorPage.navigationLabel')" @update:model-value="localizedNavigationLabel = $event" />
+              <AdminPageBuilderTranslationTabs
+                :model-value="applicationLocalizedTitle ?? localizedTitle"
+                :label="t('admin.pageEditorPage.visibleTitle')"
+                @update:model-value="updateVisibleTitle"
+              />
+              <AdminPageBuilderTranslationTabs
+                v-if="applicationLocalizedSubtitle"
+                :model-value="applicationLocalizedSubtitle"
+                :label="t('admin.pageEditorPage.visibleSubtitle')"
+                multiline
+                @update:model-value="updateVisibleSubtitle"
+              />
               <AdminPageBuilderTranslationTabs :model-value="localizedMetaTitle" :label="t('admin.pageEditorPage.metaTitle')" @update:model-value="localizedMetaTitle = $event" />
               <AdminPageBuilderTranslationTabs :model-value="localizedMetaDescription" :label="t('admin.pageEditorPage.metaDescription')" multiline @update:model-value="localizedMetaDescription = $event" />
 
@@ -174,7 +184,7 @@ import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/Tra
 import PageRenderer from '~/components/page-builder/PageRenderer.vue'
 import ImageInput from '~/components/ImageInput.vue'
 import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
-import type { CmsLocale, CmsPagePayload } from '~/shared/cms'
+import type { CmsLocale, CmsNavigationItemPayload, CmsPagePayload, CmsSiteSettings } from '~/shared/cms'
 import { clonePageBuilderContent, type PageBuilderContent } from '~/shared/pageBuilder'
 
 definePageMeta({
@@ -206,14 +216,22 @@ const pageRendererOptions = [
 ] as const
 
 const { data } = await useFetch<CmsPageEditor>(`/api/admin/cms/pages/${route.params.id}`)
+const { data: siteShellData } = await useFetch<{ settings: CmsSiteSettings, navigation: Array<CmsNavigationItemPayload & { id?: number | null }> }>('/api/admin/cms/site-shell')
 if (!data.value) {
   throw createError({
     statusCode: 404,
     statusMessage: t('admin.pageEditorPage.notFound')
   })
 }
+if (!siteShellData.value) {
+  throw createError({
+    statusCode: 500,
+    statusMessage: t('admin.pageEditorPage.loadError')
+  })
+}
 
 const page = reactive<CmsPageEditor>(structuredClone(data.value))
+const siteShellModel = reactive(structuredClone(siteShellData.value))
 
 const isEmptyPageBuilderContent = (content: PageBuilderContent | null | undefined) =>
   !content || !Array.isArray(content.sections) || content.sections.length === 0
@@ -277,15 +295,15 @@ const localizedTitle = computed({
     page.translations.en.title = value.en
   }
 })
-const localizedNavigationLabel = computed({
-  get: () => ({
-    fr: page.translations.fr.navigationLabel,
-    en: page.translations.en.navigationLabel
-  }),
-  set: (value: { fr: string, en: string }) => {
-    page.translations.fr.navigationLabel = value.fr
-    page.translations.en.navigationLabel = value.en
-  }
+const applicationLocalizedTitle = computed<null | { fr: string, en: string }>(() => {
+  if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.title
+  if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.title
+  return null
+})
+const applicationLocalizedSubtitle = computed<null | { fr: string, en: string }>(() => {
+  if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.subtitle
+  if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.subtitle
+  return null
 })
 const localizedMetaTitle = computed({
   get: () => ({
@@ -320,7 +338,7 @@ const liveEditUrl = computed(() => {
   return `${publicPath}${separator}liveEdit=1`
 })
 
-const liveEditDisabled = computed(() => !page.path?.trim())
+const liveEditAvailable = computed(() => selectedPageRenderer.value === 'cms' && Boolean(page.path?.trim()))
 
 const isPanelOpen = (id: string) => openPanelIds.value.includes(id)
 
@@ -333,14 +351,42 @@ const togglePanel = (id: string) => {
   openPanelIds.value = [...openPanelIds.value, id]
 }
 
+const updateVisibleTitle = (value: { fr: string, en: string }) => {
+  if (selectedPageRenderer.value === 'baskets') {
+    siteShellModel.settings.basketsPage.title = structuredClone(value)
+    return
+  }
+  if (selectedPageRenderer.value === 'news') {
+    siteShellModel.settings.newsPage.title = structuredClone(value)
+    return
+  }
+  localizedTitle.value = value
+}
+
+const updateVisibleSubtitle = (value: { fr: string, en: string }) => {
+  if (selectedPageRenderer.value === 'baskets') {
+    siteShellModel.settings.basketsPage.subtitle = structuredClone(value)
+    return
+  }
+  if (selectedPageRenderer.value === 'news') {
+    siteShellModel.settings.newsPage.subtitle = structuredClone(value)
+  }
+}
+
 const save = async () => {
   saving.value = true
   try {
     synchronizeSharedContent(sharedContent.value)
-    await $fetch(`/api/admin/cms/pages/${page.id}`, {
-      method: 'PUT',
-      body: page
-    })
+    await Promise.all([
+      $fetch(`/api/admin/cms/pages/${page.id}`, {
+        method: 'PUT',
+        body: page
+      }),
+      $fetch('/api/admin/cms/site-shell', {
+        method: 'PUT',
+        body: siteShellModel
+      })
+    ])
     $toast?.success(t('admin.pageEditorPage.saved'))
   } catch (error: any) {
     $toast?.error(error.statusMessage || t('admin.pageEditorPage.saveError'))
