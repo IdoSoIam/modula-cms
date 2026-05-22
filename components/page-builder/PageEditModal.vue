@@ -206,6 +206,14 @@ const duplicateAt = <T,>(list: T[], index: number, factory: (item: T) => T) => {
   list.splice(index + 1, 0, factory(item))
 }
 
+const itemAlignLabel = (align: string) => {
+  switch (align) {
+    case 'center': return 'Centre'
+    case 'end': return 'Droite'
+    default: return 'Gauche'
+  }
+}
+
 const TranslationFields = defineComponent({
   props: {
     modelValue: { type: Object as PropType<{ fr: string; en: string }>, required: true },
@@ -292,6 +300,24 @@ const ItemEditor = defineComponent({
         return h('div', { class: 'space-y-4' }, [
           header,
           h(TranslationFields, { modelValue: item.text, label: item.type === 'badge' ? 'Badge' : item.type === 'title' ? 'Titre' : 'Texte', size: item.size, multiline: item.type === 'text', 'onUpdate:size': (val: string) => { item.size = val as any } }),
+          item.type === 'title' || item.type === 'text'
+            ? h('div', { class: 'form-control' }, [
+                h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement')]),
+                h('select', {
+                  class: 'select select-bordered w-full',
+                  value: item.align || 'start',
+                  onChange: (e: Event) => { item.align = (e.target as HTMLSelectElement).value as any }
+                }, CONTENT_ALIGNS.map(align => h('option', { value: align }, itemAlignLabel(align))))
+              ])
+            : null,
+          item.type === 'title' || item.type === 'text'
+            ? h(ThemeColorPicker, {
+                label: item.type === 'title' ? 'Couleur du titre' : 'Couleur du texte',
+                modelValue: item.textColor || null,
+                defaultToken: 'base-content',
+                'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.textColor = val }
+              })
+            : null,
           item.type === 'title'
             ? h('div', { class: 'form-control' }, [
                 h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Balise du titre')]),
@@ -567,7 +593,6 @@ const ColumnEditor = defineComponent({
         h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement horizontal')]), h('select', { class: 'select select-bordered w-full', value: props.target.column.align, onChange: (e: Event) => { props.target.column.align = (e.target as HTMLSelectElement).value as any } }, CONTENT_ALIGNS.map(a => h('option', { value: a }, a)))]),
         h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement vertical du contenu de la colonne')]), h('select', { class: 'select select-bordered w-full', value: props.target.column.verticalAlign, onChange: (e: Event) => { props.target.column.verticalAlign = (e.target as HTMLSelectElement).value as any } }, VERTICAL_ALIGNS.map(a => h('option', { value: a }, a)))])
       ]),
-      h(ThemeColorPicker, { label: 'Couleur du texte de la colonne', modelValue: props.target.column.textColor || null, defaultToken: 'base-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { props.target.column.textColor = val } }),
       h('div', { class: 'rounded-2xl border border-base-300 bg-base-200 p-4' }, [
         h('div', { class: 'mb-3 font-medium' }, 'Ajouter un element'),
         h('div', { class: 'flex flex-wrap gap-2' }, [
@@ -588,6 +613,76 @@ const SectionEditor = defineComponent({
   props: { target: { type: Object as PropType<Extract<PageBuilderEditTarget, { kind: 'section' }>>, required: true } },
   setup(props) {
     const tab = ref<'structure' | 'background' | 'insert'>('structure')
+    const addStandaloneItem = (position: 'beforeItems' | 'afterItems', type: 'title' | 'text') => {
+      const id = createId(type)
+      const item = type === 'title' ? createTitleItem(id) : createTextItem(id)
+      props.target.section[position].push(item)
+    }
+
+    const standaloneItemLabel = (type: 'title' | 'text') => type === 'title' ? 'Titre' : 'Texte'
+
+    const standaloneGroup = (position: 'beforeItems' | 'afterItems', label: string) => h('div', { class: 'space-y-3 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm' }, [
+      h('div', { class: 'flex flex-wrap items-center justify-between gap-3' }, [
+        h('div', { class: 'font-medium' }, label),
+        h('div', { class: 'flex flex-wrap gap-2' }, [
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => addStandaloneItem(position, 'title') }, 'Ajouter un titre'),
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => addStandaloneItem(position, 'text') }, 'Ajouter un texte')
+        ])
+      ]),
+      props.target.section[position].length
+        ? h('div', { class: 'space-y-3' }, props.target.section[position].map((item, itemIndex) => h('div', {
+          key: item.id,
+          class: 'rounded-xl border border-base-300 bg-base-200 p-4'
+        }, [
+          h('div', { class: 'mb-3 flex flex-wrap items-start justify-between gap-3' }, [
+            h('div', { class: 'min-w-0 flex-1' }, [
+              h('div', { class: 'font-medium' }, standaloneItemLabel(item.type)),
+              h('div', { class: 'mt-1 text-xs opacity-65' }, item.text.fr || item.text.en || 'Sans contenu')
+            ]),
+            h('div', { class: 'flex flex-wrap gap-2' }, [
+              h('button', { type: 'button', class: 'btn btn-xs', disabled: itemIndex === 0, onClick: () => moveItem(props.target.section[position], itemIndex, -1) }, 'Monter'),
+              h('button', { type: 'button', class: 'btn btn-xs', disabled: itemIndex === props.target.section[position].length - 1, onClick: () => moveItem(props.target.section[position], itemIndex, 1) }, 'Descendre'),
+              h('button', { type: 'button', class: 'btn btn-xs btn-outline', onClick: () => duplicateAt(props.target.section[position], itemIndex, (entry) => duplicatePageBuilderItem(entry) as typeof entry) }, 'Dupliquer'),
+              h('button', { type: 'button', class: 'btn btn-xs btn-outline btn-error', onClick: () => removeAt(props.target.section[position], itemIndex) }, 'Supprimer')
+            ])
+          ]),
+          h('div', { class: 'space-y-4' }, [
+            h(TranslationFields, {
+              modelValue: item.text,
+              label: item.type === 'title' ? 'Titre' : 'Texte',
+              size: item.size,
+              multiline: item.type === 'text',
+              'onUpdate:size': (val: string) => { item.size = val as any }
+            }),
+            h('div', { class: 'form-control' }, [
+              h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement')]),
+              h('select', {
+                class: 'select select-bordered w-full',
+                value: item.align || 'start',
+                onChange: (e: Event) => { item.align = (e.target as HTMLSelectElement).value as any }
+              }, CONTENT_ALIGNS.map(align => h('option', { value: align }, itemAlignLabel(align))))
+            ]),
+            h(ThemeColorPicker, {
+              label: item.type === 'title' ? 'Couleur du titre' : 'Couleur du texte',
+              modelValue: item.textColor || null,
+              defaultToken: 'base-content',
+              'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.textColor = val }
+            }),
+            item.type === 'title'
+              ? h('div', { class: 'form-control' }, [
+                  h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Balise du titre')]),
+                  h('select', {
+                    class: 'select select-bordered w-full',
+                    value: item.headingTag || 'h2',
+                    onChange: (e: Event) => { item.headingTag = (e.target as HTMLSelectElement).value as any }
+                  }, HEADING_TAGS.map(tag => h('option', { value: tag }, HEADING_TAG_LABELS[tag])))
+                ])
+              : null
+          ])
+        ])))
+        : h('div', { class: 'rounded-xl border border-dashed border-base-300 px-4 py-5 text-sm opacity-70' }, 'Aucun élément')
+    ])
+
     return () => h('div', { class: 'space-y-4' }, [
       h('div', { class: 'flex justify-end gap-2' }, [
         h('button', { type: 'button', class: 'btn btn-xs', disabled: currentSectionIndex(props.target) === 0, onClick: () => moveItem(props.target.sections, currentSectionIndex(props.target), -1) }, 'Monter'),
@@ -620,7 +715,9 @@ const SectionEditor = defineComponent({
               h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Largeur du container')]), h('select', { class: 'select select-bordered w-full', value: props.target.section.containerWidth, onChange: (e: Event) => { props.target.section.containerWidth = (e.target as HTMLSelectElement).value as any } }, SECTION_CONTAINER_WIDTHS.map(w => h('option', { value: w }, SECTION_CONTAINER_WIDTH_LABELS[w])))]),
               h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement vertical des colonnes dans la section')]), h('select', { class: 'select select-bordered w-full', value: props.target.section.contentVerticalAlign, onChange: (e: Event) => { props.target.section.contentVerticalAlign = (e.target as HTMLSelectElement).value as any } }, VERTICAL_ALIGNS.map(a => h('option', { value: a }, a)))])
             ]),
-            props.target.section.columnCount === 2 ? h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: props.target.section.reverseOnDesktop, onChange: (e: Event) => { props.target.section.reverseOnDesktop = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Inverser sur desktop')]) : null
+            props.target.section.columnCount === 2 ? h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'toggle toggle-primary', checked: props.target.section.reverseOnDesktop, onChange: (e: Event) => { props.target.section.reverseOnDesktop = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Inverser sur desktop')]) : null,
+            standaloneGroup('beforeItems', 'Éléments au-dessus des colonnes'),
+            standaloneGroup('afterItems', 'Éléments en-dessous des colonnes')
           ])
         ]) : null,
         tab.value === 'background' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 shadow-sm' }, [

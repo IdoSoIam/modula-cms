@@ -7,6 +7,17 @@
       @edit="openLiveEditor"
     />
 
+    <div
+      v-if="showEnterLiveEditButton"
+      class="pointer-events-none fixed bottom-5 right-5 z-[120] flex justify-end"
+    >
+      <div class="pointer-events-auto rounded-2xl border border-base-300 bg-base-100/95 px-3 py-3 shadow-xl backdrop-blur">
+        <button type="button" class="btn btn-sm btn-outline" @click="toggleLiveEdit(true)">
+          Éditer la page
+        </button>
+      </div>
+    </div>
+
     <ClientOnly>
       <PageEditModal
         :open="liveEditEnabled && modalOpen"
@@ -36,6 +47,14 @@
 
         <button
           type="button"
+          class="btn btn-sm btn-outline"
+          @click="toggleLiveEdit(false)"
+        >
+          Quitter
+        </button>
+
+        <button
+          type="button"
           class="btn btn-sm btn-primary"
           :disabled="saving || loadingEditor"
           @click="saveLiveEdit"
@@ -49,10 +68,10 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { CmsLocale, CmsPagePayload, ResolvedCmsPage } from '~/shared/cms'
 import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
-import type { PageBuilderButton, PageBuilderCard, PageBuilderColumnItem, PageBuilderSection } from '~/shared/pageBuilder'
+import type { PageBuilderButton, PageBuilderCard, PageBuilderColumnItem, PageBuilderSection, PageBuilderSectionItem } from '~/shared/pageBuilder'
 import CmsPageRenderer from '~/components/cms/CmsPageRenderer.vue'
 import { useAuthStore } from '~/stores/auth'
 
@@ -67,6 +86,7 @@ const props = defineProps<{
 const PageEditModal = defineAsyncComponent(() => import('~/components/page-builder/PageEditModal.vue'))
 
 const route = useRoute()
+const router = useRouter()
 const { locale } = useI18n()
 const authStore = useAuthStore()
 const { $toast } = useNuxtApp() as any
@@ -79,6 +99,9 @@ const modalOpen = ref(false)
 const loadingEditor = ref(false)
 const saving = ref(false)
 const liveEditHydrated = ref(false)
+const savedEditorSnapshot = ref('')
+const savedResolvedPageState = ref<ResolvedCmsPage | null>(null)
+const savedEditorPageState = ref<CmsPageEditor | null>(null)
 
 const currentLocale = computed<CmsLocale>(() => locale.value === 'en' ? 'en' : 'fr')
 const wantsLiveEdit = computed(() => route.query.liveEdit === '1')
@@ -88,9 +111,27 @@ const liveEditEnabled = computed(() =>
   && authStore.isAdmin
   && editableResolvedPage.value.pageType !== 'APPLICATION'
 )
+const showEnterLiveEditButton = computed(() =>
+  liveEditHydrated.value
+  && !wantsLiveEdit.value
+  && authStore.isAdmin
+  && editableResolvedPage.value.pageType !== 'APPLICATION'
+)
+const liveEditDirty = computed(() =>
+  liveEditEnabled.value
+  && Boolean(savedEditorSnapshot.value)
+  && serializeEditorState() !== savedEditorSnapshot.value
+)
 
 onMounted(() => {
   liveEditHydrated.value = true
+  if (!import.meta.client) return
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+onBeforeUnmount(() => {
+  if (!import.meta.client) return
+  window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 
 watch(() => props.resolvedPage, (value) => {
@@ -133,6 +174,44 @@ function getErrorMessage(error: any, fallback: string) {
     || fallback
 }
 
+function serializeEditorState() {
+  return JSON.stringify({
+    locale: currentLocale.value,
+    pageId: editableResolvedPage.value.id ?? null,
+    path: editableResolvedPage.value.path,
+    title: editableResolvedPage.value.title,
+    navigationLabel: editableResolvedPage.value.navigationLabel,
+    seo: editableResolvedPage.value.seo,
+    content: editableResolvedPage.value.content
+  })
+}
+
+function syncEditorSnapshot() {
+  savedEditorSnapshot.value = serializeEditorState()
+  savedResolvedPageState.value = cloneCmsData(editableResolvedPage.value)
+  savedEditorPageState.value = editorPage.value ? cloneCmsData(editorPage.value) : null
+}
+
+function confirmDiscardLiveEditChanges() {
+  if (!liveEditDirty.value || !import.meta.client) return true
+  return window.confirm('Des modifications non sauvegardées sont en cours. Êtes-vous sûr de vouloir quitter ?')
+}
+
+function handleBeforeUnload(event: BeforeUnloadEvent) {
+  if (!liveEditDirty.value) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+
+function restoreEditorState() {
+  modalOpen.value = false
+  activeTarget.value = null
+  editorPage.value = savedEditorPageState.value ? cloneCmsData(savedEditorPageState.value) : null
+  editableResolvedPage.value = savedResolvedPageState.value
+    ? cloneCmsData(savedResolvedPageState.value)
+    : cloneCmsData(props.resolvedPage)
+}
+
 function allSections() {
   return editableResolvedPage.value.content.sections || []
 }
@@ -143,6 +222,17 @@ function findSectionById(id: string) {
 
 function findItemById(id: string) {
   for (const section of allSections()) {
+    const beforeItemIndex = section.beforeItems.findIndex(item => item.id === id)
+    if (beforeItemIndex >= 0) {
+      return {
+        section,
+        column: null,
+        item: section.beforeItems[beforeItemIndex] as PageBuilderSectionItem,
+        itemIndex: beforeItemIndex,
+        parentItems: section.beforeItems
+      }
+    }
+
     for (const column of section.columns) {
       const itemIndex = column.items.findIndex(item => item.id === id)
       if (itemIndex >= 0) {
@@ -150,12 +240,33 @@ function findItemById(id: string) {
           section,
           column,
           item: column.items[itemIndex] as PageBuilderColumnItem,
-          itemIndex
+          itemIndex,
+          parentItems: column.items
         }
+      }
+    }
+
+    const afterItemIndex = section.afterItems.findIndex(item => item.id === id)
+    if (afterItemIndex >= 0) {
+      return {
+        section,
+        column: null,
+        item: section.afterItems[afterItemIndex] as PageBuilderSectionItem,
+        itemIndex: afterItemIndex,
+        parentItems: section.afterItems
       }
     }
   }
   return null
+}
+
+async function toggleLiveEdit(enabled: boolean) {
+  if (!enabled && !confirmDiscardLiveEditChanges()) return
+  if (!enabled) restoreEditorState()
+  const query = { ...route.query }
+  if (enabled) query.liveEdit = '1'
+  else delete query.liveEdit
+  await router.replace({ query })
 }
 
 function findCardById(id: string) {
@@ -210,7 +321,7 @@ function resolveLiveEditTarget(target: PageBuilderEditTarget): PageBuilderEditTa
     return {
       ...target,
       item: found.item,
-      parentItems: found.column.items,
+      parentItems: found.parentItems,
       itemIndex: found.itemIndex
     }
   }
@@ -263,6 +374,7 @@ async function bootstrapCurrentPage() {
     id: page.id
   }
   syncLocalizedContentFromEditor()
+  syncEditorSnapshot()
   return editorPage.value
 }
 
@@ -279,6 +391,7 @@ async function ensureEditorPage() {
     const page = await $fetch<CmsPageEditor>(`/api/admin/cms/pages/${editableResolvedPage.value.id}`)
     editorPage.value = cloneCmsData(page)
     syncLocalizedContentFromEditor()
+    syncEditorSnapshot()
     return editorPage.value
   } catch (error: any) {
     if (editableResolvedPage.value.path === '/' || error?.statusCode === 404) {
@@ -301,6 +414,7 @@ async function ensureEditorPage() {
 
 async function reloadEditorPage() {
   if (!liveEditEnabled.value) return
+  if (!confirmDiscardLiveEditChanges()) return
   editorPage.value = null
   await ensureEditorPage()
 }
@@ -346,6 +460,7 @@ async function saveLiveEdit() {
       id: saved.id
     }
     syncLocalizedContentFromEditor()
+    syncEditorSnapshot()
     $toast?.success('Page enregistrée')
   } catch (error: any) {
     console.error('LiveEdit save failed', error)
@@ -354,4 +469,12 @@ async function saveLiveEdit() {
     saving.value = false
   }
 }
+
+onBeforeRouteLeave(() => {
+  if (confirmDiscardLiveEditChanges()) {
+    if (liveEditDirty.value) restoreEditorState()
+    return
+  }
+  return false
+})
 </script>

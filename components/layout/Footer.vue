@@ -1,5 +1,14 @@
 <template>
-  <footer :style="footerStyle">
+  <footer class="relative" :style="footerStyle">
+    <div
+      v-if="shellLiveEditEnabled"
+      class="pointer-events-none absolute inset-x-0 top-3 z-[60] flex justify-center"
+    >
+      <div class="pointer-events-auto text-xs shadow-sm">
+        <button type="button" class="cursor-pointer rounded-full border border-base-300 bg-base-100/90 px-2 py-1 text-[11px] font-medium text-primary opacity-100 shadow-sm hover:border-primary" @click="openShellEditor('footer')">Footer</button>
+      </div>
+    </div>
+
     <div class="mx-auto flex w-full flex-wrap gap-8 px-6 py-12" :class="[footerContainerWidthClass, footerContainerAlignClass]">
       <section
         v-for="column in footerColumns"
@@ -9,7 +18,7 @@
         :style="columnLayoutStyle(column)"
       >
         <template v-for="block in column.blocks" :key="block.id">
-          <div v-if="block.type === 'logo'" class="max-w-[220px]">
+          <div v-if="block.type === 'logo'" class="max-w-[220px]" @click="handleFooterBlockClick($event, column.id, block.id)">
             <AppImage
               :src="logoSrc"
               :alt="pickText(cms?.settings.logo.alt)"
@@ -18,27 +27,27 @@
             />
           </div>
 
-          <div v-else-if="block.type === 'site-name'" class="text-xl font-semibold">
+          <div v-else-if="block.type === 'site-name'" class="text-xl font-semibold" @click="handleFooterBlockClick($event, column.id, block.id)">
             {{ siteName }}
           </div>
 
-          <p v-else-if="block.type === 'site-tagline'" class="whitespace-pre-line text-sm leading-6 opacity-85">
+          <p v-else-if="block.type === 'site-tagline'" class="whitespace-pre-line text-sm leading-6 opacity-85" @click="handleFooterBlockClick($event, column.id, block.id)">
             {{ siteTagline }}
           </p>
 
-          <div v-else-if="block.type === 'title' && pickText(block.text)" class="text-sm font-semibold uppercase tracking-[0.16em] opacity-80">
+          <div v-else-if="block.type === 'title' && pickText(block.text)" class="text-sm font-semibold uppercase tracking-[0.16em] opacity-80" @click="handleFooterBlockClick($event, column.id, block.id)">
             {{ pickText(block.text) }}
           </div>
 
-          <p v-else-if="block.type === 'text' && pickText(block.text)" class="whitespace-pre-line text-sm leading-6 opacity-85">
+          <p v-else-if="block.type === 'text' && pickText(block.text)" class="whitespace-pre-line text-sm leading-6 opacity-85" @click="handleFooterBlockClick($event, column.id, block.id)">
             {{ pickText(block.text) }}
           </p>
 
-          <div v-else-if="block.type === 'opening-hours'" class="space-y-2 text-sm opacity-85">
+          <div v-else-if="block.type === 'opening-hours'" class="space-y-2 text-sm opacity-85" @click="handleFooterBlockClick($event, column.id, block.id)">
             <div>{{ farmScheduleText }}</div>
           </div>
 
-          <div v-else-if="block.type === 'contact'" class="space-y-2 text-sm opacity-85">
+          <div v-else-if="block.type === 'contact'" class="space-y-2 text-sm opacity-85" @click="handleFooterBlockClick($event, column.id, block.id)">
             <div>{{ siteName }}</div>
             <div v-if="siteConfig?.farmPickup?.address" class="whitespace-pre-line">
               {{ siteConfig.farmPickup.address }}
@@ -57,6 +66,7 @@
               class="btn btn-circle btn-outline btn-sm"
               :style="socialButtonStyle"
               :aria-label="pickText(link.label) || link.href"
+              @click="handleSocialLinkClick($event, link.id)"
             >
               <Icon :name="link.icon || 'mdi:link-variant'" size="20" />
             </a>
@@ -70,6 +80,7 @@
                 :target="item.newTab ? '_blank' : undefined"
                 :rel="item.newTab ? 'noopener noreferrer' : undefined"
                 class="block text-sm transition hover:opacity-100"
+                @click="handleFooterNavClick($event, item.navigationItemKey)"
               >
                 {{ pickText(item.labels) || item.label }}
               </a>
@@ -77,6 +88,7 @@
                 v-else
                 :to="localePath(item.href)"
                 class="block text-sm transition hover:opacity-100"
+                @click="handleFooterNavClick($event, item.navigationItemKey)"
               >
                 {{ pickText(item.labels) || item.label }}
               </NuxtLink>
@@ -95,6 +107,7 @@
 <script setup lang="ts">
 import type { CmsFooterColumn, CmsLocalizedText, CmsLocale, CmsSocialLink, PublicSiteShell } from '~/shared/cms'
 import type { ThemeColorSelection } from '~/shared/pageBuilder'
+import { useAuthStore } from '~/stores/auth'
 
 interface SiteConfig {
   farmPickup: {
@@ -119,7 +132,11 @@ const props = withDefaults(defineProps<{
 })
 
 const siteConfigState = useSiteConfigState()
+const route = useRoute()
+const authStore = useAuthStore()
+const { openShellEditor } = useCmsLiveEdit()
 const { locale } = useI18n()
+const liveEditHydrated = ref(false)
 
 if (process.server && !siteConfigState.value) {
   await ensureSiteConfigState()
@@ -128,6 +145,17 @@ if (process.server && !siteConfigState.value) {
 const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
 const siteConfig = computed(() => (props.previewSiteConfig ?? siteConfigState.value) as SiteConfig | null)
 const cms = computed(() => siteConfig.value?.cms)
+const shellLiveEditEnabled = computed(() =>
+  liveEditHydrated.value
+  &&
+  !props.previewSiteConfig
+  && route.query.liveEdit === '1'
+  && authStore.isAdmin
+)
+
+onMounted(() => {
+  liveEditHydrated.value = true
+})
 const socialLinks = computed<CmsSocialLink[]>(() => cms.value?.settings.socialLinks || [])
 const footerColumns = computed<CmsFooterColumn[]>(() => cms.value?.settings.footer.columns || [])
 const footerContainerWidthClass = computed(() => {
@@ -245,4 +273,25 @@ const getNavigationItems = (menu: 'PRIMARY' | 'FOOTER') => {
 }
 
 const localePath = useLocalePath()
+
+const handleFooterNavClick = (event: Event, key: string) => {
+  if (!shellLiveEditEnabled.value) return
+  event.preventDefault()
+  event.stopPropagation()
+  openShellEditor('navigation', { kind: 'navigation-item', key, menu: 'FOOTER' })
+}
+
+const handleFooterBlockClick = (event: Event, columnId: string, blockId: string) => {
+  if (!shellLiveEditEnabled.value) return
+  event.preventDefault()
+  event.stopPropagation()
+  openShellEditor('footer', { kind: 'footer-block', columnId, blockId })
+}
+
+const handleSocialLinkClick = (event: Event, id: string) => {
+  if (!shellLiveEditEnabled.value) return
+  event.preventDefault()
+  event.stopPropagation()
+  openShellEditor('footer', { kind: 'social-link', id })
+}
 </script>

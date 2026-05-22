@@ -5,6 +5,7 @@ import type {
   PageBuilderColumn,
   PageBuilderColumnItem,
   PageBuilderContent,
+  PageBuilderSectionItem,
   PageBuilderSection,
   ThemeColorSelection,
   ThemeColorToken
@@ -267,6 +268,8 @@ function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
       const item = createTitleItem(typeof value.id === 'string' ? value.id : `title-${Math.random().toString(36).slice(2, 8)}`)
       item.text = text
       item.size = (typeof value.size === 'string' ? value.size : 'xl') as typeof item.size
+      item.align = (typeof value.align === 'string' ? value.align : 'start') as typeof item.align
+      item.textColor = normalizeThemeColorSelection(value.textColor, 'base-content')
       return item
     }
     case 'text': {
@@ -275,6 +278,8 @@ function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
       const item = createTextItem(typeof value.id === 'string' ? value.id : `text-${Math.random().toString(36).slice(2, 8)}`)
       item.text = text
       item.size = (typeof value.size === 'string' ? value.size : 'md') as typeof item.size
+      item.align = (typeof value.align === 'string' ? value.align : 'start') as typeof item.align
+      item.textColor = normalizeThemeColorSelection(value.textColor, 'base-content')
       return item
     }
     case 'buttons': {
@@ -417,6 +422,7 @@ function migrateLegacyItems(value: Record<string, unknown>) {
     const item = createTitleItem(`title-${Math.random().toString(36).slice(2, 8)}`)
     item.text = title
     item.size = (typeof value.titleSize === 'string' ? value.titleSize : 'xl') as typeof item.size
+    item.textColor = normalizeThemeColorSelection(value.textColor, 'base-content')
     items.push(item)
   }
   const text = normalizeLocalizedText(value.text)
@@ -424,6 +430,7 @@ function migrateLegacyItems(value: Record<string, unknown>) {
     const item = createTextItem(`text-${Math.random().toString(36).slice(2, 8)}`)
     item.text = text
     item.size = (typeof value.textSize === 'string' ? value.textSize : 'md') as typeof item.size
+    item.textColor = normalizeThemeColorSelection(value.textColor, 'base-content')
     items.push(item)
   }
   const cards = Array.isArray(value.cards) ? value.cards.map(normalizeCard).filter((card): card is PageBuilderCard => Boolean(card)) : []
@@ -463,6 +470,13 @@ function normalizeColumn(value: unknown): PageBuilderColumn | null {
   return column
 }
 
+function normalizeSectionItems(value: unknown): PageBuilderSectionItem[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map(normalizeColumnItem)
+    .filter((item): item is PageBuilderSectionItem => item !== null && (item.type === 'title' || item.type === 'text'))
+}
+
 function heroToSection(hero: Record<string, unknown>): PageBuilderSection | null {
   const section = createEmptyColumnsSection('migrated-hero', 1)
   const column = section.columns[0]
@@ -476,8 +490,6 @@ function heroToSection(hero: Record<string, unknown>): PageBuilderSection | null
     overlayOpacity: 55,
     blur: false
   })
-  column.textColor = { token: 'white', opacity: 100 }
-
   const badge = normalizeLocalizedText(hero.badge)
   if (badge && (badge.fr || badge.en)) {
     const item = createBadgeItem('hero-badge')
@@ -491,6 +503,7 @@ function heroToSection(hero: Record<string, unknown>): PageBuilderSection | null
     const item = createTitleItem('hero-title')
     item.text = title
     item.size = (typeof hero.titleSize === 'string' ? hero.titleSize : '2xl') as typeof item.size
+    item.textColor = { token: 'white', opacity: 100 }
     column.items.push(item)
   }
 
@@ -499,6 +512,7 @@ function heroToSection(hero: Record<string, unknown>): PageBuilderSection | null
     const item = createTextItem('hero-text')
     item.text = text
     item.size = (typeof hero.textSize === 'string' ? hero.textSize : 'lg') as typeof item.size
+    item.textColor = { token: 'white', opacity: 100 }
     column.items.push(item)
   }
 
@@ -544,6 +558,8 @@ function normalizeSection(value: unknown): PageBuilderSection | null {
   section.backgroundCarousel = normalizeSectionBackgroundSlides(value.backgroundCarousel, section.id)
   section.backgroundCarouselSettings = normalizeCarouselSettings(value.backgroundCarouselSettings)
   section.reverseOnDesktop = typeof value.reverseOnDesktop === 'boolean' ? value.reverseOnDesktop : false
+  section.beforeItems = normalizeSectionItems(value.beforeItems)
+  section.afterItems = normalizeSectionItems(value.afterItems)
 
   const rawColumns = Array.isArray(value.columns)
     ? value.columns

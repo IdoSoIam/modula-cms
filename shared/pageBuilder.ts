@@ -36,7 +36,7 @@ export type ThemeColorToken =
 
 export type ImageAspect = 'square' | 'landscape' | 'portrait'
 export type ImageFit = 'cover' | 'contain'
-export type ContentAlign = 'start' | 'center'
+export type ContentAlign = 'start' | 'center' | 'end'
 export type VerticalAlign = 'start' | 'center' | 'end'
 export type SectionContainerWidth = 'narrow' | 'default' | 'wide' | 'xwide' | 'edge' | 'full'
 export type SectionBackgroundMode = 'none' | 'image' | 'carousel'
@@ -117,6 +117,8 @@ export interface PageBuilderTitleItem {
   text: LocalizedText
   size: TypographySize
   headingTag: HeadingTag
+  align: ContentAlign
+  textColor?: ThemeColorSelection | null
 }
 
 export interface PageBuilderTextItem {
@@ -124,6 +126,8 @@ export interface PageBuilderTextItem {
   type: 'text'
   text: LocalizedText
   size: TypographySize
+  align: ContentAlign
+  textColor?: ThemeColorSelection | null
 }
 
 export interface PageBuilderButtonsItem {
@@ -276,6 +280,10 @@ export type PageBuilderColumnItem =
   | PageBuilderCarouselItem
   | PageBuilderFormItem
 
+export type PageBuilderSectionItem =
+  | PageBuilderTitleItem
+  | PageBuilderTextItem
+
 export interface PageBuilderColumn {
   align: ContentAlign
   verticalAlign: VerticalAlign
@@ -298,6 +306,8 @@ export interface PageBuilderSection {
   backgroundCarousel: PageBuilderSectionBackgroundCarouselSlide[]
   backgroundCarouselSettings: PageBuilderSectionBackgroundCarouselSettings
   reverseOnDesktop: boolean
+  beforeItems: PageBuilderSectionItem[]
+  afterItems: PageBuilderSectionItem[]
   columns: PageBuilderColumn[]
 }
 
@@ -315,7 +325,7 @@ export const BUTTON_TONES: ButtonTone[] = ['primary', 'secondary', 'accent', 'ne
 export const CARD_TONES: CardTone[] = ['base', 'soft', 'outline']
 export const IMAGE_ASPECTS: ImageAspect[] = ['landscape', 'square', 'portrait']
 export const IMAGE_FITS: ImageFit[] = ['cover', 'contain']
-export const CONTENT_ALIGNS: ContentAlign[] = ['start', 'center']
+export const CONTENT_ALIGNS: ContentAlign[] = ['start', 'center', 'end']
 export const VERTICAL_ALIGNS: VerticalAlign[] = ['start', 'center', 'end']
 export const SECTION_CONTAINER_WIDTHS: SectionContainerWidth[] = ['narrow', 'default', 'wide', 'xwide', 'edge', 'full']
 export const SECTION_BACKGROUND_MODES: SectionBackgroundMode[] = ['none', 'image', 'carousel']
@@ -575,11 +585,11 @@ export function createBadgeItem(id: string): PageBuilderBadgeItem {
 }
 
 export function createTitleItem(id: string): PageBuilderTitleItem {
-  return { id, type: 'title', text: createEmptyLocalizedText(), size: 'xl', headingTag: 'h2' }
+  return { id, type: 'title', text: createEmptyLocalizedText(), size: 'xl', headingTag: 'h2', align: 'start', textColor: null }
 }
 
 export function createTextItem(id: string): PageBuilderTextItem {
-  return { id, type: 'text', text: createEmptyLocalizedText(), size: 'md' }
+  return { id, type: 'text', text: createEmptyLocalizedText(), size: 'md', align: 'start', textColor: null }
 }
 
 export function createButtonsItem(id: string): PageBuilderButtonsItem {
@@ -678,6 +688,8 @@ export function createEmptyColumnsSection(id: string, columnCount: SectionColumn
     backgroundCarousel: [createEmptySectionBackgroundSlide(`${id}-slide-1`)],
     backgroundCarouselSettings: createEmptySectionBackgroundCarouselSettings(),
     reverseOnDesktop: false,
+    beforeItems: [],
+    afterItems: [],
     columns: Array.from({ length: columnCount }, () => createEmptyContentBlock())
   }
 }
@@ -710,6 +722,9 @@ function resetColumnColors(column: PageBuilderColumn) {
       item.backgroundColor = null
       item.textColor = null
       item.borderColor = null
+    }
+    if (item.type === 'title' || item.type === 'text') {
+      item.textColor = null
     }
     if (item.type === 'buttons') {
       resetButtonColors(item.primaryButton)
@@ -749,12 +764,13 @@ export function createDefaultPageBuilderContent(farmAddress: string): PageBuilde
   const introText = introItems[2] as PageBuilderTextItem
   const introButtons = introItems[3] as PageBuilderButtonsItem
   introBadge.text = { fr: 'Nom du site', en: 'Site name' }
-  intro.columns[0]!.textColor = { token: 'white', opacity: 100 }
   introTitle.text = { fr: 'Production locale, bio et de saison', en: 'Local, organic and seasonal production' }
+  introTitle.textColor = { token: 'white', opacity: 100 }
   introText.text = {
     fr: 'Micro-ferme agroecologique en agriculture biologique. Legumes, vente directe et reservation de paniers au plus proche de la ferme.',
     en: 'Micro ecological organic farm. Vegetables, direct sales and basket reservations close to the farm.'
   }
+  introText.textColor = { token: 'white', opacity: 100 }
   introButtons.primaryButton = {
     label: { fr: 'Voir les paniers', en: 'View baskets' },
     href: '/paniers',
@@ -939,7 +955,7 @@ export function duplicatePageBuilderFormField(field: PageBuilderFormField): Page
   return clone
 }
 
-export function duplicatePageBuilderItem(item: PageBuilderColumnItem): PageBuilderColumnItem {
+export function duplicatePageBuilderItem(item: PageBuilderColumnItem | PageBuilderSectionItem): PageBuilderColumnItem | PageBuilderSectionItem {
   const clone = cloneBuilderData(item)
   clone.id = createBuilderId(item.type)
 

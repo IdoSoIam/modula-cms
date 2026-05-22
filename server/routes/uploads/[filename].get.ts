@@ -167,7 +167,7 @@ export default defineEventHandler(async (event) => {
 
     if (existingVariant) {
       setBaseHeaders(event, existingVariant.variant.mimeType, existingVariant.variant.createdAt)
-      return new Response(existingVariant.object.body)
+      return new Response(existingVariant.object.body as BodyInit)
     }
   }
 
@@ -210,5 +210,5 @@ export default defineEventHandler(async (event) => {
   }
 
   setBaseHeaders(event, sourceMimeType, lastModified)
-  return new Response(object.body)
+  return new Response(object.body as BodyInit)
 })

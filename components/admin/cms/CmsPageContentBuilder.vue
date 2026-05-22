@@ -115,6 +115,148 @@
 
           <ThemeColorPicker v-model="selectedSection.backgroundColor" label="Fond de section" default-token="base-100" />
           <AdminPageBuilderSectionBackgroundFields :section="selectedSection" />
+
+          <div class="grid gap-4 xl:grid-cols-2">
+            <div class="rounded-xl border border-base-300 bg-base-100 p-4">
+              <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="font-medium">Éléments au-dessus des colonnes</div>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" class="btn btn-xs btn-outline" @click="addSectionStandaloneItem('beforeItems', 'title')">Titre</button>
+                  <button type="button" class="btn btn-xs btn-outline" @click="addSectionStandaloneItem('beforeItems', 'text')">Texte</button>
+                </div>
+              </div>
+
+              <div v-if="selectedSection.beforeItems.length" class="space-y-4">
+                <div
+                  v-for="(item, itemIndex) in selectedSection.beforeItems"
+                  :key="item.id"
+                  class="rounded-xl border border-base-300 bg-base-200 p-4"
+                >
+                  <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                    <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="toggleItemPanel(item.id)">
+                      <div class="flex items-center gap-2">
+                        <Icon :name="isItemPanelOpen(item.id) ? 'mdi:chevron-down' : 'mdi:chevron-right'" size="18" />
+                        <div class="font-medium">{{ standaloneItemLabel(item) }}</div>
+                      </div>
+                      <div class="mt-1 pl-6 text-xs opacity-65">
+                        {{ standaloneItemSummary(item) }}
+                      </div>
+                    </button>
+
+                    <div class="flex flex-wrap gap-2">
+                      <button type="button" class="btn btn-xs" :disabled="itemIndex === 0" @click="moveItem(selectedSection.beforeItems, itemIndex, -1)">Monter</button>
+                      <button type="button" class="btn btn-xs" :disabled="itemIndex === selectedSection.beforeItems.length - 1" @click="moveItem(selectedSection.beforeItems, itemIndex, 1)">Descendre</button>
+                      <button type="button" class="btn btn-xs btn-outline" @click="duplicateSectionStandaloneItem(selectedSection.beforeItems, itemIndex)">Dupliquer</button>
+                      <button type="button" class="btn btn-xs btn-outline btn-error" @click="selectedSection.beforeItems.splice(itemIndex, 1)">Supprimer</button>
+                    </div>
+                  </div>
+
+                  <div v-if="isItemPanelOpen(item.id)" class="space-y-4">
+                    <AdminPageBuilderTranslationTabs
+                      :model-value="item.text"
+                      :label="item.type === 'title' ? 'Titre' : 'Texte'"
+                      :size="item.size"
+                      :multiline="item.type === 'text'"
+                      @update:size="item.size = $event as typeof item.size"
+                    />
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Alignement</span></label>
+                      <select v-model="item.align" class="select select-bordered w-full">
+                        <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
+                      </select>
+                    </div>
+                    <div v-if="item.type === 'title'" class="form-control">
+                      <label class="label"><span class="label-text">Balise du titre</span></label>
+                      <select v-model="item.headingTag" class="select select-bordered w-full">
+                        <option v-for="tag in HEADING_TAGS" :key="tag" :value="tag">
+                          {{ HEADING_TAG_LABELS[tag] }}
+                        </option>
+                      </select>
+                    </div>
+                    <ThemeColorPicker
+                      v-model="item.textColor"
+                      :label="item.type === 'title' ? 'Couleur du titre' : 'Couleur du texte'"
+                      default-token="base-content"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="rounded-xl border border-dashed border-base-300 px-4 py-5 text-sm opacity-70">
+                Aucun élément
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-base-300 bg-base-100 p-4">
+              <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="font-medium">Éléments en-dessous des colonnes</div>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" class="btn btn-xs btn-outline" @click="addSectionStandaloneItem('afterItems', 'title')">Titre</button>
+                  <button type="button" class="btn btn-xs btn-outline" @click="addSectionStandaloneItem('afterItems', 'text')">Texte</button>
+                </div>
+              </div>
+
+              <div v-if="selectedSection.afterItems.length" class="space-y-4">
+                <div
+                  v-for="(item, itemIndex) in selectedSection.afterItems"
+                  :key="item.id"
+                  class="rounded-xl border border-base-300 bg-base-200 p-4"
+                >
+                  <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                    <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="toggleItemPanel(item.id)">
+                      <div class="flex items-center gap-2">
+                        <Icon :name="isItemPanelOpen(item.id) ? 'mdi:chevron-down' : 'mdi:chevron-right'" size="18" />
+                        <div class="font-medium">{{ standaloneItemLabel(item) }}</div>
+                      </div>
+                      <div class="mt-1 pl-6 text-xs opacity-65">
+                        {{ standaloneItemSummary(item) }}
+                      </div>
+                    </button>
+
+                    <div class="flex flex-wrap gap-2">
+                      <button type="button" class="btn btn-xs" :disabled="itemIndex === 0" @click="moveItem(selectedSection.afterItems, itemIndex, -1)">Monter</button>
+                      <button type="button" class="btn btn-xs" :disabled="itemIndex === selectedSection.afterItems.length - 1" @click="moveItem(selectedSection.afterItems, itemIndex, 1)">Descendre</button>
+                      <button type="button" class="btn btn-xs btn-outline" @click="duplicateSectionStandaloneItem(selectedSection.afterItems, itemIndex)">Dupliquer</button>
+                      <button type="button" class="btn btn-xs btn-outline btn-error" @click="selectedSection.afterItems.splice(itemIndex, 1)">Supprimer</button>
+                    </div>
+                  </div>
+
+                  <div v-if="isItemPanelOpen(item.id)" class="space-y-4">
+                    <AdminPageBuilderTranslationTabs
+                      :model-value="item.text"
+                      :label="item.type === 'title' ? 'Titre' : 'Texte'"
+                      :size="item.size"
+                      :multiline="item.type === 'text'"
+                      @update:size="item.size = $event as typeof item.size"
+                    />
+                    <div class="form-control">
+                      <label class="label"><span class="label-text">Alignement</span></label>
+                      <select v-model="item.align" class="select select-bordered w-full">
+                        <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
+                      </select>
+                    </div>
+                    <div v-if="item.type === 'title'" class="form-control">
+                      <label class="label"><span class="label-text">Balise du titre</span></label>
+                      <select v-model="item.headingTag" class="select select-bordered w-full">
+                        <option v-for="tag in HEADING_TAGS" :key="tag" :value="tag">
+                          {{ HEADING_TAG_LABELS[tag] }}
+                        </option>
+                      </select>
+                    </div>
+                    <ThemeColorPicker
+                      v-model="item.textColor"
+                      :label="item.type === 'title' ? 'Couleur du titre' : 'Couleur du texte'"
+                      default-token="base-content"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="rounded-xl border border-dashed border-base-300 px-4 py-5 text-sm opacity-70">
+                Aucun élément
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -149,12 +291,6 @@
                 </select>
               </div>
             </div>
-
-            <ThemeColorPicker
-              v-model="selectedColumn.textColor"
-              label="Couleur du texte de la colonne"
-              default-token="base-content"
-            />
 
             <div class="rounded-xl border border-base-300 bg-base-100 p-4">
               <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -204,6 +340,12 @@
                       :multiline="item.type === 'text'"
                       @update:size="item.size = $event as typeof item.size"
                     />
+                    <div v-if="item.type === 'title' || item.type === 'text'" class="form-control">
+                      <label class="label"><span class="label-text">Alignement</span></label>
+                      <select v-model="item.align" class="select select-bordered w-full">
+                        <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
+                      </select>
+                    </div>
                     <div v-if="item.type === 'title'" class="form-control">
                       <label class="label"><span class="label-text">Balise du titre</span></label>
                       <select v-model="item.headingTag" class="select select-bordered w-full">
@@ -212,6 +354,12 @@
                         </option>
                       </select>
                     </div>
+                    <ThemeColorPicker
+                      v-if="item.type === 'title' || item.type === 'text'"
+                      v-model="item.textColor"
+                      :label="item.type === 'title' ? 'Couleur du titre' : 'Couleur du texte'"
+                      default-token="base-content"
+                    />
                     <template v-if="item.type === 'badge'">
                       <ThemeColorPicker v-model="item.backgroundColor" label="Fond du badge" default-token="primary" />
                       <ThemeColorPicker v-model="item.textColor" label="Texte du badge" default-token="primary-content" />
@@ -592,7 +740,7 @@ import AdminPageBuilderCarouselFields from '~/components/admin/page-builder/Caro
 import AdminPageBuilderCardFields from '~/components/admin/page-builder/CardFields.vue'
 import AdminPageBuilderSectionBackgroundFields from '~/components/admin/page-builder/SectionBackgroundFields.vue'
 import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderFormSection, SectionColumnCount } from '~/shared/pageBuilder'
+import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderFormSection, PageBuilderSectionItem, SectionColumnCount } from '~/shared/pageBuilder'
 import {
   CARDS_DISPLAY_LABELS,
   CARDS_DISPLAYS,
@@ -760,6 +908,14 @@ const addColumnItem = (type: PageBuilderColumnItem['type']) => {
   if (newId) openPanel(newId)
 }
 
+const addSectionStandaloneItem = (position: 'beforeItems' | 'afterItems', type: 'title' | 'text') => {
+  if (!selectedSection.value) return
+  const newId = createId(type)
+  const item = type === 'title' ? createTitleItem(newId) : createTextItem(newId)
+  selectedSection.value[position].push(item)
+  openPanel(newId)
+}
+
 const duplicateColumnItem = (index: number) => {
   if (!selectedColumn.value) return
   const item = selectedColumn.value.items[index]
@@ -770,6 +926,14 @@ const duplicateColumnItem = (index: number) => {
   if (clone.type === 'cards') {
     clone.cards.forEach(card => openPanel(card.id))
   }
+}
+
+const duplicateSectionStandaloneItem = (items: PageBuilderSectionItem[], index: number) => {
+  const item = items[index]
+  if (!item) return
+  const clone = duplicatePageBuilderItem(item) as PageBuilderSectionItem
+  items.splice(index + 1, 0, clone)
+  openPanel(clone.id)
 }
 
 const itemLabel = (item: PageBuilderColumnItem) => {
@@ -784,6 +948,11 @@ const itemLabel = (item: PageBuilderColumnItem) => {
     case 'form': return 'Formulaire'
   }
 }
+
+const standaloneItemLabel = (item: PageBuilderSectionItem) => item.type === 'title' ? 'Titre' : 'Texte'
+
+const standaloneItemSummary = (item: PageBuilderSectionItem) =>
+  item.text.fr || item.text.en || 'Sans contenu'
 
 const openPanel = (id: string) => {
   if (!openPanelIds.value.includes(id)) {

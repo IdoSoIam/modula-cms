@@ -13,6 +13,27 @@
       />
 
       <div class="relative z-10 mx-auto flex w-full flex-col px-4 sm:px-6 lg:px-8" :class="containerWidthClass" :style="contentFrameStyle">
+        <div v-if="section.beforeItems.length" class="mb-8 flex flex-col gap-4 lg:mb-10">
+          <template v-for="(item, itemIndex) in section.beforeItems" :key="item.id">
+            <PageEditable
+              v-if="editable || hasLocalizedText(item.text)"
+              :editable="editable"
+              :label="item.type === 'title' ? 'Titre de section' : 'Texte de section'"
+              @edit="emit('edit', { kind: 'item', label: `${item.type === 'title' ? 'Titre' : 'Texte'} avant les colonnes`, item, parentItems: section.beforeItems, itemIndex })"
+            >
+              <component
+                :is="item.type === 'title' ? titleTag(item) : 'p'"
+                :class="[
+                  item.type === 'title' ? ['font-bold', titleSizeClass(item.size)] : ['opacity-80', textSizeClass(item.size)],
+                  standaloneItemAlignClass(item.align)
+                ]"
+                :style="textColorStyle(item.textColor)"
+              >
+                {{ pickLocalizedText(locale, item.text) || (item.type === 'title' ? 'Titre vide' : 'Texte vide') }}
+              </component>
+            </PageEditable>
+          </template>
+        </div>
         <div class="grid flex-1 gap-8 lg:gap-10" :class="[gridClass, sectionContentVerticalAlignClass]">
           <div
             v-for="(column, columnIndex) in normalizedColumns"
@@ -25,7 +46,7 @@
               button-position="top-center-outside"
               @edit="emit('edit', { kind: 'column', label: `Colonne ${columnIndex + 1}`, column, section, columnIndex })"
             >
-            <div class="flex min-h-full w-full flex-col gap-5" :class="[contentAlignClass(column.align), columnJustifyClass(column.verticalAlign)]" :style="columnTextStyle(column)">
+            <div class="flex min-h-full w-full flex-col gap-5" :class="[contentAlignClass(column.align), columnJustifyClass(column.verticalAlign)]">
               <template v-for="(item, itemIndex) in column.items" :key="item.id">
                 <PageEditable
                   v-if="item.type === 'badge' && (editable || hasLocalizedText(item.text))"
@@ -46,7 +67,7 @@
                   label="Titre"
                   @edit="emit('edit', { kind: 'item', label: `Titre colonne ${columnIndex + 1}`, item, parentItems: column.items, itemIndex })"
                 >
-                  <component :is="titleTag(item)" class="font-bold" :class="titleSizeClass(item.size)">
+                  <component :is="titleTag(item)" class="font-bold" :class="titleSizeClass(item.size)" :style="textColorStyle(item.textColor ?? column.textColor)">
                     {{ pickLocalizedText(locale, item.text) || 'Titre vide' }}
                   </component>
                 </PageEditable>
@@ -57,7 +78,7 @@
                   label="Texte"
                   @edit="emit('edit', { kind: 'item', label: `Texte colonne ${columnIndex + 1}`, item, parentItems: column.items, itemIndex })"
                 >
-                  <p class="opacity-80" :class="textSizeClass(item.size)">
+                  <p class="opacity-80" :class="textSizeClass(item.size)" :style="textColorStyle(item.textColor ?? column.textColor)">
                     {{ pickLocalizedText(locale, item.text) || 'Texte vide' }}
                   </p>
                 </PageEditable>
@@ -309,6 +330,27 @@
             </PageEditable>
           </div>
         </div>
+        <div v-if="section.afterItems.length" class="mt-8 flex flex-col gap-4 lg:mt-10">
+          <template v-for="(item, itemIndex) in section.afterItems" :key="item.id">
+            <PageEditable
+              v-if="editable || hasLocalizedText(item.text)"
+              :editable="editable"
+              :label="item.type === 'title' ? 'Titre de section' : 'Texte de section'"
+              @edit="emit('edit', { kind: 'item', label: `${item.type === 'title' ? 'Titre' : 'Texte'} après les colonnes`, item, parentItems: section.afterItems, itemIndex })"
+            >
+              <component
+                :is="item.type === 'title' ? titleTag(item) : 'p'"
+                :class="[
+                  item.type === 'title' ? ['font-bold', titleSizeClass(item.size)] : ['opacity-80', textSizeClass(item.size)],
+                  standaloneItemAlignClass(item.align)
+                ]"
+                :style="textColorStyle(item.textColor)"
+              >
+                {{ pickLocalizedText(locale, item.text) || (item.type === 'title' ? 'Titre vide' : 'Texte vide') }}
+              </component>
+            </PageEditable>
+          </template>
+        </div>
       </div>
       <PageMediaLightbox
         :open="lightboxOpen"
@@ -527,7 +569,18 @@ const columnJustifyClass = (verticalAlign: string) => {
   }
 }
 
-const contentAlignClass = (align: string) => align === 'center' ? 'items-center text-center' : ''
+const contentAlignClass = (align: string) =>
+  align === 'center'
+    ? 'items-center text-center'
+    : align === 'end'
+      ? 'items-end text-right'
+      : ''
+const standaloneItemAlignClass = (align?: string) =>
+  align === 'center'
+    ? 'text-center'
+    : align === 'end'
+      ? 'text-right'
+      : 'text-left'
 const hasLocalizedText = (value?: { fr?: string; en?: string } | null) => Boolean(value?.fr?.trim() || value?.en?.trim())
 
 const cardsContainerClass = (display: 'stack' | 'grid-2' | 'grid-3' | 'grid-4') => {
@@ -653,11 +706,6 @@ const colorToCss = (selection?: ThemeColorSelection | null, opacity = 1) => {
       return variable ? mixColor(`var(${variable})`, finalOpacity) : ''
     }
   }
-}
-
-const columnTextStyle = (column: PageBuilderColumn) => {
-  const color = colorToCss(column.textColor)
-  return color ? { color } : {}
 }
 
 const textColorStyle = (selection?: ThemeColorSelection | null, opacity = 1) => {

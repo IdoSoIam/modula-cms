@@ -25,12 +25,14 @@
     <!-- Menu mobile -->
     <LayoutMobileMenu />
     <LayoutCookieBanner />
+    <CmsShellEditModal />
   </div>
 </template>
 
 <script setup lang="ts">
 import LayoutCookieBanner from '~/components/layout/CookieBanner.vue'
 import LayoutMobileMenu from '~/components/layout/MobileMenu.vue'
+import CmsShellEditModal from '~/components/cms/CmsShellEditModal.vue'
 
 const { locale } = useI18n();
 const switchLocalePath = useSwitchLocalePath();

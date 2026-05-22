@@ -10,6 +10,16 @@
     ]"
     :style="headerStyle"
   >
+    <div
+      v-if="shellLiveEditEnabled"
+      class="pointer-events-none absolute inset-x-0 top-2 z-[60] flex justify-center"
+    >
+      <div class="pointer-events-auto flex flex-wrap items-center gap-2 rounded-full border border-base-300 bg-base-100/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
+        <button type="button" class="btn btn-xs btn-outline" @click="openShellEditor('header')">Header</button>
+        <button type="button" class="btn btn-xs btn-outline" @click="openShellEditor('navigation')">Navigation</button>
+      </div>
+    </div>
+
     <div class="navbar-start min-w-0 flex-1">
       <div class="w-full" :class="mobileHeaderVisibilityClass">
         <div class="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
@@ -125,7 +135,7 @@
               type="button"
               :class="navLinkClass(item)"
               :style="navLinkStyle(item)"
-              @click="toggleDesktopGroup(item.navigationItemKey)"
+              @click="handleNavItemClick($event, item, 'PRIMARY')"
             >
               <span>{{ resolveLabel(item) }}</span>
               <Icon name="mdi:chevron-down" size="16" class="opacity-70" />
@@ -144,7 +154,7 @@
                     :rel="child.newTab ? 'noopener noreferrer' : undefined"
                     :class="navChildLinkClass(child)"
                     :style="navChildLinkStyle(child)"
-                    @click="closeAllDesktopGroups"
+                    @click="handleNavItemClick($event, child, 'PRIMARY')"
                   >
                     {{ resolveLabel(child) }}
                   </NuxtLink>
@@ -160,6 +170,7 @@
             :rel="item.newTab ? 'noopener noreferrer' : undefined"
             :class="navLinkClass(item)"
             :style="navLinkStyle(item)"
+            @click="handleNavItemClick($event, item, 'PRIMARY')"
           >
             {{ resolveLabel(item) }}
           </NuxtLink>
@@ -205,7 +216,9 @@ const localePath = useLocalePath()
 const { locale } = useI18n()
 const route = useRoute()
 const authStore = useAuthStore()
+const { openShellEditor } = useCmsLiveEdit()
 const headerRef = ref<HTMLElement | null>(null)
+const liveEditHydrated = ref(false)
 const siteConfig = useSiteConfigState()
 const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
 const effectiveSiteConfig = computed(() => props.previewSiteConfig ?? siteConfig.value)
@@ -214,6 +227,17 @@ const cms = computed(() => effectiveSiteConfig.value?.cms)
 const desktopOpenGroupKeys = ref<string[]>([])
 const showUtilityControls = computed(() => props.previewShowUtilityControls)
 const previewForceMobile = computed(() => props.previewForceMobile)
+const shellLiveEditEnabled = computed(() =>
+  liveEditHydrated.value
+  && 
+  !props.previewSiteConfig
+  && route.query.liveEdit === '1'
+  && authStore.isAdmin
+)
+
+onMounted(() => {
+  liveEditHydrated.value = true
+})
 const headerSettings = computed(() => cms.value?.settings.header ?? {
   heightPx: 84,
   logoHeightPx: 48,
@@ -455,6 +479,21 @@ const navChildLinkStyle = (_item: ResolvedCmsNavigationItem) => ({
   ...navLinkStyle(_item),
   color: colorToCss(headerSettings.value.submenuTextColor ?? null) || undefined
 })
+
+const handleNavItemClick = (event: Event, item: ResolvedCmsNavigationItem, menu: 'PRIMARY' | 'FOOTER') => {
+  if (shellLiveEditEnabled.value) {
+    event.preventDefault()
+    event.stopPropagation()
+    openShellEditor('navigation', { kind: 'navigation-item', key: item.navigationItemKey, menu })
+    return
+  }
+
+  if (item.children.length) {
+    toggleDesktopGroup(item.navigationItemKey)
+  } else {
+    closeAllDesktopGroups()
+  }
+}
 
 watch(() => route.fullPath, () => {
   closeAllDesktopGroups()
