@@ -15,7 +15,7 @@
           :class="{ 'tab-active': viewMode === mode }"
           @click="viewMode = mode"
         >
-          <Icon :name="mode === 'list' ? 'mdi:format-list-bulleted' : mode === 'calendar' ? 'mdi:calendar-month-outline' : 'mdi:view-grid-outline'" size="18" />
+          <Icon :name="mode === 'list' ? 'mdi:format-list-bulleted' : 'mdi:view-grid-outline'" size="18" />
           <span>{{ modeLabel(mode) }}</span>
         </button>
       </div>
@@ -53,13 +53,12 @@
             <div class="flex flex-wrap gap-3">
               <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm">{{ detailLabel }}</NuxtLink>
               <span v-if="eventItem.publicReservationEnabled" class="badge badge-outline">{{ publicReservationLabel }}</span>
-              <span v-if="eventItem.internalParticipationEnabled" class="badge badge-outline">{{ internalParticipationLabel }}</span>
             </div>
           </div>
         </article>
       </div>
 
-      <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 gap-6 md:grid-cols-2" :class="gridColumnsClass">
+      <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2" :class="gridColumnsClass">
         <article
           v-for="eventItem in eventItems"
           :key="eventItem.id"
@@ -82,31 +81,21 @@
             <div class="flex flex-wrap gap-3">
               <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm">{{ detailLabel }}</NuxtLink>
               <span v-if="eventItem.publicReservationEnabled" class="badge badge-outline">{{ publicReservationLabel }}</span>
-              <span v-if="eventItem.internalParticipationEnabled" class="badge badge-outline">{{ internalParticipationLabel }}</span>
             </div>
           </div>
         </article>
       </div>
 
-      <div v-else class="space-y-6">
-        <section v-for="group in calendarGroups" :key="group.key" class="space-y-3">
-          <h2 class="text-2xl font-bold">{{ group.label }}</h2>
-          <div class="space-y-3">
-            <article
-              v-for="eventItem in group.items"
-              :key="eventItem.id"
-              class="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-base-300 px-5 py-4 shadow-sm"
-              :style="cardStyle"
-            >
-              <div class="min-w-0">
-                <div class="text-sm opacity-70">{{ formatDate(eventItem.startsAt) }}</div>
-                <div class="text-lg font-semibold">{{ eventItem.title }}</div>
-                <div v-if="eventItem.placeName" class="text-sm opacity-75">{{ [eventItem.placeName, eventItem.placeCity].filter(Boolean).join(', ') }}</div>
-              </div>
-              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-outline btn-sm">{{ detailLabel }}</NuxtLink>
-            </article>
-          </div>
-        </section>
+      <div v-if="totalPages > 1" class="join mt-8 flex justify-center">
+        <button type="button" class="btn join-item" :disabled="page === 1" @click="page--">
+          <Icon name="mdi:chevron-left" size="18" />
+        </button>
+        <button type="button" class="btn join-item no-animation">
+          {{ page }} / {{ totalPages }}
+        </button>
+        <button type="button" class="btn join-item" :disabled="page === totalPages" @click="page++">
+          <Icon name="mdi:chevron-right" size="18" />
+        </button>
       </div>
     </template>
   </div>
@@ -114,7 +103,7 @@
 
 <script setup lang="ts">
 import type { CmsLocale } from '~/shared/cms'
-import type { EventListItem, CmsEventsPageSettings, EventPageViewMode } from '~/shared/events'
+import type { CmsEventsPageSettings, EventListItem, EventsPageViewMode, PublicEventsListResponse } from '~/shared/events'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
 
 const props = withDefaults(defineProps<{
@@ -128,48 +117,82 @@ const props = withDefaults(defineProps<{
 const { locale } = useI18n()
 const localePath = useLocalePath()
 const siteConfig = await useSiteConfig()
-
 const defaultSettings = createDefaultCmsSiteSettings().eventsPage
 const effectiveSettings = computed(() => props.settings || siteConfig.value?.cms?.settings?.eventsPage || defaultSettings)
-const { data, pending } = await useFetch<EventListItem[]>('/api/events', {
-  query: computed(() => ({ locale: locale.value, scope: 'events' })),
-  default: () => []
+const viewMode = ref<EventsPageViewMode>(effectiveSettings.value.defaultViewMode)
+const page = ref(1)
+
+watch(effectiveSettings, (value) => {
+  viewMode.value = value.defaultViewMode
+}, { deep: true })
+watch(viewMode, () => {
+  page.value = 1
 })
 
-const previewEvents = computed<EventListItem[]>(() => [
+const { data, pending } = await useFetch<PublicEventsListResponse>('/api/events', {
+  query: computed(() => ({
+    locale: locale.value,
+    scope: 'events',
+    view: viewMode.value,
+    page: page.value,
+    pageSize: viewMode.value === 'list' ? 6 : 9
+  })),
+  immediate: !props.preview,
+  default: () => ({
+    items: [],
+    page: 1,
+    pageSize: 9,
+    total: 0,
+    totalPages: 1
+  })
+})
+
+const previewItems = computed<EventListItem[]>(() => [
   {
     id: -1,
-    slug: 'atelier-ferme',
+    kind: 'EVENT',
+    occurrenceId: null,
+    slug: 'atelier-pain',
     status: 'PUBLISHED',
     visibility: 'PUBLIC',
     startsAt: new Date().toISOString(),
     endsAt: null,
     placeName: locale.value === 'en' ? 'Farm courtyard' : 'Cour de la ferme',
-    placeCity: locale.value === 'en' ? 'Saint-Sébastien-d’Aigrefeuille' : 'Saint-Sébastien-d’Aigrefeuille',
+    placeCity: 'Saint-Sébastien-d’Aigrefeuille',
     coverImageUrl: '',
     publicReservationEnabled: true,
-    internalParticipationEnabled: true,
-    title: locale.value === 'en' ? 'Discovery workshop at the farm' : 'Atelier découverte à la ferme',
-    subtitle: locale.value === 'en' ? 'Open to families, associations and volunteers.' : 'Ouvert aux familles, associations et bénévoles.',
-    excerpt: locale.value === 'en' ? 'A sample event preview to help you tune the CMS layout.' : 'Un aperçu d’événement de démonstration pour ajuster la mise en page CMS.'
+    internalParticipationEnabled: false,
+    title: locale.value === 'en' ? 'Bread workshop' : 'Atelier pain',
+    subtitle: locale.value === 'en' ? 'Public event preview' : 'Aperçu d’événement public',
+    excerpt: locale.value === 'en' ? 'A simple preview card for the public events page.' : 'Une carte d’aperçu simple pour la page événements publique.'
+  },
+  {
+    id: -2,
+    kind: 'EVENT',
+    occurrenceId: null,
+    slug: 'marche-fermier',
+    status: 'PUBLISHED',
+    visibility: 'PUBLIC',
+    startsAt: new Date(Date.now() + 86400000).toISOString(),
+    endsAt: null,
+    placeName: locale.value === 'en' ? 'Village square' : 'Place du village',
+    placeCity: 'Anduze',
+    coverImageUrl: '',
+    publicReservationEnabled: false,
+    internalParticipationEnabled: false,
+    title: locale.value === 'en' ? 'Farmers market' : 'Marché fermier',
+    subtitle: '',
+    excerpt: locale.value === 'en' ? 'Another example item for grid and list previews.' : 'Un autre exemple pour les aperçus grille et liste.'
   }
 ])
 
-const eventItems = computed(() => {
-  if (data.value?.length) return data.value
-  return props.preview ? previewEvents.value : []
-})
-
-const viewMode = ref<EventPageViewMode>(effectiveSettings.value.defaultViewMode)
-watch(effectiveSettings, (value) => {
-  viewMode.value = value.defaultViewMode
-}, { deep: true })
+const eventItems = computed(() => data.value?.items?.length ? data.value.items : (props.preview ? previewItems.value : []))
+const totalPages = computed(() => props.preview ? 1 : (data.value?.totalPages || 1))
 
 const pageTitle = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.title))
 const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.subtitle))
-const publicReservationLabel = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.publicReservationLabel))
-const internalParticipationLabel = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.internalParticipationLabel))
 const detailLabel = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.detailLabel))
+const publicReservationLabel = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.publicReservationLabel))
 
 const containerClass = computed(() => {
   switch (effectiveSettings.value.containerWidth) {
@@ -197,22 +220,8 @@ const cardStyle = computed(() => ({
   backgroundColor: effectiveSettings.value.cardBackgroundColor?.token ? `var(--color-${effectiveSettings.value.cardBackgroundColor.token})` : 'var(--color-base-200)'
 }))
 
-const calendarGroups = computed(() => {
-  const formatter = new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { month: 'long', year: 'numeric' })
-  const groups = new Map<string, { key: string; label: string; items: EventListItem[] }>()
-  for (const item of eventItems.value) {
-    const date = new Date(item.startsAt)
-    const key = `${date.getUTCFullYear()}-${date.getUTCMonth() + 1}`
-    const label = formatter.format(date)
-    const group = groups.get(key) || { key, label, items: [] }
-    group.items.push(item)
-    groups.set(key, group)
-  }
-  return [...groups.values()]
-})
-
 const detailHref = (slug: string) => localePath(`/events/${slug}`)
-const modeLabel = (mode: EventPageViewMode) => mode === 'list' ? (locale.value === 'en' ? 'List' : 'Liste') : mode === 'calendar' ? (locale.value === 'en' ? 'Calendar' : 'Calendrier') : (locale.value === 'en' ? 'Grid' : 'Grille')
+const modeLabel = (mode: EventsPageViewMode) => mode === 'list' ? (locale.value === 'en' ? 'List' : 'Liste') : (locale.value === 'en' ? 'Grid' : 'Grille')
 const formatDate = (value: string) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', {
   weekday: 'long',
   day: '2-digit',

@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-3xl font-bold">Personnalisation événements</h1>
-        <p class="mt-1 text-sm opacity-70">Réglez la page publique événements et son affichage liste, grille ou calendrier.</p>
+        <p class="mt-1 text-sm opacity-70">Réglez la page publique événements et son affichage liste ou grille.</p>
       </div>
       <button type="button" class="btn btn-primary" :disabled="saving" @click="save">
         <span v-if="saving" class="loading loading-spinner loading-sm" />
@@ -27,7 +27,6 @@
           <select v-model="model.settings.eventsPage.defaultViewMode" class="select select-bordered w-full">
             <option value="list">Liste</option>
             <option value="grid">Grille</option>
-            <option value="calendar">Calendrier</option>
           </select>
         </label>
         <label class="form-control gap-2">

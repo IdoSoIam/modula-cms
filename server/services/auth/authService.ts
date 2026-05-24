@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs'
 import { getSessionConfig } from '../../utils/session'
 import { prisma } from '../../../prisma/client'
 import { buildUserAccessPayload, ensureDefaultRoles } from '~/server/utils/permissions'
-import type { UserAccessPayload } from '~/shared/access'
+import type { UserAccessPayload, UserMemberRolePayload } from '~/shared/access'
 
 export interface AuthenticatedUser {
   id: number
@@ -15,6 +15,8 @@ export interface AuthenticatedUser {
   roleSlug?: string
   isActive: boolean
   access: UserAccessPayload
+  memberRoles: UserMemberRolePayload[]
+  memberRoleIds: number[]
   shippingAddress?: {
     street: string
     city: string
@@ -39,6 +41,11 @@ const userSelect = {
   managedRole: {
     include: {
       permissions: true
+    }
+  },
+  memberRoles: {
+    include: {
+      memberRole: true
     }
   }
 } as const
@@ -66,7 +73,21 @@ function mapUser(user: {
       canDelete: boolean
     }>
   } | null
+  memberRoles: Array<{
+    memberRole: {
+      id: number
+      slug: string
+      name: string
+      color: string | null
+    }
+  }>
 }): AuthenticatedUser {
+  const memberRoles = user.memberRoles.map((entry) => ({
+    id: entry.memberRole.id,
+    slug: entry.memberRole.slug,
+    name: entry.memberRole.name,
+    color: entry.memberRole.color
+  }))
   return {
     id: user.id,
     email: user.email,
@@ -77,6 +98,8 @@ function mapUser(user: {
     roleSlug: user.managedRole?.slug || user.role,
     isActive: user.isActive,
     access: buildUserAccessPayload(user as any),
+    memberRoles,
+    memberRoleIds: memberRoles.map((entry) => entry.id),
     shippingAddress: user.street && user.city && user.postalCode && user.country ? {
       street: user.street,
       city: user.city,

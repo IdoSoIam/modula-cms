@@ -19,7 +19,7 @@
           :class="{ 'tab-active': viewMode === mode }"
           @click="viewMode = mode"
         >
-          <Icon :name="mode === 'list' ? 'mdi:format-list-bulleted' : mode === 'calendar' ? 'mdi:calendar-month-outline' : 'mdi:view-grid-outline'" size="18" />
+          <Icon :name="mode === 'week' ? 'mdi:view-week-outline' : 'mdi:calendar-month-outline'" size="18" />
           <span>{{ modeLabel(mode) }}</span>
         </button>
       </div>
@@ -29,100 +29,108 @@
       <span class="loading loading-spinner loading-lg" />
     </div>
 
-    <div v-else-if="planningItems.length === 0" class="rounded-3xl border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
+    <div v-else-if="isEmpty" class="rounded-3xl border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
       {{ locale === 'en' ? 'No public schedule published yet.' : 'Aucun élément de planning public pour le moment.' }}
     </div>
 
-    <template v-else>
-      <div v-if="viewMode === 'list'" class="space-y-4">
-        <article
-          v-for="planningItem in planningItems"
-          :key="planningItem.id"
-          class="grid gap-0 overflow-hidden rounded-[2rem] border border-base-300 shadow-sm md:grid-cols-[320px_minmax(0,1fr)]"
-          :style="cardStyle"
-        >
-          <div v-if="effectiveSettings.showCoverImage && planningItem.coverImageUrl" class="h-60 md:h-full">
-            <AppImage :src="planningItem.coverImageUrl" :alt="planningItem.title" class="h-full w-full object-cover" sizes="(max-width: 768px) 100vw, 320px" loading="lazy" />
-          </div>
-          <div class="space-y-4 p-6">
-            <div class="space-y-2">
-              <div class="flex flex-wrap items-center gap-2 text-sm opacity-70">
-                <span v-if="effectiveSettings.showDate">{{ formatDate(planningItem.startsAt) }}</span>
-                <span v-if="effectiveSettings.showLocation && planningItem.placeName">• {{ [planningItem.placeName, planningItem.placeCity].filter(Boolean).join(', ') }}</span>
-              </div>
-              <h2 class="text-2xl font-bold">{{ planningItem.title }}</h2>
-              <p v-if="planningItem.subtitle" class="text-sm opacity-75">{{ planningItem.subtitle }}</p>
-            </div>
-            <p v-if="effectiveSettings.showExcerpt && planningItem.excerpt" :class="excerptClass">{{ planningItem.excerpt }}</p>
-            <div class="flex flex-wrap gap-3">
-              <NuxtLink :to="detailHref(planningItem.slug)" class="btn btn-primary btn-sm">{{ detailLabel }}</NuxtLink>
-              <span
-                v-if="authStore.isAuthenticated && planningItem.internalParticipationEnabled"
-                class="badge badge-outline"
-              >{{ internalParticipationLabel }}</span>
-            </div>
-          </div>
-        </article>
+    <template v-else-if="viewMode === 'week'">
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <button type="button" class="btn btn-sm btn-ghost" @click="changeWeek(-1)">
+            <Icon name="mdi:chevron-left" size="18" />
+          </button>
+          <div class="text-sm font-semibold">{{ weekRangeLabel }}</div>
+          <button type="button" class="btn btn-sm btn-ghost" @click="changeWeek(1)">
+            <Icon name="mdi:chevron-right" size="18" />
+          </button>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" @click="goCurrentWeek">{{ locale === 'en' ? 'Current week' : 'Semaine en cours' }}</button>
       </div>
 
-      <div v-else-if="viewMode === 'grid'" class="grid grid-cols-1 gap-6 md:grid-cols-2" :class="gridColumnsClass">
-        <article
-          v-for="planningItem in planningItems"
-          :key="planningItem.id"
-          class="overflow-hidden rounded-[2rem] border border-base-300 shadow-sm"
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+        <section
+          v-for="column in weekColumns"
+          :key="column.iso"
+          class="min-w-0 rounded-[2rem] border border-base-300 p-4 shadow-sm"
           :style="cardStyle"
         >
-          <div v-if="effectiveSettings.showCoverImage && planningItem.coverImageUrl" class="h-56">
-            <AppImage :src="planningItem.coverImageUrl" :alt="planningItem.title" class="h-full w-full object-cover" sizes="(max-width: 768px) 100vw, 50vw" loading="lazy" />
-          </div>
-          <div class="space-y-4 p-6">
-            <div class="space-y-2">
-              <div class="text-sm opacity-70">
-                <span v-if="effectiveSettings.showDate">{{ formatDate(planningItem.startsAt) }}</span>
-                <span v-if="effectiveSettings.showLocation && planningItem.placeName">• {{ [planningItem.placeName, planningItem.placeCity].filter(Boolean).join(', ') }}</span>
-              </div>
-              <h2 class="text-2xl font-bold">{{ planningItem.title }}</h2>
-              <p v-if="planningItem.subtitle" class="text-sm opacity-75">{{ planningItem.subtitle }}</p>
-            </div>
-            <p v-if="effectiveSettings.showExcerpt && planningItem.excerpt" :class="excerptClass">{{ planningItem.excerpt }}</p>
-            <div class="flex flex-wrap gap-3">
-              <NuxtLink :to="detailHref(planningItem.slug)" class="btn btn-primary btn-sm">{{ detailLabel }}</NuxtLink>
-              <span
-                v-if="authStore.isAuthenticated && planningItem.internalParticipationEnabled"
-                class="badge badge-outline"
-              >{{ internalParticipationLabel }}</span>
-            </div>
-          </div>
-        </article>
-      </div>
+          <header class="mb-4 border-b border-base-300/70 pb-3">
+            <div class="text-xs font-semibold uppercase opacity-60">{{ column.shortLabel }}</div>
+            <div class="mt-1 text-lg font-bold">{{ column.label }}</div>
+          </header>
 
-      <div v-else class="space-y-6">
-        <section v-for="group in calendarGroups" :key="group.key" class="space-y-3">
-          <h2 class="text-2xl font-bold">{{ group.label }}</h2>
-          <div class="space-y-3">
+          <div v-if="column.items.length" class="space-y-3">
             <article
-              v-for="planningItem in group.items"
-              :key="planningItem.id"
-              class="flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-base-300 px-5 py-4 shadow-sm"
-              :style="cardStyle"
+              v-for="item in column.items"
+              :key="item.id"
+              class="rounded-2xl border border-base-300 bg-base-100/80 p-3"
             >
-              <div class="min-w-0">
-                <div class="text-sm opacity-70">{{ formatDate(planningItem.startsAt) }}</div>
-                <div class="text-lg font-semibold">{{ planningItem.title }}</div>
-                <div v-if="planningItem.placeName" class="text-sm opacity-75">{{ [planningItem.placeName, planningItem.placeCity].filter(Boolean).join(', ') }}</div>
+              <div class="text-xs opacity-60">{{ formatTime(item.startsAt) }}</div>
+              <h3 class="mt-1 text-sm font-semibold">{{ item.title }}</h3>
+              <p v-if="effectiveSettings.showLocation && item.placeName" class="mt-1 text-xs opacity-75">{{ [item.placeName, item.placeCity].filter(Boolean).join(', ') }}</p>
+              <p v-if="effectiveSettings.showExcerpt && item.excerpt" class="mt-2 text-xs opacity-80" :class="excerptClass">{{ item.excerpt }}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <NuxtLink :to="detailHref(item.slug, item.occurrenceId)" class="btn btn-primary btn-xs">{{ detailLabel }}</NuxtLink>
+                <span v-if="authStore.isAuthenticated && item.internalParticipationEnabled" class="badge badge-outline">{{ internalParticipationLabel }}</span>
               </div>
-              <NuxtLink :to="detailHref(planningItem.slug)" class="btn btn-outline btn-sm">{{ detailLabel }}</NuxtLink>
             </article>
+
+            <div v-if="column.totalPages > 1" class="join mt-2 w-full">
+              <button type="button" class="btn join-item btn-xs flex-1" :disabled="column.page === 1" @click="setDayPage(column.iso, column.page - 1)">
+                <Icon name="mdi:chevron-left" size="14" />
+              </button>
+              <button type="button" class="btn join-item btn-xs no-animation flex-1">
+                {{ column.page }} / {{ column.totalPages }}
+              </button>
+              <button type="button" class="btn join-item btn-xs flex-1" :disabled="column.page === column.totalPages" @click="setDayPage(column.iso, column.page + 1)">
+                <Icon name="mdi:chevron-right" size="14" />
+              </button>
+            </div>
+          </div>
+
+          <div v-else class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 px-3 py-6 text-center text-xs opacity-65">
+            {{ locale === 'en' ? 'Nothing planned.' : 'Rien de prévu.' }}
           </div>
         </section>
       </div>
+    </template>
+
+    <template v-else>
+      <OrdersCalendar
+        :days="calendarDays"
+        :month-label="calendarMonthLabel"
+        :month-input="calendarMonthInput"
+        :show-month-picker="showMonthPicker"
+        :day-names="calendarDayNames"
+        :today-label="locale === 'en' ? 'Current month' : 'Mois en cours'"
+        :month-picker-label="locale === 'en' ? 'Choose a month' : 'Choisir un mois'"
+        :item-class="calendarItemClass"
+        :item-title="calendarItemTitle"
+        :item-subtitle="calendarItemSubtitle"
+        :item-meta="calendarItemMeta"
+        @change-month="changeMonth"
+        @toggle-month-picker="toggleMonthPicker"
+        @apply-month-input="applyMonthInput"
+        @go-current-month="goCurrentMonth"
+        @select-day="() => {}"
+        @select-item="openPlanningItem"
+        @change-day-page="changeCalendarDayPage"
+        @update:month-input="updateMonthInput"
+      />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import OrdersCalendar from '~/components/admin/OrdersCalendar.vue'
 import type { CmsLocale } from '~/shared/cms'
-import type { EventListItem, CmsPlanningPageSettings, EventPageViewMode } from '~/shared/events'
+import type {
+  CmsPlanningPageSettings,
+  EventListItem,
+  PlanningCalendarResponse,
+  PlanningPageViewMode,
+  PlanningWeekResponse
+} from '~/shared/events'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
 
 const props = withDefaults(defineProps<{
@@ -137,42 +145,149 @@ const { locale } = useI18n()
 const localePath = useLocalePath()
 const siteConfig = await useSiteConfig()
 const authStore = useAuthStore()
-
 const defaultSettings = createDefaultCmsSiteSettings().planningPage
 const effectiveSettings = computed(() => props.settings || siteConfig.value?.cms?.settings?.planningPage || defaultSettings)
-const { data, pending } = await useFetch<EventListItem[]>('/api/events', {
-  query: computed(() => ({ locale: locale.value, scope: 'planning' })),
-  default: () => []
+const viewMode = ref<PlanningPageViewMode>(effectiveSettings.value.defaultViewMode)
+const weekStart = ref(startOfWeek(new Date()))
+const calendarMonth = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+const showMonthPicker = ref(false)
+const dayPages = reactive<Record<string, number>>({})
+
+watch(effectiveSettings, (value) => {
+  viewMode.value = value.defaultViewMode
+}, { deep: true })
+
+watch(viewMode, () => {
+  showMonthPicker.value = false
+  clearDayPages()
+})
+
+const query = computed(() => ({
+  locale: locale.value,
+  scope: 'planning',
+  view: viewMode.value,
+  weekStart: formatIsoDate(weekStart.value),
+  month: formatMonth(calendarMonth.value),
+  perDayLimit: viewMode.value === 'week' ? 4 : 3,
+  dayPages: JSON.stringify(dayPages)
+}))
+
+const { data, pending } = await useFetch<PlanningWeekResponse | PlanningCalendarResponse>('/api/events', {
+  query,
+  immediate: !props.preview,
+  default: () => null
 })
 
 const previewItems = computed<EventListItem[]>(() => [
   {
     id: -1,
-    slug: 'planning-demo',
+    kind: 'PERMANENCE',
+    occurrenceId: null,
+    slug: 'permanence-cuisine',
     status: 'PUBLISHED',
-    visibility: 'PUBLIC',
+    visibility: 'PRIVATE',
     startsAt: new Date().toISOString(),
     endsAt: null,
     placeName: locale.value === 'en' ? 'Farm kitchen' : 'Cuisine de la ferme',
-    placeCity: 'Saint-Sébastien-d\'Aigrefeuille',
+    placeCity: 'Saint-Sébastien-d’Aigrefeuille',
     coverImageUrl: '',
     publicReservationEnabled: false,
     internalParticipationEnabled: true,
-    title: locale.value === 'en' ? 'Volunteer kitchen shift' : 'Permanence cuisine bénévole',
-    subtitle: locale.value === 'en' ? 'Preview of the public planning page.' : 'Aperçu de la page planning publique.',
-    excerpt: locale.value === 'en' ? 'Visitors see general information, volunteers can sign in and participate when allowed.' : 'Les visiteurs voient l’information générale, les bénévoles peuvent ensuite se connecter et participer si autorisés.'
+    title: locale.value === 'en' ? 'Kitchen volunteer shift' : 'Permanence cuisine bénévole',
+    subtitle: '',
+    excerpt: locale.value === 'en' ? 'Volunteers can join specific time slots.' : 'Les bénévoles peuvent rejoindre des créneaux précis.'
+  },
+  {
+    id: -2,
+    kind: 'EVENT',
+    occurrenceId: null,
+    slug: 'atelier-jardin',
+    status: 'PUBLISHED',
+    visibility: 'PUBLIC',
+    startsAt: new Date(Date.now() + 86400000).toISOString(),
+    endsAt: null,
+    placeName: locale.value === 'en' ? 'Vegetable garden' : 'Potager',
+    placeCity: 'Saint-Sébastien-d’Aigrefeuille',
+    coverImageUrl: '',
+    publicReservationEnabled: true,
+    internalParticipationEnabled: false,
+    title: locale.value === 'en' ? 'Garden workshop' : 'Atelier jardin',
+    subtitle: '',
+    excerpt: locale.value === 'en' ? 'Public planning also highlights open events.' : 'Le planning public met aussi en avant les événements ouverts.'
   }
 ])
 
-const planningItems = computed(() => {
-  if (data.value?.length) return data.value
-  return props.preview ? previewItems.value : []
+const previewWeekResponse = computed<PlanningWeekResponse>(() => {
+  const columns = Array.from({ length: 7 }, (_, index) => {
+    const day = addDays(startOfWeek(new Date()), index)
+    const iso = formatIsoDate(day)
+    const items = previewItems.value.filter(item => formatIsoDate(new Date(item.startsAt)) === iso)
+    return {
+      iso,
+      label: new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'long', day: '2-digit', month: 'long' }).format(day),
+      shortLabel: new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'short' }).format(day),
+      dayNumber: day.getDate(),
+      page: 1,
+      total: items.length,
+      totalPages: 1,
+      items
+    }
+  })
+  return {
+    view: 'week',
+    weekStart: formatIsoDate(startOfWeek(new Date())),
+    columns
+  }
 })
 
-const viewMode = ref<EventPageViewMode>(effectiveSettings.value.defaultViewMode)
-watch(effectiveSettings, (value) => {
-  viewMode.value = value.defaultViewMode
-}, { deep: true })
+const previewCalendarResponse = computed<PlanningCalendarResponse>(() => {
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  const firstGridDay = startOfWeek(monthStart)
+  const lastDay = endOfWeek(new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0))
+  const days = []
+  for (let cursor = new Date(firstGridDay); cursor <= lastDay; cursor = addDays(cursor, 1)) {
+    const iso = formatIsoDate(cursor)
+    days.push({
+      iso,
+      dayNumber: cursor.getDate(),
+      inCurrentMonth: cursor.getMonth() === monthStart.getMonth(),
+      isToday: iso === formatIsoDate(new Date()),
+      page: 1,
+      total: previewItems.value.filter(item => formatIsoDate(new Date(item.startsAt)) === iso).length,
+      totalPages: 1,
+      items: previewItems.value.filter(item => formatIsoDate(new Date(item.startsAt)) === iso)
+    })
+  }
+  return {
+    view: 'calendar',
+    month: formatMonth(monthStart),
+    monthLabel: new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { month: 'long', year: 'numeric' }).format(monthStart),
+    monthInput: formatMonth(monthStart),
+    dayNames: Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'short' }).format(addDays(firstGridDay, index))),
+    days
+  }
+})
+
+const currentWeekResponse = computed<PlanningWeekResponse | null>(() => {
+  if (viewMode.value !== 'week') return null
+  if (data.value?.view === 'week') return data.value
+  return props.preview ? previewWeekResponse.value : null
+})
+
+const currentCalendarResponse = computed<PlanningCalendarResponse | null>(() => {
+  if (viewMode.value !== 'calendar') return null
+  if (data.value?.view === 'calendar') return data.value
+  return props.preview ? previewCalendarResponse.value : null
+})
+
+const weekColumns = computed(() => currentWeekResponse.value?.columns || [])
+const calendarDays = computed(() => currentCalendarResponse.value?.days || [])
+const calendarDayNames = computed(() => currentCalendarResponse.value?.dayNames || [])
+const calendarMonthLabel = computed(() => currentCalendarResponse.value?.monthLabel || new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { month: 'long', year: 'numeric' }).format(calendarMonth.value))
+const calendarMonthInput = computed(() => currentCalendarResponse.value?.monthInput || formatMonth(calendarMonth.value))
+const isEmpty = computed(() => viewMode.value === 'week'
+  ? weekColumns.value.every(column => column.total === 0)
+  : calendarDays.value.every(day => day.total === 0))
 
 const pageTitle = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.title))
 const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.subtitle))
@@ -194,39 +309,114 @@ const containerClass = computed(() => {
   }
 })
 
-const gridColumnsClass = computed(() => {
-  switch (effectiveSettings.value.gridColumns) {
-    case 1: return 'lg:grid-cols-1'
-    case 3: return 'lg:grid-cols-3'
-    default: return 'lg:grid-cols-2'
-  }
-})
-
 const excerptClass = computed(() => effectiveSettings.value.excerptLines === 2 ? 'line-clamp-2' : effectiveSettings.value.excerptLines === 4 ? 'line-clamp-4' : 'line-clamp-3')
 const cardStyle = computed(() => ({
   backgroundColor: effectiveSettings.value.cardBackgroundColor?.token ? `var(--color-${effectiveSettings.value.cardBackgroundColor.token})` : 'var(--color-base-200)'
 }))
 
-const calendarGroups = computed(() => {
-  const formatter = new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { month: 'long', year: 'numeric' })
-  const groups = new Map<string, { key: string; label: string; items: EventListItem[] }>()
-  for (const item of planningItems.value) {
-    const date = new Date(item.startsAt)
-    const key = `${date.getUTCFullYear()}-${date.getUTCMonth() + 1}`
-    const label = formatter.format(date)
-    const group = groups.get(key) || { key, label, items: [] }
-    group.items.push(item)
-    groups.set(key, group)
-  }
-  return [...groups.values()]
+const weekRangeLabel = computed(() => {
+  const start = weekStart.value
+  const end = addDays(start, 6)
+  const localeCode = locale.value === 'en' ? 'en-GB' : 'fr-FR'
+  return `${new Intl.DateTimeFormat(localeCode, { day: '2-digit', month: 'long' }).format(start)} - ${new Intl.DateTimeFormat(localeCode, { day: '2-digit', month: 'long' }).format(end)}`
 })
 
-const detailHref = (slug: string) => localePath(`/events/${slug}`)
-const modeLabel = (mode: EventPageViewMode) => mode === 'list' ? (locale.value === 'en' ? 'List' : 'Liste') : mode === 'calendar' ? (locale.value === 'en' ? 'Calendar' : 'Calendrier') : (locale.value === 'en' ? 'Grid' : 'Grille')
-const formatDate = (value: string) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', {
-  weekday: 'long',
-  day: '2-digit',
-  month: 'long',
+function startOfWeek(value: Date) {
+  const date = new Date(value)
+  const day = date.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  date.setDate(date.getDate() + diff)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+function addDays(value: Date, amount: number) {
+  const next = new Date(value)
+  next.setDate(next.getDate() + amount)
+  return next
+}
+
+function formatIsoDate(value: Date) {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatMonth(value: Date) {
+  return formatIsoDate(value).slice(0, 7)
+}
+
+function clearDayPages() {
+  for (const key of Object.keys(dayPages)) {
+    delete dayPages[key]
+  }
+}
+
+function changeWeek(offset: number) {
+  weekStart.value = addDays(weekStart.value, offset * 7)
+  clearDayPages()
+}
+
+function goCurrentWeek() {
+  weekStart.value = startOfWeek(new Date())
+  clearDayPages()
+}
+
+function changeMonth(offset: number) {
+  calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() + offset, 1)
+  clearDayPages()
+}
+
+function goCurrentMonth() {
+  calendarMonth.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  clearDayPages()
+}
+
+function updateMonthInput(value: string) {
+  if (!value) return
+  const [year, month] = value.split('-').map(Number)
+  if (!year || !month) return
+  calendarMonth.value = new Date(year, month - 1, 1)
+}
+
+function applyMonthInput() {
+  clearDayPages()
+  showMonthPicker.value = false
+}
+
+function toggleMonthPicker() {
+  showMonthPicker.value = !showMonthPicker.value
+}
+
+function setDayPage(iso: string, page: number) {
+  dayPages[iso] = Math.max(1, page)
+}
+
+function changeCalendarDayPage(day: { iso: string }, page: number) {
+  setDayPage(day.iso, page)
+}
+
+const planningCalendarItemClass = (item: EventListItem) => {
+  if (item.internalParticipationEnabled) return 'bg-secondary text-secondary-content shadow-sm'
+  if (item.publicReservationEnabled) return 'bg-primary text-primary-content shadow-sm'
+  return 'bg-neutral text-neutral-content shadow-sm'
+}
+const calendarItemClass = (item: EventListItem) => planningCalendarItemClass(item)
+const calendarItemTitle = (item: EventListItem) => item.title
+const calendarItemSubtitle = (item: EventListItem) => [item.placeName, item.placeCity].filter(Boolean).join(', ')
+const calendarItemMeta = (item: EventListItem) => formatTime(item.startsAt)
+
+function openPlanningItem(item: EventListItem) {
+  navigateTo(detailHref(item.slug, item.occurrenceId))
+}
+
+const detailHref = (slug: string, occurrenceId?: number | null) => localePath({
+  path: `/events/${slug}`,
+  query: occurrenceId ? { occurrenceId: String(occurrenceId) } : {}
+})
+const modeLabel = (mode: PlanningPageViewMode) => mode === 'week' ? (locale.value === 'en' ? 'Week' : 'Semaine') : (locale.value === 'en' ? 'Calendar' : 'Calendrier')
+const formatTime = (value: string) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', {
   hour: '2-digit',
   minute: '2-digit'
 }).format(new Date(value))

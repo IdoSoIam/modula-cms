@@ -1,36 +1,58 @@
 import { prisma } from '~/prisma/client'
-import { canAccessEvent, eventToPayload } from '~/server/utils/events'
+import { applyOccurrenceOverridesToEventPayload, canAccessEvent, eventToPayload } from '~/server/utils/events'
 import { AuthService } from '~/server/services/auth/authService'
 
 const authService = new AuthService()
 
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
+  const query = getQuery(event)
+  const previewDraft = query.previewDraft === '1'
+  const occurrenceId = Number(query.occurrenceId)
   if (!slug) {
     throw createError({ statusCode: 400, statusMessage: 'Slug requis' })
   }
 
+  const user = await authService.getUserFromSession(event)
+
   const item = await prisma.event.findUnique({
     where: { slug },
     include: {
-      audienceRoles: {
-        include: { role: true }
+      audienceMemberRoles: {
+        include: { memberRole: true }
       }
     }
   })
 
-  if (!item || item.status !== 'PUBLISHED') {
+  if (!item) {
     throw createError({ statusCode: 404, statusMessage: 'Événement introuvable' })
   }
 
-  const user = await authService.getUserFromSession(event)
+  if (!(previewDraft && user?.access.isAdmin) && item.status !== 'PUBLISHED') {
+    throw createError({ statusCode: 404, statusMessage: 'Événement introuvable' })
+  }
+
   if (!canAccessEvent(item, {
     isAdmin: user?.access.isAdmin,
     canViewPrivateEvents: user?.access.specialPermissions.includes('view_private_events'),
-    roleId: user?.roleId
+    memberRoleIds: user?.memberRoleIds
   })) {
     throw createError({ statusCode: 404, statusMessage: 'Événement introuvable' })
   }
 
-  return eventToPayload(item)
+  const payload = eventToPayload(item)
+  if (Number.isInteger(occurrenceId) && occurrenceId > 0) {
+    const occurrence = await prisma.eventOccurrence.findFirst({
+      where: {
+        id: occurrenceId,
+        eventId: item.id
+      }
+    })
+    if (!occurrence) {
+      throw createError({ statusCode: 404, statusMessage: 'Occurrence introuvable' })
+    }
+    return applyOccurrenceOverridesToEventPayload(payload, occurrence)
+  }
+
+  return payload
 })

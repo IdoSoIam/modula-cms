@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
     firstName?: string
     lastName?: string
     roleId?: number | string | null
+    memberRoleIds?: Array<number | string>
     password?: string
   }>(event)
 
@@ -42,6 +43,19 @@ export default defineEventHandler(async (event) => {
     await prisma.user.update({
       where: { id: user.id },
       data: { roleId: roleRow.id }
+    })
+  }
+
+  const memberRoleIds = Array.isArray(body.memberRoleIds)
+    ? Array.from(new Set(body.memberRoleIds.map(value => Number(value)).filter(value => Number.isInteger(value) && value > 0)))
+    : []
+
+  if (memberRoleIds.length) {
+    await prisma.userMemberRole.createMany({
+      data: memberRoleIds.map(memberRoleId => ({
+        userId: user.id,
+        memberRoleId
+      }))
     })
   }
 

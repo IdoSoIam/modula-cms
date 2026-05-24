@@ -6,7 +6,12 @@ export default defineEventHandler(async (event) => {
 
   const users = await prisma.user.findMany({
     include: {
-      managedRole: true
+      managedRole: true,
+      memberRoles: {
+        include: {
+          memberRole: true
+        }
+      }
     },
     orderBy: [
       { createdAt: 'desc' }
@@ -22,6 +27,13 @@ export default defineEventHandler(async (event) => {
     roleId: user.roleId,
     roleSlug: user.managedRole?.slug || user.role,
     roleName: user.managedRole?.name || user.role,
+    memberRoleIds: user.memberRoles.map(entry => entry.memberRoleId),
+    memberRoles: user.memberRoles.map(entry => ({
+      id: entry.memberRole.id,
+      slug: entry.memberRole.slug,
+      name: entry.memberRole.name,
+      color: entry.memberRole.color
+    })),
     isActive: user.isActive,
     createdAt: user.createdAt.toISOString()
   }))

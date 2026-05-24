@@ -140,6 +140,14 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
           'mdi:ticket-confirmation-outline',
           getAdminRoutePaths('managementEventReservations'),
           { requiredModule: 'event_reservations', requiredAction: 'read' }
+        ),
+        createAdminNavigationItem(
+          'management-member-roles',
+          'admin.navigation.items.memberRoles',
+          getAdminRoutePath('managementMemberRoles'),
+          'mdi:account-multiple-check-outline',
+          getAdminRoutePaths('managementMemberRoles'),
+          { requiredModule: 'events', requiredAction: 'read' }
         )
       ]
     },

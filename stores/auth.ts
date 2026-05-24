@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { AdminPermissionModule, AdminSpecialPermission, UserAccessPayload } from '~/shared/access'
+import type { AdminPermissionModule, AdminSpecialPermission, UserAccessPayload, UserMemberRolePayload } from '~/shared/access'
 
 interface User {
   id: number
@@ -11,6 +11,8 @@ interface User {
   roleSlug?: string
   isActive: boolean
   access: UserAccessPayload
+  memberRoles: UserMemberRolePayload[]
+  memberRoleIds: number[]
   shippingAddress?: {
     street: string
     city: string

@@ -43,6 +43,10 @@ export const ADMIN_I18N_PATHS = {
     fr: '/admin/gestions/reservations',
     en: '/admin/management/reservations'
   },
+  managementMemberRoles: {
+    fr: '/admin/gestions/roles-associatifs',
+    en: '/admin/management/member-roles'
+  },
   customizationLayout: {
     fr: '/admin/personnalisation/mise-en-page',
     en: '/admin/customization/layout'

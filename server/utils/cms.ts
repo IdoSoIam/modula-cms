@@ -1120,10 +1120,10 @@ function normalizeEventsPageSettings(value: unknown, fallback: CmsEventsPageSett
   if (!isObject(value)) return fallback
   const enabledViews = Array.isArray(value.enabledViews)
     ? value.enabledViews.filter((entry): entry is CmsEventsPageSettings['enabledViews'][number] =>
-        entry === 'list' || entry === 'grid' || entry === 'calendar')
+        entry === 'list' || entry === 'grid')
     : fallback.enabledViews
 
-  const defaultViewMode = value.defaultViewMode === 'list' || value.defaultViewMode === 'calendar' || value.defaultViewMode === 'grid'
+  const defaultViewMode = value.defaultViewMode === 'list' || value.defaultViewMode === 'grid'
     ? value.defaultViewMode
     : fallback.defaultViewMode
 
@@ -1151,10 +1151,10 @@ function normalizePlanningPageSettings(value: unknown, fallback: CmsPlanningPage
   if (!isObject(value)) return fallback
   const enabledViews = Array.isArray(value.enabledViews)
     ? value.enabledViews.filter((entry): entry is CmsPlanningPageSettings['enabledViews'][number] =>
-        entry === 'list' || entry === 'grid' || entry === 'calendar')
+        entry === 'week' || entry === 'calendar')
     : fallback.enabledViews
 
-  const defaultViewMode = value.defaultViewMode === 'list' || value.defaultViewMode === 'calendar' || value.defaultViewMode === 'grid'
+  const defaultViewMode = value.defaultViewMode === 'week' || value.defaultViewMode === 'calendar'
     ? value.defaultViewMode
     : fallback.defaultViewMode
 
@@ -1164,7 +1164,6 @@ function normalizePlanningPageSettings(value: unknown, fallback: CmsPlanningPage
     containerWidth: typeof value.containerWidth === 'string' ? value.containerWidth as CmsPlanningPageSettings['containerWidth'] : fallback.containerWidth,
     defaultViewMode,
     enabledViews: enabledViews.length ? Array.from(new Set(enabledViews)) : fallback.enabledViews,
-    gridColumns: normalizeGridColumns(value.gridColumns, fallback.gridColumns, 3) as 1 | 2 | 3,
     showViewToggle: typeof value.showViewToggle === 'boolean' ? value.showViewToggle : fallback.showViewToggle,
     showCoverImage: typeof value.showCoverImage === 'boolean' ? value.showCoverImage : fallback.showCoverImage,
     showDate: typeof value.showDate === 'boolean' ? value.showDate : fallback.showDate,

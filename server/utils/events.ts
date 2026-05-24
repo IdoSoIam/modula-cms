@@ -1,17 +1,22 @@
 import { prisma } from '~/prisma/client'
-import type { Event, EventAudienceRole, EventInternalParticipation, EventPublicReservation, Role, User } from '@prisma/client'
+import type { Event, EventAudienceMemberRole, EventInternalParticipation, EventOccurrence, EventPublicReservation, MemberRole, User } from '../../node_modules/.prisma/client'
 import { createDefaultCmsSiteSettings, type CmsLocale, type CmsLocalizedText } from '~/shared/cms'
+import type { PageBuilderContent } from '~/shared/pageBuilder'
 import {
   createDefaultEventPayload,
   createDefaultEventTranslation,
   type EventApprovalMode,
+  type EventKind,
   type EventInternalParticipationPayload,
   type EventInternalParticipationStatus,
   type EventListItem,
+  type EventOccurrencePayload,
   type EventPayload,
   type EventPublicReservationPayload,
+  type EventRecurrenceType,
   type EventStatus,
   type EventTranslation,
+  type EventWeekdayValue,
   type EventVisibility
 } from '~/shared/events'
 import { buildGenericEmail } from '~/server/utils/orderEmails'
@@ -20,9 +25,10 @@ import { getSiteOrigin, sendGmail } from '~/server/utils/gmail'
 import { getReservationNotificationEmail } from '~/server/utils/settings'
 
 type EventWithRelations = Event & {
-  audienceRoles: Array<EventAudienceRole & { role: Role }>
+  audienceMemberRoles: Array<EventAudienceMemberRole & { memberRole: MemberRole }>
   publicReservations?: EventPublicReservation[]
   internalParticipations?: Array<EventInternalParticipation & { user: User }>
+  occurrences?: EventOccurrence[]
 }
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -41,6 +47,25 @@ function localized(value?: Partial<CmsLocalizedText> | null): CmsLocalizedText {
   }
 }
 
+function normalizeWeekdayValues(value: unknown): EventWeekdayValue[] {
+  if (!Array.isArray(value)) return []
+  return Array.from(new Set(
+    value
+      .map((entry) => Number(entry))
+      .filter((entry): entry is EventWeekdayValue => Number.isInteger(entry) && entry >= 0 && entry <= 6)
+  ))
+}
+
+function normalizeTimeValue(value: unknown) {
+  if (typeof value !== 'string') return ''
+  const normalized = value.trim().replace('h', ':')
+  return /^\d{2}:\d{2}$/.test(normalized) ? normalized : ''
+}
+
+function isRecurringPermanence(input: Pick<EventPayload, 'kind' | 'recurrenceType'>) {
+  return input.kind === 'PERMANENCE' && input.recurrenceType === 'WEEKLY'
+}
+
 export function normalizeEventPayload(value: unknown): EventPayload {
   const fallback = createDefaultEventPayload()
   const source = typeof value === 'object' && value !== null ? value as Record<string, any> : {}
@@ -49,10 +74,17 @@ export function normalizeEventPayload(value: unknown): EventPayload {
   const normalized: EventPayload = {
     id: typeof source.id === 'number' ? source.id : undefined,
     slug: typeof source.slug === 'string' ? source.slug.trim() : '',
+    kind: source.kind === 'PERMANENCE' ? 'PERMANENCE' : 'EVENT',
     status: ['DRAFT', 'PUBLISHED', 'ARCHIVED', 'CANCELLED'].includes(source.status) ? source.status as EventStatus : fallback.status,
     visibility: source.visibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
     startsAt: typeof source.startsAt === 'string' ? source.startsAt : '',
     endsAt: typeof source.endsAt === 'string' && source.endsAt ? source.endsAt : null,
+    recurrenceType: source.recurrenceType === 'WEEKLY' ? 'WEEKLY' : 'NONE',
+    recurrenceDays: normalizeWeekdayValues(source.recurrenceDays),
+    recurrenceStartDate: typeof source.recurrenceStartDate === 'string' && source.recurrenceStartDate ? source.recurrenceStartDate : null,
+    recurrenceEndDate: typeof source.recurrenceEndDate === 'string' && source.recurrenceEndDate ? source.recurrenceEndDate : null,
+    recurrenceStartTime: normalizeTimeValue(source.recurrenceStartTime),
+    recurrenceEndTime: normalizeTimeValue(source.recurrenceEndTime),
     placeName: typeof source.placeName === 'string' ? source.placeName : '',
     placeAddress: typeof source.placeAddress === 'string' ? source.placeAddress : '',
     placeCity: typeof source.placeCity === 'string' ? source.placeCity : '',
@@ -66,9 +98,10 @@ export function normalizeEventPayload(value: unknown): EventPayload {
     internalParticipationApprovalMode: source.internalParticipationApprovalMode === 'AUTO' ? 'AUTO' : 'MANUAL',
     internalParticipationInfo: localized(source.internalParticipationInfo),
     notifyAdminOnInternalParticipation: source.notifyAdminOnInternalParticipation !== false,
-    audienceRoleIds: Array.isArray(source.audienceRoleIds)
-      ? source.audienceRoleIds.map((entry: unknown) => Number(entry)).filter((entry: number) => Number.isInteger(entry) && entry > 0)
+    audienceMemberRoleIds: Array.isArray(source.audienceMemberRoleIds ?? source.audienceRoleIds)
+      ? (source.audienceMemberRoleIds ?? source.audienceRoleIds).map((entry: unknown) => Number(entry)).filter((entry: number) => Number.isInteger(entry) && entry > 0)
       : [],
+    occurrence: source.occurrence && typeof source.occurrence === 'object' ? source.occurrence as EventOccurrencePayload : null,
     translations: {
       fr: normalizeEventTranslation(translations.fr),
       en: normalizeEventTranslation(translations.en)
@@ -83,6 +116,17 @@ export function normalizeEventPayload(value: unknown): EventPayload {
   }
   if (!normalized.translations.fr.title.trim() && !normalized.translations.en.title.trim()) {
     throw createError({ statusCode: 400, statusMessage: 'Au moins un titre d’événement est requis' })
+  }
+  if (isRecurringPermanence(normalized)) {
+    if (!normalized.recurrenceDays.length) {
+      throw createError({ statusCode: 400, statusMessage: 'Au moins un jour récurrent est requis pour une permanence' })
+    }
+    if (!normalized.recurrenceStartTime || !normalized.recurrenceEndTime) {
+      throw createError({ statusCode: 400, statusMessage: 'Les horaires récurrents sont requis pour une permanence' })
+    }
+    if (!normalized.recurrenceStartDate) {
+      normalized.recurrenceStartDate = normalized.startsAt
+    }
   }
 
   return normalized
@@ -110,10 +154,17 @@ export function resolveEventTranslation(event: EventWithRelations | Event, local
 export function serializeEventPayload(input: EventPayload) {
   return {
     slug: input.slug.trim(),
+    kind: input.kind,
     status: input.status,
     visibility: input.visibility,
     startsAt: new Date(input.startsAt),
     endsAt: input.endsAt ? new Date(input.endsAt) : null,
+    recurrenceType: input.recurrenceType,
+    recurrenceDaysJson: JSON.stringify(input.recurrenceDays),
+    recurrenceStartDate: input.recurrenceStartDate ? new Date(input.recurrenceStartDate) : null,
+    recurrenceEndDate: input.recurrenceEndDate ? new Date(input.recurrenceEndDate) : null,
+    recurrenceStartTime: input.recurrenceStartTime || null,
+    recurrenceEndTime: input.recurrenceEndTime || null,
     placeName: input.placeName.trim() || null,
     placeAddress: input.placeAddress.trim() || null,
     placeCity: input.placeCity.trim() || null,
@@ -140,10 +191,17 @@ export function eventToPayload(event: EventWithRelations | Event): EventPayload 
   return {
     id: event.id,
     slug: event.slug,
+    kind: event.kind as EventKind,
     status: event.status as EventStatus,
     visibility: event.visibility as EventVisibility,
     startsAt: event.startsAt.toISOString(),
     endsAt: event.endsAt?.toISOString() ?? null,
+    recurrenceType: event.recurrenceType as EventRecurrenceType,
+    recurrenceDays: parseJson<EventWeekdayValue[]>(event.recurrenceDaysJson, []),
+    recurrenceStartDate: event.recurrenceStartDate?.toISOString() ?? null,
+    recurrenceEndDate: event.recurrenceEndDate?.toISOString() ?? null,
+    recurrenceStartTime: event.recurrenceStartTime ?? '',
+    recurrenceEndTime: event.recurrenceEndTime ?? '',
     placeName: event.placeName ?? '',
     placeAddress: event.placeAddress ?? '',
     placeCity: event.placeCity ?? '',
@@ -157,7 +215,8 @@ export function eventToPayload(event: EventWithRelations | Event): EventPayload 
     internalParticipationApprovalMode: event.internalParticipationApprovalMode as EventApprovalMode,
     internalParticipationInfo: localized(parseJson<CmsLocalizedText>(event.internalParticipationInfo, { fr: '', en: '' })),
     notifyAdminOnInternalParticipation: event.notifyAdminOnInternalParticipation,
-    audienceRoleIds: 'audienceRoles' in event ? event.audienceRoles.map(entry => entry.roleId) : [],
+    audienceMemberRoleIds: 'audienceMemberRoles' in event ? event.audienceMemberRoles.map(entry => entry.memberRoleId) : [],
+    occurrence: null,
     translations: {
       fr: base.fr || createDefaultEventTranslation(),
       en: base.en || createDefaultEventTranslation()
@@ -168,18 +227,20 @@ export function eventToPayload(event: EventWithRelations | Event): EventPayload 
 export function canAccessEvent(event: EventWithRelations | Event, options: {
   isAdmin?: boolean
   canViewPrivateEvents?: boolean
-  roleId?: number | null
+  memberRoleIds?: number[]
 }) {
   if (options.isAdmin || options.canViewPrivateEvents) return true
   if (event.visibility === 'PUBLIC') return true
-  if (!('audienceRoles' in event) || !options.roleId) return false
-  return event.audienceRoles.some(entry => entry.roleId === options.roleId)
+  if (!('audienceMemberRoles' in event) || !options.memberRoleIds?.length) return false
+  return event.audienceMemberRoles.some(entry => options.memberRoleIds?.includes(entry.memberRoleId))
 }
 
 export function eventToListItem(event: EventWithRelations, locale: CmsLocale): EventListItem {
   const translation = resolveEventTranslation(event, locale)
   return {
     id: event.id,
+    occurrenceId: null,
+    kind: event.kind as EventKind,
     slug: event.slug,
     status: event.status as EventStatus,
     visibility: event.visibility as EventVisibility,
@@ -203,6 +264,86 @@ export function getEventPublicUrl(slug: string, locale: CmsLocale = 'fr') {
 
 export function getEventAdminUrl(eventId: number) {
   return `${getSiteOrigin()}/admin/content/events?open=${eventId}`
+}
+
+export function eventOccurrenceToPayload(occurrence: EventOccurrence): EventOccurrencePayload {
+  return {
+    id: occurrence.id,
+    eventId: occurrence.eventId,
+    status: occurrence.status as any,
+    occurrenceDate: occurrence.occurrenceDate.toISOString(),
+    startsAt: occurrence.startsAt.toISOString(),
+    endsAt: occurrence.endsAt?.toISOString() ?? null,
+    isOverride: occurrence.isOverride,
+    titleOverride: occurrence.titleOverride ?? '',
+    subtitleOverride: occurrence.subtitleOverride ?? '',
+    excerptOverride: occurrence.excerptOverride ?? '',
+    contentOverride: occurrence.contentOverrideJson ? parseJson(occurrence.contentOverrideJson, createDefaultEventTranslation().content) : null,
+    placeNameOverride: occurrence.placeNameOverride ?? '',
+    placeAddressOverride: occurrence.placeAddressOverride ?? '',
+    placeCityOverride: occurrence.placeCityOverride ?? '',
+    mapUrlOverride: occurrence.mapUrlOverride ?? '',
+    coverImageOverrideUrl: occurrence.coverImageOverrideUrl ?? '',
+    publicCapacityOverride: occurrence.publicCapacityOverride ?? null,
+    internalCapacityOverride: occurrence.internalCapacityOverride ?? null,
+    internalParticipationInfoOverride: occurrence.internalParticipationInfoOverride ? parseJson(occurrence.internalParticipationInfoOverride, localized({})) : null
+  }
+}
+
+export function applyOccurrenceOverridesToEventPayload(base: EventPayload, occurrence: EventOccurrence): EventPayload {
+  const payload = {
+    ...base,
+    startsAt: occurrence.startsAt.toISOString(),
+    endsAt: occurrence.endsAt?.toISOString() ?? null,
+    placeName: occurrence.placeNameOverride || base.placeName,
+    placeAddress: occurrence.placeAddressOverride || base.placeAddress,
+    placeCity: occurrence.placeCityOverride || base.placeCity,
+    mapUrl: occurrence.mapUrlOverride || base.mapUrl,
+    coverImageUrl: occurrence.coverImageOverrideUrl || base.coverImageUrl,
+    publicCapacity: occurrence.publicCapacityOverride ?? base.publicCapacity,
+    internalCapacity: occurrence.internalCapacityOverride ?? base.internalCapacity,
+    internalParticipationInfo: occurrence.internalParticipationInfoOverride
+      ? parseJson<CmsLocalizedText>(occurrence.internalParticipationInfoOverride, base.internalParticipationInfo)
+      : base.internalParticipationInfo,
+    occurrence: eventOccurrenceToPayload(occurrence),
+    translations: {
+      fr: {
+        ...base.translations.fr,
+        title: occurrence.titleOverride || base.translations.fr.title,
+        subtitle: occurrence.subtitleOverride || base.translations.fr.subtitle,
+        excerpt: occurrence.excerptOverride || base.translations.fr.excerpt,
+        content: occurrence.contentOverrideJson ? parseJson(occurrence.contentOverrideJson, base.translations.fr.content) : base.translations.fr.content
+      },
+      en: {
+        ...base.translations.en,
+        title: occurrence.titleOverride || base.translations.en.title,
+        subtitle: occurrence.subtitleOverride || base.translations.en.subtitle,
+        excerpt: occurrence.excerptOverride || base.translations.en.excerpt,
+        content: occurrence.contentOverrideJson ? parseJson(occurrence.contentOverrideJson, base.translations.en.content) : base.translations.en.content
+      }
+    }
+  }
+  return payload
+}
+
+export function eventOccurrenceToListItem(event: EventWithRelations, occurrence: EventOccurrence, locale: CmsLocale): EventListItem {
+  const base = eventToListItem(event, locale)
+  const translation = resolveEventTranslation(event, locale)
+  const contentOverride = occurrence.contentOverrideJson ? parseJson<PageBuilderContent>(occurrence.contentOverrideJson, translation.content) : null
+  void contentOverride
+  return {
+    ...base,
+    occurrenceId: occurrence.id,
+    kind: 'PERMANENCE',
+    startsAt: occurrence.startsAt.toISOString(),
+    endsAt: occurrence.endsAt?.toISOString() ?? null,
+    title: occurrence.titleOverride || base.title,
+    subtitle: occurrence.subtitleOverride || base.subtitle,
+    excerpt: occurrence.excerptOverride || base.excerpt,
+    placeName: occurrence.placeNameOverride || base.placeName,
+    placeCity: occurrence.placeCityOverride || base.placeCity,
+    coverImageUrl: occurrence.coverImageOverrideUrl || base.coverImageUrl
+  }
 }
 
 function replaceTemplateVariables(template: string, variables: Record<string, string>) {
@@ -255,14 +396,14 @@ export async function createOrUpdateEvent(input: EventPayload, userId?: number |
         }
       })
 
-  await prisma.eventAudienceRole.deleteMany({
+  await prisma.eventAudienceMemberRole.deleteMany({
     where: { eventId: record.id }
   })
-  if (input.audienceRoleIds.length) {
-    await prisma.eventAudienceRole.createMany({
-      data: Array.from(new Set(input.audienceRoleIds)).map(roleId => ({
+  if (input.audienceMemberRoleIds.length) {
+    await prisma.eventAudienceMemberRole.createMany({
+      data: Array.from(new Set(input.audienceMemberRoleIds)).map(memberRoleId => ({
         eventId: record.id,
-        roleId
+        memberRoleId
       }))
     })
   }
@@ -270,9 +411,9 @@ export async function createOrUpdateEvent(input: EventPayload, userId?: number |
   return prisma.event.findUniqueOrThrow({
     where: { id: record.id },
     include: {
-      audienceRoles: {
+      audienceMemberRoles: {
         include: {
-          role: true
+          memberRole: true
         }
       }
     }
@@ -514,11 +655,15 @@ export async function sendParticipationCall(options: {
 }
 
 export async function listAudienceEligibleUsers(eventRow: EventWithRelations) {
-  const roleIds = eventRow.audienceRoles.map(entry => entry.roleId)
-  if (!roleIds.length) return []
+  const memberRoleIds = eventRow.audienceMemberRoles.map(entry => entry.memberRoleId)
+  if (!memberRoleIds.length) return []
   return prisma.user.findMany({
     where: {
-      roleId: { in: roleIds },
+      memberRoles: {
+        some: {
+          memberRoleId: { in: memberRoleIds }
+        }
+      },
       isActive: true
     },
     select: {
@@ -526,7 +671,11 @@ export async function listAudienceEligibleUsers(eventRow: EventWithRelations) {
       email: true,
       firstName: true,
       lastName: true,
-      roleId: true
+      memberRoles: {
+        include: {
+          memberRole: true
+        }
+      }
     },
     orderBy: [
       { firstName: 'asc' },

@@ -22,6 +22,41 @@ export const ADMIN_SPECIAL_PERMISSIONS = [
   'view_private_events'
 ] as const
 
+export const MEMBER_ROLE_DEFINITIONS = [
+  {
+    slug: 'adherent',
+    name: 'Adhérent',
+    description: 'Membre adhérent de l’association.',
+    color: '#2563eb',
+    isSystem: false,
+    isDefault: false
+  },
+  {
+    slug: 'benevole',
+    name: 'Bénévole',
+    description: 'Peut être sollicité pour participer aux permanences.',
+    color: '#16a34a',
+    isSystem: false,
+    isDefault: false
+  },
+  {
+    slug: 'equipe_cuisine',
+    name: 'Équipe de cuisinier',
+    description: 'Sous-rôle métier pour les besoins cuisine et repas.',
+    color: '#ea580c',
+    isSystem: false,
+    isDefault: false
+  },
+  {
+    slug: 'conseil_administration',
+    name: 'Conseil d’administration',
+    description: 'Sous-rôle pour les événements ou réunions du conseil d’administration.',
+    color: '#7c3aed',
+    isSystem: false,
+    isDefault: false
+  }
+] as const
+
 export type AdminPermissionModule = typeof ADMIN_PERMISSION_MODULES[number]
 export type AdminPermissionAction = typeof ADMIN_PERMISSION_ACTIONS[number]
 export type AdminSpecialPermission = typeof ADMIN_SPECIAL_PERMISSIONS[number]
@@ -147,6 +182,23 @@ export interface RolePayload {
   isDefault: boolean
   permissions: RolePermissionPayload[]
   specialPermissions: AdminSpecialPermission[]
+}
+
+export interface MemberRolePayload {
+  id: number
+  slug: string
+  name: string
+  description: string
+  color?: string | null
+  isSystem: boolean
+  isDefault: boolean
+}
+
+export interface UserMemberRolePayload {
+  id: number
+  slug: string
+  name: string
+  color?: string | null
 }
 
 export interface UserAccessPayload {

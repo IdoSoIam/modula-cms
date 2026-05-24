@@ -18,7 +18,11 @@ export default defineEventHandler(async (event) => {
   const eventRow = await prisma.event.findUnique({
     where: { slug },
     include: {
-      audienceRoles: { include: { role: true } }
+      audienceMemberRoles: {
+        include: {
+          memberRole: true
+        }
+      }
     }
   })
   if (!eventRow || eventRow.status !== 'PUBLISHED' || !eventRow.internalParticipationEnabled) {
@@ -28,16 +32,16 @@ export default defineEventHandler(async (event) => {
   if (!canAccessEvent(eventRow, {
     isAdmin: user.access.isAdmin,
     canViewPrivateEvents: user.access.specialPermissions.includes('view_private_events'),
-    roleId: user.roleId
+    memberRoleIds: user.memberRoleIds
   })) {
     throw createError({ statusCode: 403, statusMessage: 'Accès refusé' })
   }
 
-  if (eventRow.audienceRoles.length && (!user.roleId || !eventRow.audienceRoles.some(entry => entry.roleId === user.roleId))) {
-    throw createError({ statusCode: 403, statusMessage: 'Rôle non autorisé pour cette participation' })
+  if (eventRow.audienceMemberRoles.length && !eventRow.audienceMemberRoles.some((entry) => user.memberRoleIds.includes(entry.memberRoleId))) {
+    throw createError({ statusCode: 403, statusMessage: 'Rôle associatif non autorisé pour cette participation' })
   }
 
-  const body = await readBody<{ message?: string; locale?: 'fr' | 'en' }>(event)
+  const body = await readBody<{ message?: string, locale?: 'fr' | 'en' }>(event)
   const participation = await submitInternalParticipation(eventRow, {
     message: typeof body.message === 'string' ? body.message : ''
   }, user, body.locale === 'en' ? 'en' : 'fr')

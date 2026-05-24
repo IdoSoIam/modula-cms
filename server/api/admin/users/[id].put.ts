@@ -12,9 +12,13 @@ export default defineEventHandler(async (event) => {
     firstName?: string
     lastName?: string
     roleId?: number | string | null
+    memberRoleIds?: Array<number | string>
     isActive?: boolean
   }>(event)
   const normalizedRoleId = body.roleId == null || body.roleId === '' || body.roleId === 'null' ? null : Number(body.roleId)
+  const memberRoleIds = Array.isArray(body.memberRoleIds)
+    ? Array.from(new Set(body.memberRoleIds.map(value => Number(value)).filter(value => Number.isInteger(value) && value > 0)))
+    : []
 
   await prisma.user.update({
     where: { id },
@@ -25,6 +29,19 @@ export default defineEventHandler(async (event) => {
       isActive: typeof body.isActive === 'boolean' ? body.isActive : undefined
     }
   })
+
+  await prisma.userMemberRole.deleteMany({
+    where: { userId: id }
+  })
+
+  if (memberRoleIds.length) {
+    await prisma.userMemberRole.createMany({
+      data: memberRoleIds.map(memberRoleId => ({
+        userId: id,
+        memberRoleId
+      }))
+    })
+  }
 
   return { ok: true }
 })

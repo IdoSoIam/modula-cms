@@ -4,8 +4,8 @@ import { requirePermission } from '~/server/utils/permissions'
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'events', 'read')
 
-  const [roles, users] = await Promise.all([
-    prisma.role.findMany({
+  const [memberRoles, users] = await Promise.all([
+    prisma.memberRole.findMany({
       orderBy: [
         { isSystem: 'desc' },
         { name: 'asc' }
@@ -28,10 +28,29 @@ export default defineEventHandler(async (event) => {
         email: true,
         firstName: true,
         lastName: true,
-        roleId: true
+        memberRoles: {
+          include: {
+            memberRole: true
+          }
+        }
       }
     })
   ])
 
-  return { roles, users }
+  return {
+    memberRoles,
+    users: users.map(user => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      memberRoleIds: user.memberRoles.map(entry => entry.memberRoleId),
+      memberRoles: user.memberRoles.map(entry => ({
+        id: entry.memberRole.id,
+        slug: entry.memberRole.slug,
+        name: entry.memberRole.name,
+        color: entry.memberRole.color
+      }))
+    }))
+  }
 })

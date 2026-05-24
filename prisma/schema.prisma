@@ -36,6 +36,7 @@ model User {
   articles     Article[]
   uploads      Image[]
   managedRole  Role?         @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  memberRoles  UserMemberRole[]
   createdEvents Event[]      @relation("EventCreatedBy")
   updatedEvents Event[]      @relation("EventUpdatedBy")
   publicEventReservations EventPublicReservation[]
@@ -57,7 +58,6 @@ model Role {
   updatedAt              DateTime         @updatedAt
   users                  User[]
   permissions            RolePermission[]
-  audienceEvents         EventAudienceRole[]
 }
 
 model RolePermission {
@@ -74,6 +74,32 @@ model RolePermission {
 
   @@unique([roleId, module])
   @@index([module])
+}
+
+model MemberRole {
+  id          Int                @id @default(autoincrement())
+  slug        String             @unique
+  name        String
+  description String?
+  color       String?
+  isSystem    Boolean            @default(false)
+  isDefault   Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  users       UserMemberRole[]
+  audienceEvents EventAudienceMemberRole[]
+}
+
+model UserMemberRole {
+  id           Int        @id @default(autoincrement())
+  userId        Int
+  memberRoleId  Int
+  createdAt     DateTime  @default(now())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memberRole    MemberRole @relation(fields: [memberRoleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, memberRoleId])
+  @@index([memberRoleId])
 }
 
 enum VegetableUnit {
@@ -390,13 +416,35 @@ enum EventInternalParticipationStatus {
   REJECTED
 }
 
+enum EventKind {
+  EVENT
+  PERMANENCE
+}
+
+enum EventRecurrenceType {
+  NONE
+  WEEKLY
+}
+
+enum EventOccurrenceStatus {
+  SCHEDULED
+  CANCELLED
+}
+
 model Event {
   id                               Int                            @id @default(autoincrement())
   slug                             String                         @unique
+  kind                             EventKind                      @default(EVENT)
   status                           EventStatus                    @default(DRAFT)
   visibility                       EventVisibility                @default(PUBLIC)
   startsAt                         DateTime
   endsAt                           DateTime?
+  recurrenceType                   EventRecurrenceType            @default(NONE)
+  recurrenceDaysJson               String                         @default("[]")
+  recurrenceStartDate              DateTime?
+  recurrenceEndDate                DateTime?
+  recurrenceStartTime              String?
+  recurrenceEndTime                String?
   placeName                        String?
   placeAddress                     String?
   placeCity                        String?
@@ -417,26 +465,57 @@ model Event {
   updatedAt                        DateTime                       @updatedAt
   createdBy                        User?                          @relation("EventCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy                        User?                          @relation("EventUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  audienceRoles                    EventAudienceRole[]
+  audienceMemberRoles              EventAudienceMemberRole[]
   publicReservations               EventPublicReservation[]
   internalParticipations           EventInternalParticipation[]
+  occurrences                      EventOccurrence[]
 
+  @@index([kind, status, startsAt])
   @@index([status, startsAt])
   @@index([visibility, startsAt])
   @@index([createdById])
   @@index([updatedById])
 }
 
-model EventAudienceRole {
+model EventOccurrence {
+  id                                Int                   @id @default(autoincrement())
+  eventId                            Int
+  occurrenceDate                     DateTime
+  startsAt                           DateTime
+  endsAt                             DateTime?
+  status                             EventOccurrenceStatus @default(SCHEDULED)
+  isOverride                         Boolean              @default(false)
+  titleOverride                      String?
+  subtitleOverride                   String?
+  excerptOverride                    String?
+  contentOverrideJson                String?
+  placeNameOverride                  String?
+  placeAddressOverride               String?
+  placeCityOverride                  String?
+  mapUrlOverride                     String?
+  coverImageOverrideUrl              String?
+  publicCapacityOverride             Int?
+  internalCapacityOverride           Int?
+  internalParticipationInfoOverride  String?
+  createdAt                          DateTime             @default(now())
+  updatedAt                          DateTime             @updatedAt
+  event                              Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, occurrenceDate])
+  @@index([occurrenceDate, status])
+  @@index([eventId, startsAt])
+}
+
+model EventAudienceMemberRole {
   id        Int      @id @default(autoincrement())
   eventId    Int
-  roleId     Int
+  memberRoleId Int
   createdAt  DateTime @default(now())
   event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  memberRole MemberRole @relation(fields: [memberRoleId], references: [id], onDelete: Cascade)
 
-  @@unique([eventId, roleId])
-  @@index([roleId])
+  @@unique([eventId, memberRoleId])
+  @@index([memberRoleId])
 }
 
 model EventPublicReservation {

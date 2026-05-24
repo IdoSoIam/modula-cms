@@ -4,6 +4,7 @@ import {
   ADMIN_PERMISSION_MODULES,
   ADMIN_SPECIAL_PERMISSIONS,
   DEFAULT_ROLE_DEFINITIONS,
+  MEMBER_ROLE_DEFINITIONS,
   type AdminPermissionAction,
   type AdminPermissionModule,
   type AdminSpecialPermission,
@@ -127,6 +128,27 @@ export async function ensureDefaultRoles() {
         await prisma.user.updateMany({
           where: { roleId: null },
           data: { roleId: defaultRole.id }
+        })
+      }
+
+      for (const memberRole of MEMBER_ROLE_DEFINITIONS) {
+        await prisma.memberRole.upsert({
+          where: { slug: memberRole.slug },
+          update: {
+            name: memberRole.name,
+            description: memberRole.description,
+            color: memberRole.color,
+            isSystem: memberRole.isSystem ?? false,
+            isDefault: memberRole.isDefault ?? false
+          },
+          create: {
+            slug: memberRole.slug,
+            name: memberRole.name,
+            description: memberRole.description,
+            color: memberRole.color,
+            isSystem: memberRole.isSystem ?? false,
+            isDefault: memberRole.isDefault ?? false
+          }
         })
       }
 

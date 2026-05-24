@@ -12,8 +12,8 @@ export default defineEventHandler(async (event) => {
   const item = await prisma.event.findUnique({
     where: { id },
     include: {
-      audienceRoles: {
-        include: { role: true }
+      audienceMemberRoles: {
+        include: { memberRole: true }
       }
     }
   })

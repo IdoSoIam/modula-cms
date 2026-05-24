@@ -1,4 +1,5 @@
 import { createOrUpdateEvent, normalizeEventPayload } from '~/server/utils/events'
+import { syncEventOccurrencesForEvent } from '~/server/utils/planning'
 import { requirePermission } from '~/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -11,5 +12,6 @@ export default defineEventHandler(async (event) => {
   const payload = normalizeEventPayload(await readBody(event))
   payload.id = id
   const saved = await createOrUpdateEvent(payload, user.id)
-  return { id: saved.id }
+  await syncEventOccurrencesForEvent(saved as any)
+  return { id: saved.id, slug: saved.slug }
 })

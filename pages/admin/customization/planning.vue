@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-3xl font-bold">Personnalisation planning</h1>
-        <p class="mt-1 text-sm opacity-70">Réglez la page publique planning et son affichage informatif ou bénévole.</p>
+        <p class="mt-1 text-sm opacity-70">Réglez la page publique planning avec une vue semaine et une vue calendrier.</p>
       </div>
       <button type="button" class="btn btn-primary" :disabled="saving" @click="save">
         <span v-if="saving" class="loading loading-spinner loading-sm" />
@@ -15,7 +15,7 @@
       <AdminPageBuilderTranslationTabs :model-value="model.settings.planningPage.title" label="Titre visible" />
       <AdminPageBuilderTranslationTabs :model-value="model.settings.planningPage.subtitle" label="Sous-titre visible" multiline />
 
-      <div class="grid gap-4 lg:grid-cols-3">
+      <div class="grid gap-4 lg:grid-cols-2">
         <label class="form-control gap-2">
           <span class="label-text">Largeur du container</span>
           <select v-model="model.settings.planningPage.containerWidth" class="select select-bordered w-full">
@@ -25,17 +25,8 @@
         <label class="form-control gap-2">
           <span class="label-text">Vue par défaut</span>
           <select v-model="model.settings.planningPage.defaultViewMode" class="select select-bordered w-full">
-            <option value="list">Liste</option>
-            <option value="grid">Grille</option>
+            <option value="week">Semaine</option>
             <option value="calendar">Calendrier</option>
-          </select>
-        </label>
-        <label class="form-control gap-2">
-          <span class="label-text">Colonnes grille</span>
-          <select v-model.number="model.settings.planningPage.gridColumns" class="select select-bordered w-full">
-            <option :value="1">1 colonne</option>
-            <option :value="2">2 colonnes</option>
-            <option :value="3">3 colonnes</option>
           </select>
         </label>
       </div>

@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const eventRow = await prisma.event.findUnique({
     where: { slug },
     include: {
-      audienceRoles: { include: { role: true } }
+      audienceMemberRoles: { include: { memberRole: true } }
     }
   })
   if (!eventRow || eventRow.status !== 'PUBLISHED' || !eventRow.publicReservationEnabled) {

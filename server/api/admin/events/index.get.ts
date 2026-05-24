@@ -12,9 +12,9 @@ export default defineEventHandler(async (event) => {
   const items = await prisma.event.findMany({
     where: status ? { status: status as any } : undefined,
     include: {
-      audienceRoles: {
+      audienceMemberRoles: {
         include: {
-          role: true
+          memberRole: true
         }
       }
     },
@@ -26,10 +26,10 @@ export default defineEventHandler(async (event) => {
 
   return items.map(item => ({
     ...eventToListItem(item, locale as CmsLocale),
-    audienceRoles: item.audienceRoles.map(entry => ({
-      id: entry.role.id,
-      slug: entry.role.slug,
-      name: entry.role.name
+    audienceMemberRoles: item.audienceMemberRoles.map(entry => ({
+      id: entry.memberRole.id,
+      slug: entry.memberRole.slug,
+      name: entry.memberRole.name
     }))
   }))
 })
