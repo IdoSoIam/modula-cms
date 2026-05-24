@@ -2,6 +2,89 @@ import { H3Event } from 'h3'
 import bcrypt from 'bcryptjs'
 import { getSessionConfig } from '../../utils/session'
 import { prisma } from '../../../prisma/client'
+import { buildUserAccessPayload, ensureDefaultRoles } from '~/server/utils/permissions'
+import type { UserAccessPayload } from '~/shared/access'
+
+export interface AuthenticatedUser {
+  id: number
+  email: string
+  firstName?: string
+  lastName?: string
+  role: string
+  roleId?: number | null
+  roleSlug?: string
+  isActive: boolean
+  access: UserAccessPayload
+  shippingAddress?: {
+    street: string
+    city: string
+    postalCode: string
+    country: string
+  }
+}
+
+const userSelect = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  role: true,
+  roleId: true,
+  isActive: true,
+  password: true,
+  street: true,
+  city: true,
+  postalCode: true,
+  country: true,
+  managedRole: {
+    include: {
+      permissions: true
+    }
+  }
+} as const
+
+function mapUser(user: {
+  id: number
+  email: string
+  firstName: string | null
+  lastName: string | null
+  role: string
+  roleId: number | null
+  isActive: boolean
+  street: string | null
+  city: string | null
+  postalCode: string | null
+  country: string | null
+  managedRole: {
+    slug: string
+    specialPermissionsJson: string
+    permissions: Array<{
+      module: string
+      canRead: boolean
+      canCreate: boolean
+      canUpdate: boolean
+      canDelete: boolean
+    }>
+  } | null
+}): AuthenticatedUser {
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName ?? undefined,
+    lastName: user.lastName ?? undefined,
+    role: user.role,
+    roleId: user.roleId,
+    roleSlug: user.managedRole?.slug || user.role,
+    isActive: user.isActive,
+    access: buildUserAccessPayload(user as any),
+    shippingAddress: user.street && user.city && user.postalCode && user.country ? {
+      street: user.street,
+      city: user.city,
+      postalCode: user.postalCode,
+      country: user.country
+    } : undefined
+  }
+}
 
 export class AuthService {
   private static SALT_ROUNDS = 10
@@ -12,10 +95,19 @@ export class AuthService {
     lastName?: string,
     birthDate?: Date,
     role: string = 'user'
-  ): Promise<{ id: number; email: string; firstName?: string; lastName?: string; role: string }> {
+  ): Promise<AuthenticatedUser> {
     try {
+      await ensureDefaultRoles()
       const normalizedEmail = email.trim().toLowerCase()
       const hashedPassword = await bcrypt.hash(password, AuthService.SALT_ROUNDS)
+      const roleRow = await prisma.role.findFirst({
+        where: {
+          OR: [
+            { slug: role },
+            { slug: role === 'user' ? 'utilisateur_public' : role }
+          ]
+        }
+      })
       const user = await prisma.user.create({
         data: {
           email: normalizedEmail,
@@ -23,59 +115,24 @@ export class AuthService {
           firstName,
           lastName,
           birthDate,
-          role
+          role,
+          roleId: roleRow?.id ?? null
         },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          street: true,
-          city: true,
-          postalCode: true,
-          country: true
-        }
+        select: userSelect
       })
-      return {
-        ...user,
-        firstName: user.firstName ?? undefined,
-        lastName: user.lastName ?? undefined
-      }
+      return mapUser(user)
     } catch (error) {
       console.error('Error creating user:', error)
       throw error
     }
   }
-  async validateUser(email: string, password: string): Promise<{
-    id: number;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    role: string;
-    shippingAddress?: {
-      street: string;
-      city: string;
-      postalCode: string;
-      country: string;
-    }
-  } | null> {
+  async validateUser(email: string, password: string): Promise<AuthenticatedUser | null> {
     try {
+      await ensureDefaultRoles()
       const normalizedEmail = email.trim().toLowerCase()
       const user = await prisma.user.findUnique({
         where: { email: normalizedEmail },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          password: true,
-          street: true,
-          city: true,
-          postalCode: true,
-          country: true
-        }
+        select: userSelect
       })
 
       if (!user) {
@@ -87,36 +144,16 @@ export class AuthService {
         return null
       }
 
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName ?? undefined,
-        lastName: user.lastName ?? undefined,
-        role: user.role,
-        shippingAddress: user.street && user.city && user.postalCode && user.country ? {
-          street: user.street,
-          city: user.city,
-          postalCode: user.postalCode,
-          country: user.country
-        } : undefined
-      }
+      if (!user.isActive) return null
+
+      return mapUser(user)
     } catch (error) {
       console.error('Error validating user:', error)
       throw error
     }
-  } async getUserFromSession(event: H3Event): Promise<{
-    id: number;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    role: string;
-    shippingAddress?: {
-      street: string;
-      city: string;
-      postalCode: string;
-      country: string;
-    }
-  } | null> {
+  }
+
+  async getUserFromSession(event: H3Event): Promise<AuthenticatedUser | null> {
     const session = await useSession(event, getSessionConfig())
     const userId = session.data.userId
 
@@ -125,39 +162,17 @@ export class AuthService {
     }
 
     try {
+      await ensureDefaultRoles()
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          street: true,
-          city: true,
-          postalCode: true,
-          country: true
-        }
+        select: userSelect
       })
 
-      if (!user) {
+      if (!user || !user.isActive) {
         return null
       }
 
-      // Format the response to match the expected structure
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName ?? undefined,
-        lastName: user.lastName ?? undefined,
-        role: user.role,
-        shippingAddress: user.street && user.city && user.postalCode && user.country ? {
-          street: user.street,
-          city: user.city,
-          postalCode: user.postalCode,
-          country: user.country
-        } : undefined
-      }
+      return mapUser(user)
     } catch (error) {
       console.error('Error getting user from session:', error)
       return null
@@ -166,25 +181,14 @@ export class AuthService {
 
   async isAdmin(event: H3Event): Promise<boolean> {
     const user = await this.getUserFromSession(event)
-    return user?.role === 'admin'
+    return user?.access.isAdmin === true
   }
+
   async updateProfile(userId: number, data: {
     firstName: string;
     lastName: string;
     email: string;
-  }): Promise<{
-    id: number;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    role: string;
-    shippingAddress?: {
-      street: string;
-      city: string;
-      postalCode: string;
-      country: string;
-    }
-  }> {
+  }): Promise<AuthenticatedUser> {
     try {
       const normalizedEmail = data.email.trim().toLowerCase()
       const user = await prisma.user.update({
@@ -194,32 +198,10 @@ export class AuthService {
           lastName: data.lastName,
           email: normalizedEmail
         },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          street: true,
-          city: true,
-          postalCode: true,
-          country: true
-        }
+        select: userSelect
       })
 
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName ?? undefined,
-        lastName: user.lastName ?? undefined,
-        role: user.role,
-        shippingAddress: user.street && user.city && user.postalCode && user.country ? {
-          street: user.street,
-          city: user.city,
-          postalCode: user.postalCode,
-          country: user.country
-        } : undefined
-      }
+      return mapUser(user)
     } catch (error) {
       console.error('Error updating profile:', error)
       throw error
@@ -232,19 +214,7 @@ export class AuthService {
     city: string;
     postalCode: string;
     country: string;
-  }): Promise<{
-    id: number;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    role: string;
-    shippingAddress?: {
-      street: string;
-      city: string;
-      postalCode: string;
-      country: string;
-    }
-  }> {
+  }): Promise<AuthenticatedUser> {
     try {
       const street = data.addressLine2
         ? `${data.addressLine1}, ${data.addressLine2}`
@@ -258,32 +228,10 @@ export class AuthService {
           postalCode: data.postalCode,
           country: data.country
         },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          street: true,
-          city: true,
-          postalCode: true,
-          country: true
-        }
+        select: userSelect
       })
 
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName ?? undefined,
-        lastName: user.lastName ?? undefined,
-        role: user.role,
-        shippingAddress: user.street && user.city && user.postalCode && user.country ? {
-          street: user.street,
-          city: user.city,
-          postalCode: user.postalCode,
-          country: user.country
-        } : undefined
-      }
+      return mapUser(user)
     } catch (error) {
       console.error('Error updating shipping address:', error)
       throw error

@@ -212,7 +212,8 @@ const pageRendererOptions = [
   { value: 'news', label: t('admin.pageEditorPage.rendererNews') },
   { value: 'baskets', label: t('admin.pageEditorPage.rendererBaskets') },
   { value: 'shop', label: t('admin.pageEditorPage.rendererShop') },
-  { value: 'events', label: t('admin.pageEditorPage.rendererEvents') }
+  { value: 'events', label: t('admin.pageEditorPage.rendererEvents') },
+  { value: 'planning', label: t('admin.pageEditorPage.rendererPlanning') }
 ] as const
 
 const { data } = await useFetch<CmsPageEditor>(`/api/admin/cms/pages/${route.params.id}`)
@@ -261,9 +262,10 @@ const selectedPageRenderer = computed({
     if (page.rendererKey === 'baskets') return 'baskets'
     if (page.rendererKey === 'shop') return 'shop'
     if (page.rendererKey === 'events') return 'events'
+    if (page.rendererKey === 'planning') return 'planning'
     return 'cms'
   },
-  set: (value: 'cms' | 'news' | 'baskets' | 'shop' | 'events') => {
+  set: (value: 'cms' | 'news' | 'baskets' | 'shop' | 'events' | 'planning') => {
     if (value === 'cms') {
       page.pageType = 'CMS'
       page.templateKey = 'default'
@@ -298,11 +300,15 @@ const localizedTitle = computed({
 const applicationLocalizedTitle = computed<null | { fr: string, en: string }>(() => {
   if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.title
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.title
+  if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.title
+  if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.title
   return null
 })
 const applicationLocalizedSubtitle = computed<null | { fr: string, en: string }>(() => {
   if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.subtitle
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.subtitle
+  if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.subtitle
+  if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.subtitle
   return null
 })
 const localizedMetaTitle = computed({
@@ -360,6 +366,14 @@ const updateVisibleTitle = (value: { fr: string, en: string }) => {
     siteShellModel.settings.newsPage.title = structuredClone(value)
     return
   }
+  if (selectedPageRenderer.value === 'events') {
+    siteShellModel.settings.eventsPage.title = structuredClone(value)
+    return
+  }
+  if (selectedPageRenderer.value === 'planning') {
+    siteShellModel.settings.planningPage.title = structuredClone(value)
+    return
+  }
   localizedTitle.value = value
 }
 
@@ -370,6 +384,14 @@ const updateVisibleSubtitle = (value: { fr: string, en: string }) => {
   }
   if (selectedPageRenderer.value === 'news') {
     siteShellModel.settings.newsPage.subtitle = structuredClone(value)
+    return
+  }
+  if (selectedPageRenderer.value === 'events') {
+    siteShellModel.settings.eventsPage.subtitle = structuredClone(value)
+    return
+  }
+  if (selectedPageRenderer.value === 'planning') {
+    siteShellModel.settings.planningPage.subtitle = structuredClone(value)
   }
 }
 

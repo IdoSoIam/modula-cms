@@ -15,6 +15,14 @@ export const ADMIN_I18N_PATHS = {
     fr: '/admin/contenu/actualites',
     en: '/admin/content/news'
   },
+  contentEvents: {
+    fr: '/admin/contenu/evenements',
+    en: '/admin/content/events'
+  },
+  contentPlanning: {
+    fr: '/admin/contenu/planning',
+    en: '/admin/content/planning'
+  },
   shopVegetables: {
     fr: '/admin/boutique/legumes',
     en: '/admin/shop/vegetables'
@@ -31,6 +39,10 @@ export const ADMIN_I18N_PATHS = {
     fr: '/admin/boutique/livraison',
     en: '/admin/shop/delivery'
   },
+  managementEventReservations: {
+    fr: '/admin/gestions/reservations',
+    en: '/admin/management/reservations'
+  },
   customizationLayout: {
     fr: '/admin/personnalisation/mise-en-page',
     en: '/admin/customization/layout'
@@ -46,6 +58,14 @@ export const ADMIN_I18N_PATHS = {
   customizationNews: {
     fr: '/admin/personnalisation/actualites',
     en: '/admin/customization/news'
+  },
+  customizationEvents: {
+    fr: '/admin/personnalisation/evenements',
+    en: '/admin/customization/events'
+  },
+  customizationPlanning: {
+    fr: '/admin/personnalisation/planning',
+    en: '/admin/customization/planning'
   },
   customizationThemes: {
     fr: '/admin/personnalisation/themes',
@@ -66,6 +86,14 @@ export const ADMIN_I18N_PATHS = {
   settingsEmailConnectors: {
     fr: '/admin/reglages/emails-connecteurs',
     en: '/admin/settings/email-connectors'
+  },
+  settingsUsers: {
+    fr: '/admin/reglages/utilisateurs',
+    en: '/admin/settings/users'
+  },
+  settingsRoles: {
+    fr: '/admin/reglages/roles',
+    en: '/admin/settings/roles'
   },
   pageEditor: {
     fr: '/admin/pages/[id]',

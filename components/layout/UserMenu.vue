@@ -18,7 +18,7 @@
           <div class="text-sm font-semibold">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</div>
           <NuxtLink :to="localePath('/profile')" class="inline-flex text-sm text-primary">{{ $t('auth.profile') }}</NuxtLink>
         </div>
-        <template v-if="authStore.user?.role === 'admin'">
+        <template v-if="authStore.canAccessAdmin">
           <div class="px-3 py-2 hover:bg-base-200">
             <NuxtLink :to="localePath('/admin')" class="inline-flex text-sm text-primary">{{ $t('admin.title') }}</NuxtLink>
           </div>

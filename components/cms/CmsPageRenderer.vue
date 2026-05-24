@@ -8,6 +8,14 @@
       v-else-if="showApplication && resolvedPage.rendererKey === 'baskets' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
       v-bind="basketsPageProps"
     />
+    <EventsPage
+      v-else-if="showApplication && resolvedPage.rendererKey === 'events' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
+      v-bind="eventsPageProps"
+    />
+    <PlanningPage
+      v-else-if="showApplication && resolvedPage.rendererKey === 'planning' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
+      v-bind="planningPageProps"
+    />
 
     <PageRenderer
       v-if="showContent"
@@ -25,6 +33,14 @@
       v-else-if="showApplication && resolvedPage.rendererKey === 'baskets' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
       v-bind="basketsPageProps"
     />
+    <EventsPage
+      v-else-if="showApplication && resolvedPage.rendererKey === 'events' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
+      v-bind="eventsPageProps"
+    />
+    <PlanningPage
+      v-else-if="showApplication && resolvedPage.rendererKey === 'planning' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
+      v-bind="planningPageProps"
+    />
 
   </div>
 </template>
@@ -34,7 +50,9 @@ import type { ResolvedCmsPage } from '~/shared/cms'
 import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
 import PageRenderer from '~/components/page-builder/PageRenderer.vue'
 import BasketsPage from '~/components/pages/BasketsPage.vue'
+import EventsPage from '~/components/pages/EventsPage.vue'
 import NewsListPage from '~/components/pages/NewsListPage.vue'
+import PlanningPage from '~/components/pages/PlanningPage.vue'
 
 const props = defineProps<{
   resolvedPage: ResolvedCmsPage
@@ -59,6 +77,14 @@ const newsPageProps = computed(() => ({
   showArticles: newsShowArticles
 }))
 
+const eventsPageProps = computed(() => ({
+  settings: cmsSettings.value?.eventsPage ?? null
+}))
+
+const planningPageProps = computed(() => ({
+  settings: cmsSettings.value?.planningPage ?? null
+}))
+
 const showContent = computed(() =>
   props.resolvedPage.pageType !== 'APPLICATION'
   && Array.isArray(props.resolvedPage.content.sections)
@@ -67,6 +93,6 @@ const showContent = computed(() =>
 
 const showApplication = computed(() =>
   (props.resolvedPage.pageType === 'APPLICATION' || props.resolvedPage.pageType === 'HYBRID')
-  && (props.resolvedPage.rendererKey === 'news' || props.resolvedPage.rendererKey === 'baskets')
+  && (props.resolvedPage.rendererKey === 'news' || props.resolvedPage.rendererKey === 'baskets' || props.resolvedPage.rendererKey === 'events' || props.resolvedPage.rendererKey === 'planning')
 )
 </script>

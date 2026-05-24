@@ -40,6 +40,7 @@ import {
   createEmptyPageBuilderContent,
   createEmptyCmsLocalizedText
 } from '~/shared/cms'
+import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '~/shared/events'
 import type { PageBuilderContent, ThemeColorSelection } from '~/shared/pageBuilder'
 import {
   clonePageBuilderContent,
@@ -931,6 +932,56 @@ function createLegacyNewsResolvedPage(locale: string): ResolvedCmsPage {
   }
 }
 
+function createLegacyEventsResolvedPage(locale: string): ResolvedCmsPage {
+  return {
+    id: null,
+    path: '/events',
+    slug: 'events',
+    pageType: 'APPLICATION',
+    status: 'PUBLISHED',
+    specialRole: null,
+    templateKey: 'default',
+    rendererKey: 'events',
+    applicationPosition: 'AFTER_CONTENT',
+    title: locale === 'en' ? 'Events' : 'Événements',
+    navigationLabel: locale === 'en' ? 'Events' : 'Événements',
+    seo: {
+      metaTitle: locale === 'en' ? 'Upcoming events' : 'Événements à venir',
+      metaDescription: locale === 'en'
+        ? 'Browse upcoming events, public reservations and internal participation calls.'
+        : 'Consultez les événements à venir, les réservations publiques et les appels à participation.',
+      ogImage: '',
+      noindex: false
+    },
+    content: createEmptyPageBuilderContent()
+  }
+}
+
+function createLegacyPlanningResolvedPage(locale: string): ResolvedCmsPage {
+  return {
+    id: null,
+    path: '/planning',
+    slug: 'planning',
+    pageType: 'APPLICATION',
+    status: 'PUBLISHED',
+    specialRole: null,
+    templateKey: 'default',
+    rendererKey: 'planning',
+    applicationPosition: 'AFTER_CONTENT',
+    title: locale === 'en' ? 'Schedule' : 'Planning',
+    navigationLabel: locale === 'en' ? 'Schedule' : 'Planning',
+    seo: {
+      metaTitle: locale === 'en' ? 'Farm schedule' : 'Planning de la ferme',
+      metaDescription: locale === 'en'
+        ? 'Browse the farm schedule, public events and volunteer information.'
+        : 'Consultez le planning de la ferme, les événements publics et les informations bénévoles.',
+      ogImage: '',
+      noindex: false
+    },
+    content: createEmptyPageBuilderContent()
+  }
+}
+
 export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
   const raw = await getSetting(SETTING_KEYS.CMS_SITE_SETTINGS)
   const parsed = parseJson<CmsSiteSettings>(raw)
@@ -1055,7 +1106,76 @@ export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
           cardBackgroundColor: normalizeThemeColorSelection(parsed.newsPage.cardBackgroundColor, fallback.newsPage.cardBackgroundColor || createThemeColorSelection('base-200'))
         }
       : fallback.newsPage,
+    eventsPage: isObject(parsed.eventsPage)
+      ? normalizeEventsPageSettings(parsed.eventsPage, fallback.eventsPage)
+      : fallback.eventsPage,
+    planningPage: isObject(parsed.planningPage)
+      ? normalizePlanningPageSettings(parsed.planningPage, fallback.planningPage)
+      : fallback.planningPage,
     cookieBanner: normalizeCookieBannerSettings(parsed.cookieBanner, fallback.cookieBanner)
+  }
+}
+
+function normalizeEventsPageSettings(value: unknown, fallback: CmsEventsPageSettings): CmsEventsPageSettings {
+  if (!isObject(value)) return fallback
+  const enabledViews = Array.isArray(value.enabledViews)
+    ? value.enabledViews.filter((entry): entry is CmsEventsPageSettings['enabledViews'][number] =>
+        entry === 'list' || entry === 'grid' || entry === 'calendar')
+    : fallback.enabledViews
+
+  const defaultViewMode = value.defaultViewMode === 'list' || value.defaultViewMode === 'calendar' || value.defaultViewMode === 'grid'
+    ? value.defaultViewMode
+    : fallback.defaultViewMode
+
+  return {
+    title: normalizeLocalizedText(value.title),
+    subtitle: normalizeLocalizedText(value.subtitle),
+    containerWidth: typeof value.containerWidth === 'string' ? value.containerWidth as CmsEventsPageSettings['containerWidth'] : fallback.containerWidth,
+    defaultViewMode,
+    enabledViews: enabledViews.length ? Array.from(new Set(enabledViews)) : fallback.enabledViews,
+    gridColumns: normalizeGridColumns(value.gridColumns, fallback.gridColumns, 3) as 1 | 2 | 3,
+    showViewToggle: typeof value.showViewToggle === 'boolean' ? value.showViewToggle : fallback.showViewToggle,
+    showCoverImage: typeof value.showCoverImage === 'boolean' ? value.showCoverImage : fallback.showCoverImage,
+    showDate: typeof value.showDate === 'boolean' ? value.showDate : fallback.showDate,
+    showLocation: typeof value.showLocation === 'boolean' ? value.showLocation : fallback.showLocation,
+    showExcerpt: typeof value.showExcerpt === 'boolean' ? value.showExcerpt : fallback.showExcerpt,
+    excerptLines: [2, 3, 4].includes(Number(value.excerptLines)) ? Number(value.excerptLines) as 2 | 3 | 4 : fallback.excerptLines,
+    cardBackgroundColor: normalizeThemeColorSelection(value.cardBackgroundColor, fallback.cardBackgroundColor || createThemeColorSelection('base-200')),
+    publicReservationLabel: normalizeLocalizedTextWithFallback(value.publicReservationLabel, fallback.publicReservationLabel),
+    internalParticipationLabel: normalizeLocalizedTextWithFallback(value.internalParticipationLabel, fallback.internalParticipationLabel),
+    detailLabel: normalizeLocalizedTextWithFallback(value.detailLabel, fallback.detailLabel)
+  }
+}
+
+function normalizePlanningPageSettings(value: unknown, fallback: CmsPlanningPageSettings): CmsPlanningPageSettings {
+  if (!isObject(value)) return fallback
+  const enabledViews = Array.isArray(value.enabledViews)
+    ? value.enabledViews.filter((entry): entry is CmsPlanningPageSettings['enabledViews'][number] =>
+        entry === 'list' || entry === 'grid' || entry === 'calendar')
+    : fallback.enabledViews
+
+  const defaultViewMode = value.defaultViewMode === 'list' || value.defaultViewMode === 'calendar' || value.defaultViewMode === 'grid'
+    ? value.defaultViewMode
+    : fallback.defaultViewMode
+
+  return {
+    title: normalizeLocalizedText(value.title),
+    subtitle: normalizeLocalizedText(value.subtitle),
+    containerWidth: typeof value.containerWidth === 'string' ? value.containerWidth as CmsPlanningPageSettings['containerWidth'] : fallback.containerWidth,
+    defaultViewMode,
+    enabledViews: enabledViews.length ? Array.from(new Set(enabledViews)) : fallback.enabledViews,
+    gridColumns: normalizeGridColumns(value.gridColumns, fallback.gridColumns, 3) as 1 | 2 | 3,
+    showViewToggle: typeof value.showViewToggle === 'boolean' ? value.showViewToggle : fallback.showViewToggle,
+    showCoverImage: typeof value.showCoverImage === 'boolean' ? value.showCoverImage : fallback.showCoverImage,
+    showDate: typeof value.showDate === 'boolean' ? value.showDate : fallback.showDate,
+    showLocation: typeof value.showLocation === 'boolean' ? value.showLocation : fallback.showLocation,
+    showExcerpt: typeof value.showExcerpt === 'boolean' ? value.showExcerpt : fallback.showExcerpt,
+    excerptLines: [2, 3, 4].includes(Number(value.excerptLines)) ? Number(value.excerptLines) as 2 | 3 | 4 : fallback.excerptLines,
+    cardBackgroundColor: normalizeThemeColorSelection(value.cardBackgroundColor, fallback.cardBackgroundColor || createThemeColorSelection('base-200')),
+    detailLabel: normalizeLocalizedTextWithFallback(value.detailLabel, fallback.detailLabel),
+    becomeVolunteerLabel: normalizeLocalizedTextWithFallback(value.becomeVolunteerLabel, fallback.becomeVolunteerLabel),
+    internalParticipationLabel: normalizeLocalizedTextWithFallback(value.internalParticipationLabel, fallback.internalParticipationLabel),
+    guestInfoLabel: normalizeLocalizedTextWithFallback(value.guestInfoLabel, fallback.guestInfoLabel)
   }
 }
 
@@ -1121,16 +1241,19 @@ export async function getCmsSpecialPagePath(role: CmsPageSpecialRole) {
 
 export async function ensureCmsRootPage() {
   const existing = await withCmsTableFallback(
-    () => prisma.cmsPage.findFirst({ where: { path: '/' } }),
+    () => prisma.cmsPage.findFirst({
+      where: {
+        OR: [
+          { path: '/' },
+          { slug: 'home' }
+        ]
+      }
+    }),
     async () => null
   )
 
-  if (existing) {
-    return existing.id
-  }
-
   const rootPageContent = await getPageBuilderContent()
-  const created = await saveCmsPage(null, {
+  const rootPayload: CmsPagePayload = {
     ...createDefaultCmsPagePayload('/', 'Page d’accueil'),
     path: '/',
     slug: 'home',
@@ -1160,22 +1283,38 @@ export async function ensureCmsRootPage() {
         content: rootPageContent
       }
     }
-  })
+  }
+
+  if (existing) {
+    const payload = pageRowToPayload(existing)
+    if (payload.path === '/' && payload.slug === 'home') {
+      return existing.id
+    }
+  }
+
+  const created = await saveCmsPage(existing?.id ?? null, rootPayload)
 
   return created?.id ?? null
 }
 
 async function ensureCmsApplicationPage(path: string, slug: string, titleFr: string, titleEn: string, rendererKey: string) {
   const existing = await withCmsTableFallback(
-    () => prisma.cmsPage.findFirst({ where: { path } }),
+    () => prisma.cmsPage.findFirst({
+      where: {
+        OR: [
+          { path },
+          { slug },
+          {
+            pageType: 'APPLICATION',
+            rendererKey
+          }
+        ]
+      }
+    }),
     async () => null
   )
 
-  if (existing) {
-    return existing.id
-  }
-
-  const created = await saveCmsPage(null, {
+  const applicationPayload: CmsPagePayload = {
     ...createDefaultCmsPagePayload(path, titleFr),
     path,
     slug,
@@ -1197,7 +1336,21 @@ async function ensureCmsApplicationPage(path: string, slug: string, titleFr: str
         content: createEmptyPageBuilderContent()
       }
     }
-  })
+  }
+
+  if (existing) {
+    const payload = pageRowToPayload(existing)
+    if (
+      payload.path === path
+      && payload.slug === slug
+      && payload.pageType === 'APPLICATION'
+      && payload.rendererKey === rendererKey
+    ) {
+      return existing.id
+    }
+  }
+
+  const created = await saveCmsPage(existing?.id ?? null, applicationPayload)
 
   return created?.id ?? null
 }
@@ -1262,6 +1415,8 @@ export async function ensureCmsSystemPages() {
   await ensureCmsRootPage()
   await ensureCmsApplicationPage('/paniers', 'paniers', 'Paniers', 'Baskets', 'baskets')
   await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
+  await ensureCmsApplicationPage('/events', 'events', 'Événements', 'Events', 'events')
+  await ensureCmsApplicationPage('/planning', 'planning', 'Planning', 'Schedule', 'planning')
   await ensureCmsStandardPage({
     path: '/construction',
     slug: 'construction',
@@ -1378,7 +1533,7 @@ export async function ensureCmsSystemPages() {
 }
 
 export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCmsPage, locale: CmsLocale) {
-  if (resolvedPage.path === '/' || resolvedPage.path === '/paniers' || resolvedPage.path === '/news' || resolvedPage.path === '/construction' || resolvedPage.path === '/contact' || resolvedPage.path === '/terms' || resolvedPage.path === '/privacy') {
+  if (resolvedPage.path === '/' || resolvedPage.path === '/paniers' || resolvedPage.path === '/news' || resolvedPage.path === '/events' || resolvedPage.path === '/planning' || resolvedPage.path === '/construction' || resolvedPage.path === '/contact' || resolvedPage.path === '/terms' || resolvedPage.path === '/privacy') {
     await ensureCmsSystemPages()
     return await getCmsPageByPath(resolvedPage.path)
   }
@@ -1687,6 +1842,14 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
     return createLegacyNewsResolvedPage(locale)
   }
 
+  if (normalizedPath === '/events') {
+    return createLegacyEventsResolvedPage(locale)
+  }
+
+  if (normalizedPath === '/planning') {
+    return createLegacyPlanningResolvedPage(locale)
+  }
+
   return null
 }
 
@@ -1736,6 +1899,8 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
   const footerValue = isObject(value.footer) ? value.footer : {}
   const basketsPageValue = isObject(value.basketsPage) ? value.basketsPage : {}
   const newsPageValue = isObject(value.newsPage) ? value.newsPage : {}
+  const eventsPageValue = isObject(value.eventsPage) ? value.eventsPage : {}
+  const planningPageValue = isObject(value.planningPage) ? value.planningPage : {}
   const cookieBannerValue = isObject(value.cookieBanner) ? value.cookieBanner : {}
 
   return {
@@ -1839,6 +2004,8 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
         : fallback.newsPage.excerptLines,
       cardBackgroundColor: normalizeThemeColorSelection(newsPageValue.cardBackgroundColor, fallback.newsPage.cardBackgroundColor || createThemeColorSelection('base-200'))
     },
+    eventsPage: normalizeEventsPageSettings(eventsPageValue, fallback.eventsPage),
+    planningPage: normalizePlanningPageSettings(planningPageValue, fallback.planningPage),
     cookieBanner: normalizeCookieBannerSettings(cookieBannerValue, fallback.cookieBanner)
   }
 }

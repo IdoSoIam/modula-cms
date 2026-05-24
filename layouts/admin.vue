@@ -73,16 +73,26 @@
 <script setup lang="ts">
 import AdminNavigationMenu from '~/components/admin/AdminNavigationMenu.vue'
 import { getAdminNavigationSections } from '~/shared/adminNavigation'
+import { useAuthStore } from '~/stores/auth'
 
 useNoIndexSeo('Administration')
 
 const localePath = useLocalePath()
 const { t } = useI18n()
 const siteConfig = useSiteConfigState()
+const authStore = useAuthStore()
 const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated === true)
 const adminSections = computed(() => getAdminNavigationSections({
   facebookSyncEnabled: !facebookFluxDeactivated.value
-}))
+}).map(section => ({
+  ...section,
+  items: section.items.filter((item) => {
+    if (authStore.isAdmin) return true
+    if (item.requiredSpecialPermission && !authStore.hasSpecialPermission(item.requiredSpecialPermission)) return false
+    if (item.requiredModule && item.requiredAction && !authStore.hasModulePermission(item.requiredModule, item.requiredAction)) return false
+    return true
+  })
+})).filter(section => section.items.length > 0))
 
 const sidebarCollapsed = useState('admin-sidebar-collapsed', () => false)
 const mobileSidebarOpen = ref(false)

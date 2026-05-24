@@ -1,5 +1,7 @@
 import type { PageBuilderContent, SectionContainerWidth, ThemeColorSelection, ThemeColorToken, VerticalAlign } from '~/shared/pageBuilder'
 import { createThemeColorSelection } from '~/shared/pageBuilder'
+import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '~/shared/events'
+import { createDefaultEventsPageSettings, createDefaultPlanningPageSettings } from '~/shared/events'
 
 export const CMS_LOCALES = ['fr', 'en'] as const
 
@@ -188,6 +190,8 @@ export interface CmsSiteSettings {
   socialLinks: CmsSocialLink[]
   basketsPage: CmsBasketsPageSettings
   newsPage: CmsNewsPageSettings
+  eventsPage: CmsEventsPageSettings
+  planningPage: CmsPlanningPageSettings
   cookieBanner: CmsCookieBannerSettings
 }
 
@@ -407,6 +411,8 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
       excerptLines: 3,
       cardBackgroundColor: createThemeColorSelection('base-200')
     },
+    eventsPage: createDefaultEventsPageSettings(),
+    planningPage: createDefaultPlanningPageSettings(),
     cookieBanner: {
       enabled: true,
       title: {

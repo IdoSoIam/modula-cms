@@ -48,7 +48,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
       return navigateTo(localePath('/login'))
     }
 
-    if (!authStore.isAdmin) {
+    if (!authStore.canAccessAdmin) {
       return navigateTo(localePath('/'))
     }
   }

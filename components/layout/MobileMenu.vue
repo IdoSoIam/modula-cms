@@ -135,7 +135,7 @@
               <span>{{ t('auth.profile') }}</span>
             </NuxtLink>
 
-            <NuxtLink v-if="authStore.user?.role === 'admin'" :to="localePath('/admin')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink v-if="authStore.canAccessAdmin" :to="localePath('/admin')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:shield-crown-outline" size="18" class="shrink-0" />
               <span>{{ t('admin.title') }}</span>
             </NuxtLink>

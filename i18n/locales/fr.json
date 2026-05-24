@@ -369,6 +369,7 @@
     "navigation": {
       "sections": {
         "content": "Contenu",
+        "management": "Gestions",
         "shop": "Boutique",
         "customization": "Personnalisation",
         "settings": "Réglages"
@@ -377,6 +378,9 @@
         "dashboard": "Dashboard",
         "pages": "Pages",
         "news": "Actualités",
+        "planning": "Planning",
+        "events": "Événements",
+        "eventReservations": "Réservations événement",
         "vegetables": "Légumes",
         "baskets": "Paniers",
         "orders": "Commandes",
@@ -388,6 +392,8 @@
         "global": "Global",
         "emailConnectors": "Emails et connecteurs",
         "features": "Fonctionnalités",
+        "users": "Utilisateurs",
+        "roles": "Rôles",
         "facebookSync": "Synchronisation Facebook"
       }
     },
@@ -1089,6 +1095,7 @@
       "rendererBaskets": "Paniers",
       "rendererShop": "Boutique",
       "rendererEvents": "Événements",
+      "rendererPlanning": "Planning",
       "cardBuilder": {
         "contentElements": "Éléments de contenu",
         "addTitle": "Ajouter un titre",
