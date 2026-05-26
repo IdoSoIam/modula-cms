@@ -1,241 +1,177 @@
-# Ferme du Campeyrigoux
+# Modula CMS, CMS multi-site modulaire
 
-## Etat actuel
+Modula CMS est un CMS multi-site construit avec Nuxt 4, Vue 3, TypeScript, Prisma, Cloudflare D1/R2 et DaisyUI. Le projet regroupe une interface publique, un back-office et une API Nitro dans une application Nuxt unique, avec une base SQLite pour certains usages locaux et D1 pour le runtime Cloudflare.
 
-Le site couvre deja les briques principales pour publier une version utile :
+Historique : Modula CMS a d'abord été développé pour la Ferme du Campeyrigoux, puis a évolué vers un CMS multi-site modulaire.
 
-- page CMS racine et page `paniers`
-- reservation de paniers cote client
-- 3 modes de retrait / livraison :
-  - retrait a la ferme
-  - point relais
-  - tournee de livraison
-- back-office admin pour :
-  - gerer les paniers
-  - gerer les legumes
-  - gerer les points relais
-  - gerer les tournees
-  - gerer les reservations
-  - gerer les parametres email / Google / fenetre de commande
-- emails de confirmation / refus / annulation
-- synchronisation Google Calendar
-- lien public de gestion de reservation par token
+## Stack technique
 
-## Base de donnees Cloudflare / D1
+- Nuxt 4 avec Nitro, preset Cloudflare module.
+- Vue 3 et TypeScript.
+- Prisma 7 avec adaptateurs SQLite et Cloudflare D1.
+- Cloudflare Workers via Wrangler, avec D1 pour les données applicatives.
+- Cloudflare R2 pour le stockage des images quand le runtime Cloudflare est disponible.
+- Tailwind CSS 4 et DaisyUI 5 pour les composants et les thèmes.
+- `@nuxtjs/i18n` avec `vue-i18n` dans l'arbre de dépendances pour l'internationalisation.
+- Pinia et TanStack Vue Query côté interface.
+- Tiptap pour les contenus éditoriaux enrichis.
+- `bcryptjs` pour le hash des mots de passe.
+- Connecteurs email présents dans le code, dont Gmail et Resend. Vérifier la configuration et l'installation effective du paquet Resend avant de l'activer en production.
+- `nitro-cloudflare-dev` pour rapprocher le développement local du runtime Cloudflare.
 
-Le projet manipule en pratique 3 bases differentes :
+## Architecture
 
-- SQLite locale Prisma : [prisma/local.db](/D:/Works/ferme-campeyrigoux/prisma/local.db:1)
-- D1 locale Wrangler : base utilisee par `npm run dev` et `npm run preview`
-- D1 distante Cloudflare : base utilisee apres `npm run deploy`
+Le dépôt est une application Nuxt monorepo :
 
-Point important :
+- `pages/` contient les vues publiques, l'administration et les pages d'activation utilisateur.
+- `components/` contient les composants Vue, dont les blocs CMS et les composants d'interface.
+- `server/api/` expose les routes API Nitro pour le CMS, l'admin, l'authentification et les modules métier.
+- `server/services/` et `server/utils/` portent la logique serveur partagée.
+- `shared/` contient les contrats et helpers communs, par exemple le page builder, les routes admin, les thèmes et la résolution CMS.
+- `prisma/schema.prisma` décrit les modèles applicatifs, avec Prisma configuré pour SQLite côté schéma et D1 côté runtime Cloudflare.
+- `migrations/` contient les migrations SQL utilisées par les scripts locaux et D1.
+- `wrangler.jsonc` déclare le Worker, le binding D1 `DB`, le bucket R2 `UPLOADS_BUCKET` et les variables Cloudflare.
 
-- `npm run dev` ne lit pas `prisma/local.db`
-- avec `nitro-cloudflare-dev`, `npm run dev` utilise le binding Cloudflare local, donc la D1 locale Wrangler
-- `npm run preview` utilise aussi la D1 locale Wrangler grace a `wrangler dev --local`
-- `npm run db:studio` ouvre Prisma Studio sur `prisma/local.db`, pas sur la D1 locale
+Le runtime utilise en pratique trois bases :
 
-Le stockage image reste sur R2 quand le runtime Cloudflare est disponible, avec fallback local en base pour certains usages de dev.
+- SQLite locale Prisma : `prisma/local.db`.
+- D1 locale Wrangler : utilisée par `npm run dev` et `npm run preview`.
+- D1 distante Cloudflare : utilisée après `npm run deploy`.
 
-### Commandes utiles
+Points importants :
 
-- `npm run db:local:reset` : recree la base SQLite locale [prisma/local.db](/D:/Works/ferme-campeyrigoux/prisma/local.db:1) depuis [migrations/0001_init.sql](/D:/Works/ferme-campeyrigoux/migrations/0001_init.sql:1)
-- `npm run dev` : lance Nuxt en dev avec la D1 locale Wrangler
-- `npm run preview` : build + preview Cloudflare locale avec la D1 locale Wrangler
-- `npm run db:d1:migrate:local` : applique les migrations au D1 local Wrangler
-- `npm run db:d1:migrate:remote` : applique les migrations au D1 distant
-- `npm run db:d1:query:local -- "SELECT * FROM User;"` : execute une requete SQL sur la D1 locale
-- `npm run db:d1:query:remote -- "SELECT * FROM User;"` : execute une requete SQL sur la D1 distante
-- `npm run db:studio` : ouvre Prisma Studio sur `prisma/local.db`
-- `npm run db:studio:d1:local` : exporte la D1 locale vers `prisma/d1-local-studio.db` puis ouvre Prisma Studio sur ce miroir
+- `npm run dev` ne lit pas `prisma/local.db`.
+- Avec `nitro-cloudflare-dev`, `npm run dev` utilise le binding Cloudflare local, donc la D1 locale Wrangler.
+- `npm run preview` utilise aussi la D1 locale Wrangler via `wrangler dev --local`.
+- `npm run db:studio` ouvre Prisma Studio sur `prisma/local.db`, pas sur la D1 locale.
+- Le stockage image utilise R2 quand le runtime Cloudflare est disponible, avec un fallback local en base pour certains usages de développement.
 
-### Synchronisation entre bases
+## Fonctionnalités vérifiées dans le code
 
-- `npm run db:d1:import:sqlite-local` : copie les donnees de `prisma/local.db` vers la D1 locale
-- `npm run db:d1:push:prod` : copie les donnees de la D1 locale vers la D1 distante
-- `npm run db:d1:pull:prod` : copie les donnees de la D1 distante vers la D1 locale
+- CMS multi-site basé sur la résolution de pages publiques et la configuration de site.
+- Page builder visuel autour du modèle `CmsPage` et des blocs déclarés dans `shared/pageBuilder.ts`.
+- Événements avec modèles `Event`, occurrences, réservations publiques et participations internes.
+- Actualités avec le modèle `Article`.
+- Rôles et permissions avec `Role`, `RolePermission` et les permissions par module.
+- Rôles associatifs cumulables avec `MemberRole` et `UserMemberRole`.
+- Thèmes DaisyUI configurables via `shared/themes.ts`, appliqués par `useTheme`.
+- i18n Nuxt avec locales `fr` et `en`, stratégie `prefix_except_default` et configuration `i18n.config.ts`.
+- Invitations utilisateur sans mot de passe via `PasswordSetupToken`, les routes `/password-setup/[token]` et le service d'authentification.
+- Feature flags dans `siteConfig.featureFlags`, utilisés pour piloter les modules exposés côté public et admin.
+- Gestion d'images via Nuxt Image, Cloudflare Images et R2 selon la configuration runtime.
+
+## Page builder
+
+Le page builder stocke les pages CMS dans `CmsPage`. Les blocs, variantes et options de rendu sont typés dans `shared/pageBuilder.ts`, puis rendus côté public par les composants CMS. La résolution des pages passe par l'API CMS et les helpers partagés pour combiner contenu, configuration de site, menus, footer, thème et flags actifs.
+
+## Événements et actualités
+
+Le module événements s'appuie sur `Event`, `EventOccurrence`, `EventAudienceMemberRole`, `EventPublicReservation` et `EventInternalParticipation`. Il couvre les événements datés, les occurrences et les publics liés aux rôles associatifs quand la fonctionnalité est active.
+
+Le module actualités repose sur `Article` et ses routes API. Il est exposé comme contenu éditorial publié, avec auteur et métadonnées stockés en base.
+
+## Rôles et permissions
+
+Les droits d'administration sont modélisés avec `Role` et `RolePermission`. Les permissions sont stockées par module avec les capacités lecture, création, modification et suppression.
+
+Les rôles associatifs sont séparés des rôles d'administration. Ils peuvent être cumulés sur un utilisateur via `UserMemberRole` et sont utilisés par certains modules, notamment les événements.
+
+## Thèmes, i18n et feature flags
+
+Les thèmes DaisyUI sont centralisés dans `shared/themes.ts`. Le thème actif est appliqué via l'attribut `data-theme`, avec une liste de thèmes publics et un thème sombre par défaut si configuré.
+
+L'i18n est configurée dans `nuxt.config.ts` avec `@nuxtjs/i18n`, les locales `fr` et `en`, et le fichier `i18n.config.ts` pour `vue-i18n`.
+
+Les feature flags sont lus depuis `siteConfig.featureFlags`. Ils servent à masquer ou désactiver des modules dans les routes publiques, les menus admin et certaines API.
+
+## Invitations utilisateur
+
+Le flux d'invitation crée un utilisateur inactif sans mot de passe, génère un token stocké côté serveur, puis propose un lien public de configuration. Les routes `/api/auth/password-setup/[token]` valident et consomment ce token. La page `/password-setup/[token]` permet à l'utilisateur de créer son mot de passe.
+
+## Commandes
+
+### Développement
+
+- `npm run dev` : lance Nuxt en développement avec la D1 locale Wrangler.
+- `npm run dev:reset` : nettoie l'état Nuxt puis relance le serveur de développement.
+- `npm run build` : construit l'application Nuxt.
+- `npm run preview` : construit l'application puis lance un preview Cloudflare local avec `wrangler --cwd .output dev --local`.
+- `npm run generate` : lance la génération Nuxt.
+- `npm run cf-typegen` : génère les types Wrangler.
+
+### Prisma et bases locales
+
+- `npm run db:generate` : génère le client Prisma.
+- `npm run db:local:migrate` : applique les migrations SQL sur la SQLite locale.
+- `npm run db:local:reset` : recrée `prisma/local.db` depuis les migrations.
+- `npm run db:studio` : ouvre Prisma Studio sur `prisma/local.db`.
+- `npm run db:studio:d1:local` : exporte la D1 locale vers `prisma/d1-local-studio.db`, puis ouvre Prisma Studio sur ce miroir.
+- `npm run db:d1:seed:cms-local` : injecte les données CMS locales prévues par le script de seed.
+
+### Migrations et requêtes D1
+
+- `npm run db:d1:migrate:local` : applique les migrations sur la D1 locale Wrangler.
+- `npm run db:d1:migrate:remote` : applique les migrations sur la D1 distante Cloudflare.
+- `npm run db:d1:query:local -- "SELECT * FROM User;"` : exécute une requête SQL sur la D1 locale.
+- `npm run db:d1:query:remote -- "SELECT * FROM User;"` : exécute une requête SQL sur la D1 distante.
+
+### Synchronisation des bases
+
+- `npm run db:d1:import:sqlite-local` : copie les données de `prisma/local.db` vers la D1 locale.
+- `npm run db:d1:push:prod` : copie les données de la D1 locale vers la D1 distante.
+- `npm run db:d1:pull:prod` : copie les données de la D1 distante vers la D1 locale.
 
 Notes sur ces commandes :
 
-- elles reappliquent les migrations sur la cible avant import
-- elles remplacent les donnees applicatives de la cible
-- elles ne sont pas destinees a fusionner des environnements
-- `db:d1:push:prod` est destructrice pour les donnees actuelles de prod
-- `db:d1:pull:prod` ecrase les donnees actuelles de la D1 locale
+- Elles réappliquent les migrations sur la cible avant import.
+- Elles remplacent les données applicatives de la cible.
+- Elles ne fusionnent pas des environnements.
+- `db:d1:push:prod` est destructrice pour les données actuelles de production.
+- `db:d1:pull:prod` écrase les données actuelles de la D1 locale.
 
-### Prisma Studio et D1 locale
+### R2 et images
 
-Prisma Studio ne se branche pas proprement en direct sur le binding D1 local de Wrangler.
+- `npm run r2:push:prod` : synchronise les fichiers locaux vers R2 distant.
+- `npm run r2:pull:prod` : synchronise R2 distant vers le stockage local.
+- `npm run images:optimize:r2:remote` : optimise les images R2 distantes.
+- `npm run images:optimize:r2:remote:dry` : simule l'optimisation des images R2 distantes.
+- `npm run images:optimize:r2:local` : optimise les images R2 locales.
+- `npm run images:optimize:r2:local:dry` : simule l'optimisation des images R2 locales.
 
-La commande `npm run db:studio:d1:local` contourne ca ainsi :
+## Déploiement Cloudflare
 
-- export SQL de la D1 locale
-- reconstruction d'une SQLite miroir dans [prisma/d1-local-studio.db](/D:/Works/ferme-campeyrigoux/prisma/d1-local-studio.db:1)
-- ouverture de Prisma Studio sur cette copie
+Le déploiement cible Cloudflare Workers avec Wrangler. La configuration actuelle déclare :
 
-Donc :
+- le Worker `modula-cms` ;
+- le binding D1 `DB` ;
+- le bucket R2 `UPLOADS_BUCKET` ;
+- le binding `IMAGE_RESIZER` pour Cloudflare Images ;
+- les variables runtime dans `wrangler.jsonc`.
 
-- le miroir est fidele au moment de l'export
-- si la D1 locale change, il faut relancer `npm run db:studio:d1:local`
-- Prisma Studio reste un outil de visualisation pratique, pas la source de verite du runtime Cloudflare
+Avant un déploiement réel :
 
-### Flux recommande en dev
+1. Créer ou vérifier la base D1 distante.
+2. Créer ou vérifier le bucket R2 déclaré dans `wrangler.jsonc`.
+3. Vérifier que `wrangler.jsonc` contient le bon `database_id`.
+4. Configurer les secrets et variables nécessaires hors dépôt.
+5. Lancer `npm run db:d1:migrate:remote`.
+6. Lancer `npm run deploy`.
 
-1. Modifier le schema ou les migrations si besoin.
-2. Lancer `npm run db:d1:migrate:local`.
-3. Si besoin, importer les donnees SQLite historiques avec `npm run db:d1:import:sqlite-local`.
-4. Travailler avec `npm run dev`.
-5. Verifier les donnees D1 locale avec `npm run db:d1:query:local -- "<sql>"` ou `npm run db:studio:d1:local`.
-
-### Avant le vrai deploy Cloudflare
-
-- creer la base D1 distante
-- creer aussi le bucket R2 `ferme-du-campeyrigoux-images`
-- remplacer `database_id` dans [wrangler.jsonc](/D:/Works/ferme-campeyrigoux/wrangler.jsonc:1)
-- lancer `npm run db:d1:migrate:remote`
-- si on veut pousser les donnees de la D1 locale vers la prod, lancer `npm run db:d1:push:prod`
-- lancer `npm run deploy`
-
-### Deploiement prod
-
-Pour deployer seulement le code et le schema :
+Pour déployer le code et le schéma :
 
 1. `npm run db:d1:migrate:remote`
 2. `npm run deploy`
 
-Pour deployer le code, le schema et aussi les donnees de la D1 locale vers la prod :
+Pour déployer le code, le schéma et les données de la D1 locale vers la production :
 
 1. `npm run db:d1:migrate:remote`
 2. `npm run db:d1:push:prod`
 3. `npm run deploy`
 
-Verification utile apres deploiement :
+Attention : `npm run db:d1:push:prod` remplace les données applicatives actuelles de la base distante. Vérifier la cible Wrangler et le `database_id` avant de lancer cette commande.
 
-- `npm run db:d1:query:remote -- "SELECT id, email, role FROM User;"`
+Vérification utile après déploiement :
 
-Attention :
-
-- `npm run db:d1:push:prod` remplace les donnees applicatives actuelles de la base distante
-- verifier avant de deployer que [wrangler.jsonc](/D:/Works/ferme-campeyrigoux/wrangler.jsonc:1) contient bien le bon `database_id`
-
-Les abonnements et l'inscription publique sont maintenant pilotables depuis [pages/admin/parametres.vue](/D:/Works/ferme-campeyrigoux/pages/admin/parametres.vue:1), au lieu d'etre bloques en dur.
-
-## Parcours client actuel
-
-1. Le client arrive sur la home puis ouvre [pages/paniers.vue](/D:/Works/ferme-campeyrigoux/pages/paniers.vue:1).
-2. Il choisit un panier.
-3. Il remplit son nom, email, telephone et son mode de retrait / livraison.
-4. Il peut choisir :
-   - `FARM` : retrait a la ferme
-   - `PICKUP` : point relais
-   - `TOUR` : tournee de livraison
-5. Pour `FARM`, le formulaire propose par defaut le creneau configure dans l'admin, avec possibilite pour le client de demander une autre date / heure.
-6. La reservation est creee en `PENDING` via [server/api/orders/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/orders/index.post.ts:1).
-7. Si le retrait est a la ferme, un historique de propositions de creneaux est conserve et le client peut accepter ou contre-proposer depuis le lien public.
-8. L'admin recoit une notification email.
-9. L'admin confirme / refuse / annule depuis [pages/admin/shop/orders.vue](/D:/Works/ferme-campeyrigoux/pages/admin/shop/orders.vue:1).
-10. Pour `FARM`, l'admin peut soit confirmer le creneau, soit envoyer une contre-proposition.
-11. Le client recoit ensuite l'email de decision avec, si besoin, un lien public de gestion.
-
-## Ce qui a deja ete fait dans les rollouts du 03/05
-
-- ajout du retrait a la ferme dans les reservations
-- ajout des champs de fulfillment dans Prisma
-- ajout de la synchro Google Calendar
-- ajout des emails de confirmation / annulation / refus
-- ajout des tokens publics de gestion de reservation
-- ajout du back-office de gestion des reservations
-- ajout des points relais et des tournees
-- ajout de la logique d'occurrences et notifications pour les abonnements
-- ajout de l'archivage de reservations
-
-## Decisions fonctionnelles retenues pour la publication
-
-- pas d'abonnement pour le moment
-- pas de paiement en ligne
-- paiement en espece au retrait / a la remise
-- inscription publique desactivee
-- le mode `Retrait a la ferme` sert uniquement aux paniers reserves sur le site
-- la `vente a la ferme` reste un temps de vente directe distinct pour les legumes recoltes / recoltables et les autres produits disponibles
-- le creneau et l'adresse du retrait a la ferme sont parametrables dans l'admin
-- en retrait a la ferme, une reservation reste une proposition tant que les deux parties n'ont pas valide le creneau
-
-## Ce qui manque encore avant une publication sereine
-
-### Priorite haute
-
-- clarifier partout le paiement :
-  - il faut afficher explicitement "paiement en espece, pas de paiement en ligne" dans le parcours client, les emails et idealement dans la home
-- envoyer un email d'accuse de reception immediat au client apres demande :
-  - aujourd'hui le client a seulement un toast local, puis attend la decision admin
-- simplifier le formulaire panier pour les clients :
-  - actuellement la ville / code postal apparaissent meme avant d'avoir choisi une tournee
-  - il serait plus simple de demander d'abord le mode de retrait / livraison, puis d'afficher seulement les champs utiles
-- verifier le contenu final des emails admin / client :
-  - heures, lieu de retrait, consigne de paiement en espece, et vocabulaire "tournee / point relais / ferme"
-- nettoyer les textes mal encodes visibles dans plusieurs fichiers (`â€”`, `Ã©`, etc.)
-
-### Priorite haute cote admin
-
-- appliquer la migration Prisma qui ajoute l'historique de propositions de creneaux ferme
-
-- verifier que les parametres minimum sont bien renseignables avant mise en ligne :
-  - email admin
-  - calendrier Google cible si utilise
-  - fenetre d'ouverture des commandes
-  - adresse et creneau par defaut du retrait a la ferme
-  - activation / desactivation des abonnements et de l'inscription publique
-  - points relais actifs
-  - tournees actives avec villes rattachees
-- preparer un vrai process d'exploitation :
-  - qui confirme les reservations
-  - sous quel delai
-  - comment on gere les contre-propositions de creneaux ferme
-  - quand on archive les reservations terminees
-
-### Priorite moyenne
-
-- rendre l'adresse / ville prefillees plus intelligemment si un client connecte existe
-- ajouter un message d'aide visible sur le mode `Retrait a la ferme`
-- ajouter une vraie mention "vente a la ferme" plus operationnelle :
-  - adresse precise
-  - jours / horaires
-  - eventuelle consigne de commande
-- ajouter une page ou un bloc "comment ca marche"
-- harmoniser les libelles admin / client
-
-## Points de vigilance identifies dans les fichiers
-
-- [components/AuthForm.vue](/D:/Works/ferme-campeyrigoux/components/AuthForm.vue:1) exposait encore l'inscription publique
-- [server/api/auth/register.post.ts](/D:/Works/ferme-campeyrigoux/server/api/auth/register.post.ts:1) acceptait encore l'inscription
-- [server/api/orders/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/orders/index.post.ts:1) devait revalider plus strictement la coherence `tournee <-> ville`
-- [pages/paniers.vue](/D:/Works/ferme-campeyrigoux/pages/paniers.vue:1) contient encore des points de friction UX
-- [pages/admin/shop/orders.vue](/D:/Works/ferme-campeyrigoux/pages/admin/shop/orders.vue:1) est deja riche, mais depend fortement de la qualite des parametres et des textes email
-
-## Recommandation simple pour publier vite
-
-1. Publier sans abonnement.
-2. Publier sans paiement en ligne, avec message explicite "paiement en espece".
-3. Garder un seul parcours principal : panier -> choix du retrait / livraison -> validation admin.
-4. Garder `Retrait a la ferme` pour les paniers reserves sur le site et presenter la `vente a la ferme` comme une vente directe distincte.
-5. Garder la connexion reservee a l'admin.
-6. Ajouter ensuite seulement :
-   - accuse de reception client
-   - simplification du formulaire
-   - nettoyage des textes
-
-## Fichiers les plus importants
-
-- client :
-  - [pages/index.vue](/D:/Works/ferme-campeyrigoux/pages/index.vue:1)
-  - [pages/paniers.vue](/D:/Works/ferme-campeyrigoux/pages/paniers.vue:1)
-  - [pages/orders/manage/[token].vue](/D:/Works/ferme-campeyrigoux/pages/orders/manage/[token].vue:1)
-- reservation :
-  - [server/api/orders/index.post.ts](/D:/Works/ferme-campeyrigoux/server/api/orders/index.post.ts:1)
-  - [server/utils/orderFulfillment.ts](/D:/Works/ferme-campeyrigoux/server/utils/orderFulfillment.ts:1)
-  - [server/utils/orderEmails.ts](/D:/Works/ferme-campeyrigoux/server/utils/orderEmails.ts:1)
-- admin :
-  - [pages/admin/shop/orders.vue](/D:/Works/ferme-campeyrigoux/pages/admin/shop/orders.vue:1)
-  - [pages/admin/livraison.vue](/D:/Works/ferme-campeyrigoux/pages/admin/livraison.vue:1)
-  - [pages/admin/parametres.vue](/D:/Works/ferme-campeyrigoux/pages/admin/parametres.vue:1)
+```sh
+npm run db:d1:query:remote -- "SELECT id, email, role FROM User;"
+```
