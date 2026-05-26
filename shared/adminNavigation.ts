@@ -16,10 +16,21 @@ export interface AdminNavigationSection {
   id: string
   labelKey: string
   items: AdminNavigationItem[]
+  icon?: string
 }
 
 export interface AdminNavigationOptions {
   facebookSyncEnabled?: boolean
+  featureFlags?: {
+    shop: {
+      enabled: boolean
+      basketsEnabled: boolean
+      vegetablesEnabled: boolean
+    }
+    associationRolesEnabled: boolean
+    eventsEnabled: boolean
+    newsEnabled: boolean
+  }
 }
 
 const createAdminNavigationItem = (
@@ -56,6 +67,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
     {
       id: 'content',
       labelKey: 'admin.navigation.sections.content',
+      icon: 'mdi:folder-outline',
       items: [
         createAdminNavigationItem(
           'content-pages',
@@ -94,6 +106,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
     {
       id: 'shop',
       labelKey: 'admin.navigation.sections.shop',
+      icon: 'mdi:store',
       items: [
         createAdminNavigationItem(
           'shop-vegetables',
@@ -132,6 +145,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
     {
       id: 'management',
       labelKey: 'admin.navigation.sections.management',
+      icon: 'mdi:account-multiple-outline',
       items: [
         createAdminNavigationItem(
           'management-event-reservations',
@@ -142,18 +156,27 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
           { requiredModule: 'event_reservations', requiredAction: 'read' }
         ),
         createAdminNavigationItem(
+          'settings-users',
+          'admin.navigation.items.users',
+          getAdminRoutePath('settingsUsers'),
+          'mdi:account-group-outline',
+          getAdminRoutePaths('settingsUsers'),
+          { requiredModule: 'users', requiredAction: 'read' }
+        ),
+        createAdminNavigationItem(
           'management-member-roles',
           'admin.navigation.items.memberRoles',
           getAdminRoutePath('managementMemberRoles'),
           'mdi:account-multiple-check-outline',
           getAdminRoutePaths('managementMemberRoles'),
           { requiredModule: 'events', requiredAction: 'read' }
-        )
+        ),
       ]
     },
     {
       id: 'customization',
       labelKey: 'admin.navigation.sections.customization',
+      icon: 'mdi:palette-outline',
       items: [
         createAdminNavigationItem(
           'customization-layout',
@@ -199,7 +222,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
           'customization-events',
           'admin.navigation.items.events',
           getAdminRoutePath('customizationEvents'),
-          'mdi:calendar-cog',
+          'mdi:calendar-heart',
           getAdminRoutePaths('customizationEvents'),
           { requiredModule: 'layout_customization', requiredAction: 'read' }
         ),
@@ -224,6 +247,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
     {
       id: 'settings',
       labelKey: 'admin.navigation.sections.settings',
+      icon: 'mdi:cog-outline',
       items: [
         createAdminNavigationItem(
           'settings-global',
@@ -250,14 +274,6 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
           { requiredModule: 'settings', requiredAction: 'read' }
         ),
         createAdminNavigationItem(
-          'settings-users',
-          'admin.navigation.items.users',
-          getAdminRoutePath('settingsUsers'),
-          'mdi:account-group-outline',
-          getAdminRoutePaths('settingsUsers'),
-          { requiredModule: 'users', requiredAction: 'read' }
-        ),
-        createAdminNavigationItem(
           'settings-roles',
           'admin.navigation.items.roles',
           getAdminRoutePath('settingsRoles'),
@@ -269,8 +285,30 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
     }
   ]
 
+  const shopEnabled = options.featureFlags?.shop.enabled ?? true
+  const shopBasketsEnabled = shopEnabled && (options.featureFlags?.shop.basketsEnabled ?? true)
+  const shopVegetablesEnabled = shopEnabled && (options.featureFlags?.shop.vegetablesEnabled ?? true)
+  const associationRolesEnabled = options.featureFlags?.associationRolesEnabled ?? true
+  const eventsEnabled = options.featureFlags?.eventsEnabled ?? true
+  const newsEnabled = options.featureFlags?.newsEnabled ?? true
+
+  const filteredSections = sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (item.id === 'content-news' || item.id === 'customization-news') return newsEnabled
+        if (item.id === 'content-events' || item.id === 'content-planning' || item.id === 'customization-events' || item.id === 'customization-planning' || item.id === 'management-event-reservations') return eventsEnabled
+        if (item.id === 'shop-baskets' || item.id === 'customization-baskets') return shopBasketsEnabled
+        if (item.id === 'shop-vegetables') return shopVegetablesEnabled
+        if (item.id === 'shop-orders' || item.id === 'shop-delivery') return shopEnabled
+        if (item.id === 'management-member-roles') return associationRolesEnabled
+        return true
+      })
+    }))
+    .filter((section) => section.items.length > 0)
+
   if (options.facebookSyncEnabled) {
-    sections[sections.length - 1]?.items.push({
+    filteredSections[filteredSections.length - 1]?.items.push({
       id: 'shop-facebook-sync',
       labelKey: 'admin.navigation.items.facebookSync',
       path: '/facebook-sync',
@@ -279,7 +317,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
     })
   }
 
-  return sections
+  return filteredSections
 }
 
 export function flattenAdminNavigationItems(sections: AdminNavigationSection[]) {

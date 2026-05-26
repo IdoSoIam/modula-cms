@@ -1,5 +1,6 @@
 import { prisma } from '~/prisma/client'
 import { requirePermission } from '~/server/utils/permissions'
+import { requireAssociationRolesEnabled } from '~/server/utils/settings'
 
 function slugify(value: string) {
   return value
@@ -11,6 +12,7 @@ function slugify(value: string) {
 }
 
 export default defineEventHandler(async (event) => {
+  await requireAssociationRolesEnabled()
   await requirePermission(event, 'events', 'update')
 
   const id = Number(getRouterParam(event, 'id'))

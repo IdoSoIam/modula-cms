@@ -2,6 +2,7 @@ import { prisma } from '~/prisma/client'
 import { canAccessEvent, eventOccurrenceToListItem, eventToListItem } from '~/server/utils/events'
 import { AuthService } from '~/server/services/auth/authService'
 import { syncEventOccurrencesForEvent } from '~/server/utils/planning'
+import { getFeatureFlags } from '~/server/utils/settings'
 import type {
   EventListItem,
   PlanningCalendarDay,
@@ -143,6 +144,10 @@ function toWeekColumn(
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
+  const featureFlags = await getFeatureFlags()
+  if (!featureFlags.eventsEnabled) {
+    throw createError({ statusCode: 404, statusMessage: 'Événements introuvables' })
+  }
   const locale = query.locale === 'en' ? 'en' : 'fr'
   const scope = query.scope === 'planning' ? 'planning' : 'events'
   const view = typeof query.view === 'string' ? query.view : (scope === 'planning' ? 'week' : 'list')

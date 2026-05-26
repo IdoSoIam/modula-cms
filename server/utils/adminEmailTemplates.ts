@@ -38,6 +38,7 @@ const localized = (fr: string, en: string): LocalizedText => ({ fr, en })
 const GROUP_ORDERS = localized('Commandes', 'Orders')
 const GROUP_EVENTS = localized('Événements', 'Events')
 const GROUP_FORMS = localized('Formulaires', 'Forms')
+const GROUP_USERS = localized('Utilisateurs', 'Users')
 const SUBGROUP_ORDER_CUSTOMER = localized('Commande client', 'Customer order')
 const SUBGROUP_ORDER_ADMIN = localized('Commande admin', 'Admin order')
 const SUBGROUP_SUBSCRIPTION_CUSTOMER = localized('Abonnement client', 'Customer subscription')
@@ -48,6 +49,7 @@ const SUBGROUP_EVENT_PUBLIC_RESERVATION_CUSTOMER = localized('Réservation publi
 const SUBGROUP_EVENT_PUBLIC_RESERVATION_ADMIN = localized('Réservation publique admin', 'Admin public reservation')
 const SUBGROUP_FORM_CONTACT = localized('Contact', 'Contact')
 const SUBGROUP_FORM_SIGNUPS = localized('Inscriptions', 'Signups')
+const SUBGROUP_USER_ONBOARDING = localized('Invitation', 'Invitation')
 
 const RESERVATION_ACTIONS = new Set(
   RESERVATION_TEMPLATE_DEFINITIONS.map(definition => definition.action)
@@ -244,6 +246,30 @@ Nous reviendrons vers vous dès que possible.`
 We have received your "{{signupLabel}}" signup request.
 
 We will get back to you as soon as possible.`
+    }
+  },
+  user_invitation: {
+    fr: {
+      subject: 'Activez votre compte - Ferme du Campeyrigoux',
+      body: `Bonjour {{recipientName}},
+
+Un compte a été créé pour vous sur le site de la Ferme du Campeyrigoux.
+
+Pour choisir votre mot de passe et activer votre compte, utilisez ce lien :
+{{passwordSetupUrl}}
+
+Ce lien expire le {{expiresAt}}.`
+    },
+    en: {
+      subject: 'Activate your account - Ferme du Campeyrigoux',
+      body: `Hello {{recipientName}},
+
+An account has been created for you on the Ferme du Campeyrigoux website.
+
+To choose your password and activate your account, use this link:
+{{passwordSetupUrl}}
+
+This link expires on {{expiresAt}}.`
     }
   }
 }
@@ -510,6 +536,17 @@ const SYSTEM_TEMPLATE_DEFINITIONS: AdminEmailTemplateDefinition[] = [
     group: GROUP_FORMS,
     subgroup: SUBGROUP_FORM_SIGNUPS,
     variables: ['signupLabel', 'applicantName'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'user_invitation',
+    settingKey: SETTING_KEYS.USER_INVITATION_TEMPLATE,
+    label: localized('Invitation utilisateur', 'User invitation'),
+    description: localized('Email envoyé à un utilisateur créé par un admin pour activer son compte.', 'Email sent to an admin-created user to activate their account.'),
+    group: GROUP_USERS,
+    subgroup: SUBGROUP_USER_ONBOARDING,
+    variables: ['recipientName', 'email', 'passwordSetupUrl', 'expiresAt'],
     locked: true,
     system: true
   }

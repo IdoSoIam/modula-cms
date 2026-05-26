@@ -91,7 +91,7 @@
             <span class="label-text">Visibilité</span>
             <select v-model="editor.visibility" class="select select-bordered w-full">
               <option value="PUBLIC">Publique</option>
-              <option value="PRIVATE">Privée par rôles</option>
+              <option v-if="associationRolesEnabled" value="PRIVATE">Privée par rôles</option>
             </select>
           </label>
         </div>
@@ -211,7 +211,7 @@
             </div>
           </div>
 
-          <label class="form-control gap-2">
+          <label v-if="associationRolesEnabled" class="form-control gap-2">
             <span class="label-text">Rôles autorisés pour l’interne</span>
             <div class="rounded-2xl border border-base-300 bg-base-200 p-4">
               <div class="grid gap-2">
@@ -302,11 +302,11 @@
             </label>
             <label class="form-control gap-2">
               <span class="label-text">Visibilité</span>
-              <select v-model="createForm.visibility" class="select select-bordered w-full">
-                <option value="PUBLIC">Publique</option>
-                <option value="PRIVATE">Privée par rôles</option>
-              </select>
-            </label>
+            <select v-model="createForm.visibility" class="select select-bordered w-full">
+              <option value="PUBLIC">Publique</option>
+              <option v-if="associationRolesEnabled" value="PRIVATE">Privée par rôles</option>
+            </select>
+          </label>
             <label class="form-control gap-2">
               <span class="label-text">Statut initial</span>
               <select v-model="createForm.status" class="select select-bordered w-full">
@@ -369,7 +369,7 @@
 import CmsPageContentBuilder from '~/components/admin/cms/CmsPageContentBuilder.vue'
 import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
 import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
-import { createDefaultEventPayload, type EventListItem, type EventPayload } from '~/shared/events'
+import { createDefaultEventPayload, type EventListItem, type EventPayload, type EventWeekdayValue } from '~/shared/events'
 
 definePageMeta({
   layout: 'admin',
@@ -395,18 +395,19 @@ interface EligibleUser {
   memberRoles: MemberRoleSummary[]
 }
 const weekdays = [
-  { value: 1, label: 'Lundi' },
-  { value: 2, label: 'Mardi' },
-  { value: 3, label: 'Mercredi' },
-  { value: 4, label: 'Jeudi' },
-  { value: 5, label: 'Vendredi' },
-  { value: 6, label: 'Samedi' },
-  { value: 0, label: 'Dimanche' }
+  { value: 1 as EventWeekdayValue, label: 'Lundi' },
+  { value: 2 as EventWeekdayValue, label: 'Mardi' },
+  { value: 3 as EventWeekdayValue, label: 'Mercredi' },
+  { value: 4 as EventWeekdayValue, label: 'Jeudi' },
+  { value: 5 as EventWeekdayValue, label: 'Vendredi' },
+  { value: 6 as EventWeekdayValue, label: 'Samedi' },
+  { value: 0 as EventWeekdayValue, label: 'Dimanche' }
 ]
 
 const { $toast } = useNuxtApp() as any
 const route = useRoute()
 const localePath = useLocalePath()
+const siteConfig = await useSiteConfig()
 const statusFilter = ref('')
 const selectedId = ref<number | null>(null)
 const saving = ref(false)
@@ -426,6 +427,7 @@ const { data: metaData } = await useFetch<{ memberRoles: MemberRoleSummary[]; us
 const events = computed(() => eventsData.value || [])
 const roles = computed(() => metaData.value?.memberRoles || [])
 const allUsers = computed(() => metaData.value?.users || [])
+const associationRolesEnabled = computed(() => siteConfig.value?.featureFlags?.associationRolesEnabled !== false)
 const editor = ref<EventPayload | null>(null)
 const eligibleUsers = ref<EligibleUser[]>([])
 const cloneEventPayload = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
@@ -520,6 +522,7 @@ const resetCallForm = () => {
 const openEvent = async (id: number) => {
   selectedId.value = id
   editor.value = await $fetch<EventPayload>(`/api/admin/events/${id}`)
+  normalizeAssociationRoleGating(editor.value)
   editor.value.startsAt = toDateTimeLocal(editor.value.startsAt)
   editor.value.endsAt = toDateTimeLocal(editor.value.endsAt)
   editor.value.recurrenceStartDate = editor.value.recurrenceStartDate ? editor.value.recurrenceStartDate.slice(0, 10) : null
@@ -532,6 +535,7 @@ const saveEvent = async () => {
   saving.value = true
   try {
     const payload = cloneEventPayload(toRaw(editor.value))
+    normalizeAssociationRoleGating(payload)
     const target = payload.id ? `/api/admin/events/${payload.id}` : '/api/admin/events'
     const method = payload.id ? 'PUT' : 'POST'
     const response = await $fetch<{ id: number }>(target, { method, body: payload })
@@ -552,7 +556,7 @@ const createEventAndOpenLiveEdit = async () => {
     const payload = createDefaultEventPayload()
     payload.kind = 'EVENT'
     payload.slug = createForm.slug.trim()
-    payload.visibility = createForm.visibility
+    payload.visibility = associationRolesEnabled.value ? createForm.visibility : 'PUBLIC'
     payload.status = createForm.status
     payload.startsAt = new Date(createForm.startsAt).toISOString()
     payload.endsAt = createForm.endsAt ? new Date(createForm.endsAt).toISOString() : null
@@ -598,7 +602,7 @@ const removeEvent = async () => {
 }
 
 const toggleAudienceRole = (roleId: number, checked: boolean) => {
-  if (!editor.value) return
+  if (!editor.value || !associationRolesEnabled.value) return
   editor.value.audienceMemberRoleIds = checked
     ? Array.from(new Set([...editor.value.audienceMemberRoleIds, roleId]))
     : editor.value.audienceMemberRoleIds.filter(id => id !== roleId)
@@ -616,11 +620,22 @@ const loadEligibleUsers = () => {
     eligibleUsers.value = []
     return
   }
+  if (!associationRolesEnabled.value) {
+    eligibleUsers.value = allUsers.value
+    callForm.selectedUserIds = eligibleUsers.value.map(user => user.id)
+    return
+  }
   const allowedRoleIds = new Set(editor.value.audienceMemberRoleIds)
   eligibleUsers.value = allowedRoleIds.size
     ? allUsers.value.filter(user => user.memberRoleIds.some(roleId => allowedRoleIds.has(roleId)))
     : allUsers.value
   callForm.selectedUserIds = eligibleUsers.value.map(user => user.id)
+}
+
+const normalizeAssociationRoleGating = (payload: EventPayload) => {
+  if (associationRolesEnabled.value) return
+  payload.visibility = 'PUBLIC'
+  payload.audienceMemberRoleIds = []
 }
 
 const toggleCallUser = (id: number, checked: boolean) => {

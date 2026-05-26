@@ -83,7 +83,8 @@ const siteConfig = useSiteConfigState()
 const authStore = useAuthStore()
 const facebookFluxDeactivated = computed(() => siteConfig.value?.facebookFluxDeactivated === true)
 const adminSections = computed(() => getAdminNavigationSections({
-  facebookSyncEnabled: !facebookFluxDeactivated.value
+  facebookSyncEnabled: !facebookFluxDeactivated.value,
+  featureFlags: siteConfig.value?.featureFlags
 }).map(section => ({
   ...section,
   items: section.items.filter((item) => {

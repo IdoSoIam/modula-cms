@@ -26,6 +26,7 @@ import type {
   ResolvedCmsNavigationItem,
   ResolvedCmsPage
 } from '~/shared/cms'
+import type { FeatureFlags } from '~/server/utils/settings'
 import {
   CMS_LOCALES,
   createDefaultCmsPagePayload,
@@ -855,6 +856,24 @@ function buildResolvedNavigationTree(items: ResolvedCmsNavigationItem[]) {
 
   sortTree(roots)
   return roots
+}
+
+function isFeatureEnabledForHref(href: string, featureFlags: FeatureFlags) {
+  const normalizedHref = href.split('?')[0]?.split('#')[0] || href
+  if (normalizedHref === '/paniers' || normalizedHref.startsWith('/paniers/')) {
+    return featureFlags.shop.enabled && featureFlags.shop.basketsEnabled
+  }
+  if (normalizedHref === '/news' || normalizedHref.startsWith('/news/')) {
+    return featureFlags.newsEnabled
+  }
+  if (normalizedHref === '/events' || normalizedHref.startsWith('/events/') || normalizedHref === '/planning' || normalizedHref.startsWith('/planning/')) {
+    return featureFlags.eventsEnabled
+  }
+  return true
+}
+
+function filterNavigationItemsByFeatureFlags(items: Array<CmsNavigationItemPayload & { id: number | null }>, featureFlags: FeatureFlags) {
+  return items.filter((item) => isFeatureEnabledForHref(item.href, featureFlags))
 }
 
 function createLegacyRootResolvedPage(locale: string): Promise<ResolvedCmsPage> {
@@ -1752,7 +1771,7 @@ export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPaylo
   }
 }
 
-async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string) {
+async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string, featureFlags: FeatureFlags) {
   const rows = await withCmsTableFallback(() => prisma.cmsNavigationItem.findMany({
     where: {
       menu,
@@ -1764,26 +1783,32 @@ async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string) {
     ]
   }), async () => [])
 
-  if (!rows.length) {
+  const filteredRows = filterNavigationItemsByFeatureFlags(
+    rows.map((row) => ({ id: row.id, ...navigationRowToPayload(row) })),
+    featureFlags
+  )
+
+  if (!filteredRows.length) {
     return buildResolvedNavigationTree(mergeMissingDefaultNavigationItems(
       createDefaultCmsNavigationItems()
         .filter((item) => item.menu === menu && item.visible)
-        .map((item) => ({ id: null, ...item })),
+        .map((item) => ({ id: null, ...item }))
+        .filter((item) => isFeatureEnabledForHref(item.href, featureFlags)),
       menu
     ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale)))
   }
 
   return buildResolvedNavigationTree(mergeMissingDefaultNavigationItems(
-    rows.map((row) => ({ id: row.id, ...navigationRowToPayload(row) })),
+    filteredRows,
     menu
   ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale)))
 }
 
-export async function getPublicSiteShell(locale: string): Promise<PublicSiteShell> {
+export async function getPublicSiteShell(locale: string, featureFlags: FeatureFlags): Promise<PublicSiteShell> {
   const [settings, primary, footer] = await Promise.all([
     getCmsSiteSettings(),
-    getResolvedNavigation('PRIMARY', locale),
-    getResolvedNavigation('FOOTER', locale)
+    getResolvedNavigation('PRIMARY', locale, featureFlags),
+    getResolvedNavigation('FOOTER', locale, featureFlags)
   ])
 
   return {
@@ -1796,7 +1821,23 @@ export async function getPublicSiteShell(locale: string): Promise<PublicSiteShel
   }
 }
 
-export async function resolvePublicCmsPage(path: string, locale: string, includeDraft = false): Promise<ResolvedCmsPage | null> {
+function isRendererEnabled(rendererKey: string, featureFlags: FeatureFlags) {
+  if (rendererKey === 'baskets') {
+    return featureFlags.shop.enabled && featureFlags.shop.basketsEnabled
+  }
+  if (rendererKey === 'news') {
+    return featureFlags.newsEnabled
+  }
+  if (rendererKey === 'events' || rendererKey === 'planning') {
+    return featureFlags.eventsEnabled
+  }
+  if (rendererKey === 'shop') {
+    return featureFlags.shop.enabled && (featureFlags.shop.basketsEnabled || featureFlags.shop.vegetablesEnabled)
+  }
+  return true
+}
+
+export async function resolvePublicCmsPage(path: string, locale: string, includeDraft = false, featureFlags: FeatureFlags): Promise<ResolvedCmsPage | null> {
   await ensureCmsSystemPages()
   const normalizedPath = normalizePath(path)
   const where = includeDraft
@@ -1810,6 +1851,9 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
 
   if (row) {
     const payload = pageRowToPayload(row)
+    if (!isRendererEnabled(payload.rendererKey, featureFlags)) {
+      return null
+    }
     const localized = pickTranslation(locale, payload.translations)
 
     return {
@@ -1834,18 +1878,30 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
   }
 
   if (normalizedPath === '/paniers') {
+    if (!isRendererEnabled('baskets', featureFlags)) {
+      return null
+    }
     return createLegacyBasketsResolvedPage(locale)
   }
 
   if (normalizedPath === '/news') {
+    if (!isRendererEnabled('news', featureFlags)) {
+      return null
+    }
     return createLegacyNewsResolvedPage(locale)
   }
 
   if (normalizedPath === '/events') {
+    if (!isRendererEnabled('events', featureFlags)) {
+      return null
+    }
     return createLegacyEventsResolvedPage(locale)
   }
 
   if (normalizedPath === '/planning') {
+    if (!isRendererEnabled('planning', featureFlags)) {
+      return null
+    }
     return createLegacyPlanningResolvedPage(locale)
   }
 

@@ -5,14 +5,14 @@ import { getPublicDaisyUiThemeConfig } from '~/server/utils/themes'
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
 
-  const [fb, ordersWindow, featureFlags, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath] = await Promise.all([
+  const featureFlags = await getFeatureFlags()
+  const [fb, ordersWindow, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath] = await Promise.all([
     getSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED),
     getOrdersWindow(),
-    getFeatureFlags(),
     getFarmPickupConfig(),
     getContactEmail(),
     getAdminPhone(),
-    getPublicSiteShell('fr'),
+    getPublicSiteShell('fr', featureFlags),
     getPublicDaisyUiThemeConfig(),
     getCmsSpecialPagePath('construction')
   ])
@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
     ordersWindow,
     registerEnabled: featureFlags.registerEnabled,
     subscriptionsEnabled: featureFlags.subscriptionsEnabled,
+    featureFlags,
     farmPickup,
     contactEmail,
     adminEmail: contactEmail,

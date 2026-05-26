@@ -1,5 +1,6 @@
 import { H3Event } from 'h3'
 import bcrypt from 'bcryptjs'
+import { createHash, randomBytes } from 'node:crypto'
 import { getSessionConfig } from '../../utils/session'
 import { prisma } from '../../../prisma/client'
 import { buildUserAccessPayload, ensureDefaultRoles } from '~/server/utils/permissions'
@@ -23,6 +24,13 @@ export interface AuthenticatedUser {
     postalCode: string
     country: string
   }
+}
+
+export interface PasswordSetupTokenValidation {
+  email: string
+  firstName?: string
+  lastName?: string
+  expiresAt: Date
 }
 
 const userSelect = {
@@ -111,6 +119,16 @@ function mapUser(user: {
 
 export class AuthService {
   private static SALT_ROUNDS = 10
+  private static PASSWORD_SETUP_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+  private hashPasswordSetupToken(token: string) {
+    return createHash('sha256').update(token).digest('hex')
+  }
+
+  private generateOpaquePassword() {
+    return randomBytes(32).toString('hex')
+  }
+
   async createUser(
     email: string,
     password: string,
@@ -149,6 +167,131 @@ export class AuthService {
       throw error
     }
   }
+
+  async createInvitedUser(
+    email: string,
+    firstName?: string,
+    lastName?: string,
+    birthDate?: Date,
+    role: string = 'user'
+  ): Promise<{ user: AuthenticatedUser; setupToken: string; expiresAt: Date }> {
+    try {
+      await ensureDefaultRoles()
+      const normalizedEmail = email.trim().toLowerCase()
+      const hashedPassword = await bcrypt.hash(this.generateOpaquePassword(), AuthService.SALT_ROUNDS)
+      const roleRow = await prisma.role.findFirst({
+        where: {
+          OR: [
+            { slug: role },
+            { slug: role === 'user' ? 'utilisateur_public' : role }
+          ]
+        }
+      })
+      const user = await prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          birthDate,
+          role,
+          roleId: roleRow?.id ?? null,
+          isActive: false
+        },
+        select: userSelect
+      })
+      const { token: setupToken, expiresAt } = await this.createPasswordSetupToken(user.id)
+      return { user: mapUser(user), setupToken, expiresAt }
+    } catch (error) {
+      console.error('Error creating invited user:', error)
+      throw error
+    }
+  }
+
+  async createPasswordSetupToken(userId: number, ttlMs?: number): Promise<{ token: string; expiresAt: Date }> {
+    const token = randomBytes(32).toString('hex')
+    const expiresAt = new Date(Date.now() + (ttlMs ?? AuthService.PASSWORD_SETUP_TOKEN_TTL_MS))
+
+    await prisma.$transaction([
+      prisma.passwordSetupToken.updateMany({
+        where: { userId, usedAt: null },
+        data: { usedAt: new Date() }
+      }),
+      prisma.passwordSetupToken.create({
+        data: {
+          userId,
+          token: this.hashPasswordSetupToken(token),
+          expiresAt
+        }
+      })
+    ])
+
+    return { token, expiresAt }
+  }
+
+  async validatePasswordSetupToken(token: string): Promise<PasswordSetupTokenValidation | null> {
+    const row = await prisma.passwordSetupToken.findUnique({
+      where: { token: this.hashPasswordSetupToken(token) },
+      include: { user: true }
+    })
+
+    if (!row || row.usedAt || row.expiresAt <= new Date()) {
+      return null
+    }
+
+    return {
+      email: row.user.email,
+      firstName: row.user.firstName ?? undefined,
+      lastName: row.user.lastName ?? undefined,
+      expiresAt: row.expiresAt
+    }
+  }
+
+  async setPasswordFromSetupToken(token: string, password: string): Promise<AuthenticatedUser> {
+    const normalizedPassword = password.trim()
+    if (normalizedPassword.length < 8) {
+      throw createError({ statusCode: 400, statusMessage: 'Le mot de passe doit contenir au moins 8 caractères' })
+    }
+
+    const row = await prisma.passwordSetupToken.findUnique({
+      where: { token: this.hashPasswordSetupToken(token) },
+      include: { user: true }
+    })
+
+    if (!row || row.usedAt || row.expiresAt <= new Date()) {
+      throw createError({ statusCode: 404, statusMessage: 'Lien de configuration invalide ou expiré' })
+    }
+
+    const hashedPassword = await bcrypt.hash(normalizedPassword, AuthService.SALT_ROUNDS)
+    const consumed = await prisma.passwordSetupToken.updateMany({
+      where: {
+        id: row.id,
+        usedAt: null,
+        expiresAt: { gt: new Date() }
+      },
+      data: { usedAt: new Date() }
+    })
+
+    if (consumed.count !== 1) {
+      throw createError({ statusCode: 404, statusMessage: 'Lien de configuration invalide ou expiré' })
+    }
+
+    await prisma.user.update({
+      where: { id: row.userId },
+      data: {
+        password: hashedPassword,
+        isActive: true
+      }
+    })
+
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: row.userId },
+      select: userSelect
+    })
+
+    return mapUser(user)
+  }
+
   async validateUser(email: string, password: string): Promise<AuthenticatedUser | null> {
     try {
       await ensureDefaultRoles()

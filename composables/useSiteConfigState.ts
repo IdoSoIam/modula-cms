@@ -7,6 +7,19 @@ interface PublicSiteConfigState {
   siteName: string
   registerEnabled: boolean
   subscriptionsEnabled: boolean
+  featureFlags?: {
+    inDevelopment: boolean
+    registerEnabled: boolean
+    subscriptionsEnabled: boolean
+    shop: {
+      enabled: boolean
+      basketsEnabled: boolean
+      vegetablesEnabled: boolean
+    }
+    associationRolesEnabled: boolean
+    eventsEnabled: boolean
+    newsEnabled: boolean
+  }
   ordersWindow?: {
     from: string | null
     to: string | null

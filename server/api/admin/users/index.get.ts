@@ -1,8 +1,10 @@
 import { prisma } from '~/prisma/client'
 import { requirePermission } from '~/server/utils/permissions'
+import { isAssociationRolesEnabled } from '~/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'users', 'read')
+  const associationRolesEnabled = await isAssociationRolesEnabled()
 
   const users = await prisma.user.findMany({
     include: {
@@ -27,13 +29,13 @@ export default defineEventHandler(async (event) => {
     roleId: user.roleId,
     roleSlug: user.managedRole?.slug || user.role,
     roleName: user.managedRole?.name || user.role,
-    memberRoleIds: user.memberRoles.map(entry => entry.memberRoleId),
-    memberRoles: user.memberRoles.map(entry => ({
+    memberRoleIds: associationRolesEnabled ? user.memberRoles.map(entry => entry.memberRoleId) : [],
+    memberRoles: associationRolesEnabled ? user.memberRoles.map(entry => ({
       id: entry.memberRole.id,
       slug: entry.memberRole.slug,
       name: entry.memberRole.name,
       color: entry.memberRole.color
-    })),
+    })) : [],
     isActive: user.isActive,
     createdAt: user.createdAt.toISOString()
   }))

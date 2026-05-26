@@ -8,62 +8,50 @@
       <button type="button" class="btn btn-primary" @click="openCreateDialog">Créer un utilisateur</button>
     </div>
 
-    <section class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
-      <table class="table table-zebra">
-        <thead>
-          <tr>
-            <th>Utilisateur</th>
-            <th>Email</th>
-            <th>Accès admin</th>
-            <th v-if="associationRolesEnabled">Rôles associatifs</th>
-            <th>Statut</th>
-            <th class="text-right">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in users" :key="user.id">
-            <td class="font-medium">{{ user.firstName || user.email }} {{ user.lastName || '' }}</td>
-            <td>{{ user.email }}</td>
-            <td class="min-w-48">
-              <select v-model.number="user.roleId" class="select select-bordered select-sm w-full">
-                <option :value="null">Sans rôle d'accès</option>
-                <option v-for="role in accessRoles" :key="role.id" :value="role.id">{{ role.name }}</option>
-              </select>
-            </td>
-            <td v-if="associationRolesEnabled" class="min-w-72">
-              <div class="flex flex-wrap gap-2">
-                <label
-                  v-for="memberRole in memberRoles"
-                  :key="memberRole.id"
-                  class="label cursor-pointer justify-start gap-2 rounded-full border border-base-300 bg-base-200 px-3 py-1"
-                >
-                  <input
-                    :checked="user.memberRoleIds.includes(memberRole.id)"
-                    type="checkbox"
-                    class="checkbox checkbox-xs checkbox-primary"
-                    @change="toggleMemberRole(user, memberRole.id, ($event.target as HTMLInputElement).checked)"
-                  />
-                  <span class="label-text text-xs">{{ memberRole.name }}</span>
-                </label>
-              </div>
-            </td>
-            <td>
-              <label class="label cursor-pointer justify-start gap-3">
-                <input v-model="user.isActive" type="checkbox" class="checkbox checkbox-primary checkbox-sm" />
-                <span class="label-text">{{ user.isActive ? 'Actif' : 'Inactif' }}</span>
-              </label>
-            </td>
-            <td class="text-right">
-              <div class="flex justify-end gap-1">
-                <button type="button" class="btn btn-sm btn-primary" @click="saveUser(user)">Enregistrer</button>
-                <button type="button" class="btn btn-sm btn-error" :disabled="user.id === currentUserId" @click="openDeleteDialog(user)">Supprimer</button>
-                <button v-if="!user.isActive" type="button" class="btn btn-sm btn-ghost" @click="openInviteLinkDialog(user)">Lien d'invitation</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
+    <DataTable
+      :columns="tableColumns"
+      :data="users"
+      :loading="loading"
+      :searchable="true"
+      :search-fields="['firstName', 'lastName', 'email']"
+    >
+      <template #cell(name)="{ row }">
+        <span class="font-medium">{{ row.firstName || row.email }} {{ row.lastName || '' }}</span>
+      </template>
+      <template #cell(email)="{ row }">
+        <span class="text-sm opacity-70">{{ row.email }}</span>
+      </template>
+      <template #cell(role)="{ row }">
+        <span class="badge badge-sm">{{ row.roleName }}</span>
+      </template>
+      <template #cell(status)="{ row }">
+        <span class="badge badge-sm" :class="row.isActive ? 'badge-success' : 'badge-ghost'">
+          {{ row.isActive ? 'Actif' : 'Inactif' }}
+        </span>
+      </template>
+      <template #cell(actions)="{ row }">
+        <button
+          type="button"
+          class="btn btn-sm btn-ghost btn-square"
+          :title="'Gérer ' + (row.firstName || row.email)"
+          @click.stop="openEditModal(row)"
+        >
+          <Icon name="mdi:cog-outline" size="20" />
+        </button>
+      </template>
+    </DataTable>
+
+    <AdminUserEditModal
+      v-if="editUser"
+      :user="editUser"
+      :access-roles="accessRoles"
+      :member-roles="memberRoles"
+      :association-roles-enabled="associationRolesEnabled"
+      :current-user-id="currentUserId"
+      @close="editUser = null"
+      @saved="handleEditSaved"
+      @deleted="handleEditDeleted"
+    />
 
     <dialog class="modal" :class="{ 'modal-open': showCreate }">
       <div class="modal-box max-w-3xl">
@@ -95,21 +83,7 @@
           </select>
           <div v-if="associationRolesEnabled" class="space-y-2 md:col-span-2">
             <div class="text-sm font-medium">Rôles associatifs</div>
-            <div class="flex flex-wrap gap-2">
-              <label
-                v-for="memberRole in memberRoles"
-                :key="memberRole.id"
-                class="label cursor-pointer justify-start gap-2 rounded-full border border-base-300 bg-base-200 px-3 py-1"
-              >
-                <input
-                  :checked="createForm.memberRoleIds.includes(memberRole.id)"
-                  type="checkbox"
-                  class="checkbox checkbox-xs checkbox-primary"
-                  @change="toggleCreateMemberRole(memberRole.id, ($event.target as HTMLInputElement).checked)"
-                />
-                <span class="label-text text-xs">{{ memberRole.name }}</span>
-              </label>
-            </div>
+            <MemberRoleMultiSelect v-model="createForm.memberRoleIds" :options="memberRoles" placeholder="Sélectionner des rôles" />
           </div>
           <div v-if="createResult" class="alert alert-success items-start md:col-span-2">
             <Icon name="mdi:check-circle-outline" size="22" />
@@ -133,52 +107,16 @@
         </div>
       </div>
       <form method="dialog" class="modal-backdrop">
-        <button @click="closeCreateDialog">close</button>
-      </form>
-    </dialog>
-
-    <dialog class="modal" :class="{ 'modal-open': showDelete }">
-      <div class="modal-box">
-        <h3 class="text-lg font-semibold">Confirmer la suppression</h3>
-        <p class="py-4">Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{{ deleteTarget?.email }}</strong> ? Cette action est irréversible.</p>
-        <div class="modal-action">
-          <button class="btn btn-ghost" @click="closeDeleteDialog">Annuler</button>
-          <button class="btn btn-error" :disabled="deleting" @click="confirmDelete">
-            <span v-if="deleting" class="loading loading-spinner loading-sm" />
-            Supprimer
-          </button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button @click="closeDeleteDialog">close</button>
-      </form>
-    </dialog>
-
-    <dialog class="modal" :class="{ 'modal-open': showInviteLink }">
-      <div class="modal-box">
-        <h3 class="text-lg font-semibold">Lien d'invitation</h3>
-        <p v-if="inviteLinkData.loading" class="py-2">Génération du lien...</p>
-        <div v-else-if="inviteLinkData.link" class="space-y-3">
-          <div class="join w-full">
-            <input class="input input-bordered join-item w-full" readonly :value="inviteLinkData.link" />
-            <button class="btn btn-primary join-item" @click="copyInviteLink">Copier</button>
-          </div>
-          <p v-if="inviteLinkData.sent" class="text-sm opacity-70">Un email a également été envoyé.</p>
-          <p v-else class="text-sm opacity-70">Aucun email envoyé (basculez `sendEmail` à true dans la requête).</p>
-        </div>
-        <p v-else-if="inviteLinkData.error" class="text-error">{{ inviteLinkData.error }}</p>
-        <div class="modal-action">
-          <button class="btn btn-ghost" @click="closeInviteLinkDialog">Fermer</button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button @click="closeInviteLinkDialog">close</button>
+        <button type="button" @click="closeCreateDialog">close</button>
       </form>
     </dialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import AdminUserEditModal from '~/components/admin/AdminUserEditModal.vue'
+import DataTable from '~/components/admin/DataTable.vue'
+import MemberRoleMultiSelect from '~/components/admin/MemberRoleMultiSelect.vue'
 import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
 import { useAuthStore } from '~/stores/auth'
 
@@ -190,6 +128,39 @@ definePageMeta({
   }
 })
 
+interface Column {
+  key: string
+  label: string
+  sortable?: boolean
+  hideable?: boolean
+  width?: string
+  align?: 'left' | 'center' | 'right'
+}
+
+interface MemberRoleItem {
+  id: number
+  slug: string
+  name: string
+  color?: string | null
+}
+
+interface UserRow {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  role: string
+  roleId: number | null
+  roleSlug: string
+  roleName: string
+  memberRoleIds: number[]
+  memberRoles: MemberRoleItem[]
+  isActive: boolean
+  createdAt: string
+}
+
+type UserTableRow = UserRow & Record<string, unknown>
+
 interface AccessRoleSummary {
   id: number
   name: string
@@ -200,16 +171,6 @@ interface MemberRoleSummary {
   name: string
   slug: string
   color?: string | null
-}
-
-interface UserRow {
-  id: number
-  email: string
-  firstName: string
-  lastName: string
-  roleId: number | null
-  memberRoleIds: number[]
-  isActive: boolean
 }
 
 interface CreateUserResponse {
@@ -230,11 +191,27 @@ interface CreateUserResult {
   passwordSetupLink?: string
 }
 
-const { $toast } = useNuxtApp() as any
+interface ToastApi {
+  success: (message: string) => void
+  error: (message: string) => void
+}
+
+interface FetchErrorShape {
+  data?: {
+    message?: string
+    statusMessage?: string
+  }
+  message?: string
+  statusMessage?: string
+}
+
+const { $toast } = useNuxtApp() as unknown as { $toast?: ToastApi }
 const showCreate = ref(false)
 const creating = ref(false)
 const createMode = ref<'invite' | 'password'>('invite')
 const createResult = ref<CreateUserResult | null>(null)
+const editUser = ref<UserRow | null>(null)
+const loading = ref(false)
 const siteConfig = await useSiteConfig()
 const authStore = useAuthStore()
 const localePath = useLocalePath()
@@ -243,19 +220,25 @@ const { data: usersData, refresh } = await useFetch<UserRow[]>('/api/admin/users
 const { data: rolesData } = await useFetch<AccessRoleSummary[]>('/api/admin/roles', { default: () => [] })
 const { data: memberRolesData } = await useFetch<MemberRoleSummary[]>('/api/admin/member-roles', { default: () => [] })
 
-const users = computed(() => usersData.value || [])
+const users = computed<UserTableRow[]>(() => (usersData.value || []).map(user => ({
+  ...user,
+  name: `${user.firstName || user.email} ${user.lastName || ''}`.trim(),
+  status: user.isActive ? 'Actif' : 'Inactif'
+})))
 const accessRoles = computed(() => rolesData.value || [])
 const memberRoles = computed(() => memberRolesData.value || [])
 const associationRolesEnabled = computed(() => siteConfig.value?.featureFlags?.associationRolesEnabled !== false)
 const currentUserId = computed(() => authStore.user?.id || 0)
-
-const showDelete = ref(false)
-const deleting = ref(false)
-const deleteTarget = ref<UserRow | null>(null)
-
-const showInviteLink = ref(false)
-const inviteLinkTarget = ref<UserRow | null>(null)
-const inviteLinkData = ref<{ loading: boolean; link?: string; sent?: boolean; error?: string }>({ loading: false })
+const tableColumns = computed<Column[]>(() => {
+  const cols: Column[] = [
+    { key: 'name', label: 'Utilisateur', sortable: true, hideable: false },
+    { key: 'email', label: 'Email', sortable: true },
+    { key: 'role', label: 'Accès admin', sortable: false },
+    { key: 'status', label: 'Statut', sortable: true },
+    { key: 'actions', label: '', sortable: false, width: '60px', align: 'right' }
+  ]
+  return cols
+})
 
 const createForm = reactive({
   firstName: '',
@@ -265,6 +248,38 @@ const createForm = reactive({
   roleId: null as number | null,
   memberRoleIds: [] as number[]
 })
+
+const messageFromError = (error: unknown, fallback: string) => {
+  if (!error || typeof error !== 'object') {
+    return fallback
+  }
+
+  const typedError = error as FetchErrorShape
+  return typedError.data?.message || typedError.message || typedError.data?.statusMessage || typedError.statusMessage || fallback
+}
+
+const refreshUsers = async () => {
+  loading.value = true
+  try {
+    await refresh()
+  } finally {
+    loading.value = false
+  }
+}
+
+const openEditModal = (user: UserRow) => {
+  editUser.value = user
+}
+
+const handleEditSaved = async () => {
+  editUser.value = null
+  await refreshUsers()
+}
+
+const handleEditDeleted = async () => {
+  editUser.value = null
+  await refreshUsers()
+}
 
 const openCreateDialog = () => {
   resetCreateForm()
@@ -276,89 +291,6 @@ const openCreateDialog = () => {
 const closeCreateDialog = () => {
   showCreate.value = false
   createResult.value = null
-}
-
-const toggleMemberRole = (user: UserRow, memberRoleId: number, checked: boolean) => {
-  user.memberRoleIds = checked
-    ? Array.from(new Set([...user.memberRoleIds, memberRoleId]))
-    : user.memberRoleIds.filter((id) => id !== memberRoleId)
-}
-
-const toggleCreateMemberRole = (memberRoleId: number, checked: boolean) => {
-  createForm.memberRoleIds = checked
-    ? Array.from(new Set([...createForm.memberRoleIds, memberRoleId]))
-    : createForm.memberRoleIds.filter((id) => id !== memberRoleId)
-}
-
-const saveUser = async (user: UserRow) => {
-  await $fetch(`/api/admin/users/${user.id}`, {
-    method: 'PUT',
-    body: {
-      firstName: user.firstName,
-      lastName: user.lastName,
-      roleId: user.roleId,
-      memberRoleIds: user.memberRoleIds,
-      isActive: user.isActive
-    }
-  })
-  $toast?.success('Utilisateur mis à jour')
-  await refresh()
-}
-
-const openDeleteDialog = (user: UserRow) => {
-  deleteTarget.value = user
-  showDelete.value = true
-}
-
-const closeDeleteDialog = () => {
-  showDelete.value = false
-  deleteTarget.value = null
-}
-
-const confirmDelete = async () => {
-  if (!deleteTarget.value) return
-  deleting.value = true
-  try {
-    await $fetch(`/api/admin/users/${deleteTarget.value.id}`, { method: 'DELETE' })
-    $toast?.success('Utilisateur supprimé')
-    closeDeleteDialog()
-    await refresh()
-  } catch (error: any) {
-    $toast?.error(error?.data?.message || error?.message || 'Impossible de supprimer l\'utilisateur')
-  } finally {
-    deleting.value = false
-  }
-}
-
-const openInviteLinkDialog = async (user: UserRow) => {
-  inviteLinkTarget.value = user
-  inviteLinkData.value = { loading: true }
-  showInviteLink.value = true
-  try {
-    const result = await $fetch<{ link: string; sent: boolean }>(`/api/admin/users/${user.id}/invitation-link`, {
-      method: 'POST',
-      body: { sendEmail: true }
-    })
-    inviteLinkData.value = { loading: false, link: result.link, sent: result.sent }
-  } catch (error: any) {
-    inviteLinkData.value = { loading: false, error: error?.data?.message || error?.message || 'Erreur' }
-  }
-}
-
-const closeInviteLinkDialog = () => {
-  showInviteLink.value = false
-  inviteLinkTarget.value = null
-  inviteLinkData.value = { loading: false }
-}
-
-const copyInviteLink = async () => {
-  if (!inviteLinkData.value.link || !process.client) return
-  try {
-    await navigator.clipboard.writeText(inviteLinkData.value.link)
-    $toast?.success('Lien copié')
-  } catch (error: any) {
-    $toast?.error(error?.message || 'Impossible de copier le lien')
-  }
 }
 
 const resetCreateForm = () => {
@@ -388,8 +320,8 @@ const copyInvitationLink = async () => {
   try {
     await navigator.clipboard.writeText(createResult.value.passwordSetupLink)
     $toast?.success('Lien copié')
-  } catch (error: any) {
-    $toast?.error(error?.message || 'Impossible de copier le lien')
+  } catch (error: unknown) {
+    $toast?.error(messageFromError(error, 'Impossible de copier le lien'))
   }
 }
 
@@ -421,9 +353,9 @@ const createUser = async () => {
       showCreate.value = false
     }
     resetCreateForm()
-    await refresh()
-  } catch (error: any) {
-    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || 'Impossible de créer l’utilisateur')
+    await refreshUsers()
+  } catch (error: unknown) {
+    $toast?.error(messageFromError(error, 'Impossible de créer l’utilisateur'))
   } finally {
     creating.value = false
   }

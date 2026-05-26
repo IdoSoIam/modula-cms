@@ -11,20 +11,22 @@
       class="dropdown-content z-[1] rounded-box bg-base-100 p-2 shadow w-72"
     >
       <template v-if="!authStore.isAuthenticated">
-        <li class="menu"><button @click="showAuthModal = true">{{ $t('auth.login') }}</button></li>
+        <div class="px-3 py-2 hover:bg-base-200">
+          <button type="button" class="inline-flex text-sm text-primary cursor-pointer w-full h-full" @click="showAuthModal = true">{{ $t('auth.login') }}</button>
+        </div>
       </template>
       <template v-else>
         <div class="px-3 py-2 hover:bg-base-200">
           <div class="text-sm font-semibold">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</div>
-          <NuxtLink :to="localePath('/profile')" class="inline-flex text-sm text-primary">{{ $t('auth.profile') }}</NuxtLink>
+          <NuxtLink :to="localePath('/profile')" class="inline-flex text-sm text-primary w-full h-full">{{ $t('auth.profile') }}</NuxtLink>
         </div>
         <template v-if="authStore.canAccessAdmin">
           <div class="px-3 py-2 hover:bg-base-200">
-            <NuxtLink :to="localePath('/admin')" class="inline-flex text-sm text-primary">{{ $t('admin.title') }}</NuxtLink>
+            <NuxtLink :to="localePath('/admin')" class="inline-flex text-sm text-primary w-full h-full">{{ $t('admin.title') }}</NuxtLink>
           </div>
         </template>
         <div class="px-3 py-2 hover:bg-base-200">
-          <button type="button" class="inline-flex cursor-pointer text-sm text-primary" @click="handleLogout">{{ $t('auth.logout') }}</button>
+          <button type="button" class="inline-flex text-sm text-primary cursor-pointer w-full h-full" @click="handleLogout">{{ $t('auth.logout') }}</button>
         </div>
       </template>
     </ul>

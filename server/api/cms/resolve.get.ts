@@ -1,4 +1,5 @@
 import { resolvePublicCmsPage } from '~/server/utils/cms'
+import { getFeatureFlags } from '~/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -12,7 +13,8 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'Cache-Control', 'no-store')
   }
 
-  const page = await resolvePublicCmsPage(path, locale, includeDraft)
+  const featureFlags = await getFeatureFlags()
+  const page = await resolvePublicCmsPage(path, locale, includeDraft, featureFlags)
 
   if (!page) {
     throw createError({

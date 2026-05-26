@@ -7,7 +7,7 @@
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" class="btn btn-outline" @click="openCreateEventDialog">Nouvel événement</button>
-        <button type="button" class="btn btn-primary" @click="openCreatePermanenceDialog">Nouvelle permanence</button>
+        <button type="button" class="btn btn-primary" @click="openCreatePermanenceDialog()">Nouvelle permanence</button>
       </div>
     </div>
 
@@ -55,11 +55,11 @@
             </label>
             <label class="form-control gap-2">
               <span class="label-text">Visibilité</span>
-              <select v-model="eventCreateForm.visibility" class="select select-bordered w-full">
-                <option value="PUBLIC">Publique</option>
-                <option value="PRIVATE">Privée par rôles</option>
-              </select>
-            </label>
+            <select v-model="eventCreateForm.visibility" class="select select-bordered w-full">
+              <option value="PUBLIC">Publique</option>
+              <option v-if="associationRolesEnabled" value="PRIVATE">Privée par rôles</option>
+            </select>
+          </label>
             <label class="form-control gap-2">
               <span class="label-text">Statut</span>
               <select v-model="eventCreateForm.status" class="select select-bordered w-full">
@@ -133,8 +133,8 @@
             </label>
             <label class="form-control gap-2">
               <span class="label-text">Visibilité</span>
-              <select v-model="permanenceForm.visibility" class="select select-bordered w-full">
-                <option value="PRIVATE">Privée par rôles</option>
+            <select v-model="permanenceForm.visibility" class="select select-bordered w-full">
+                <option v-if="associationRolesEnabled" value="PRIVATE">Privée par rôles</option>
                 <option value="PUBLIC">Publique</option>
               </select>
             </label>
@@ -186,7 +186,7 @@
             </label>
           </div>
           <AdminPageBuilderTranslationTabs :model-value="permanenceForm.internalParticipationInfo" label="Message participation interne" multiline @update:model-value="permanenceForm.internalParticipationInfo = $event" />
-          <label class="form-control gap-2">
+          <label v-if="associationRolesEnabled" class="form-control gap-2">
             <span class="label-text">Rôles autorisés pour l’interne</span>
             <div class="rounded-2xl border border-base-300 bg-base-200 p-4">
               <div class="grid gap-2 md:grid-cols-2">
@@ -306,6 +306,7 @@ interface MemberRoleSummary {
 
 const localePath = useLocalePath()
 const { $toast } = useNuxtApp() as any
+const siteConfig = await useSiteConfig()
 const creating = ref(false)
 const savingOccurrence = ref(false)
 const eventDialogRef = ref<HTMLDialogElement | null>(null)
@@ -320,6 +321,7 @@ const { data: metaData } = await useFetch<{ memberRoles: MemberRoleSummary[] }>(
   default: () => ({ memberRoles: [] })
 })
 const roles = computed(() => metaData.value?.memberRoles || [])
+const associationRolesEnabled = computed(() => siteConfig.value?.featureFlags?.associationRolesEnabled !== false)
 
 const { data: calendarData, refresh } = await useFetch<AdminPlanningCalendarResponse>('/api/admin/planning/calendar', {
   query: computed(() => ({
@@ -429,7 +431,7 @@ function openCreatePermanenceDialog(dayIso?: string) {
   permanenceForm.subtitle.fr = 'Exemple : cuisine et service le lundi'
   permanenceForm.subtitle.en = 'Example: cooking and serving every Monday'
   permanenceForm.slug = `permanence-${Date.now()}`
-  permanenceForm.visibility = 'PRIVATE'
+  permanenceForm.visibility = associationRolesEnabled.value ? 'PRIVATE' : 'PUBLIC'
   permanenceForm.status = 'DRAFT'
   permanenceForm.recurrenceStartDate = dayIso || baseDate.toISOString().slice(0, 10)
   permanenceForm.recurrenceEndDate = ''
@@ -455,6 +457,7 @@ function toggleRecurrenceDay(day: EventWeekdayValue, checked: boolean) {
 }
 
 function togglePermanenceRole(roleId: number, checked: boolean) {
+  if (!associationRolesEnabled.value) return
   permanenceForm.audienceMemberRoleIds = checked
     ? Array.from(new Set([...permanenceForm.audienceMemberRoleIds, roleId]))
     : permanenceForm.audienceMemberRoleIds.filter((id) => id !== roleId)
@@ -467,7 +470,7 @@ async function createEventAndOpenLiveEdit() {
     payload.kind = 'EVENT'
     payload.slug = eventCreateForm.slug.trim()
     payload.status = eventCreateForm.status
-    payload.visibility = eventCreateForm.visibility
+    payload.visibility = associationRolesEnabled.value ? eventCreateForm.visibility : 'PUBLIC'
     payload.startsAt = new Date(eventCreateForm.startsAt).toISOString()
     payload.endsAt = eventCreateForm.endsAt ? new Date(eventCreateForm.endsAt).toISOString() : null
     payload.placeName = eventCreateForm.placeName.trim()
@@ -506,7 +509,7 @@ async function createPermanence() {
     payload.kind = 'PERMANENCE'
     payload.slug = permanenceForm.slug.trim()
     payload.status = permanenceForm.status
-    payload.visibility = permanenceForm.visibility
+    payload.visibility = associationRolesEnabled.value ? permanenceForm.visibility : 'PUBLIC'
     payload.startsAt = new Date(`${permanenceForm.recurrenceStartDate}T${permanenceForm.recurrenceStartTime}:00`).toISOString()
     payload.endsAt = new Date(`${permanenceForm.recurrenceStartDate}T${permanenceForm.recurrenceEndTime}:00`).toISOString()
     payload.recurrenceType = 'WEEKLY'
@@ -520,7 +523,7 @@ async function createPermanence() {
     payload.internalParticipationEnabled = true
     payload.internalParticipationApprovalMode = 'MANUAL'
     payload.internalParticipationInfo = { ...permanenceForm.internalParticipationInfo }
-    payload.audienceMemberRoleIds = [...permanenceForm.audienceMemberRoleIds]
+    payload.audienceMemberRoleIds = associationRolesEnabled.value ? [...permanenceForm.audienceMemberRoleIds] : []
     payload.translations.fr.title = permanenceForm.title.fr.trim() || 'Permanence à compléter'
     payload.translations.en.title = permanenceForm.title.en.trim() || 'Shift to complete'
     payload.translations.fr.subtitle = permanenceForm.subtitle.fr.trim()

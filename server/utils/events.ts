@@ -22,7 +22,7 @@ import {
 import { buildGenericEmail } from '~/server/utils/orderEmails'
 import { resolveAdminEmailTemplate } from '~/server/utils/adminEmailTemplates'
 import { getSiteOrigin, sendGmail } from '~/server/utils/gmail'
-import { getReservationNotificationEmail } from '~/server/utils/settings'
+import { getReservationNotificationEmail, isAssociationRolesEnabled } from '~/server/utils/settings'
 
 type EventWithRelations = Event & {
   audienceMemberRoles: Array<EventAudienceMemberRole & { memberRole: MemberRole }>
@@ -379,6 +379,11 @@ async function sendTemplatedEventEmail(options: {
 }
 
 export async function createOrUpdateEvent(input: EventPayload, userId?: number | null) {
+  const associationRolesEnabled = await isAssociationRolesEnabled()
+  if (!associationRolesEnabled && input.audienceMemberRoleIds.length) {
+    throw createError({ statusCode: 404, statusMessage: 'Rôles associatifs désactivés' })
+  }
+
   const data = serializeEventPayload(input)
   const record = input.id
     ? await prisma.event.update({
@@ -396,16 +401,18 @@ export async function createOrUpdateEvent(input: EventPayload, userId?: number |
         }
       })
 
-  await prisma.eventAudienceMemberRole.deleteMany({
-    where: { eventId: record.id }
-  })
-  if (input.audienceMemberRoleIds.length) {
-    await prisma.eventAudienceMemberRole.createMany({
-      data: Array.from(new Set(input.audienceMemberRoleIds)).map(memberRoleId => ({
-        eventId: record.id,
-        memberRoleId
-      }))
+  if (associationRolesEnabled) {
+    await prisma.eventAudienceMemberRole.deleteMany({
+      where: { eventId: record.id }
     })
+    if (input.audienceMemberRoleIds.length) {
+      await prisma.eventAudienceMemberRole.createMany({
+        data: Array.from(new Set(input.audienceMemberRoleIds)).map(memberRoleId => ({
+          eventId: record.id,
+          memberRoleId
+        }))
+      })
+    }
   }
 
   return prisma.event.findUniqueOrThrow({

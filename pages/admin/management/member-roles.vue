@@ -5,10 +5,18 @@
         <h1 class="text-3xl font-bold">Rôles associatifs</h1>
         <p class="mt-1 text-sm opacity-70">Créez les rôles cumulables utilisés pour la visibilité et les participations planning/événements.</p>
       </div>
-      <button type="button" class="btn btn-primary" @click="newRole">Nouveau rôle associatif</button>
+      <button type="button" class="btn btn-primary" :disabled="!associationRolesEnabled" @click="newRole">Nouveau rôle associatif</button>
     </div>
 
-    <div class="grid gap-6 xl:grid-cols-[480px_minmax(0,1fr)]">
+    <div v-if="!associationRolesEnabled" class="alert alert-info items-start">
+      <Icon name="mdi:lock-outline" size="22" />
+      <div>
+        <div class="font-semibold">Les rôles associatifs sont désactivés.</div>
+        <p class="text-sm">Activez la fonctionnalité dans les paramètres avant de créer, modifier ou supprimer des rôles associatifs.</p>
+      </div>
+    </div>
+
+    <div v-else class="grid gap-6 xl:grid-cols-[480px_minmax(0,1fr)]">
       <section class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
         <table class="table table-zebra">
           <thead>
@@ -102,6 +110,8 @@ interface MemberRolePayload {
 }
 
 const { $toast } = useNuxtApp() as any
+const siteConfig = await useSiteConfig()
+const associationRolesEnabled = computed(() => siteConfig.value?.featureFlags?.associationRolesEnabled !== false)
 const { data: rolesData, refresh } = await useFetch<MemberRolePayload[]>('/api/admin/member-roles', {
   default: () => []
 })
@@ -131,11 +141,13 @@ const buildEmptyRole = (): MemberRolePayload => ({
 })
 
 const newRole = () => {
+  if (!associationRolesEnabled.value) return
   selectedId.value = null
   editor.value = buildEmptyRole()
 }
 
 const openRole = (id: number) => {
+  if (!associationRolesEnabled.value) return
   selectedId.value = id
   const role = roles.value.find(entry => entry.id === id)
   editor.value = role ? cloneRole(role) : null
@@ -143,6 +155,10 @@ const openRole = (id: number) => {
 
 const saveRole = async () => {
   if (!editor.value) return
+  if (!associationRolesEnabled.value) {
+    $toast?.warning?.('Activez les rôles associatifs avant de modifier cette liste')
+    return
+  }
   if (editor.value.id) {
     await $fetch(`/api/admin/member-roles/${editor.value.id}`, {
       method: 'PUT',
@@ -164,6 +180,10 @@ const saveRole = async () => {
 
 const deleteRole = async () => {
   if (!editor.value?.id) return
+  if (!associationRolesEnabled.value) {
+    $toast?.warning?.('Activez les rôles associatifs avant de supprimer un rôle')
+    return
+  }
   if (!confirm(`Supprimer "${editor.value.name}" ?`)) return
   await $fetch(`/api/admin/member-roles/${editor.value.id}`, { method: 'DELETE' })
   selectedId.value = null
@@ -171,4 +191,11 @@ const deleteRole = async () => {
   await refresh()
   $toast?.success('Rôle associatif supprimé')
 }
+
+watch(associationRolesEnabled, (enabled) => {
+  if (!enabled) {
+    selectedId.value = null
+    editor.value = null
+  }
+})
 </script>

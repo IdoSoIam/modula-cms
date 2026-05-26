@@ -1,5 +1,5 @@
 import { requireAdmin } from '~/server/utils/requireAdmin'
-import { setSetting, SETTING_KEYS } from '~/server/utils/settings'
+import { normalizeFeatureFlags, setSetting, SETTING_KEYS } from '~/server/utils/settings'
 import { findAdminEmailTemplateDefinition } from '~/server/utils/adminEmailTemplates'
 
 interface Body {
@@ -17,6 +17,19 @@ interface Body {
   inDevelopment?: boolean
   registerEnabled?: boolean
   subscriptionsEnabled?: boolean
+  featureFlags?: {
+    inDevelopment?: boolean
+    registerEnabled?: boolean
+    subscriptionsEnabled?: boolean
+    shop?: {
+      enabled?: boolean
+      basketsEnabled?: boolean
+      vegetablesEnabled?: boolean
+    }
+    associationRolesEnabled?: boolean
+    eventsEnabled?: boolean
+    newsEnabled?: boolean
+  }
   farmPickupAddress?: string
   farmPickupDayOfWeek?: number
   farmPickupStartTime?: string
@@ -30,6 +43,19 @@ interface Body {
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const body = await readBody<Body>(event)
+  const featureFlags = normalizeFeatureFlags({
+    inDevelopment: body.featureFlags?.inDevelopment ?? body.inDevelopment ?? false,
+    registerEnabled: body.featureFlags?.registerEnabled ?? body.registerEnabled ?? false,
+    subscriptionsEnabled: body.featureFlags?.subscriptionsEnabled ?? body.subscriptionsEnabled ?? false,
+    shop: {
+      enabled: body.featureFlags?.shop?.enabled ?? false,
+      basketsEnabled: body.featureFlags?.shop?.basketsEnabled ?? false,
+      vegetablesEnabled: body.featureFlags?.shop?.vegetablesEnabled ?? false
+    },
+    associationRolesEnabled: body.featureFlags?.associationRolesEnabled ?? false,
+    eventsEnabled: body.featureFlags?.eventsEnabled ?? false,
+    newsEnabled: body.featureFlags?.newsEnabled ?? false
+  })
 
   if (typeof body.gmailSenderEmail === 'string') {
     await setSetting(SETTING_KEYS.GMAIL_SENDER_EMAIL, body.gmailSenderEmail.trim())
@@ -66,14 +92,28 @@ export default defineEventHandler(async (event) => {
   if (typeof body.facebookFluxDeactivated === 'boolean') {
     await setSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED, body.facebookFluxDeactivated ? 'true' : 'false')
   }
-  if (typeof body.inDevelopment === 'boolean') {
-    await setSetting(SETTING_KEYS.IN_DEVELOPMENT, body.inDevelopment ? 'true' : 'false')
+  if (typeof body.inDevelopment === 'boolean' || typeof body.featureFlags?.inDevelopment === 'boolean') {
+    await setSetting(SETTING_KEYS.IN_DEVELOPMENT, featureFlags.inDevelopment ? 'true' : 'false')
   }
-  if (typeof body.registerEnabled === 'boolean') {
-    await setSetting(SETTING_KEYS.REGISTER_ENABLED, body.registerEnabled ? 'true' : 'false')
+  if (typeof body.registerEnabled === 'boolean' || typeof body.featureFlags?.registerEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.REGISTER_ENABLED, featureFlags.registerEnabled ? 'true' : 'false')
   }
-  if (typeof body.subscriptionsEnabled === 'boolean') {
-    await setSetting(SETTING_KEYS.SUBSCRIPTIONS_ENABLED, body.subscriptionsEnabled ? 'true' : 'false')
+  if (typeof body.subscriptionsEnabled === 'boolean' || typeof body.featureFlags?.subscriptionsEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.SUBSCRIPTIONS_ENABLED, featureFlags.subscriptionsEnabled ? 'true' : 'false')
+  }
+  if (typeof body.featureFlags?.shop?.enabled === 'boolean' || typeof body.featureFlags?.shop?.basketsEnabled === 'boolean' || typeof body.featureFlags?.shop?.vegetablesEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.SHOP_ENABLED, featureFlags.shop.enabled ? 'true' : 'false')
+    await setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, featureFlags.shop.basketsEnabled ? 'true' : 'false')
+    await setSetting(SETTING_KEYS.SHOP_VEGETABLES_ENABLED, featureFlags.shop.vegetablesEnabled ? 'true' : 'false')
+  }
+  if (typeof body.featureFlags?.associationRolesEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, featureFlags.associationRolesEnabled ? 'true' : 'false')
+  }
+  if (typeof body.featureFlags?.eventsEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.EVENTS_ENABLED, featureFlags.eventsEnabled ? 'true' : 'false')
+  }
+  if (typeof body.featureFlags?.newsEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.NEWS_ENABLED, featureFlags.newsEnabled ? 'true' : 'false')
   }
   if (typeof body.farmPickupAddress === 'string') {
     await setSetting(SETTING_KEYS.FARM_PICKUP_ADDRESS, body.farmPickupAddress.trim())

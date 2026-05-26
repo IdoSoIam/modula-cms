@@ -50,8 +50,32 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant utilisateur invalide' })
   }
 
-  const body = await readBody<{ sendEmail?: boolean }>(event)
-  const sendEmail = body?.sendEmail !== false
+  const body = await readBody<{ sendEmail?: boolean; action?: string; setupToken?: string; ttlHours?: number }>(event)
+
+  // Mode "send-email": envoie l'email avec un token existant sans en générer un nouveau
+  if (body?.action === 'send-email') {
+    if (!body.setupToken) {
+      throw createError({ statusCode: 400, statusMessage: 'Token requis' })
+    }
+
+    const validation = await authService.validatePasswordSetupToken(body.setupToken)
+    if (!validation) {
+      throw createError({ statusCode: 404, statusMessage: 'Token invalide ou expiré. Générez un nouveau lien d\'invitation.' })
+    }
+
+    await sendInvitationEmail({
+      email: validation.email,
+      firstName: validation.firstName,
+      lastName: validation.lastName,
+      setupToken: body.setupToken,
+      expiresAt: validation.expiresAt
+    })
+
+    return { sent: true }
+  }
+
+  // Mode normal : génération d'un nouveau token
+  const sendEmail = body?.sendEmail === true
 
   const user = await prisma.user.findUnique({
     where: { id },
@@ -75,7 +99,8 @@ export default defineEventHandler(async (event) => {
   let setupToken: string
   let expiresAt: Date
   try {
-    const createdToken = await authService.createPasswordSetupToken(user.id)
+    const ttlMs = body?.ttlHours ? body.ttlHours * 60 * 60 * 1000 : undefined
+    const createdToken = await authService.createPasswordSetupToken(user.id, ttlMs)
     setupToken = createdToken.token
     expiresAt = createdToken.expiresAt
   } catch (error) {
@@ -97,6 +122,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     link: `${getSiteOrigin()}/password-setup/${setupToken}`,
+    setupToken,
     sent
   }
 })

@@ -1,6 +1,7 @@
 import { prisma } from '~/prisma/client'
 import { applyOccurrenceOverridesToEventPayload, canAccessEvent, eventToPayload } from '~/server/utils/events'
 import { AuthService } from '~/server/services/auth/authService'
+import { getFeatureFlags } from '~/server/utils/settings'
 
 const authService = new AuthService()
 
@@ -11,6 +12,11 @@ export default defineEventHandler(async (event) => {
   const occurrenceId = Number(query.occurrenceId)
   if (!slug) {
     throw createError({ statusCode: 400, statusMessage: 'Slug requis' })
+  }
+
+  const featureFlags = await getFeatureFlags()
+  if (!featureFlags.eventsEnabled) {
+    throw createError({ statusCode: 404, statusMessage: 'Événement introuvable' })
   }
 
   const user = await authService.getUserFromSession(event)

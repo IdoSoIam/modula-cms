@@ -207,7 +207,7 @@ const activeLocale = ref<CmsLocale>('fr')
 const contentTab = ref<'editor' | 'preview'>('editor')
 const saving = ref(false)
 const openPanelIds = ref<string[]>([])
-const pageRendererOptions = [
+const allPageRendererOptions = [
   { value: 'cms', label: t('admin.pageEditorPage.rendererCms') },
   { value: 'news', label: t('admin.pageEditorPage.rendererNews') },
   { value: 'baskets', label: t('admin.pageEditorPage.rendererBaskets') },
@@ -217,7 +217,19 @@ const pageRendererOptions = [
 ] as const
 
 const { data } = await useFetch<CmsPageEditor>(`/api/admin/cms/pages/${route.params.id}`)
-const { data: siteShellData } = await useFetch<{ settings: CmsSiteSettings, navigation: Array<CmsNavigationItemPayload & { id?: number | null }> }>('/api/admin/cms/site-shell')
+const { data: siteShellData } = await useFetch<{ settings: CmsSiteSettings, navigation: Array<CmsNavigationItemPayload & { id?: number | null }>, featureFlags: {
+  inDevelopment: boolean
+  registerEnabled: boolean
+  subscriptionsEnabled: boolean
+  shop: {
+    enabled: boolean
+    basketsEnabled: boolean
+    vegetablesEnabled: boolean
+  }
+  associationRolesEnabled: boolean
+  eventsEnabled: boolean
+  newsEnabled: boolean
+} }>('/api/admin/cms/site-shell')
 if (!data.value) {
   throw createError({
     statusCode: 404,
@@ -233,6 +245,7 @@ if (!siteShellData.value) {
 
 const page = reactive<CmsPageEditor>(structuredClone(data.value))
 const siteShellModel = reactive(structuredClone(siteShellData.value))
+const featureFlags = computed(() => siteShellModel.featureFlags)
 
 const isEmptyPageBuilderContent = (content: PageBuilderContent | null | undefined) =>
   !content || !Array.isArray(content.sections) || content.sections.length === 0
@@ -281,8 +294,16 @@ const selectedPageRenderer = computed({
   }
 })
 
+const pageRendererOptions = computed(() => allPageRendererOptions.filter((option) => {
+  if (option.value === 'news') return featureFlags.value.newsEnabled
+  if (option.value === 'baskets') return featureFlags.value.shop.enabled && featureFlags.value.shop.basketsEnabled
+  if (option.value === 'shop') return featureFlags.value.shop.enabled && (featureFlags.value.shop.basketsEnabled || featureFlags.value.shop.vegetablesEnabled)
+  if (option.value === 'events' || option.value === 'planning') return featureFlags.value.eventsEnabled
+  return true
+}))
+
 const selectedPageRendererLabel = computed(() =>
-  pageRendererOptions.find(option => option.value === selectedPageRenderer.value)?.label || 'Page CMS'
+  pageRendererOptions.value.find(option => option.value === selectedPageRenderer.value)?.label || page.rendererKey || 'Page CMS'
 )
 
 const activeTranslation = computed(() => page.translations[activeLocale.value])

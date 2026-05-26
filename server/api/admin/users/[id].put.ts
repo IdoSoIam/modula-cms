@@ -1,5 +1,6 @@
 import { prisma } from '~/prisma/client'
 import { requirePermission } from '~/server/utils/permissions'
+import { isAssociationRolesEnabled } from '~/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'users', 'update')
@@ -19,6 +20,11 @@ export default defineEventHandler(async (event) => {
   const memberRoleIds = Array.isArray(body.memberRoleIds)
     ? Array.from(new Set(body.memberRoleIds.map(value => Number(value)).filter(value => Number.isInteger(value) && value > 0)))
     : []
+  const associationRolesEnabled = await isAssociationRolesEnabled()
+
+  if (!associationRolesEnabled && memberRoleIds.length) {
+    throw createError({ statusCode: 404, statusMessage: 'Rôles associatifs désactivés' })
+  }
 
   await prisma.user.update({
     where: { id },
@@ -30,17 +36,19 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  await prisma.userMemberRole.deleteMany({
-    where: { userId: id }
-  })
-
-  if (memberRoleIds.length) {
-    await prisma.userMemberRole.createMany({
-      data: memberRoleIds.map(memberRoleId => ({
-        userId: id,
-        memberRoleId
-      }))
+  if (associationRolesEnabled) {
+    await prisma.userMemberRole.deleteMany({
+      where: { userId: id }
     })
+
+    if (memberRoleIds.length) {
+      await prisma.userMemberRole.createMany({
+        data: memberRoleIds.map(memberRoleId => ({
+          userId: id,
+          memberRoleId
+        }))
+      })
+    }
   }
 
   return { ok: true }

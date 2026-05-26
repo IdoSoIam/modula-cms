@@ -41,9 +41,24 @@ model User {
   updatedEvents Event[]      @relation("EventUpdatedBy")
   publicEventReservations EventPublicReservation[]
   internalEventParticipations EventInternalParticipation[]
+  passwordSetupTokens PasswordSetupToken[]
 
   @@index([roleId])
   @@index([isActive])
+}
+
+model PasswordSetupToken {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique
+  userId    Int
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Role {
