@@ -8,14 +8,17 @@ const projectRoot = process.cwd()
 const databaseName = 'ferme-du-campeyrigoux'
 const appTables = [
   'SiteParams',
+  'Role',
+  'RolePermission',
+  'MemberRole',
   'User',
+  'PasswordSetupToken',
+  'UserMemberRole',
   'Vegetable',
   'Basket',
   'BasketItem',
   'PickupPoint',
   'DeliveryTour',
-  'CmsPage',
-  'CmsNavigationItem',
   'TourCity',
   'Reservation',
   'ReservationScheduleProposal',
@@ -23,15 +26,31 @@ const appTables = [
   'ReservationNotification',
   'Article',
   'Image',
+  'ImageVariant',
   'ImageUsage',
-  'ImageVariant'
+  'CmsPage',
+  'CmsNavigationItem',
+  'Event',
+  'EventOccurrence',
+  'EventAudienceMemberRole',
+  'EventPublicReservation',
+  'EventInternalParticipation'
 ]
 const userScopedTables = [
   'User',
+  'PasswordSetupToken',
+  'UserMemberRole',
   'Reservation',
   'ReservationScheduleProposal',
   'ReservationOccurrence',
-  'ReservationNotification'
+  'ReservationNotification',
+  'Article',
+  'Image',
+  'Event',
+  'EventOccurrence',
+  'EventAudienceMemberRole',
+  'EventPublicReservation',
+  'EventInternalParticipation'
 ]
 const protectedRemoteSiteParamKeys = [
   'gmail_sender_email',
@@ -46,7 +65,7 @@ const protectedRemoteSiteParamKeys = [
 const mode = process.argv[2]
 
 if (!mode) {
-  throw new Error('Missing mode. Expected one of: sqlite-to-d1-local, d1-local-to-remote, d1-remote-to-local')
+  throw new Error('Missing mode. Expected one of: sqlite-to-d1-local, sql-file-to-d1-local, d1-local-to-remote, d1-remote-to-local')
 }
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ferme-d1-sync-'))
@@ -55,6 +74,9 @@ try {
   switch (mode) {
     case 'sqlite-to-d1-local':
       syncSqliteToD1Local()
+      break
+    case 'sql-file-to-d1-local':
+      syncSqlFileToD1Local(process.argv[3])
       break
     case 'd1-local-to-remote':
       syncD1ToD1({ source: 'local', target: 'remote' })
@@ -86,6 +108,29 @@ function syncSqliteToD1Local() {
 
   runWrangler(['d1', 'execute', databaseName, '--local', '--file', importSqlPath, '--yes'])
   console.log('Imported prisma/local.db into local D1.')
+}
+
+function syncSqlFileToD1Local(inputPathArg) {
+  runWrangler(['d1', 'migrations', 'apply', databaseName, '--local'])
+
+  const inputPath = inputPathArg
+    ? path.resolve(projectRoot, inputPathArg)
+    : path.join(projectRoot, 'database.sql')
+  if (!fs.existsSync(inputPath)) {
+    throw new Error(`SQL source not found: ${inputPath}`)
+  }
+
+  const sqlitePath = path.join(tempDir, 'sql-import-buffer.db')
+  const dataSqlPath = path.join(tempDir, 'sql-file-data.sql')
+  const importSqlPath = path.join(tempDir, 'sql-file-to-d1-local.sql')
+  const syncPlan = createSyncPlan({ source: 'sql-file', target: 'local' })
+
+  materializeSqlFileToSqlite(inputPath, sqlitePath)
+  writeSqliteDataDump(sqlitePath, dataSqlPath, syncPlan)
+  fs.writeFileSync(importSqlPath, `${buildResetSql(syncPlan)}\n${fs.readFileSync(dataSqlPath, 'utf8')}`, 'utf8')
+
+  runWrangler(['d1', 'execute', databaseName, '--local', '--file', importSqlPath, '--yes'])
+  console.log(`Imported ${inputPath} into local D1.`)
 }
 
 function syncD1ToD1({ source, target }) {
@@ -138,6 +183,18 @@ function createSyncPlan({ source, target }) {
     resetTables: appTables,
     preserveSiteParamKeys: [],
     columnOverrides: {}
+  }
+}
+
+function materializeSqlFileToSqlite(inputPath, sqlitePath) {
+  const db = new Database(sqlitePath)
+
+  try {
+    db.exec('PRAGMA foreign_keys = OFF')
+    db.exec(fs.readFileSync(inputPath, 'utf8'))
+    db.exec('PRAGMA foreign_keys = ON')
+  } finally {
+    db.close()
   }
 }
 

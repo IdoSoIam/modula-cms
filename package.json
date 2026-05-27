@@ -22,6 +22,7 @@
     "db:d1:query:local": "wrangler d1 execute ferme-du-campeyrigoux --local --command",
     "db:d1:query:remote": "wrangler d1 execute ferme-du-campeyrigoux --remote --command",
     "db:d1:import:sqlite-local": "node ./scripts/d1-sync.mjs sqlite-to-d1-local",
+    "db:d1:import:sql-local": "node ./scripts/d1-sync.mjs sql-file-to-d1-local ./database.sql",
     "db:d1:push:prod": "node ./scripts/d1-sync.mjs d1-local-to-remote",
     "db:d1:pull:prod": "node ./scripts/d1-sync.mjs d1-remote-to-local",
     "r2:push:prod": "node ./scripts/r2-sync.mjs local-to-remote",
@@ -63,6 +64,6 @@
     "@types/fb": "^0.0.30",
     "@types/node": "^25.6.0",
     "nitro-cloudflare-dev": "^0.2.2",
-    "wrangler": "^4.85.0"
+    "wrangler": "^4.95.0"
   }
 }

@@ -23,7 +23,8 @@
     {
       "binding": "DB",
       "database_name": "ferme-du-campeyrigoux",
-      "database_id": "64f5f2c1-5c49-4b8d-ba27-b087c55621e7"
+      "database_id": "64f5f2c1-5c49-4b8d-ba27-b087c55621e7",
+      "migrations_dir": "migrations"
     }
   ],
   "vars": {
