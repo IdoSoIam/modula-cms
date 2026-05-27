@@ -975,7 +975,7 @@
       "stickyHeader": "Header sticky",
       "stickyHeaderHelp": "Le header reste visible en haut pendant le scroll.",
       "socialLinksTitle": "Réseaux sociaux",
-      "socialLinksDescription": "Injectables à n'importe quel endroit du footer.",
+      "socialLinksDescription": "Injectables à n'importe quel endroit.",
       "socialLinkLabel": "Réseau {index}",
       "emptyContent": "Sans contenu",
       "idField": "ID",
