@@ -1,12 +1,20 @@
 <template>
   <div class="bg-base-100">
     <NewsListPage
-      v-if="showApplication && resolvedPage.rendererKey === 'news' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
+      v-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'news' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
       v-bind="newsPageProps"
     />
     <BasketsPage
-      v-else-if="showApplication && resolvedPage.rendererKey === 'baskets' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
+      v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'baskets' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
       v-bind="basketsPageProps"
+    />
+    <EventsPage
+      v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'events' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
+      v-bind="eventsPageProps"
+    />
+    <PlanningPage
+      v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'planning' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
+      v-bind="planningPageProps"
     />
 
     <PageRenderer
@@ -18,12 +26,20 @@
     />
 
     <NewsListPage
-      v-if="showApplication && resolvedPage.rendererKey === 'news' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
+      v-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'news' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
       v-bind="newsPageProps"
     />
     <BasketsPage
-      v-else-if="showApplication && resolvedPage.rendererKey === 'baskets' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
+      v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'baskets' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
       v-bind="basketsPageProps"
+    />
+    <EventsPage
+      v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'events' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
+      v-bind="eventsPageProps"
+    />
+    <PlanningPage
+      v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'planning' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
+      v-bind="planningPageProps"
     />
 
   </div>
@@ -34,7 +50,9 @@ import type { ResolvedCmsPage } from '~/shared/cms'
 import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
 import PageRenderer from '~/components/page-builder/PageRenderer.vue'
 import BasketsPage from '~/components/pages/BasketsPage.vue'
+import EventsPage from '~/components/pages/EventsPage.vue'
 import NewsListPage from '~/components/pages/NewsListPage.vue'
+import PlanningPage from '~/components/pages/PlanningPage.vue'
 
 const props = defineProps<{
   resolvedPage: ResolvedCmsPage
@@ -48,7 +66,18 @@ defineEmits<{
 
 const siteConfig = await useSiteConfig()
 const cmsSettings = computed(() => siteConfig.value?.cms?.settings)
+const featureFlags = computed(() => siteConfig.value?.featureFlags)
 const newsShowArticles = siteConfig.value?.facebookFluxDeactivated === true
+
+const isRendererEnabled = (rendererKey: string) => {
+  const flags = featureFlags.value
+  if (!flags) return true
+  if (rendererKey === 'baskets') return flags.shop.enabled && flags.shop.basketsEnabled
+  if (rendererKey === 'news') return flags.newsEnabled
+  if (rendererKey === 'events' || rendererKey === 'planning') return flags.eventsEnabled
+  if (rendererKey === 'shop') return flags.shop.enabled && (flags.shop.basketsEnabled || flags.shop.vegetablesEnabled)
+  return true
+}
 
 const basketsPageProps = computed(() => ({
   settings: cmsSettings.value?.basketsPage ?? null
@@ -59,6 +88,14 @@ const newsPageProps = computed(() => ({
   showArticles: newsShowArticles
 }))
 
+const eventsPageProps = computed(() => ({
+  settings: cmsSettings.value?.eventsPage ?? null
+}))
+
+const planningPageProps = computed(() => ({
+  settings: cmsSettings.value?.planningPage ?? null
+}))
+
 const showContent = computed(() =>
   props.resolvedPage.pageType !== 'APPLICATION'
   && Array.isArray(props.resolvedPage.content.sections)
@@ -67,6 +104,6 @@ const showContent = computed(() =>
 
 const showApplication = computed(() =>
   (props.resolvedPage.pageType === 'APPLICATION' || props.resolvedPage.pageType === 'HYBRID')
-  && (props.resolvedPage.rendererKey === 'news' || props.resolvedPage.rendererKey === 'baskets')
+  && (props.resolvedPage.rendererKey === 'news' || props.resolvedPage.rendererKey === 'baskets' || props.resolvedPage.rendererKey === 'events' || props.resolvedPage.rendererKey === 'planning')
 )
 </script>

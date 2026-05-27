@@ -33,12 +33,12 @@ export default defineNuxtRouteMiddleware(async (to) => {
     console.debug('Site config check failed:', error)
   }
 
-  const publicAllowedInDevelopment = ['/login', '/construction', constructionPath]
+  const publicAllowedInDevelopment = ['/login', '/construction', constructionPath, '/password-setup']
 
   if (
     inDevelopment &&
     !authStore.isAuthenticated &&
-    !publicAllowedInDevelopment.includes(normalizedPath)
+    !publicAllowedInDevelopment.some(route => normalizedPath === route || normalizedPath.startsWith(`${route}/`))
   ) {
     return navigateTo(localePath(constructionPath))
   }
@@ -48,7 +48,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
       return navigateTo(localePath('/login'))
     }
 
-    if (!authStore.isAdmin) {
+    if (!authStore.canAccessAdmin) {
       return navigateTo(localePath('/'))
     }
   }

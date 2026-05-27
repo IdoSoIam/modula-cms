@@ -17,7 +17,7 @@
               v-if="showMonthPicker"
               class="absolute left-0 top-full z-10 mt-2 rounded-xl border border-base-300 bg-base-100 p-3 shadow-xl"
             >
-              <label class="mb-2 block text-xs font-semibold uppercase opacity-60">{{ t('admin.ordersPage.monthPicker') }}</label>
+              <label class="mb-2 block text-xs font-semibold uppercase opacity-60">{{ monthPickerLabel }}</label>
               <input :value="monthInput" type="month" class="input input-bordered input-sm" @input="$emit('update:month-input', ($event.target as HTMLInputElement).value)" @change="$emit('apply-month-input')" />
             </div>
           </div>
@@ -27,7 +27,7 @@
           </button>
         </div>
 
-        <button class="btn btn-sm btn-outline" @click="$emit('go-current-month')">{{ t('admin.ordersPage.today') }}</button>
+        <button class="btn btn-sm btn-outline" @click="$emit('go-current-month')">{{ todayLabel }}</button>
       </div>
 
       <div class="mb-2 grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase opacity-60">
@@ -54,13 +54,15 @@
             <div
               v-for="item in day.items"
               :key="item.id"
-              class="cursor-pointer rounded-lg px-2 py-1 text-xs text-white"
-              :class="eventClass(item.status)"
+              class="cursor-pointer rounded-lg px-2 py-1 text-xs"
+              :class="itemClass(item)"
               @click.stop="$emit('select-item', item)"
             >
-              <div class="truncate font-medium">{{ item.customerName }}</div>
-              <div class="truncate opacity-90">{{ item.basket.name }}</div>
-              <div v-if="item.time" class="truncate opacity-90">{{ item.time }}</div>
+              <slot name="item" :item="item">
+                <div class="truncate font-medium">{{ itemTitle(item) }}</div>
+                <div v-if="itemSubtitle(item)" class="truncate opacity-90">{{ itemSubtitle(item) }}</div>
+                <div v-if="itemMeta(item)" class="truncate opacity-75">{{ itemMeta(item) }}</div>
+              </slot>
             </div>
 
             <div v-if="day.totalPages > 1" class="join mt-1 w-full">
@@ -79,14 +81,26 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const props = withDefaults(defineProps<{
   days: any[]
   monthLabel: string
   monthInput: string
   showMonthPicker: boolean
   dayNames: string[]
-  eventClass: (status: string) => string
-}>()
+  todayLabel?: string
+  monthPickerLabel?: string
+  itemClass?: (item: any) => string
+  itemTitle?: (item: any) => string
+  itemSubtitle?: (item: any) => string
+  itemMeta?: (item: any) => string
+}>(), {
+  todayLabel: '',
+  monthPickerLabel: '',
+  itemClass: () => 'bg-primary text-primary-content shadow-sm',
+  itemTitle: (item: any) => String(item?.title ?? ''),
+  itemSubtitle: (item: any) => String(item?.subtitle ?? ''),
+  itemMeta: (item: any) => String(item?.meta ?? '')
+})
 
 defineEmits<{
   'change-month': [offset: number]
@@ -100,4 +114,11 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+const todayLabel = computed(() => props.todayLabel || t('admin.ordersPage.today'))
+const monthPickerLabel = computed(() => props.monthPickerLabel || t('admin.ordersPage.monthPicker'))
+
+const itemClass = (item: any) => props.itemClass(item)
+const itemTitle = (item: any) => props.itemTitle(item)
+const itemSubtitle = (item: any) => props.itemSubtitle(item)
+const itemMeta = (item: any) => props.itemMeta(item)
 </script>

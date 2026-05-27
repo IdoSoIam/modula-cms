@@ -18,7 +18,7 @@
           :class="collapsed ? 'justify-center' : ''"
           @click="toggleSection(section.id)"
         >
-          <Icon :name="section.items[0]?.icon || 'mdi:folder-outline'" size="18" class="shrink-0" />
+          <Icon :name="section.icon || section.items[0]?.icon || 'mdi:folder-outline'" size="18" class="shrink-0" />
           <span v-if="!collapsed" class="flex-1 truncate">{{ t(section.labelKey) }}</span>
           <Icon
             v-if="!collapsed"

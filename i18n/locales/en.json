@@ -369,6 +369,7 @@
     "navigation": {
       "sections": {
         "content": "Content",
+        "management": "Management",
         "shop": "Shop",
         "customization": "Customization",
         "settings": "Settings"
@@ -377,6 +378,10 @@
         "dashboard": "Dashboard",
         "pages": "Pages",
         "news": "News",
+        "planning": "Planning",
+        "events": "Events",
+        "eventReservations": "Event reservations",
+        "memberRoles": "Member roles",
         "vegetables": "Vegetables",
         "baskets": "Baskets",
         "orders": "Orders",
@@ -388,6 +393,8 @@
         "global": "Global",
         "emailConnectors": "Emails and connectors",
         "features": "Features",
+        "users": "Users",
+        "roles": "Roles",
         "facebookSync": "Facebook sync"
       }
     },
@@ -1078,6 +1085,7 @@
       "rendererBaskets": "Baskets",
       "rendererShop": "Shop",
       "rendererEvents": "Events",
+      "rendererPlanning": "Planning",
       "cardBuilder": {
         "contentElements": "Content elements",
         "addTitle": "Add title",

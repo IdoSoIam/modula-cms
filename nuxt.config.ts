@@ -36,7 +36,10 @@ export default defineNuxtConfig({
     },
     cloudflare: {
       deployConfig: true,
-      nodeCompat: true
+      nodeCompat: false
+    },
+    rollupConfig: {
+      external: ['facebook-node-sdk', 'fb']
     }
   },
   devServer: {
@@ -55,7 +58,10 @@ export default defineNuxtConfig({
   },
   modules: [
     '@nuxt/image',
-    "@nuxt/icon",
+    ['@nuxt/icon', {
+      collections: ['mdi'],
+      fallbackToApi: false
+    }],
     '@nuxtjs/i18n',
     '@pinia/nuxt',
     'nitro-cloudflare-dev'

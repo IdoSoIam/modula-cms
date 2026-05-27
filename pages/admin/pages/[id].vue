@@ -207,16 +207,29 @@ const activeLocale = ref<CmsLocale>('fr')
 const contentTab = ref<'editor' | 'preview'>('editor')
 const saving = ref(false)
 const openPanelIds = ref<string[]>([])
-const pageRendererOptions = [
+const allPageRendererOptions = [
   { value: 'cms', label: t('admin.pageEditorPage.rendererCms') },
   { value: 'news', label: t('admin.pageEditorPage.rendererNews') },
   { value: 'baskets', label: t('admin.pageEditorPage.rendererBaskets') },
   { value: 'shop', label: t('admin.pageEditorPage.rendererShop') },
-  { value: 'events', label: t('admin.pageEditorPage.rendererEvents') }
+  { value: 'events', label: t('admin.pageEditorPage.rendererEvents') },
+  { value: 'planning', label: t('admin.pageEditorPage.rendererPlanning') }
 ] as const
 
 const { data } = await useFetch<CmsPageEditor>(`/api/admin/cms/pages/${route.params.id}`)
-const { data: siteShellData } = await useFetch<{ settings: CmsSiteSettings, navigation: Array<CmsNavigationItemPayload & { id?: number | null }> }>('/api/admin/cms/site-shell')
+const { data: siteShellData } = await useFetch<{ settings: CmsSiteSettings, navigation: Array<CmsNavigationItemPayload & { id?: number | null }>, featureFlags: {
+  inDevelopment: boolean
+  registerEnabled: boolean
+  subscriptionsEnabled: boolean
+  shop: {
+    enabled: boolean
+    basketsEnabled: boolean
+    vegetablesEnabled: boolean
+  }
+  associationRolesEnabled: boolean
+  eventsEnabled: boolean
+  newsEnabled: boolean
+} }>('/api/admin/cms/site-shell')
 if (!data.value) {
   throw createError({
     statusCode: 404,
@@ -232,6 +245,7 @@ if (!siteShellData.value) {
 
 const page = reactive<CmsPageEditor>(structuredClone(data.value))
 const siteShellModel = reactive(structuredClone(siteShellData.value))
+const featureFlags = computed(() => siteShellModel.featureFlags)
 
 const isEmptyPageBuilderContent = (content: PageBuilderContent | null | undefined) =>
   !content || !Array.isArray(content.sections) || content.sections.length === 0
@@ -261,9 +275,10 @@ const selectedPageRenderer = computed({
     if (page.rendererKey === 'baskets') return 'baskets'
     if (page.rendererKey === 'shop') return 'shop'
     if (page.rendererKey === 'events') return 'events'
+    if (page.rendererKey === 'planning') return 'planning'
     return 'cms'
   },
-  set: (value: 'cms' | 'news' | 'baskets' | 'shop' | 'events') => {
+  set: (value: 'cms' | 'news' | 'baskets' | 'shop' | 'events' | 'planning') => {
     if (value === 'cms') {
       page.pageType = 'CMS'
       page.templateKey = 'default'
@@ -279,8 +294,16 @@ const selectedPageRenderer = computed({
   }
 })
 
+const pageRendererOptions = computed(() => allPageRendererOptions.filter((option) => {
+  if (option.value === 'news') return featureFlags.value.newsEnabled
+  if (option.value === 'baskets') return featureFlags.value.shop.enabled && featureFlags.value.shop.basketsEnabled
+  if (option.value === 'shop') return featureFlags.value.shop.enabled && (featureFlags.value.shop.basketsEnabled || featureFlags.value.shop.vegetablesEnabled)
+  if (option.value === 'events' || option.value === 'planning') return featureFlags.value.eventsEnabled
+  return true
+}))
+
 const selectedPageRendererLabel = computed(() =>
-  pageRendererOptions.find(option => option.value === selectedPageRenderer.value)?.label || 'Page CMS'
+  pageRendererOptions.value.find(option => option.value === selectedPageRenderer.value)?.label || page.rendererKey || 'Page CMS'
 )
 
 const activeTranslation = computed(() => page.translations[activeLocale.value])
@@ -298,11 +321,15 @@ const localizedTitle = computed({
 const applicationLocalizedTitle = computed<null | { fr: string, en: string }>(() => {
   if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.title
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.title
+  if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.title
+  if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.title
   return null
 })
 const applicationLocalizedSubtitle = computed<null | { fr: string, en: string }>(() => {
   if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.subtitle
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.subtitle
+  if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.subtitle
+  if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.subtitle
   return null
 })
 const localizedMetaTitle = computed({
@@ -360,6 +387,14 @@ const updateVisibleTitle = (value: { fr: string, en: string }) => {
     siteShellModel.settings.newsPage.title = structuredClone(value)
     return
   }
+  if (selectedPageRenderer.value === 'events') {
+    siteShellModel.settings.eventsPage.title = structuredClone(value)
+    return
+  }
+  if (selectedPageRenderer.value === 'planning') {
+    siteShellModel.settings.planningPage.title = structuredClone(value)
+    return
+  }
   localizedTitle.value = value
 }
 
@@ -370,6 +405,14 @@ const updateVisibleSubtitle = (value: { fr: string, en: string }) => {
   }
   if (selectedPageRenderer.value === 'news') {
     siteShellModel.settings.newsPage.subtitle = structuredClone(value)
+    return
+  }
+  if (selectedPageRenderer.value === 'events') {
+    siteShellModel.settings.eventsPage.subtitle = structuredClone(value)
+    return
+  }
+  if (selectedPageRenderer.value === 'planning') {
+    siteShellModel.settings.planningPage.subtitle = structuredClone(value)
   }
 }
 

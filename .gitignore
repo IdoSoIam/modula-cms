@@ -5,6 +5,7 @@
 .nitro
 .cache
 .vs
+.vscode
 dist
 
 # Node dependencies
@@ -38,3 +39,10 @@ prisma/d1-local-studio.db
 
 # Legacy local uploads folder no longer used as source of truth
 public/uploads
+
+
+#IA
+.opencode
+.omo
+.claude
+.codex-logs

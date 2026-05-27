@@ -70,7 +70,10 @@
           :month-input="monthInput"
           :show-month-picker="showMonthPicker"
           :day-names="dayNames"
-          :event-class="calendarEventClass"
+          :item-class="calendarItemClass"
+          :item-title="calendarItemTitle"
+          :item-subtitle="calendarItemSubtitle"
+          :item-meta="calendarItemMeta"
           @change-month="changeMonth"
           @toggle-month-picker="toggleMonthPicker"
           @apply-month-input="applyMonthInput"
@@ -520,6 +523,18 @@ type ReservationDetails = Reservation & {
   notificationPagination: Pagination
 }
 
+type ReservationListItem = {
+  id: string
+  reservationId: number
+  occurrenceId: number | null
+  customerName: string
+  status: string
+  basket: { id: number; name: string; finalPrice: number }
+  date: string
+  time: string | null
+  location: string | null
+}
+
 const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
 const siteConfig = await useSiteConfig()
 const subscriptionsEnabled = computed(() => siteConfig.value?.subscriptionsEnabled ?? false)
@@ -677,6 +692,11 @@ const calendarEventClass = (s: string) => ({
   REJECTED: 'bg-error text-error-content',
   CANCELLED: 'bg-neutral text-neutral-content'
 } as Record<string, string>)[s] ?? 'bg-neutral text-neutral-content'
+
+const calendarItemClass = (item: ReservationListItem) => calendarEventClass(item.status)
+const calendarItemTitle = (item: ReservationListItem) => item.customerName
+const calendarItemSubtitle = (item: ReservationListItem) => item.basket.name
+const calendarItemMeta = (item: ReservationListItem) => item.time || ''
 
 const formatDateInput = (value: string | null) => value ? value.slice(0, 10) : ''
 

@@ -1,8 +1,13 @@
 import { prisma } from '../../../prisma/client'
+import { getFeatureFlags } from '~/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
   if (!slug) throw createError({ statusCode: 400, statusMessage: 'Slug requis' })
+  const featureFlags = await getFeatureFlags()
+  if (!featureFlags.newsEnabled) {
+    throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
+  }
   const article = await prisma.article.findUnique({
     where: { slug },
     select: {

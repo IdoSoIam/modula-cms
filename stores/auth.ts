@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import type { AdminPermissionModule, AdminSpecialPermission, UserAccessPayload, UserMemberRolePayload } from '~/shared/access'
 
 interface User {
   id: number
@@ -6,6 +7,12 @@ interface User {
   firstName?: string
   lastName?: string
   role: string
+  roleId?: number | null
+  roleSlug?: string
+  isActive: boolean
+  access: UserAccessPayload
+  memberRoles: UserMemberRolePayload[]
+  memberRoleIds: number[]
   shippingAddress?: {
     street: string
     city: string
@@ -33,7 +40,31 @@ export const useAuthStore = defineStore('auth', () => {
   let fetchUserPromise: Promise<void> | null = null
 
   const isAuthenticated = computed(() => user.value !== null)
-  const isAdmin = computed(() => user.value?.role === 'admin')
+  const isAdmin = computed(() => user.value?.access.isAdmin === true)
+  const canAccessAdmin = computed(() => {
+    if (!user.value) return false
+    return user.value.access.isAdmin || user.value.access.permissions.some(permission =>
+      permission.canRead || permission.canCreate || permission.canUpdate || permission.canDelete
+    )
+  })
+
+  const hasModulePermission = (module: AdminPermissionModule, action: 'read' | 'create' | 'update' | 'delete') => {
+    if (!user.value) return false
+    if (user.value.access.isAdmin) return true
+    const permission = user.value.access.permissions.find(entry => entry.module === module)
+    if (!permission) return false
+    switch (action) {
+      case 'read': return permission.canRead
+      case 'create': return permission.canCreate
+      case 'update': return permission.canUpdate
+      case 'delete': return permission.canDelete
+    }
+  }
+
+  const hasSpecialPermission = (permission: AdminSpecialPermission) => {
+    if (!user.value) return false
+    return user.value.access.isAdmin || user.value.access.specialPermissions.includes(permission)
+  }
 
   const fetchUser = async () => {
     if (fetchUserPromise) {
@@ -138,9 +169,12 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     isAuthenticated,
     isAdmin,
+    canAccessAdmin,
     isLoading,
     error,
     initialized,
+    hasModulePermission,
+    hasSpecialPermission,
     fetchUser,
     ensureInitialized,
     login,

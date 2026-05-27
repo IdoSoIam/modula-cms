@@ -1,8 +1,14 @@
 import { serializeBasket } from '~/server/utils/baskets'
+import { getFeatureFlags } from '~/server/utils/settings'
 import { prisma } from '../../../prisma/client'
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
+
+  const featureFlags = await getFeatureFlags()
+  if (!featureFlags.shop.enabled || !featureFlags.shop.basketsEnabled) {
+    throw createError({ statusCode: 404, statusMessage: 'Paniers introuvables' })
+  }
 
   const baskets = await prisma.basket.findMany({
     where: { active: true },

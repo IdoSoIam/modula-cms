@@ -31,6 +31,7 @@ export const SETTING_KEYS = {
   EVENT_TEMPLATE_PUBLIC_RESERVATION_CONFIRMATION: 'event_template_public_reservation_confirmation',
   SIGNUP_TEMPLATE_REQUEST: 'signup_template_request',
   SIGNUP_TEMPLATE_REQUEST_CONFIRMATION: 'signup_template_request_confirmation',
+  USER_INVITATION_TEMPLATE: 'user_invitation_template',
   CUSTOM_EMAIL_TEMPLATE_DEFINITIONS: 'custom_email_template_definitions_v1',
   GMAIL_REFRESH_TOKEN: 'gmail_refresh_token',
   GMAIL_ACCESS_TOKEN: 'gmail_access_token',
@@ -52,6 +53,12 @@ export const SETTING_KEYS = {
   ORDERS_CLOSED_MESSAGE: 'orders_closed_message',
   REGISTER_ENABLED: 'register_enabled',
   SUBSCRIPTIONS_ENABLED: 'subscriptions_enabled',
+  SHOP_ENABLED: 'shop_enabled',
+  SHOP_BASKETS_ENABLED: 'shop_baskets_enabled',
+  SHOP_VEGETABLES_ENABLED: 'shop_vegetables_enabled',
+  ASSOCIATION_ROLES_ENABLED: 'association_roles_enabled',
+  EVENTS_ENABLED: 'events_enabled',
+  NEWS_ENABLED: 'news_enabled',
   FARM_PICKUP_ADDRESS: 'farm_pickup_address',
   FARM_PICKUP_DAY_OF_WEEK: 'farm_pickup_day_of_week',
   FARM_PICKUP_START_TIME: 'farm_pickup_start_time',
@@ -117,6 +124,14 @@ export interface FeatureFlags {
   inDevelopment: boolean
   registerEnabled: boolean
   subscriptionsEnabled: boolean
+  shop: {
+    enabled: boolean
+    basketsEnabled: boolean
+    vegetablesEnabled: boolean
+  }
+  associationRolesEnabled: boolean
+  eventsEnabled: boolean
+  newsEnabled: boolean
 }
 
 export interface FarmPickupConfig {
@@ -131,7 +146,15 @@ export interface FarmPickupConfig {
 const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   inDevelopment: false,
   registerEnabled: false,
-  subscriptionsEnabled: false
+  subscriptionsEnabled: false,
+  shop: {
+    enabled: true,
+    basketsEnabled: true,
+    vegetablesEnabled: true
+  },
+  associationRolesEnabled: true,
+  eventsEnabled: true,
+  newsEnabled: true
 }
 
 const DEFAULT_FARM_PICKUP_CONFIG: FarmPickupConfig = {
@@ -259,13 +282,42 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
   const settings = await getSettings([
     SETTING_KEYS.IN_DEVELOPMENT,
     SETTING_KEYS.REGISTER_ENABLED,
-    SETTING_KEYS.SUBSCRIPTIONS_ENABLED
+    SETTING_KEYS.SUBSCRIPTIONS_ENABLED,
+    SETTING_KEYS.SHOP_ENABLED,
+    SETTING_KEYS.SHOP_BASKETS_ENABLED,
+    SETTING_KEYS.SHOP_VEGETABLES_ENABLED,
+    SETTING_KEYS.ASSOCIATION_ROLES_ENABLED,
+    SETTING_KEYS.EVENTS_ENABLED,
+    SETTING_KEYS.NEWS_ENABLED
   ])
+
+  const shopEnabled = parseBooleanSetting(settings[SETTING_KEYS.SHOP_ENABLED], DEFAULT_FEATURE_FLAGS.shop.enabled)
+  const basketsEnabled = parseBooleanSetting(settings[SETTING_KEYS.SHOP_BASKETS_ENABLED], DEFAULT_FEATURE_FLAGS.shop.basketsEnabled)
+  const vegetablesEnabled = parseBooleanSetting(settings[SETTING_KEYS.SHOP_VEGETABLES_ENABLED], DEFAULT_FEATURE_FLAGS.shop.vegetablesEnabled)
 
   return {
     inDevelopment: parseBooleanSetting(settings[SETTING_KEYS.IN_DEVELOPMENT], DEFAULT_FEATURE_FLAGS.inDevelopment),
     registerEnabled: parseBooleanSetting(settings[SETTING_KEYS.REGISTER_ENABLED], DEFAULT_FEATURE_FLAGS.registerEnabled),
-    subscriptionsEnabled: parseBooleanSetting(settings[SETTING_KEYS.SUBSCRIPTIONS_ENABLED], DEFAULT_FEATURE_FLAGS.subscriptionsEnabled)
+    subscriptionsEnabled: parseBooleanSetting(settings[SETTING_KEYS.SUBSCRIPTIONS_ENABLED], DEFAULT_FEATURE_FLAGS.subscriptionsEnabled),
+    shop: {
+      enabled: shopEnabled,
+      basketsEnabled: shopEnabled && basketsEnabled,
+      vegetablesEnabled: shopEnabled && vegetablesEnabled
+    },
+    associationRolesEnabled: parseBooleanSetting(settings[SETTING_KEYS.ASSOCIATION_ROLES_ENABLED], DEFAULT_FEATURE_FLAGS.associationRolesEnabled),
+    eventsEnabled: parseBooleanSetting(settings[SETTING_KEYS.EVENTS_ENABLED], DEFAULT_FEATURE_FLAGS.eventsEnabled),
+    newsEnabled: parseBooleanSetting(settings[SETTING_KEYS.NEWS_ENABLED], DEFAULT_FEATURE_FLAGS.newsEnabled)
+  }
+}
+
+export function normalizeFeatureFlags(flags: FeatureFlags): FeatureFlags {
+  return {
+    ...flags,
+    shop: {
+      enabled: flags.shop.enabled,
+      basketsEnabled: flags.shop.enabled && flags.shop.basketsEnabled,
+      vegetablesEnabled: flags.shop.enabled && flags.shop.vegetablesEnabled
+    }
   }
 }
 
@@ -275,6 +327,15 @@ export async function isRegisterEnabled() {
 
 export async function isSubscriptionsEnabled() {
   return (await getFeatureFlags()).subscriptionsEnabled
+}
+
+export async function isAssociationRolesEnabled() {
+  return (await getFeatureFlags()).associationRolesEnabled
+}
+
+export async function requireAssociationRolesEnabled() {
+  if (await isAssociationRolesEnabled()) return
+  throw createError({ statusCode: 404, statusMessage: 'Rôles associatifs désactivés' })
 }
 
 export async function getFarmPickupConfig(): Promise<FarmPickupConfig> {
