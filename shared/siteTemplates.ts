@@ -33,10 +33,6 @@ export const CMS_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
         en: 'Visual presentation of templates, modules and live edit.'
       },
       {
-        fr: 'Page événements publique + planning connecté.',
-        en: 'Public events page + authenticated planning.'
-      },
-      {
         fr: 'Thèmes premium dédiés à la vitrine CMS.',
         en: 'Premium themes dedicated to the CMS showcase.'
       }
@@ -50,7 +46,7 @@ export const CMS_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
       en: 'Farm / local production'
     },
     description: {
-      fr: 'Met l’accent sur les paniers, les actualités, les visites et la vente directe.',
+      fr: 'Met l\'accent sur les paniers, les actualités, les visites et la vente directe.',
       en: 'Focuses on baskets, news, visits and direct sales.'
     },
     icon: 'mdi:sprout-outline',
@@ -61,7 +57,7 @@ export const CMS_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
         en: 'Flow focused on direct sales and seasonality.'
       },
       {
-        fr: 'Bloc contact prêt à l’emploi avec infos de ferme.',
+        fr: 'Bloc contact prêt à l\'emploi avec infos de ferme.',
         en: 'Ready-to-use contact block with farm details.'
       },
       {
@@ -69,7 +65,7 @@ export const CMS_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
         en: 'Warm, field-inspired visual identity.'
       }
     ],
-    themeNames: ['Harvest']
+    themeNames: ['Recolte', 'Champ ensoleillé', 'Nuit à l\'étable']
   },
   {
     key: 'association',
@@ -78,7 +74,7 @@ export const CMS_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
       en: 'Association / collective'
     },
     description: {
-      fr: 'Met l’accent sur les permanences, les événements et l’engagement bénévole.',
+      fr: 'Met l\'accent sur les permanences, les événements et l\'engagement bénévole.',
       en: 'Focuses on volunteer shifts, events and community participation.'
     },
     icon: 'mdi:account-group-outline',
@@ -97,7 +93,7 @@ export const CMS_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
         en: 'Contrasted and readable collective theme.'
       }
     ],
-    themeNames: ['Collective Day']
+    themeNames: ['Collective Day', 'Collective Night']
   }
 ]
 

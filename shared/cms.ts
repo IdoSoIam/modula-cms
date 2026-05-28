@@ -310,17 +310,17 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
       en: cmsProjectConfig.seed.defaultSiteTagline.en
     },
     logo: {
-      src: '/images/logo-removebg-preview.png',
+      src: '/brand/modula-mark.svg',
       alt: {
-        fr: 'Logo du site',
-        en: 'Site logo'
+        fr: 'Logo Modula CMS',
+        en: 'Modula CMS logo'
       }
     },
     favicon: {
-      src: '/favicon.ico',
+      src: '/brand/modula-mark.svg',
       alt: {
-        fr: 'Icône du site',
-        en: 'Site icon'
+        fr: 'Icône Modula CMS',
+        en: 'Modula CMS icon'
       }
     },
     header: {

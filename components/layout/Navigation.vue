@@ -283,7 +283,7 @@ const siteTagline = computed(() => effectiveLocale.value === 'en'
 
 const normalizeLogoSrc = (value?: string | null) => {
   const src = value?.trim()
-  if (!src) return '/images/logo-removebg-preview.png'
+  if (!src) return '/brand/modula-mark.svg'
   if (src.startsWith('/') || /^[a-z]+:\/\//i.test(src) || src.startsWith('data:')) return src
   return `/images/${src.replace(/^\.?\//, '')}`
 }

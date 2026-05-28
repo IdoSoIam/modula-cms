@@ -8,7 +8,7 @@
 const siteConfig = await useSiteConfig()
 const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
 const defaultLocale = computed(() => siteConfig.value?.project?.defaultLocale || 'fr')
-const faviconHref = computed(() => siteConfig.value?.cms?.settings.favicon.src || '/favicon.ico')
+const faviconHref = computed(() => siteConfig.value?.cms?.settings.favicon.src || '/brand/modula-mark.svg')
 const themeConfig = computed(() => siteConfig.value?.themes)
 const defaultThemeName = computed(() => themeConfig.value?.defaultTheme || 'recolte')
 const validThemes = computed(() => themeConfig.value?.allThemeNames || ['ferme', 'ferme-dark', 'recolte'])
@@ -21,7 +21,8 @@ useHead(() => ({
   link: [
     {
       rel: 'icon',
-      href: faviconHref.value
+      href: faviconHref.value,
+      type: faviconHref.value.endsWith('.svg') ? 'image/svg+xml' : undefined
     }
   ],
   style: generatedThemeCss.value ? [

@@ -18,7 +18,7 @@ type ReservationWithRelations = Reservation & {
 type CustomerManageLinkMode = 'cancel' | 'manage' | 'respond' | 'none'
 
 function getLogoUrl() {
-  return `${getSiteOrigin()}/images/logo-removebg-preview.png`
+  return `${getSiteOrigin()}/brand/modula-mark.svg`
 }
 
 export function getManageReservationUrl(token: string | null | undefined, locale?: string | null) {

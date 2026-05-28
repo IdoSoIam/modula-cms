@@ -3,18 +3,18 @@ import { defineCmsProjectConfig, mergeCmsProjectConfig, parseCmsProjectConfigJso
 
 const baseConfig = defineCmsProjectConfig({
   site: {
-    key: 'ferme-campeyrigoux',
-    displayName: 'Ferme du Campeyrigoux',
+    key: 'modula',
+    displayName: 'Modula CMS',
     defaultLocale: 'fr',
-    publicUrl: 'https://ferme-du-campeyrigoux.ferme-du-campeyrigoux.workers.dev',
+    publicUrl: 'https://modula-cms.modula-cms.workers.dev',
     tagline: {
-      fr: 'Depuis 2024',
-      en: 'Since 2024'
+      fr: 'Depuis 2026',
+      en: 'Since 2026'
     },
-    defaultPlaceName: 'Ferme du Campeyrigoux',
-    defaultVolunteerPlaceName: 'Cuisine de la ferme',
-    defaultPlaceCity: "Saint-Sébastien-d'Aigrefeuille",
-    defaultFarmPickupAddress: 'Ferme du Campeyrigoux, 31350 Sepx'
+    defaultPlaceName: 'Modula CMS',
+    defaultVolunteerPlaceName: 'Modula CMS',
+    defaultPlaceCity: 'Modula CMS',
+    defaultFarmPickupAddress: 'Modula CMS, Modula CMS'
   },
   platform: {
     runtimeTarget: 'server',
@@ -37,12 +37,12 @@ const baseConfig = defineCmsProjectConfig({
   },
   seed: {
     defaultSiteName: {
-      fr: 'Ferme du Campeyrigoux',
-      en: 'Ferme du Campeyrigoux'
+      fr: 'Modula CMS',
+      en: 'Modula CMS'
     },
     defaultSiteTagline: {
-      fr: 'Depuis 2024',
-      en: 'Since 2024'
+      fr: 'Depuis 2026',
+      en: 'Since 2026'
     }
   }
 })

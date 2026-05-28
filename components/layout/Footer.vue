@@ -22,7 +22,7 @@
             <AppImage
               :src="logoSrc"
               :alt="pickText(cms?.settings.logo.alt)"
-              class="h-auto max-h-24 w-auto"
+              class="h-auto max-h-24 w-auto min-w-[120px]"
               sizes="220px"
             />
           </div>
@@ -200,7 +200,7 @@ const siteTagline = computed(() => effectiveLocale.value === 'en'
   : cms.value?.settings.siteTagline.fr || '')
 const logoSrc = computed(() => {
   const src = cms.value?.settings.logo.src?.trim()
-  if (!src) return '/images/logo-removebg-preview.png'
+  if (!src) return '/brand/modula-mark.svg'
   if (src.startsWith('/') || /^[a-z]+:\/\//i.test(src) || src.startsWith('data:')) return src
   return `/images/${src.replace(/^\.?\//, '')}`
 })

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="modula-bg" x1="88" y1="72" x2="424" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#151B2D"/>
+      <stop offset="0.52" stop-color="#2D3B8F"/>
+      <stop offset="1" stop-color="#4B56D2"/>
+    </linearGradient>
+    <radialGradient id="modula-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(196 154) rotate(49.3991) scale(310.437)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.36"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="modula-stroke" x1="150" y1="156" x2="362" y2="344" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFF"/>
+      <stop offset="1" stop-color="#DCE3FF"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="232" fill="url(#modula-bg)"/>
+  <circle cx="256" cy="256" r="232" fill="url(#modula-glow)"/>
+  <circle cx="256" cy="256" r="214" stroke="#FFFFFF" stroke-opacity="0.16"/>
+  <path d="M156 340V180L256 286L356 180V340" stroke="#090C18" stroke-opacity="0.28" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M156 340V180L256 286L356 180V340" stroke="url(#modula-stroke)" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="156" cy="180" r="24" fill="#FF8C4B"/>
+  <circle cx="256" cy="286" r="22" fill="#0F8B8D"/>
+  <circle cx="356" cy="180" r="24" fill="#DCE3FF"/>
+  <circle cx="156" cy="340" r="24" fill="#DCE3FF"/>
+  <circle cx="356" cy="340" r="24" fill="#DCE3FF"/>
+</svg>

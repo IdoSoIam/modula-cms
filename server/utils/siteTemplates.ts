@@ -59,7 +59,8 @@ const TEMPLATE_IMAGE_ASSETS: Record<CmsSiteTemplateKey, TemplateImageAsset[]> = 
     { source: 'modula-hero.svg', filename: 'template-modula-hero.svg', mimeType: 'image/svg+xml', width: 1400, height: 1000 },
     { source: 'preview-modula.svg', filename: 'template-preview-modula.svg', mimeType: 'image/svg+xml', width: 1200, height: 760 },
     { source: 'preview-farm.svg', filename: 'template-preview-farm.svg', mimeType: 'image/svg+xml', width: 1200, height: 760 },
-    { source: 'preview-association.svg', filename: 'template-preview-association.svg', mimeType: 'image/svg+xml', width: 1200, height: 760 }
+    { source: 'preview-association.svg', filename: 'template-preview-association.svg', mimeType: 'image/svg+xml', width: 1200, height: 760 },
+    { source: 'modula-mark.svg', filename: 'template-modula-mark.svg', mimeType: 'image/svg+xml', width: 500, height: 500 }
   ],
   farm: [
     { source: 'farm-hero.svg', filename: 'template-farm-hero.svg', mimeType: 'image/svg+xml', width: 1400, height: 1000 },
@@ -476,7 +477,7 @@ function buildTemplateHomePage(key: CmsSiteTemplateKey, siteName: CmsLocalizedTe
         badge: text('Association vivante', 'Active community'),
         title: text(`Bienvenue sur ${siteName.fr}`, `Welcome to ${siteName.en}`),
         body: text(
-          'Organisez vos événements, vos permanences et la mobilisation bénévole autour d’un planning clair.',
+          'Organisez vos événements, vos permanences et la mobilisation bénévole autour d\'un planning clair.',
           'Coordinate your events, volunteer shifts and community participation from a clear schedule.'
         ),
         imageUrl: heroImage('association-hero.svg'),
@@ -487,108 +488,108 @@ function buildTemplateHomePage(key: CmsSiteTemplateKey, siteName: CmsLocalizedTe
         secondaryLabel: text('Voir les événements', 'View events'),
         cards: [
           { id: 'association-card-1', title: text('Permanences', 'Volunteer shifts'), body: text('Affichez les permanences à venir et les créneaux utiles.', 'Show upcoming shifts and useful participation slots.'), icon: 'mdi:calendar-clock-outline' },
-          { id: 'association-card-2', title: text('Bénévolat', 'Volunteering'), body: text('Mettez en avant les besoins et facilitez l’engagement.', 'Highlight needs and make volunteering easier.'), icon: 'mdi:hand-heart-outline' },
-          { id: 'association-card-3', title: text('Événements', 'Events'), body: text('Séparez la communication publique et l’organisation interne.', 'Separate public communication from internal coordination.'), icon: 'mdi:party-popper' }
+          { id: 'association-card-2', title: text('Bénévolat', 'Volunteering'), body: text('Mettez en avant les besoins et facilitez l\'engagement.', 'Highlight needs and make volunteering easier.'), icon: 'mdi:hand-heart-outline' },
+          { id: 'association-card-3', title: text('Événements', 'Events'), body: text('Séparez la communication publique et l\'organisation interne.', 'Separate public communication from internal coordination.'), icon: 'mdi:party-popper' }
         ]
       })
     default:
       {
-      const base = createShowcaseContent({
-        sectionId: 'modula-home',
-        badge: text('Modula CMS', 'Modula CMS'),
-        title: text('Le CMS modulable pour votre projet', 'The modular CMS for your project'),
-        body: text(
-          'Présentez vos contenus, gérez vos pages, vos événements et votre planning depuis une seule interface.',
-          'Publish content, manage pages, events and planning from a single interface.'
-        ),
-        imageUrl: heroImage('modula-hero.svg'),
-        imageAlt: text('Illustration Modula CMS', 'Modula CMS illustration'),
-        primaryHref: '/events',
-        primaryLabel: text('Voir les événements', 'View events'),
-        secondaryHref: '/contact',
-        secondaryLabel: text('Demander une démo', 'Request a demo'),
-        cards: [
-          { id: 'modula-card-1', title: text('CMS visuel', 'Visual CMS'), body: text('Éditez les pages directement avec le live edit.', 'Edit pages directly with live edit.'), icon: 'mdi:pencil-ruler-outline' },
-          { id: 'modula-card-2', title: text('Planning', 'Planning'), body: text('Affichez vos événements et permanences selon vos besoins.', 'Display events and volunteer shifts based on your needs.'), icon: 'mdi:view-week-outline' },
-          { id: 'modula-card-3', title: text('Personnalisation', 'Customization'), body: text('Adaptez navigation, footer, thèmes et contenus sans code.', 'Adjust navigation, footer, themes and content without code.'), icon: 'mdi:tune-variant' }
+        const base = createShowcaseContent({
+          sectionId: 'modula-home',
+          badge: text('Modula CMS', 'Modula CMS'),
+          title: text('Le CMS modulable pour votre projet', 'The modular CMS for your project'),
+          body: text(
+            'Présentez vos contenus, gérez vos pages, vos événements et votre planning depuis une seule interface.',
+            'Publish content, manage pages, events and planning from a single interface.'
+          ),
+          imageUrl: heroImage('modula-hero.svg'),
+          imageAlt: text('Illustration Modula CMS', 'Modula CMS illustration'),
+          primaryHref: '/events',
+          primaryLabel: text('Voir les événements', 'View events'),
+          secondaryHref: '/contact',
+          secondaryLabel: text('Demander une démo', 'Request a demo'),
+          cards: [
+            { id: 'modula-card-1', title: text('CMS visuel', 'Visual CMS'), body: text('Éditez les pages directement avec le live edit.', 'Edit pages directly with live edit.'), icon: 'mdi:pencil-ruler-outline' },
+            { id: 'modula-card-2', title: text('Planning', 'Planning'), body: text('Affichez vos événements et permanences selon vos besoins.', 'Display events and volunteer shifts based on your needs.'), icon: 'mdi:view-week-outline' },
+            { id: 'modula-card-3', title: text('Personnalisation', 'Customization'), body: text('Adaptez navigation, footer, thèmes et contenus sans code.', 'Adjust navigation, footer, themes and content without code.'), icon: 'mdi:tune-variant' }
+          ]
+        })
+
+        const templatesSection = createEmptyColumnsSection('modula-templates-overview', 3)
+        templatesSection.containerWidth = 'wide'
+        templatesSection.beforeItems = [
+          Object.assign(createBadgeItem('modula-templates-badge'), { text: text('Templates prêts à l\'emploi', 'Ready-to-use templates') }),
+          Object.assign(createTitleItem('modula-templates-title'), { headingTag: 'h2', size: '2xl', text: text('Choisissez un point de départ visuel', 'Pick a visual starting point') }),
+          Object.assign(createTextItem('modula-templates-text'), {
+            text: text(
+              'Chaque template configure automatiquement le contenu CMS, la navigation, les thèmes et les images.',
+              'Each template automatically configures CMS content, navigation, themes and images.'
+            )
+          })
         ]
-      })
-
-      const templatesSection = createEmptyColumnsSection('modula-templates-overview', 3)
-      templatesSection.containerWidth = 'wide'
-      templatesSection.beforeItems = [
-        Object.assign(createBadgeItem('modula-templates-badge'), { text: text('Templates prêts à l’emploi', 'Ready-to-use templates') }),
-        Object.assign(createTitleItem('modula-templates-title'), { headingTag: 'h2', size: '2xl', text: text('Choisissez un point de départ visuel', 'Pick a visual starting point') }),
-        Object.assign(createTextItem('modula-templates-text'), {
-          text: text(
-            'Chaque template configure automatiquement le contenu CMS, la navigation, les thèmes et les images.',
-            'Each template automatically configures CMS content, navigation, themes and images.'
+        const galleryItems = [
+          {
+            id: 'template-modula',
+            imageUrl: heroImage('preview-modula.svg'),
+            title: text('Présentation Modula', 'Modula showcase'),
+            body: text('Idéal pour présenter toutes les capacités du CMS.', 'Ideal for presenting all CMS capabilities.')
+          },
+          {
+            id: 'template-farm',
+            imageUrl: heroImage('preview-farm.svg'),
+            title: text('Template ferme', 'Farm template'),
+            body: text('Pensé pour la vente directe, les paniers et l\'actualité terrain.', 'Designed for direct sales, baskets and field updates.')
+          },
+          {
+            id: 'template-association',
+            imageUrl: heroImage('preview-association.svg'),
+            title: text('Template association', 'Association template'),
+            body: text('Orienté planning, événements publics et bénévolat.', 'Focused on planning, public events and volunteering.')
+          }
+        ]
+        for (const [index, item] of galleryItems.entries()) {
+          const column = templatesSection.columns[index]
+          if (!column) continue
+          column.items.push(
+            Object.assign(createImageItem(`${item.id}-image`), {
+              imageUrl: item.imageUrl,
+              alt: item.title,
+              aspect: 'landscape',
+              fit: 'cover',
+              framed: true,
+              enlarge: false
+            }),
+            Object.assign(createTitleItem(`${item.id}-title`), { headingTag: 'h3', size: 'lg', text: item.title }),
+            Object.assign(createTextItem(`${item.id}-text`), { text: item.body })
           )
-        })
-      ]
-      const galleryItems = [
-        {
-          id: 'template-modula',
-          imageUrl: heroImage('preview-modula.svg'),
-          title: text('Présentation Modula', 'Modula showcase'),
-          body: text('Idéal pour présenter toutes les capacités du CMS.', 'Ideal for presenting all CMS capabilities.')
-        },
-        {
-          id: 'template-farm',
-          imageUrl: heroImage('preview-farm.svg'),
-          title: text('Template ferme', 'Farm template'),
-          body: text('Pensé pour la vente directe, les paniers et l’actualité terrain.', 'Designed for direct sales, baskets and field updates.')
-        },
-        {
-          id: 'template-association',
-          imageUrl: heroImage('preview-association.svg'),
-          title: text('Template association', 'Association template'),
-          body: text('Orienté planning, événements publics et bénévolat.', 'Focused on planning, public events and volunteering.')
         }
-      ]
-      for (const [index, item] of galleryItems.entries()) {
-        const column = templatesSection.columns[index]
-        if (!column) continue
-        column.items.push(
-          Object.assign(createImageItem(`${item.id}-image`), {
-            imageUrl: item.imageUrl,
-            alt: item.title,
-            aspect: 'landscape',
-            fit: 'cover',
-            framed: true,
-            enlarge: false
-          }),
-          Object.assign(createTitleItem(`${item.id}-title`), { headingTag: 'h3', size: 'lg', text: item.title }),
-          Object.assign(createTextItem(`${item.id}-text`), { text: item.body })
-        )
-      }
 
-      const themesSection = createEmptyColumnsSection('modula-themes-overview', 1)
-      themesSection.containerWidth = 'wide'
-      themesSection.beforeItems = [
-        Object.assign(createBadgeItem('modula-themes-badge'), { text: text('Thèmes intégrés', 'Built-in themes') }),
-        Object.assign(createTitleItem('modula-themes-title'), { headingTag: 'h2', size: '2xl', text: text('Système de thème dynamique', 'Dynamic theme system') }),
-        Object.assign(createTextItem('modula-themes-text'), {
-          text: text(
-            'Changez de charte graphique en un clic : palette, contraste, typographie visuelle et ambiance globale.',
-            'Switch visual identity in one click: palette, contrast, visual typography and overall atmosphere.'
-          )
-        })
-      ]
-      const themeCards = createCardsItem('modula-theme-cards')
-      themeCards.display = 'grid-4'
-      themeCards.cards = [
-        createFeatureCard('theme-card-1', 'Studio', 'Studio', 'Palette éditoriale claire, idéale pour une vitrine premium.', 'Editorial light palette, ideal for a premium showcase.', 'mdi:monitor-dashboard'),
-        createFeatureCard('theme-card-2', 'Ocean', 'Ocean', 'Ambiance moderne orientée produit et contenu structuré.', 'Modern atmosphere for product and structured content.', 'mdi:waves'),
-        createFeatureCard('theme-card-3', 'Noir', 'Noir', 'Version sombre soignée, parfaite pour les usages nocturnes.', 'Polished dark version for night usage.', 'mdi:weather-night'),
-        createFeatureCard('theme-card-4', 'Sunset', 'Sunset', 'Palette chaude pour communication associative ou événementielle.', 'Warm palette for community or event communication.', 'mdi:weather-sunset')
-      ]
-      themesSection.columns[0]?.items.push(themeCards)
+        const themesSection = createEmptyColumnsSection('modula-themes-overview', 1)
+        themesSection.containerWidth = 'wide'
+        themesSection.beforeItems = [
+          Object.assign(createBadgeItem('modula-themes-badge'), { text: text('Thèmes intégrés', 'Built-in themes') }),
+          Object.assign(createTitleItem('modula-themes-title'), { headingTag: 'h2', size: '2xl', text: text('Système de thème dynamique', 'Dynamic theme system') }),
+          Object.assign(createTextItem('modula-themes-text'), {
+            text: text(
+              'Changez de charte graphique en un clic : palette, contraste, typographie visuelle et ambiance globale.',
+              'Switch visual identity in one click: palette, contrast, visual typography and overall atmosphere.'
+            )
+          })
+        ]
+        const themeCards = createCardsItem('modula-theme-cards')
+        themeCards.display = 'grid-4'
+        themeCards.cards = [
+          createFeatureCard('theme-card-1', 'Studio', 'Studio', 'Palette éditoriale claire, idéale pour une vitrine premium.', 'Editorial light palette, ideal for a premium showcase.', 'mdi:monitor-dashboard'),
+          createFeatureCard('theme-card-2', 'Ocean', 'Ocean', 'Ambiance moderne orientée produit et contenu structuré.', 'Modern atmosphere for product and structured content.', 'mdi:waves'),
+          createFeatureCard('theme-card-3', 'Noir', 'Noir', 'Version sombre soignée, parfaite pour les usages nocturnes.', 'Polished dark version for night usage.', 'mdi:weather-night'),
+          createFeatureCard('theme-card-4', 'Sunset', 'Sunset', 'Palette chaude pour communication associative ou événementielle.', 'Warm palette for community or event communication.', 'mdi:weather-sunset')
+        ]
+        themesSection.columns[0]?.items.push(themeCards)
 
-      return {
-        version: 1,
-        sections: [...base.sections, templatesSection, themesSection]
-      }
+        return {
+          version: 1,
+          sections: [...base.sections, templatesSection, themesSection]
+        }
       }
   }
 }
@@ -600,7 +601,7 @@ function buildTemplateContactPage(key: CmsSiteTemplateKey): PageBuilderContent {
         'Une question sur les événements, les permanences ou le bénévolat ? Utilisez ce formulaire pour nous écrire.',
         'A question about events, volunteer shifts or community participation? Use this form to contact us.'
       ),
-      formTitle: text('Parlons de votre projet', 'Let’s talk about your project'),
+      formTitle: text('Parlons de votre projet', 'Let\'s talk about your project'),
       formIntro: text('Décrivez votre demande, votre question ou votre envie de participer.', 'Describe your request, question or wish to contribute.'),
       infoCardTitle: text('Nos informations', 'Our information'),
       socialTitle: text('Suivez-nous', 'Follow us')
@@ -610,7 +611,7 @@ function buildTemplateContactPage(key: CmsSiteTemplateKey): PageBuilderContent {
   if (key === 'modula-presentation') {
     return createContactContent({
       intro: text(
-        'Besoin d’un site éditorial, d’un planning public ou d’un back-office plus simple à gérer ? Écrivez-nous.',
+        'Besoin d\'un site éditorial, d\'un planning public ou d\'un back-office plus simple à gérer ? Écrivez-nous.',
         'Need an editorial site, a public planning page or a simpler back-office? Get in touch.'
       ),
       formTitle: text('Demander une démo', 'Request a demo'),
@@ -626,7 +627,7 @@ function buildTemplateContactPage(key: CmsSiteTemplateKey): PageBuilderContent {
       'A question about baskets, direct sales or opening hours? Use the form below to contact us.'
     ),
     formTitle: text('Nous écrire', 'Send us a message'),
-    formIntro: text('Les champs marqués d’un astérisque sont obligatoires.', 'Fields marked with an asterisk are required.'),
+    formIntro: text('Les champs marqués d\'un astérisque sont obligatoires.', 'Fields marked with an asterisk are required.'),
     infoCardTitle: text('Nos coordonnées', 'Contact details'),
     socialTitle: text('Suivez-nous', 'Follow us')
   })
@@ -701,7 +702,7 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
       basketsPage: current.basketsPage,
       newsPage: {
         ...base.newsPage,
-        title: text('Actualités de l’association', 'Association news'),
+        title: text('Actualités de l\'association', 'Association news'),
         subtitle: text(
           'Suivez les annonces, comptes-rendus et informations importantes.',
           'Follow announcements, reports and important updates.'
@@ -946,33 +947,33 @@ export async function applySiteTemplate(templateKey: CmsSiteTemplateKey) {
 
   const templateFeatureFlags = normalizeFeatureFlags(templateKey === 'farm'
     ? {
+      inDevelopment: false,
+      registerEnabled: false,
+      subscriptionsEnabled: false,
+      shop: { enabled: true, basketsEnabled: true, vegetablesEnabled: true },
+      associationRolesEnabled: false,
+      eventsEnabled: true,
+      newsEnabled: true
+    }
+    : templateKey === 'association'
+      ? {
         inDevelopment: false,
         registerEnabled: false,
         subscriptionsEnabled: false,
-        shop: { enabled: true, basketsEnabled: true, vegetablesEnabled: true },
-        associationRolesEnabled: false,
+        shop: { enabled: false, basketsEnabled: false, vegetablesEnabled: false },
+        associationRolesEnabled: true,
         eventsEnabled: true,
         newsEnabled: true
       }
-    : templateKey === 'association'
-      ? {
-          inDevelopment: false,
-          registerEnabled: false,
-          subscriptionsEnabled: false,
-          shop: { enabled: false, basketsEnabled: false, vegetablesEnabled: false },
-          associationRolesEnabled: true,
-          eventsEnabled: true,
-          newsEnabled: true
-        }
       : {
-          inDevelopment: false,
-          registerEnabled: false,
-          subscriptionsEnabled: false,
-          shop: { enabled: false, basketsEnabled: false, vegetablesEnabled: false },
-          associationRolesEnabled: false,
-          eventsEnabled: false,
-          newsEnabled: false
-        })
+        inDevelopment: false,
+        registerEnabled: false,
+        subscriptionsEnabled: false,
+        shop: { enabled: false, basketsEnabled: false, vegetablesEnabled: false },
+        associationRolesEnabled: false,
+        eventsEnabled: false,
+        newsEnabled: false
+      })
 
   await Promise.all([
     setSetting(SETTING_KEYS.SHOP_ENABLED, templateFeatureFlags.shop.enabled ? 'true' : 'false'),
