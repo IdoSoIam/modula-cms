@@ -157,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PageBuilderCarouselItem } from '~/shared/pageBuilder'
+import type { PageBuilderCarouselItem } from '#modula/shared/pageBuilder'
 import {
   CAROUSEL_ANIMATIONS,
   CAROUSEL_ANIMATION_LABELS,
@@ -165,7 +165,7 @@ import {
   IMAGE_ASPECTS,
   IMAGE_FITS,
   VERTICAL_ALIGNS
-} from '~/shared/pageBuilder'
+} from '#modula/shared/pageBuilder'
 
 const props = defineProps<{
   carousel: PageBuilderCarouselItem

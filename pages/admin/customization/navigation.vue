@@ -119,9 +119,9 @@
 </template>
 
 <script setup lang="ts">
-import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
-import { createDefaultCmsNavigationItems, type CmsLocalizedText, type CmsNavigationItemPayload, type CmsSiteSettings } from '~/shared/cms'
+import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import { createDefaultCmsNavigationItems, type CmsLocalizedText, type CmsNavigationItemPayload, type CmsSiteSettings } from '#modula/shared/cms'
 
 definePageMeta({
   layout: 'admin',

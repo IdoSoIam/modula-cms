@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted } from 'vue'
-import { FacebookService } from '~/server/services/facebook/facebookService'
+import { FacebookService } from '#modula/server/services/facebook/facebookService'
 import { useI18n } from 'vue-i18n'
 
 const loading = ref(true)

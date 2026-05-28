@@ -1,5 +1,5 @@
 import { prisma } from '../../../prisma/client'
-import { getFeatureFlags } from '~/server/utils/settings'
+import { getFeatureFlags } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')

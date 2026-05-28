@@ -1,9 +1,9 @@
-import { prisma } from '~/prisma/client'
-import { AuthService } from '~/server/services/auth/authService'
-import { resolveAdminEmailTemplate } from '~/server/utils/adminEmailTemplates'
-import { getSiteOrigin, sendGmail } from '~/server/utils/gmail'
-import { buildGenericEmail } from '~/server/utils/orderEmails'
-import { requirePermission } from '~/server/utils/permissions'
+import { prisma } from '#modula/prisma/client'
+import { AuthService } from '#modula/server/services/auth/authService'
+import { resolveAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
+import { getSiteOrigin, sendGmail } from '#modula/server/utils/gmail'
+import { buildGenericEmail } from '#modula/server/utils/orderEmails'
+import { requirePermission } from '#modula/server/utils/permissions'
 
 const authService = new AuthService()
 

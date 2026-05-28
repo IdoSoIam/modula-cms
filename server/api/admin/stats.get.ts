@@ -1,5 +1,5 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { isSubscriptionsEnabled } from '~/server/utils/settings'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
 import { prisma } from '../../../prisma/client'
 
 function startOfDay(date: Date) {

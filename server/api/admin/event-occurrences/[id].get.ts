@@ -1,6 +1,6 @@
-import { prisma } from '~/prisma/client'
-import { eventOccurrenceToPayload, eventToPayload } from '~/server/utils/events'
-import { requirePermission } from '~/server/utils/permissions'
+import { prisma } from '#modula/prisma/client'
+import { eventOccurrenceToPayload, eventToPayload } from '#modula/server/utils/events'
+import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'events', 'read')

@@ -54,13 +54,13 @@
 
 <script setup lang="ts">
 import { defineComponent, h, resolveComponent, type PropType } from 'vue'
-import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import AdminIconPicker from '~/components/admin/IconPicker.vue'
-import AdminPageBuilderCardFields from '~/components/admin/page-builder/CardFields.vue'
-import AdminPageBuilderCarouselFields from '~/components/admin/page-builder/CarouselFields.vue'
-import AdminPageBuilderSectionBackgroundFields from '~/components/admin/page-builder/SectionBackgroundFields.vue'
-import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
-import type { PageBuilderButton, PageBuilderCard, PageBuilderColumnItem, SectionColumnCount, ThemeColorSelection } from '~/shared/pageBuilder'
+import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
+import AdminIconPicker from '#modula/components/admin/IconPicker.vue'
+import AdminPageBuilderCardFields from '#modula/components/admin/page-builder/CardFields.vue'
+import AdminPageBuilderCarouselFields from '#modula/components/admin/page-builder/CarouselFields.vue'
+import AdminPageBuilderSectionBackgroundFields from '#modula/components/admin/page-builder/SectionBackgroundFields.vue'
+import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
+import type { PageBuilderButton, PageBuilderCard, PageBuilderColumnItem, SectionColumnCount, ThemeColorSelection } from '#modula/shared/pageBuilder'
 import {
   BUTTON_SIZE_LABELS,
   BUTTON_SIZES,
@@ -103,7 +103,7 @@ import {
   TYPOGRAPHY_SIZE_LABELS,
   TYPOGRAPHY_SIZES,
   VERTICAL_ALIGNS
-} from '~/shared/pageBuilder'
+} from '#modula/shared/pageBuilder'
 
 const props = defineProps({
   open: { type: Boolean, required: true },

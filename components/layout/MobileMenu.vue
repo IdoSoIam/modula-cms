@@ -164,8 +164,8 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsHeaderNavigationStyle, CmsLocale, PublicSiteShell, ResolvedCmsNavigationItem } from '~/shared/cms'
-import { useAuthStore } from '~/stores/auth'
+import type { CmsHeaderNavigationStyle, CmsLocale, PublicSiteShell, ResolvedCmsNavigationItem } from '#modula/shared/cms'
+import { useAuthStore } from '#modula/stores/auth'
 
 type SupportedLocale = 'fr' | 'en'
 type LocaleOption = { code: SupportedLocale, name: string }

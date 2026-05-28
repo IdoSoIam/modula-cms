@@ -2,7 +2,7 @@ import { AuthService } from '../../services/auth/authService'
 import { H3Event } from 'h3'
 import { getSessionConfig } from '../../utils/session'
 import { prisma } from '../../../prisma/client'
-import { isRegisterEnabled } from '~/server/utils/settings'
+import { isRegisterEnabled } from '#modula/server/utils/settings'
 
 const authService = new AuthService()
 

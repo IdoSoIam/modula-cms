@@ -1,5 +1,5 @@
-import { requirePermission } from '~/server/utils/permissions'
-import { listAdminPlanningCalendar } from '~/server/utils/planning'
+import { requirePermission } from '#modula/server/utils/permissions'
+import { listAdminPlanningCalendar } from '#modula/server/utils/planning'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'events', 'read')

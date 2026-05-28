@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthStore } from '#modula/stores/auth'
 
 export const useAuthQuery = () => {
   const authStore = useAuthStore()

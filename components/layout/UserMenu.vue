@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from '~/stores/auth'
+import { useAuthStore } from '#modula/stores/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()

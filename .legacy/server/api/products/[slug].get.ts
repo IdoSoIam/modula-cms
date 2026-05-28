@@ -1,4 +1,4 @@
-import { Product } from '~/composables/useProducts';
+import { Product } from '#modula/composables/useProducts';
 
 // Réutilisation des produits de l'endpoint principal
 const getProducts = async () => {

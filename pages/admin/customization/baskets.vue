@@ -75,12 +75,12 @@
 </template>
 
 <script setup lang="ts">
-import BasketsPage from '~/components/pages/BasketsPage.vue'
-import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
-import { CMS_APPLICATION_GRID_COLUMNS, CMS_APPLICATION_GRID_COLUMN_LABELS, CMS_THEME_COLOR_TOKENS, type CmsNavigationItemPayload, type CmsSiteSettings } from '~/shared/cms'
-import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS } from '~/shared/pageBuilder'
+import BasketsPage from '#modula/components/pages/BasketsPage.vue'
+import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
+import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import { CMS_APPLICATION_GRID_COLUMNS, CMS_APPLICATION_GRID_COLUMN_LABELS, CMS_THEME_COLOR_TOKENS, type CmsNavigationItemPayload, type CmsSiteSettings } from '#modula/shared/cms'
+import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS } from '#modula/shared/pageBuilder'
 
 definePageMeta({
   layout: 'admin',

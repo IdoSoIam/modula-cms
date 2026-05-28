@@ -1,4 +1,4 @@
-import type { CmsCookieServiceCategory } from '~/shared/cms'
+import type { CmsCookieServiceCategory } from '#modula/shared/cms'
 
 const CONSENT_COOKIE = 'cms_cookie_consent'
 

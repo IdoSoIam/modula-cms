@@ -122,16 +122,17 @@
 </template>
 
 <script setup lang="ts">
-import OrdersCalendar from '~/components/admin/OrdersCalendar.vue'
-import type { CmsLocale } from '~/shared/cms'
+import OrdersCalendar from '#modula/components/admin/OrdersCalendar.vue'
+import type { CmsLocale } from '#modula/shared/cms'
 import type {
   CmsPlanningPageSettings,
   EventListItem,
   PlanningCalendarResponse,
   PlanningPageViewMode,
   PlanningWeekResponse
-} from '~/shared/events'
-import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
+} from '#modula/shared/events'
+import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
+import { useAuthStore } from '#modula/stores/auth'
 
 const props = withDefaults(defineProps<{
   settings?: CmsPlanningPageSettings | null

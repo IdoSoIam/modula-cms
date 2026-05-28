@@ -1,6 +1,6 @@
 import { prisma } from '../../prisma/client'
-import { getNextDateForDayOfWeek } from '~/server/utils/orderFulfillment'
-import { getFarmPickupConfig } from '~/server/utils/settings'
+import { getNextDateForDayOfWeek } from '#modula/server/utils/orderFulfillment'
+import { getFarmPickupConfig } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800')

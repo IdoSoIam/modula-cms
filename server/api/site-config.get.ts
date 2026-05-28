@@ -1,9 +1,43 @@
-import { getCmsSpecialPagePath, getPublicSiteShell } from '~/server/utils/cms'
-import { getAdminPhone, getContactEmail, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSetting, SETTING_KEYS } from '~/server/utils/settings'
-import { getPublicDaisyUiThemeConfig } from '~/server/utils/themes'
+import cmsProjectConfig from '#modula/cms.project.config'
+import { getCmsSpecialPagePath, getPublicSiteShell } from '#modula/server/utils/cms'
+import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getDefaultFeatureFlags, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { getPublicDaisyUiThemeConfig } from '#modula/server/utils/themes'
+import { getCmsInstallStatus } from '#modula/server/utils/install'
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
+
+  const installStatus = await getCmsInstallStatus()
+
+  if (!installStatus.databaseReady || !installStatus.installed) {
+    return {
+      project: {
+        key: cmsProjectConfig.site.key,
+        displayName: cmsProjectConfig.site.displayName,
+        defaultLocale: cmsProjectConfig.site.defaultLocale
+      },
+      installRequired: !installStatus.installed,
+      facebookFluxDeactivated: true,
+      inDevelopment: false,
+      siteName: cmsProjectConfig.site.displayName,
+      ordersWindow: {
+        from: null,
+        to: null,
+        message: '',
+        isOpen: true
+      },
+      registerEnabled: false,
+      subscriptionsEnabled: false,
+      featureFlags: getDefaultFeatureFlags(),
+      farmPickup: getDefaultFarmPickupConfig(),
+      contactEmail: null,
+      adminEmail: null,
+      adminPhone: null,
+      cms: null,
+      themes: null,
+      constructionPagePath: '/construction'
+    }
+  }
 
   const featureFlags = await getFeatureFlags()
   const [fb, ordersWindow, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath] = await Promise.all([
@@ -16,9 +50,23 @@ export default defineEventHandler(async (event) => {
     getPublicDaisyUiThemeConfig(),
     getCmsSpecialPagePath('construction')
   ])
+  const defaultLocale = cmsProjectConfig.site.defaultLocale
+  const configuredSiteName =
+    (defaultLocale === 'en' ? siteShell?.settings?.siteName?.en : siteShell?.settings?.siteName?.fr)
+    || siteShell?.settings?.siteName?.fr
+    || siteShell?.settings?.siteName?.en
+    || cmsProjectConfig.site.displayName
+
   return {
-    facebookFluxDeactivated: fb === 'true',
+    project: {
+      key: cmsProjectConfig.site.key,
+      displayName: cmsProjectConfig.site.displayName,
+      defaultLocale: cmsProjectConfig.site.defaultLocale
+    },
+    installRequired: false,
+    facebookFluxDeactivated: fb !== 'false',
     inDevelopment: featureFlags.inDevelopment,
+    siteName: configuredSiteName,
     ordersWindow,
     registerEnabled: featureFlags.registerEnabled,
     subscriptionsEnabled: featureFlags.subscriptionsEnabled,

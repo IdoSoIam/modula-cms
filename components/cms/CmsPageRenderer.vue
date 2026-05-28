@@ -46,13 +46,13 @@
 </template>
 
 <script setup lang="ts">
-import type { ResolvedCmsPage } from '~/shared/cms'
-import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
-import PageRenderer from '~/components/page-builder/PageRenderer.vue'
-import BasketsPage from '~/components/pages/BasketsPage.vue'
-import EventsPage from '~/components/pages/EventsPage.vue'
-import NewsListPage from '~/components/pages/NewsListPage.vue'
-import PlanningPage from '~/components/pages/PlanningPage.vue'
+import type { ResolvedCmsPage } from '#modula/shared/cms'
+import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
+import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
+import BasketsPage from '#modula/components/pages/BasketsPage.vue'
+import EventsPage from '#modula/components/pages/EventsPage.vue'
+import NewsListPage from '#modula/components/pages/NewsListPage.vue'
+import PlanningPage from '#modula/components/pages/PlanningPage.vue'
 
 const props = defineProps<{
   resolvedPage: ResolvedCmsPage

@@ -1,5 +1,5 @@
-import type { FacebookInitParams } from '~/types/facebook-sdk'
-import { hasCookieConsentForCategory, useCookieConsentCookie } from '~/composables/useCookieConsent'
+import type { FacebookInitParams } from '#modula/types/facebook-sdk'
+import { hasCookieConsentForCategory, useCookieConsentCookie } from '#modula/composables/useCookieConsent'
 
 export default defineNuxtPlugin(async () => {
   const config = useRuntimeConfig()

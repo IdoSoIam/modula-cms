@@ -1,7 +1,7 @@
-import { prisma } from '~/prisma/client'
-import { applyOccurrenceOverridesToEventPayload, canAccessEvent, eventToPayload } from '~/server/utils/events'
-import { AuthService } from '~/server/services/auth/authService'
-import { getFeatureFlags } from '~/server/utils/settings'
+import { prisma } from '#modula/prisma/client'
+import { applyOccurrenceOverridesToEventPayload, canAccessEvent, eventToPayload } from '#modula/server/utils/events'
+import { AuthService } from '#modula/server/services/auth/authService'
+import { getFeatureFlags } from '#modula/server/utils/settings'
 
 const authService = new AuthService()
 

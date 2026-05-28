@@ -1,4 +1,4 @@
-import { ADMIN_PERMISSION_MODULES, ADMIN_SPECIAL_PERMISSIONS, type RolePayload } from '~/shared/access'
+import { ADMIN_PERMISSION_MODULES, ADMIN_SPECIAL_PERMISSIONS, type RolePayload } from '#modula/shared/access'
 
 export function parseJsonSafe(value: string) {
   try {

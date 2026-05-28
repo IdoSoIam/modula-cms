@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { prisma } from '~/prisma/client'
+import { prisma } from '#modula/prisma/client'
 import {
   ADMIN_PERMISSION_MODULES,
   ADMIN_SPECIAL_PERMISSIONS,
@@ -10,7 +10,7 @@ import {
   type AdminSpecialPermission,
   type RolePermissionPayload,
   type UserAccessPayload
-} from '~/shared/access'
+} from '#modula/shared/access'
 
 type UserWithRole = Awaited<ReturnType<typeof getUserWithRole>>
 
@@ -288,7 +288,7 @@ function inferRoutePermission(event: H3Event): RoutePermissionMatch | null {
 }
 
 export async function requirePermission(event: H3Event, module: AdminPermissionModule, action: AdminPermissionAction) {
-  const { AuthService } = await import('~/server/services/auth/authService')
+  const { AuthService } = await import('#modula/server/services/auth/authService')
   const authService = new AuthService()
   const sessionUser = await authService.getUserFromSession(event)
   if (!sessionUser) {
@@ -307,7 +307,7 @@ export async function requirePermission(event: H3Event, module: AdminPermissionM
 }
 
 export async function requireSpecialPermission(event: H3Event, permission: AdminSpecialPermission) {
-  const { AuthService } = await import('~/server/services/auth/authService')
+  const { AuthService } = await import('#modula/server/services/auth/authService')
   const authService = new AuthService()
   const sessionUser = await authService.getUserFromSession(event)
   if (!sessionUser) {
@@ -326,7 +326,7 @@ export async function requireSpecialPermission(event: H3Event, permission: Admin
 }
 
 export async function requireAdminAreaAccess(event: H3Event) {
-  const { AuthService } = await import('~/server/services/auth/authService')
+  const { AuthService } = await import('#modula/server/services/auth/authService')
   const authService = new AuthService()
   const sessionUser = await authService.getUserFromSession(event)
   if (!sessionUser) {

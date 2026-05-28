@@ -1,16 +1,16 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
-import { syncImageUsageTable, updateImageReferences } from '~/server/utils/imageReferences'
-import { slugify } from '~/server/utils/slug'
+import { syncImageUsageTable, updateImageReferences } from '#modula/server/utils/imageReferences'
+import { slugify } from '#modula/server/utils/slug'
 import { extname } from 'node:path'
-import { putUploadObject, renameUploadObject, deleteUploadObject } from '~/server/utils/uploadStorage'
-import { deleteImageVariants } from '~/server/utils/imageVariants'
+import { putUploadObject, renameUploadObject, deleteUploadObject } from '#modula/server/utils/uploadStorage'
+import { deleteImageVariants } from '#modula/server/utils/imageVariants'
 import {
   ALLOWED_IMAGE_UPLOAD_MIME_TYPES,
   MAX_IMAGE_UPLOAD_SIZE,
   buildImageFilename,
   prepareImageUpload
-} from '~/server/utils/imageUpload'
+} from '#modula/server/utils/imageUpload'
 
 function buildRenamedFilename(baseName: string, currentExtension: string) {
   const safeBase = slugify(baseName || 'image')

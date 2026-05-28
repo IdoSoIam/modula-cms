@@ -51,7 +51,7 @@ defineOptions({
 type ImageFit = 'cover' | 'contain' | 'fill' | 'inside' | 'outside'
 type FetchPriority = 'auto' | 'high' | 'low'
 type Decoding = 'async' | 'auto' | 'sync'
-type ImageProvider = 'ipx' | 'cloudflare'
+type ImageProvider = 'ipx' | 'cloudflare' | 'none'
 
 const props = withDefaults(defineProps<{
   src: string
@@ -84,6 +84,15 @@ const props = withDefaults(defineProps<{
 })
 
 const attrs = useAttrs()
+const runtimeConfig = useRuntimeConfig()
+const imageDeliveryMode = computed(() => {
+  const value = runtimeConfig.public?.imageDeliveryMode
+  return value === 'worker' ? 'worker' : 'ipx'
+})
+const publicUploadsPath = computed(() => {
+  const value = runtimeConfig.public?.cmsPublicUploadsPath
+  return typeof value === 'string' && value.trim() ? value.trim().replace(/\/+$/, '') : '/uploads'
+})
 
 const stripUrlSuffix = (value: string) => value.replace(/[?#].*$/, '')
 
@@ -96,7 +105,7 @@ const normalizeSrc = (value: string) => {
     return trimmed
   }
 
-  return `/uploads/${trimmed.replace(/^\.?\//, '')}`
+  return `${publicUploadsPath.value}/${trimmed.replace(/^\.?\//, '')}`
 }
 
 const normalizeFit = (value: ImageFit | undefined) => {
@@ -167,7 +176,7 @@ const normalizeQueryParam = (value: number | string | undefined) => {
 
 const normalizedSrc = computed(() => normalizeSrc(props.src || ''))
 
-const usesUploadRoute = computed(() => normalizedSrc.value.startsWith('/uploads/'))
+const usesUploadRoute = computed(() => normalizedSrc.value.startsWith(`${publicUploadsPath.value}/`))
 
 const usesNativeImage = computed(() =>
   !normalizedSrc.value
@@ -175,7 +184,10 @@ const usesNativeImage = computed(() =>
   || isSvgSource(normalizedSrc.value)
 )
 
-const resolvedProvider = computed(() => props.provider || 'ipx')
+const resolvedProvider = computed<ImageProvider | undefined>(() => {
+  if (props.provider) return props.provider
+  return imageDeliveryMode.value === 'worker' ? 'cloudflare' : undefined
+})
 
 const resolvedFormat = computed(() => {
   if (Array.isArray(props.format)) {

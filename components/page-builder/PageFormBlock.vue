@@ -134,8 +134,8 @@
 </template>
 
 <script setup lang="ts">
-import type { PageBuilderFormField, PageBuilderFormItem, ThemeColorSelection } from '~/shared/pageBuilder'
-import { pickLocalizedText } from '~/shared/pageBuilder'
+import type { PageBuilderFormField, PageBuilderFormItem, ThemeColorSelection } from '#modula/shared/pageBuilder'
+import { pickLocalizedText } from '#modula/shared/pageBuilder'
 
 const props = defineProps<{
   item: PageBuilderFormItem

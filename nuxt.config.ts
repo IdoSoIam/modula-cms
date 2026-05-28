@@ -1,9 +1,18 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
+import defaultCmsProjectConfig from './cms.project.config'
+import { parseCmsProjectConfigJson, resolveCmsPlatformConfig } from './shared/platform'
 
-const imageDeliveryMode = process.env.IMAGE_DELIVERY_MODE ?? (process.env.IMAGE_STORAGE_DRIVER === 'r2' ? 'worker' : 'ipx')
-const siteURL = process.env.SITE_URL ?? '/'
-const imageCloudflareBaseURL = process.env.IMAGE_CLOUDFLARE_BASE_URL ?? siteURL
-const imageSourceBaseURL = process.env.IMAGE_SOURCE_BASE_URL ?? imageCloudflareBaseURL
+const layerRoot = fileURLToPath(new URL('.', import.meta.url))
+
+const cmsProjectConfig = parseCmsProjectConfigJson(process.env.CMS_PROJECT_CONFIG_JSON) || defaultCmsProjectConfig
+const platformConfig = resolveCmsPlatformConfig(process.env, cmsProjectConfig)
+const isCloudflareRuntime = platformConfig.runtimeTarget === 'cloudflare'
+const imageDeliveryMode = platformConfig.imageDeliveryMode
+const siteURL = platformConfig.siteUrl
+const imageCloudflareBaseURL = platformConfig.imageCloudflareBaseURL
+const imageSourceBaseURL = platformConfig.imageSourceBaseURL
 const imageCloudflareHostname = (() => {
   try {
     return new URL(imageCloudflareBaseURL).host
@@ -23,6 +32,9 @@ const imageSourceHostname = (() => {
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   debug: false,
+  alias: {
+    '#modula': layerRoot
+  },
   experimental: {
     appManifest: false
   },
@@ -30,22 +42,30 @@ export default defineNuxtConfig({
     inlineStyles: true
   },
   nitro: {
-    preset: 'cloudflare_module',
+    preset: isCloudflareRuntime ? 'cloudflare_module' : 'node_server',
     experimental: {
       wasm: true
     },
-    cloudflare: {
-      deployConfig: true,
-      nodeCompat: false
+    alias: {
+      '~/server': path.resolve(layerRoot, 'server'),
+      '~/shared': path.resolve(layerRoot, 'shared'),
+      '~/prisma': path.resolve(layerRoot, 'prisma'),
+      '~/types': path.resolve(layerRoot, 'types'),
+      '~/cms': path.resolve(layerRoot, 'cms'),
+      '~/cms.project.config': path.resolve(layerRoot, 'cms.project.config'),
+      '../shared/': path.resolve(layerRoot, 'shared') + '/',
+      '../shared/platform.ts': path.resolve(layerRoot, 'shared/platform.ts'),
     },
+    ...(isCloudflareRuntime
+      ? {
+        cloudflare: {
+          deployConfig: true,
+          nodeCompat: false
+        }
+      }
+      : {}),
     rollupConfig: {
       external: ['facebook-node-sdk', 'fb']
-    }
-  },
-  devServer: {
-    https: {
-      cert: './certificates/cert.crt',
-      key: './certificates/cert.key'
     }
   },
 
@@ -60,11 +80,15 @@ export default defineNuxtConfig({
     '@nuxt/image',
     ['@nuxt/icon', {
       collections: ['mdi'],
-      fallbackToApi: false
+      mode: 'svg',
+      fallbackToApi: true,
+      clientBundle: {
+        scan: false,
+      },
     }],
     '@nuxtjs/i18n',
     '@pinia/nuxt',
-    'nitro-cloudflare-dev'
+    ...(isCloudflareRuntime ? ['nitro-cloudflare-dev'] : [])
   ],
   vite: {
     plugins: [
@@ -115,10 +139,11 @@ export default defineNuxtConfig({
     }
   },
   css: [
-    '@/assets/css/tailwind.css',
-    '@/assets/css/main.css',
+    path.resolve(layerRoot, 'assets/css/tailwind.css'),
+    path.resolve(layerRoot, 'assets/css/main.css'),
   ],
   image: {
+    provider: imageDeliveryMode === 'worker' ? 'cloudflare' : 'ipx',
     quality: 80,
     format: ['webp'],
     densities: [1, 2],
@@ -129,12 +154,12 @@ export default defineNuxtConfig({
   i18n: {
     strategy: 'prefix_except_default',
     customRoutes: 'meta',
-    defaultLocale: 'fr',
+    defaultLocale: cmsProjectConfig.site.defaultLocale,
     detectBrowserLanguage: {
       useCookie: true,
       cookieKey: 'i18n_redirected',
       redirectOn: 'all',
-      fallbackLocale: 'fr'
+      fallbackLocale: cmsProjectConfig.site.defaultLocale
     },
     vueI18n: './i18n.config.ts',
     locales: [
@@ -155,6 +180,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    cmsMigrationsDir: path.resolve(layerRoot, 'migrations'),
     ipx: {
       http: {
         domains: [
@@ -167,11 +193,21 @@ export default defineNuxtConfig({
         ].filter(Boolean).join(',')
       }
     },
-    imageStorageDriver: process.env.IMAGE_STORAGE_DRIVER ?? 'r2',
-    imageFilesystemDir: process.env.IMAGE_FILESYSTEM_DIR ?? 'public/uploads',
+    cmsProjectKey: cmsProjectConfig.site.key,
+    cmsDbDriver: platformConfig.dbDriver,
+    cmsStorageDriver: platformConfig.storageDriver,
+    cmsRuntimeTarget: platformConfig.runtimeTarget,
+    cmsFilesystemStorageDir: platformConfig.filesystemDir,
+    imageStorageDriver: platformConfig.storageDriver === 'fs' ? 'filesystem' : platformConfig.storageDriver,
+    imageFilesystemDir: platformConfig.filesystemDir,
     public: {
       inDevelopment: process.env.NUXT_PUBLIC_IN_DEVELOPMENT ?? 'false',
-      imageStorageDriver: process.env.IMAGE_STORAGE_DRIVER ?? 'r2',
+      cmsProjectKey: cmsProjectConfig.site.key,
+      cmsDbDriver: platformConfig.dbDriver,
+      cmsStorageDriver: platformConfig.storageDriver,
+      cmsRuntimeTarget: platformConfig.runtimeTarget,
+      cmsPublicUploadsPath: platformConfig.publicUploadsPath,
+      imageStorageDriver: platformConfig.storageDriver === 'fs' ? 'filesystem' : platformConfig.storageDriver,
       imageDeliveryMode,
       imageCloudflareBaseURL,
       imageSourceBaseURL,

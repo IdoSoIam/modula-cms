@@ -71,9 +71,9 @@
 </template>
 
 <script setup lang="ts">
-import AdminNavigationMenu from '~/components/admin/AdminNavigationMenu.vue'
-import { getAdminNavigationSections } from '~/shared/adminNavigation'
-import { useAuthStore } from '~/stores/auth'
+import AdminNavigationMenu from '#modula/components/admin/AdminNavigationMenu.vue'
+import { getAdminNavigationSections } from '#modula/shared/adminNavigation'
+import { useAuthStore } from '#modula/stores/auth'
 
 useNoIndexSeo('Administration')
 

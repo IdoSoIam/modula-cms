@@ -1,13 +1,13 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
-import { putUploadObject } from '~/server/utils/uploadStorage'
-import { syncImageUsageTable } from '~/server/utils/imageReferences'
+import { putUploadObject } from '#modula/server/utils/uploadStorage'
+import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import {
   ALLOWED_IMAGE_UPLOAD_MIME_TYPES,
   MAX_IMAGE_UPLOAD_SIZE,
   buildImageFilename,
   prepareImageUpload
-} from '~/server/utils/imageUpload'
+} from '#modula/server/utils/imageUpload'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAdmin(event)

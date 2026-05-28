@@ -1,4 +1,4 @@
-import { Product } from '~/composables/useProducts';
+import { Product } from '#modula/composables/useProducts';
 
 // Simulation d'une base de données
 const products: Product[] = [
@@ -28,6 +28,6 @@ const products: Product[] = [
 export default defineEventHandler(async (event) => {
   // Simulation d'un délai réseau
   await new Promise(resolve => setTimeout(resolve, 100));
-  
+
   return products;
 });

@@ -1,4 +1,4 @@
-import type { ThemeValue } from '~/composables/useTheme'
+import type { ThemeValue } from '#modula/composables/useTheme'
 
 export default defineNuxtPlugin(() => {
   const { setTheme, availableThemes, defaultTheme } = useTheme()

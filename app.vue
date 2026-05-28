@@ -7,6 +7,7 @@
 <script setup lang="ts">
 const siteConfig = await useSiteConfig()
 const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
+const defaultLocale = computed(() => siteConfig.value?.project?.defaultLocale || 'fr')
 const faviconHref = computed(() => siteConfig.value?.cms?.settings.favicon.src || '/favicon.ico')
 const themeConfig = computed(() => siteConfig.value?.themes)
 const defaultThemeName = computed(() => themeConfig.value?.defaultTheme || 'recolte')
@@ -46,6 +47,7 @@ useHead(() => ({
         (function() {
           const DEFAULT_THEME = ${JSON.stringify(defaultThemeName.value)};
           const VALID_THEMES = ${JSON.stringify(validThemes.value)};
+          const DEFAULT_LOCALE = ${JSON.stringify(defaultLocale.value)};
           const VALID_LOCALES = ['fr', 'en'];
           const LOCALE_STORAGE_KEY = 'preferred-locale';
           try {
@@ -60,7 +62,7 @@ useHead(() => ({
             const browserLocale = (navigator.language || '').toLowerCase().split('-')[0];
             const nextLocale = VALID_LOCALES.includes(storedLocale)
               ? storedLocale
-              : (VALID_LOCALES.includes(cookieLocale) ? cookieLocale : (VALID_LOCALES.includes(browserLocale) ? browserLocale : 'fr'));
+              : (VALID_LOCALES.includes(cookieLocale) ? cookieLocale : (VALID_LOCALES.includes(browserLocale) ? browserLocale : DEFAULT_LOCALE));
             document.cookie = 'i18n_redirected=' + nextLocale + '; path=/; max-age=31536000; samesite=lax';
             document.documentElement.setAttribute('lang', nextLocale);
           } catch (e) {}

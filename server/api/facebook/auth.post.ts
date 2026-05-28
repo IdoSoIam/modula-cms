@@ -1,4 +1,4 @@
-import { FacebookTokenService } from '~/server/services/facebook/facebookTokenService'
+import { FacebookTokenService } from '#modula/server/services/facebook/facebookTokenService'
 
 export default defineEventHandler(async (event) => {
   try {

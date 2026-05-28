@@ -1,6 +1,6 @@
-import type { CmsLocalizedText } from '~/shared/cms'
-import type { PageBuilderContent, SectionContainerWidth, ThemeColorSelection } from '~/shared/pageBuilder'
-import { createThemeColorSelection } from '~/shared/pageBuilder'
+import type { CmsLocalizedText } from '#modula/shared/cms'
+import type { PageBuilderContent, SectionContainerWidth, ThemeColorSelection } from '#modula/shared/pageBuilder'
+import { createThemeColorSelection } from '#modula/shared/pageBuilder'
 
 export const EVENT_STATUSES = ['DRAFT', 'PUBLISHED', 'ARCHIVED', 'CANCELLED'] as const
 export const EVENT_VISIBILITIES = ['PUBLIC', 'PRIVATE'] as const

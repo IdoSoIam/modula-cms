@@ -393,10 +393,10 @@
 <script setup lang="ts">
 import { defineComponent, h } from 'vue'
 import type { PropType } from 'vue'
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
-import OrdersWindowSettings from '~/components/admin/OrdersWindowSettings.vue'
-import OrdersCalendar from '~/components/admin/OrdersCalendar.vue'
-import OrdersList from '~/components/admin/OrdersList.vue'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import OrdersWindowSettings from '#modula/components/admin/OrdersWindowSettings.vue'
+import OrdersCalendar from '#modula/components/admin/OrdersCalendar.vue'
+import OrdersList from '#modula/components/admin/OrdersList.vue'
 
 definePageMeta({
   layout: 'admin',

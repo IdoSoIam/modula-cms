@@ -45,11 +45,16 @@ export function buildEmailHtml(options: {
   logoUrl?: string | null
   footer?: string
   lang?: string
+  statusLabel?: string
+  statusColor?: string
 }) {
   const accent = options.accent ?? '#5d7c2f'
   const footer = options.footer ?? 'Ferme du Campeyrigoux'
   const preheader = options.preheader ?? options.title
   const lang = options.lang ?? 'fr'
+  const statusPill = options.statusLabel
+    ? `<div style="display:inline-block;margin:0 0 16px 0;padding:6px 10px;border-radius:999px;background:${escapeHtml(options.statusColor || '#e5e7eb')};color:#111827;font-size:12px;font-weight:700;line-height:1;">${escapeHtml(options.statusLabel)}</div>`
+    : ''
 
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(lang)}">
@@ -69,6 +74,7 @@ export function buildEmailHtml(options: {
             <h1 style="margin:10px 0 0 0;font-size:28px;line-height:1.2;font-weight:700;">${escapeHtml(options.title)}</h1>
           </div>
           <div style="background:#ffffff;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 24px 24px;padding:32px;">
+            ${statusPill}
             ${formatBodyToHtml(options.body)}
             <div style="margin-top:24px;padding-top:18px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:13px;line-height:1.6;">
               ${escapeHtml(footer)}

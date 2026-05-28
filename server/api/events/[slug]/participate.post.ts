@@ -1,6 +1,6 @@
-import { prisma } from '~/prisma/client'
-import { canAccessEvent, submitInternalParticipation } from '~/server/utils/events'
-import { AuthService } from '~/server/services/auth/authService'
+import { prisma } from '#modula/prisma/client'
+import { canAccessEvent, submitInternalParticipation } from '#modula/server/utils/events'
+import { AuthService } from '#modula/server/services/auth/authService'
 
 const authService = new AuthService()
 

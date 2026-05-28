@@ -114,11 +114,11 @@
 </template>
 
 <script setup lang="ts">
-import AdminUserEditModal from '~/components/admin/AdminUserEditModal.vue'
-import DataTable from '~/components/admin/DataTable.vue'
-import MemberRoleMultiSelect from '~/components/admin/MemberRoleMultiSelect.vue'
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
-import { useAuthStore } from '~/stores/auth'
+import AdminUserEditModal from '#modula/components/admin/AdminUserEditModal.vue'
+import DataTable from '#modula/components/admin/DataTable.vue'
+import MemberRoleMultiSelect from '#modula/components/admin/MemberRoleMultiSelect.vue'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import { useAuthStore } from '#modula/stores/auth'
 
 definePageMeta({
   layout: 'admin',

@@ -1,6 +1,6 @@
 import type {
   FacebookLoginStatus as FacebookAuthResponse
-} from '~/types/facebook-sdk';
+} from '#modula/types/facebook-sdk';
 
 interface FacebookPage {
   access_token: string;

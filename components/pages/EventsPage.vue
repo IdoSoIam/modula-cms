@@ -102,9 +102,9 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsLocale } from '~/shared/cms'
-import type { CmsEventsPageSettings, EventListItem, EventsPageViewMode, PublicEventsListResponse } from '~/shared/events'
-import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
+import type { CmsLocale } from '#modula/shared/cms'
+import type { CmsEventsPageSettings, EventListItem, EventsPageViewMode, PublicEventsListResponse } from '#modula/shared/events'
+import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
 
 const props = withDefaults(defineProps<{
   settings?: CmsEventsPageSettings | null

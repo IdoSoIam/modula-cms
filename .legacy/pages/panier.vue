@@ -100,12 +100,12 @@
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from "~/stores/auth";
-import { useCart } from "~/composables/useCart";
-import { usePayment } from "~/composables/usePayment";
-import { useProducts } from "~/composables/useProducts";
-import type { Product } from "~/composables/useProducts";
-import AuthForm from "~/components/AuthForm.vue";
+import { useAuthStore } from "#modula/stores/auth";
+import { useCart } from "#modula/composables/useCart";
+import { usePayment } from "#modula/composables/usePayment";
+import { useProducts } from "#modula/composables/useProducts";
+import type { Product } from "#modula/composables/useProducts";
+import AuthForm from "#modula/components/AuthForm.vue";
 
 const authStore = useAuthStore();
 const { cart, removeFromCart, updateQuantity } = useCart();

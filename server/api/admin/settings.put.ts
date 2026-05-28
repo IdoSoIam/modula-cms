@@ -1,6 +1,6 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { normalizeFeatureFlags, setSetting, SETTING_KEYS } from '~/server/utils/settings'
-import { findAdminEmailTemplateDefinition } from '~/server/utils/adminEmailTemplates'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { normalizeFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { findAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
 
 interface Body {
   gmailSenderEmail?: string
@@ -89,9 +89,7 @@ export default defineEventHandler(async (event) => {
   if (typeof body.googleCalendarName === 'string') {
     await setSetting(SETTING_KEYS.GOOGLE_CALENDAR_NAME, body.googleCalendarName.trim())
   }
-  if (typeof body.facebookFluxDeactivated === 'boolean') {
-    await setSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED, body.facebookFluxDeactivated ? 'true' : 'false')
-  }
+  await setSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED, 'true')
   if (typeof body.inDevelopment === 'boolean' || typeof body.featureFlags?.inDevelopment === 'boolean') {
     await setSetting(SETTING_KEYS.IN_DEVELOPMENT, featureFlags.inDevelopment ? 'true' : 'false')
   }

@@ -69,11 +69,11 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import type { CmsLocale, CmsPagePayload, ResolvedCmsPage } from '~/shared/cms'
-import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
-import type { PageBuilderButton, PageBuilderCard, PageBuilderColumnItem, PageBuilderSection, PageBuilderSectionItem } from '~/shared/pageBuilder'
-import CmsPageRenderer from '~/components/cms/CmsPageRenderer.vue'
-import { useAuthStore } from '~/stores/auth'
+import type { CmsLocale, CmsPagePayload, ResolvedCmsPage } from '#modula/shared/cms'
+import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
+import type { PageBuilderButton, PageBuilderCard, PageBuilderColumnItem, PageBuilderSection, PageBuilderSectionItem } from '#modula/shared/pageBuilder'
+import CmsPageRenderer from '#modula/components/cms/CmsPageRenderer.vue'
+import { useAuthStore } from '#modula/stores/auth'
 
 interface CmsPageEditor extends CmsPagePayload {
   id: number
@@ -83,7 +83,7 @@ const props = defineProps<{
   resolvedPage: ResolvedCmsPage
 }>()
 
-const PageEditModal = defineAsyncComponent(() => import('~/components/page-builder/PageEditModal.vue'))
+const PageEditModal = defineAsyncComponent(() => import('#modula/components/page-builder/PageEditModal.vue'))
 
 const route = useRoute()
 const router = useRouter()

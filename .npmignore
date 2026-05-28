@@ -1,0 +1,12 @@
+prisma/local.db
+prisma/d1-local-studio.db
+prisma/d1-local-studio.verify.db
+prisma/migrations/
+modula-cms-*.tgz
+public/uploads/
+certificates/
+tsconfig.json
+.opencode/
+.omo/
+.claude/
+.codex-logs/

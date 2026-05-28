@@ -510,14 +510,14 @@
 </template>
 
 <script setup lang="ts">
-import ImageInput from '~/components/ImageInput.vue'
-import AdminIconPicker from '~/components/admin/IconPicker.vue'
-import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import Footer from '~/components/layout/Footer.vue'
-import MobileMenu from '~/components/layout/MobileMenu.vue'
-import Navigation from '~/components/layout/Navigation.vue'
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
+import ImageInput from '#modula/components/ImageInput.vue'
+import AdminIconPicker from '#modula/components/admin/IconPicker.vue'
+import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
+import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
+import Footer from '#modula/components/layout/Footer.vue'
+import MobileMenu from '#modula/components/layout/MobileMenu.vue'
+import Navigation from '#modula/components/layout/Navigation.vue'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import {
   CMS_FOOTER_ALIGN_LABELS,
   CMS_FOOTER_CONTAINER_ALIGN_LABELS,
@@ -535,9 +535,9 @@ import {
   type CmsLocalizedText,
   type CmsNavigationItemPayload,
   type CmsSiteSettings
-} from '~/shared/cms'
-import type { ThemeColorSelection } from '~/shared/pageBuilder'
-import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS, VERTICAL_ALIGNS } from '~/shared/pageBuilder'
+} from '#modula/shared/cms'
+import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
+import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS, VERTICAL_ALIGNS } from '#modula/shared/pageBuilder'
 
 definePageMeta({
   layout: 'admin',

@@ -6,7 +6,7 @@ import type {
   PageBuilderSectionItem,
   PageBuilderSection,
   LocalizedText
-} from '~/shared/pageBuilder'
+} from '#modula/shared/pageBuilder'
 
 export type PageBuilderEditableItem = PageBuilderColumnItem | PageBuilderSectionItem
 

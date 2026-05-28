@@ -84,9 +84,9 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsCookieServiceCategory } from '~/shared/cms'
-import { pickCmsLocalizedText } from '~/shared/cms'
-import { serializeCookieConsent, useCookieConsentCookie } from '~/composables/useCookieConsent'
+import type { CmsCookieServiceCategory } from '#modula/shared/cms'
+import { pickCmsLocalizedText } from '#modula/shared/cms'
+import { serializeCookieConsent, useCookieConsentCookie } from '#modula/composables/useCookieConsent'
 
 const { locale, t } = useI18n()
 const localePath = useLocalePath()

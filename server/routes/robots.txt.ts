@@ -1,4 +1,4 @@
-import { getFeatureFlags } from '~/server/utils/settings'
+import { getFeatureFlags } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async () => {
   const { inDevelopment } = await getFeatureFlags()

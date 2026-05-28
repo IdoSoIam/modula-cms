@@ -1,7 +1,7 @@
-import { prisma } from '~/prisma/client'
+import { prisma } from '#modula/prisma/client'
 import type { Event, EventAudienceMemberRole, EventInternalParticipation, EventOccurrence, EventPublicReservation, MemberRole, User } from '../../node_modules/.prisma/client'
-import { createDefaultCmsSiteSettings, type CmsLocale, type CmsLocalizedText } from '~/shared/cms'
-import type { PageBuilderContent } from '~/shared/pageBuilder'
+import { createDefaultCmsSiteSettings, type CmsLocale, type CmsLocalizedText } from '#modula/shared/cms'
+import type { PageBuilderContent } from '#modula/shared/pageBuilder'
 import {
   createDefaultEventPayload,
   createDefaultEventTranslation,
@@ -18,11 +18,11 @@ import {
   type EventTranslation,
   type EventWeekdayValue,
   type EventVisibility
-} from '~/shared/events'
-import { buildGenericEmail } from '~/server/utils/orderEmails'
-import { resolveAdminEmailTemplate } from '~/server/utils/adminEmailTemplates'
-import { getSiteOrigin, sendGmail } from '~/server/utils/gmail'
-import { getReservationNotificationEmail, isAssociationRolesEnabled } from '~/server/utils/settings'
+} from '#modula/shared/events'
+import { buildGenericEmail } from '#modula/server/utils/orderEmails'
+import { resolveAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
+import { getSiteOrigin, sendGmail } from '#modula/server/utils/gmail'
+import { getReservationNotificationEmail, isAssociationRolesEnabled } from '#modula/server/utils/settings'
 
 type EventWithRelations = Event & {
   audienceMemberRoles: Array<EventAudienceMemberRole & { memberRole: MemberRole }>

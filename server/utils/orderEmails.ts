@@ -113,7 +113,9 @@ export async function buildReservationDecisionEmail(options: {
   const htmlBody = buildEmailHtml({
     title: options.subject,
     body: textBody,
-    accent: options.action === 'CONFIRMED' ? '#4f8a34' : options.action === 'CANCELLED' ? '#d97706' : '#b91c1c',
+    accent: '#4b56d2',
+    statusLabel: options.action === 'CONFIRMED' ? 'Confirmée' : options.action === 'CANCELLED' ? 'Annulée' : 'Refusée',
+    statusColor: options.action === 'CONFIRMED' ? '#bbf7d0' : options.action === 'CANCELLED' ? '#fde68a' : '#fecaca',
     logoUrl: getLogoUrl(),
     lang: getReservationEmailHtmlLang(options.reservation.language)
   })
@@ -182,7 +184,9 @@ export async function buildReservationOccurrenceEmail(options: {
   const htmlBody = buildEmailHtml({
     title: options.subject,
     body: textBody,
-    accent: options.action === 'CONFIRMED' ? '#2563eb' : '#d97706',
+    accent: '#4b56d2',
+    statusLabel: options.action === 'CONFIRMED' ? 'Mise à jour' : 'Occurrence annulée',
+    statusColor: options.action === 'CONFIRMED' ? '#bfdbfe' : '#fde68a',
     logoUrl: getLogoUrl(),
     lang: getReservationEmailHtmlLang(options.reservation.language)
   })

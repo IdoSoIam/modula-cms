@@ -89,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',

@@ -56,8 +56,8 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
-import type { CmsPagePayload } from '~/shared/cms'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import type { CmsPagePayload } from '#modula/shared/cms'
 
 definePageMeta({
   layout: 'admin',

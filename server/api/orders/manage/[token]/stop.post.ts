@@ -1,9 +1,9 @@
-import { sendGmail } from '~/server/utils/gmail'
-import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/orderEmails'
-import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/orderEmailContent'
-import { removeReservationFromGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { getReservationNotificationEmail, isSubscriptionsEnabled } from '~/server/utils/settings'
-import { logReservationNotification } from '~/server/utils/orderNotifications'
+import { sendGmail } from '#modula/server/utils/gmail'
+import { buildGenericEmail, buildReservationDecisionEmail } from '#modula/server/utils/orderEmails'
+import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '#modula/server/utils/orderEmailContent'
+import { removeReservationFromGoogleCalendar } from '#modula/server/utils/googleCalendarSync'
+import { getReservationNotificationEmail, isSubscriptionsEnabled } from '#modula/server/utils/settings'
+import { logReservationNotification } from '#modula/server/utils/orderNotifications'
 import { prisma } from '../../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {

@@ -117,9 +117,9 @@
 </template>
 
 <script setup lang="ts">
-import AdminIconPicker from '~/components/admin/IconPicker.vue'
-import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import type { PageBuilderCard } from '~/shared/pageBuilder'
+import AdminIconPicker from '#modula/components/admin/IconPicker.vue'
+import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
+import type { PageBuilderCard } from '#modula/shared/pageBuilder'
 import {
   CARD_SIZE_LABELS,
   CARD_SIZES,
@@ -129,7 +129,7 @@ import {
   PAGE_BUILDER_CARD_ELEMENT_KIND_LABELS,
   PAGE_BUILDER_CARD_ELEMENT_SOURCES,
   PAGE_BUILDER_CARD_ELEMENT_SOURCE_LABELS
-} from '~/shared/pageBuilder'
+} from '#modula/shared/pageBuilder'
 
 const props = defineProps<{
   card: PageBuilderCard

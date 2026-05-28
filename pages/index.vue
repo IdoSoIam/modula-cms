@@ -3,8 +3,8 @@
 </template>
 
 <script setup lang="ts">
-import type { ResolvedCmsPage } from '~/shared/cms'
-import CmsResolvedPageView from '~/components/cms/CmsResolvedPageView.vue'
+import type { ResolvedCmsPage } from '#modula/shared/cms'
+import CmsResolvedPageView from '#modula/components/cms/CmsResolvedPageView.vue'
 
 const { locale } = useI18n()
 

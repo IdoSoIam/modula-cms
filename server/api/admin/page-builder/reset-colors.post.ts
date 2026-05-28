@@ -1,6 +1,6 @@
-import { applyDefaultSectionStyling } from '~/shared/pageBuilder'
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { getPageBuilderContent, savePageBuilderContent } from '~/server/utils/pageBuilder'
+import { applyDefaultSectionStyling } from '#modula/shared/pageBuilder'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { getPageBuilderContent, savePageBuilderContent } from '#modula/server/utils/pageBuilder'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

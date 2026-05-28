@@ -79,6 +79,10 @@ export const ADMIN_I18N_PATHS = {
     fr: '/admin/personnalisation/images',
     en: '/admin/customization/images'
   },
+  customizationEmails: {
+    fr: '/admin/personnalisation/emails',
+    en: '/admin/customization/emails'
+  },
   settingsGlobal: {
     fr: '/admin/reglages/global',
     en: '/admin/settings/global'

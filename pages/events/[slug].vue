@@ -136,15 +136,16 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, toRaw, watch } from 'vue'
-import PageEditable from '~/components/page-builder/PageEditable.vue'
-import PageRenderer from '~/components/page-builder/PageRenderer.vue'
-import type { EventPayload } from '~/shared/events'
-import type { CmsLocale } from '~/shared/cms'
-import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
+import PageEditable from '#modula/components/page-builder/PageEditable.vue'
+import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
+import type { EventPayload } from '#modula/shared/events'
+import type { CmsLocale } from '#modula/shared/cms'
+import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
+import { useAuthStore } from '#modula/stores/auth'
 
 definePageMeta({ layout: 'default' })
 
-const PageEditModal = defineAsyncComponent(() => import('~/components/page-builder/PageEditModal.vue'))
+const PageEditModal = defineAsyncComponent(() => import('#modula/components/page-builder/PageEditModal.vue'))
 
 const route = useRoute()
 const router = useRouter()

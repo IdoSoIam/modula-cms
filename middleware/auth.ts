@@ -1,3 +1,5 @@
+import { useAuthStore } from '#modula/stores/auth'
+
 export default defineNuxtRouteMiddleware(async () => {
   const authStore = useAuthStore()
   const localePath = useLocalePath()

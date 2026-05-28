@@ -137,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import MemberRoleMultiSelect from '~/components/admin/MemberRoleMultiSelect.vue'
+import MemberRoleMultiSelect from '#modula/components/admin/MemberRoleMultiSelect.vue'
 
 interface MemberRoleItem {
   id: number

@@ -1232,5 +1232,62 @@
     "page": "Page",
     "of": "sur",
     "noData": "Aucune donnée disponible"
+  },
+  "install": {
+    "kicker": "Première installation",
+    "title": "Configurer votre CMS",
+    "subtitle": "Créez le premier administrateur, choisissez le mode d’hébergement et préparez le projet sans modifier les fichiers à la main.",
+    "siteSection": "Identité du site",
+    "siteSectionHelp": "Ces informations servent de base au projet généré.",
+    "siteName": "Nom du site",
+    "siteNamePlaceholder": "Mon association, ma ferme, mon collectif...",
+    "taglineFr": "Baseline FR",
+    "taglineFrPlaceholder": "Ex: Depuis 2026",
+    "taglineEn": "Baseline EN",
+    "taglineEnPlaceholder": "Ex: Since 2026",
+    "languageSection": "Langue par défaut",
+    "languageSectionHelp": "Cette langue sera utilisée au démarrage du projet.",
+    "locale": {
+      "fr": "Français",
+      "en": "Anglais"
+    },
+    "localeFrHelp": "Interface et contenu par défaut en français.",
+    "localeEnHelp": "Interface et contenu par défaut en anglais.",
+    "templateSection": "Modèle de site",
+    "templateSectionHelp": "Choisissez une base de contenu et de réglages CMS. Vous pourrez tout modifier ensuite depuis l’admin.",
+    "platformSection": "Mode d’hébergement",
+    "platformSectionHelp": "Choisissez la combinaison actuellement supportée par le cœur CMS.",
+    "runtime": {
+      "server": "Serveur classique",
+      "cloudflare": "Cloudflare"
+    },
+    "runtimeServerHelp": "Démarrage local immédiat avec SQLite et stockage fichiers.",
+    "runtimeCloudflareHelp": "Mode D1 + R2. Nécessite un redémarrage ou un déploiement avec les bindings Cloudflare.",
+    "adminSection": "Premier administrateur",
+    "adminSectionHelp": "Ce compte recevra immédiatement l’accès complet au back-office.",
+    "adminFirstName": "Prénom",
+    "adminFirstNamePlaceholder": "Prénom",
+    "adminLastName": "Nom",
+    "adminLastNamePlaceholder": "Nom",
+    "adminEmail": "Email administrateur",
+    "adminEmailPlaceholder": "admin example.com",
+    "adminPassword": "Mot de passe",
+    "adminPasswordPlaceholder": "Au moins 8 caractères",
+    "runtimeSummary": "Runtime actuel",
+    "currentRuntime": "Mode",
+    "currentDatabase": "Base de données",
+    "currentStorage": "Stockage",
+    "whatHappensTitle": "Ce que fait l’assistant",
+    "whatHappens": [
+      "Il enregistre une configuration projet générée automatiquement.",
+      "En mode serveur, il crée SQLite et applique les migrations si nécessaire.",
+      "Il crée le premier administrateur puis prépare le projet pour la suite."
+    ],
+    "restartHintTitle": "Redémarrage à prévoir",
+    "restartHintBody": "Si vous changez de mode d’exécution, la configuration est enregistrée mais devra être rechargée au prochain démarrage ou déploiement.",
+    "submit": "Lancer l’installation",
+    "submitting": "Installation en cours...",
+    "success": "Installation enregistrée avec succès.",
+    "error": "Impossible de terminer l’installation."
   }
 }

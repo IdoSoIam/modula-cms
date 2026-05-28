@@ -187,9 +187,9 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsHeaderNavigationStyle, CmsLocale, PublicSiteShell, ResolvedCmsNavigationItem } from '~/shared/cms'
-import type { ThemeColorSelection } from '~/shared/pageBuilder'
-import { useAuthStore } from '~/stores/auth'
+import type { CmsHeaderNavigationStyle, CmsLocale, PublicSiteShell, ResolvedCmsNavigationItem } from '#modula/shared/cms'
+import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
+import { useAuthStore } from '#modula/stores/auth'
 
 interface PreviewSiteConfig {
   facebookFluxDeactivated?: boolean

@@ -752,13 +752,13 @@
 </template>
 
 <script setup lang="ts">
-import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import AdminPageBuilderButtonFields from '~/components/admin/page-builder/ButtonFields.vue'
-import AdminPageBuilderCarouselFields from '~/components/admin/page-builder/CarouselFields.vue'
-import AdminPageBuilderCardFields from '~/components/admin/page-builder/CardFields.vue'
-import AdminPageBuilderSectionBackgroundFields from '~/components/admin/page-builder/SectionBackgroundFields.vue'
-import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderSectionItem, SectionColumnCount } from '~/shared/pageBuilder'
+import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
+import AdminPageBuilderButtonFields from '#modula/components/admin/page-builder/ButtonFields.vue'
+import AdminPageBuilderCarouselFields from '#modula/components/admin/page-builder/CarouselFields.vue'
+import AdminPageBuilderCardFields from '#modula/components/admin/page-builder/CardFields.vue'
+import AdminPageBuilderSectionBackgroundFields from '#modula/components/admin/page-builder/SectionBackgroundFields.vue'
+import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
+import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderSectionItem, SectionColumnCount } from '#modula/shared/pageBuilder'
 import {
   CARDS_DISPLAY_LABELS,
   CARDS_DISPLAYS,
@@ -794,8 +794,8 @@ import {
   SECTION_CONTAINER_WIDTH_LABELS,
   SECTION_CONTAINER_WIDTHS,
   VERTICAL_ALIGNS
-} from '~/shared/pageBuilder'
-import ImageInput from '~/components/ImageInput.vue'
+} from '#modula/shared/pageBuilder'
+import ImageInput from '#modula/components/ImageInput.vue'
 
 const props = defineProps<{
   content: PageBuilderContent

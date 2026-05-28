@@ -34,7 +34,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import type { FacebookLoginStatus, FacebookAuthResponse } from '~/types/facebook'
+import type { FacebookLoginStatus, FacebookAuthResponse } from '#modula/types/facebook'
 
 useNoIndexSeo('Synchronisation Facebook', 'Page technique réservée à l’administration.')
 

@@ -1,12 +1,14 @@
-import { useAuthStore } from '~/stores/auth'
+import { useAuthStore } from '#modula/stores/auth'
+import { ensureInstallState } from '#modula/composables/useInstallState'
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const authStore = useAuthStore()
   const localePath = useLocalePath()
   const normalizedPath = to.path.replace(/^\/en(?=\/|$)/, '') || '/'
+  const installAllowedRoutes = ['/install', '/password-setup']
   const adminRoutes = ['/admin', '/facebook-test']
   const protectedRoutes = ['/profile', '/commandes']
-  const authAwareRoutes = ['/login', '/construction']
+  const authAwareRoutes = ['/login', '/construction', '/install']
   const needsAuthState = hasAuthSessionCookie()
     || adminRoutes.some(route => normalizedPath.startsWith(route))
     || protectedRoutes.some(route => normalizedPath.startsWith(route))
@@ -18,6 +20,22 @@ export default defineNuxtRouteMiddleware(async (to) => {
     } catch (error) {
       console.debug('Auth check failed:', error)
     }
+  }
+
+  try {
+    if (tryUseNuxtApp()) {
+      const installState = await ensureInstallState()
+      if (installState && !installState.installed) {
+        const isAllowed = installAllowedRoutes.some(route => normalizedPath === route || normalizedPath.startsWith(`${route}/`))
+        if (!isAllowed) {
+          return navigateTo(localePath('/install'))
+        }
+      } else if (installState?.installed && normalizedPath === '/install') {
+        return navigateTo(localePath(authStore.isAuthenticated ? '/admin' : '/login'))
+      }
+    }
+  } catch (error) {
+    console.debug('Install check failed:', error)
   }
 
   let inDevelopment = false

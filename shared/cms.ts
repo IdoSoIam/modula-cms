@@ -1,7 +1,8 @@
-import type { PageBuilderContent, SectionContainerWidth, ThemeColorSelection, ThemeColorToken, VerticalAlign } from '~/shared/pageBuilder'
-import { createThemeColorSelection } from '~/shared/pageBuilder'
-import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '~/shared/events'
-import { createDefaultEventsPageSettings, createDefaultPlanningPageSettings } from '~/shared/events'
+import type { PageBuilderContent, SectionContainerWidth, ThemeColorSelection, ThemeColorToken, VerticalAlign } from '#modula/shared/pageBuilder'
+import { createThemeColorSelection } from '#modula/shared/pageBuilder'
+import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '#modula/shared/events'
+import { createDefaultEventsPageSettings, createDefaultPlanningPageSettings } from '#modula/shared/events'
+import cmsProjectConfig from '#modula/cms.project.config'
 
 export const CMS_LOCALES = ['fr', 'en'] as const
 
@@ -180,6 +181,8 @@ export interface CmsCookieBannerSettings {
   services: CmsCookieService[]
 }
 
+export type CmsSiteSettingsTemplatePayload = Omit<CmsSiteSettings, 'cookieBanner'>
+
 export interface CmsSiteSettings {
   siteName: CmsLocalizedText
   siteTagline: CmsLocalizedText
@@ -299,12 +302,12 @@ export function createEmptyPageBuilderContent(): PageBuilderContent {
 export function createDefaultCmsSiteSettings(): CmsSiteSettings {
   return {
     siteName: {
-      fr: 'Nom du site',
-      en: 'Site name'
+      fr: cmsProjectConfig.seed.defaultSiteName.fr,
+      en: cmsProjectConfig.seed.defaultSiteName.en
     },
     siteTagline: {
-      fr: 'Décrivez votre activité en une phrase',
-      en: 'Describe your activity in one sentence'
+      fr: cmsProjectConfig.seed.defaultSiteTagline.fr,
+      en: cmsProjectConfig.seed.defaultSiteTagline.en
     },
     logo: {
       src: '/images/logo-removebg-preview.png',
@@ -462,7 +465,7 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
             fr: 'Mémorise la langue choisie pour les prochaines visites.',
             en: 'Stores the chosen language for future visits.'
           },
-          category: 'preferences',
+          category: 'essential',
           storage: 'cookie',
           keys: ['i18n_redirected'],
           required: false,
@@ -475,7 +478,7 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
             fr: 'Mémorise le thème visuel choisi dans le navigateur.',
             en: 'Stores the selected visual theme in the browser.'
           },
-          category: 'preferences',
+          category: 'essential',
           storage: 'localStorage',
           keys: ['theme-preference'],
           required: false,
@@ -488,7 +491,7 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
             fr: 'Mémorise localement la langue détectée ou choisie.',
             en: 'Stores the detected or chosen language locally.'
           },
-          category: 'preferences',
+          category: 'essential',
           storage: 'localStorage',
           keys: ['preferred-locale'],
           required: false,
@@ -498,14 +501,14 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
           id: 'facebook-sdk',
           name: { fr: 'Facebook SDK', en: 'Facebook SDK' },
           description: {
-            fr: 'Active l’intégration Facebook susceptible de déposer des cookies tiers.',
+            fr: 'Active l\'intégration Facebook susceptible de déposer des cookies tiers.',
             en: 'Enables the Facebook integration which may set third-party cookies.'
           },
           category: 'third_party',
           storage: 'script',
           keys: ['facebook-sdk', 'fbm_*', 'fbc', 'fbp'],
           required: false,
-          enabled: true
+          enabled: false
         }
       ]
     }

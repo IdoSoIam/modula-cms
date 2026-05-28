@@ -77,8 +77,8 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsCookieServiceCategory, CmsCookieServiceStorage } from '~/shared/cms'
-import { pickCmsLocalizedText } from '~/shared/cms'
+import type { CmsCookieServiceCategory, CmsCookieServiceStorage } from '#modula/shared/cms'
+import { pickCmsLocalizedText } from '#modula/shared/cms'
 
 definePageMeta({
   i18n: {

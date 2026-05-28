@@ -1,4 +1,5 @@
 import { prisma } from '../../prisma/client'
+import cmsProjectConfig from '#modula/cms.project.config'
 
 export const SETTING_KEYS = {
   ADMIN_EMAIL: 'admin_email',
@@ -46,6 +47,7 @@ export const SETTING_KEYS = {
   PAGE_BUILDER_CONTENT: 'home_page_content_v1',
   CMS_SITE_SETTINGS: 'cms_site_settings_v1',
   DAISYUI_THEME_CONFIG: 'daisyui_theme_config_v1',
+  EMAIL_VISUAL_TEMPLATE_CONFIG: 'email_visual_template_config_v1',
   FACEBOOK_FLUX_DEACTIVATED: 'facebook_flux_deactivated',
   IN_DEVELOPMENT: 'in_development',
   ORDERS_OPEN_FROM: 'orders_open_from',
@@ -148,22 +150,30 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   registerEnabled: false,
   subscriptionsEnabled: false,
   shop: {
-    enabled: true,
-    basketsEnabled: true,
-    vegetablesEnabled: true
+    enabled: cmsProjectConfig.modules.shop,
+    basketsEnabled: cmsProjectConfig.modules.shop && cmsProjectConfig.modules.shopBaskets,
+    vegetablesEnabled: cmsProjectConfig.modules.shop && cmsProjectConfig.modules.shopVegetables
   },
-  associationRolesEnabled: true,
-  eventsEnabled: true,
-  newsEnabled: true
+  associationRolesEnabled: cmsProjectConfig.modules.associationRoles,
+  eventsEnabled: cmsProjectConfig.modules.events || cmsProjectConfig.modules.planning,
+  newsEnabled: cmsProjectConfig.modules.news
 }
 
 const DEFAULT_FARM_PICKUP_CONFIG: FarmPickupConfig = {
   label: 'Retrait à la ferme',
-  address: 'Ferme du Campeyrigoux, 31350 Sepx',
+  address: cmsProjectConfig.site.defaultFarmPickupAddress,
   dayOfWeek: 5,
   startTime: '17:30',
   endTime: '19:00',
   slotLabel: '17:30-19:00'
+}
+
+export function getDefaultFeatureFlags(): FeatureFlags {
+  return JSON.parse(JSON.stringify(DEFAULT_FEATURE_FLAGS)) as FeatureFlags
+}
+
+export function getDefaultFarmPickupConfig(): FarmPickupConfig {
+  return { ...DEFAULT_FARM_PICKUP_CONFIG }
 }
 
 export interface OrdersWindow {
@@ -327,6 +337,58 @@ export async function isRegisterEnabled() {
 
 export async function isSubscriptionsEnabled() {
   return (await getFeatureFlags()).subscriptionsEnabled
+}
+
+export interface EmailVisualTemplateConfig {
+  brandName: string
+  logoUrl: string
+  accentColor: string
+  backgroundColor: string
+  cardColor: string
+  textColor: string
+  footerText: string
+  buttonRadiusPx: number
+}
+
+const DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG: EmailVisualTemplateConfig = {
+  brandName: cmsProjectConfig.site.displayName,
+  logoUrl: '',
+  accentColor: '#4b56d2',
+  backgroundColor: '#f6f7fb',
+  cardColor: '#ffffff',
+  textColor: '#1f2937',
+  footerText: cmsProjectConfig.site.displayName,
+  buttonRadiusPx: 10
+}
+
+export function getDefaultEmailVisualTemplateConfig(): EmailVisualTemplateConfig {
+  return { ...DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG }
+}
+
+export async function getEmailVisualTemplateConfig(): Promise<EmailVisualTemplateConfig> {
+  const raw = await getSetting(SETTING_KEYS.EMAIL_VISUAL_TEMPLATE_CONFIG)
+  if (!raw) return getDefaultEmailVisualTemplateConfig()
+  try {
+    const parsed = JSON.parse(raw) as Partial<EmailVisualTemplateConfig>
+    return {
+      brandName: typeof parsed.brandName === 'string' && parsed.brandName.trim() ? parsed.brandName.trim() : DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.brandName,
+      logoUrl: typeof parsed.logoUrl === 'string' ? parsed.logoUrl.trim() : '',
+      accentColor: typeof parsed.accentColor === 'string' && parsed.accentColor.trim() ? parsed.accentColor.trim() : DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.accentColor,
+      backgroundColor: typeof parsed.backgroundColor === 'string' && parsed.backgroundColor.trim() ? parsed.backgroundColor.trim() : DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.backgroundColor,
+      cardColor: typeof parsed.cardColor === 'string' && parsed.cardColor.trim() ? parsed.cardColor.trim() : DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.cardColor,
+      textColor: typeof parsed.textColor === 'string' && parsed.textColor.trim() ? parsed.textColor.trim() : DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.textColor,
+      footerText: typeof parsed.footerText === 'string' ? parsed.footerText : DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.footerText,
+      buttonRadiusPx: typeof parsed.buttonRadiusPx === 'number' && Number.isFinite(parsed.buttonRadiusPx)
+        ? Math.max(0, Math.min(28, Math.round(parsed.buttonRadiusPx)))
+        : DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.buttonRadiusPx
+    }
+  } catch {
+    return getDefaultEmailVisualTemplateConfig()
+  }
+}
+
+export async function saveEmailVisualTemplateConfig(config: EmailVisualTemplateConfig) {
+  await setSetting(SETTING_KEYS.EMAIL_VISUAL_TEMPLATE_CONFIG, JSON.stringify(config))
 }
 
 export async function isAssociationRolesEnabled() {

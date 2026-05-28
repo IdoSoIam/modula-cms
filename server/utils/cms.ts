@@ -1,4 +1,4 @@
-import { prisma } from '~/prisma/client'
+import { prisma } from '#modula/prisma/client'
 import type { CmsNavigationItem, CmsPage } from '@prisma/client'
 import type {
   CmsHeaderNavigationStyle,
@@ -25,8 +25,8 @@ import type {
   PublicSiteShell,
   ResolvedCmsNavigationItem,
   ResolvedCmsPage
-} from '~/shared/cms'
-import type { FeatureFlags } from '~/server/utils/settings'
+} from '#modula/shared/cms'
+import type { FeatureFlags } from '#modula/server/utils/settings'
 import {
   CMS_LOCALES,
   createDefaultCmsPagePayload,
@@ -40,9 +40,9 @@ import {
   createEmptyCmsPageSeo,
   createEmptyPageBuilderContent,
   createEmptyCmsLocalizedText
-} from '~/shared/cms'
-import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '~/shared/events'
-import type { PageBuilderContent, ThemeColorSelection } from '~/shared/pageBuilder'
+} from '#modula/shared/cms'
+import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '#modula/shared/events'
+import type { PageBuilderContent, ThemeColorSelection } from '#modula/shared/pageBuilder'
 import {
   clonePageBuilderContent,
   createBadgeItem,
@@ -57,11 +57,11 @@ import {
   type PageBuilderFormItem,
   type PageBuilderTextItem,
   type PageBuilderTitleItem
-} from '~/shared/pageBuilder'
-import { CMS_THEME_COLOR_TOKENS } from '~/shared/cms'
-import { getPageBuilderContent, normalizePageBuilderContent } from '~/server/utils/pageBuilder'
-import { getSetting, setSetting, SETTING_KEYS } from '~/server/utils/settings'
-import { createCustomAdminEmailTemplate, findAdminEmailTemplateDefinition, syncCustomAdminEmailTemplateDefinition } from '~/server/utils/adminEmailTemplates'
+} from '#modula/shared/pageBuilder'
+import { CMS_THEME_COLOR_TOKENS } from '#modula/shared/cms'
+import { getPageBuilderContent, normalizePageBuilderContent } from '#modula/server/utils/pageBuilder'
+import { getSetting, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { createCustomAdminEmailTemplate, findAdminEmailTemplateDefinition, syncCustomAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
 
 function isMissingCmsTableError(error: unknown) {
   return Boolean(
@@ -1710,10 +1710,10 @@ export async function listCmsNavigationItems(menu?: CmsNavigationMenu) {
     )
   }
 
-  return mergeMissingDefaultNavigationItems(rows.map((row) => ({
+  return rows.map((row) => ({
     id: row.id,
     ...navigationRowToPayload(row)
-  })), menu)
+  })).sort((a, b) => a.position - b.position)
 }
 
 export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPayload & { id?: number | null }>) {
@@ -1798,10 +1798,9 @@ async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string, fe
     ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale)))
   }
 
-  return buildResolvedNavigationTree(mergeMissingDefaultNavigationItems(
-    filteredRows,
-    menu
-  ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale)))
+  return buildResolvedNavigationTree(filteredRows
+    .sort((a, b) => a.position - b.position)
+    .map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale)))
 }
 
 export async function getPublicSiteShell(locale: string, featureFlags: FeatureFlags): Promise<PublicSiteShell> {

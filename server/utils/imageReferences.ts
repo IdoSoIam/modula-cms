@@ -1,6 +1,6 @@
 import { prisma } from '../../prisma/client'
-import { getPageBuilderContent, savePageBuilderContent } from '~/server/utils/pageBuilder'
-import type { PageBuilderColumnItem, PageBuilderSection } from '~/shared/pageBuilder'
+import { getPageBuilderContent, savePageBuilderContent } from '#modula/server/utils/pageBuilder'
+import type { PageBuilderColumnItem, PageBuilderSection } from '#modula/shared/pageBuilder'
 
 interface RootPageImageReferenceItem {
   kind: 'section-background-image' | 'section-background-carousel' | 'column-image' | 'column-carousel'

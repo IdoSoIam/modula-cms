@@ -1,5 +1,5 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { serializeBasket } from '~/server/utils/baskets'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { serializeBasket } from '#modula/server/utils/baskets'
 import { prisma } from '../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {

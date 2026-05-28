@@ -256,9 +256,9 @@
 </template>
 
 <script setup lang="ts">
-import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import AdminIconPicker from '~/components/admin/IconPicker.vue'
-import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
+import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
+import AdminIconPicker from '#modula/components/admin/IconPicker.vue'
+import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
 import {
   buildResolvedNavigationPreview,
   CMS_HEADER_MOBILE_LOGO_POSITIONS,
@@ -273,8 +273,8 @@ import {
   type CmsFooterColumn,
   type CmsNavigationItemPayload,
   type CmsSocialLink
-} from '~/shared/cms'
-import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS, VERTICAL_ALIGNS } from '~/shared/pageBuilder'
+} from '#modula/shared/cms'
+import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS, VERTICAL_ALIGNS } from '#modula/shared/pageBuilder'
 
 const CMS_THEME_COLOR_TOKENS = ['base-100', 'base-200', 'base-300', 'base-content', 'primary', 'primary-content', 'secondary', 'secondary-content', 'accent', 'accent-content', 'neutral', 'neutral-content', 'info', 'success', 'warning', 'error', 'white', 'white-90', 'white-70', 'white-10', 'transparent'] as const
 const footerBlockTypes: CmsFooterBlockType[] = ['logo', 'site-name', 'site-tagline', 'title', 'text', 'opening-hours', 'contact', 'social-links', 'navigation']

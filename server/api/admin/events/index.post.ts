@@ -1,6 +1,6 @@
-import { createOrUpdateEvent, normalizeEventPayload } from '~/server/utils/events'
-import { syncEventOccurrencesForEvent } from '~/server/utils/planning'
-import { requirePermission } from '~/server/utils/permissions'
+import { createOrUpdateEvent, normalizeEventPayload } from '#modula/server/utils/events'
+import { syncEventOccurrencesForEvent } from '#modula/server/utils/planning'
+import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const user = await requirePermission(event, 'events', 'create')

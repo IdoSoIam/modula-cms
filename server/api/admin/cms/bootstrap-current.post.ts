@@ -1,6 +1,6 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { bootstrapCmsPageFromResolvedPage } from '~/server/utils/cms'
-import type { CmsLocale, ResolvedCmsPage } from '~/shared/cms'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { bootstrapCmsPageFromResolvedPage } from '#modula/server/utils/cms'
+import type { CmsLocale, ResolvedCmsPage } from '#modula/shared/cms'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

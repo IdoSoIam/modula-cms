@@ -375,14 +375,14 @@ import type {
   PageBuilderTitleItem,
   ThemeColorToken,
   ThemeColorSelection
-} from '~/shared/pageBuilder'
-import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
-import PageEditable from '~/components/page-builder/PageEditable.vue'
-import PageFormBlock from '~/components/page-builder/PageFormBlock.vue'
-import PageMediaCarousel from '~/components/page-builder/PageMediaCarousel.vue'
-import PageMediaLightbox from '~/components/page-builder/PageMediaLightbox.vue'
-import PageSectionBackground from '~/components/page-builder/PageSectionBackground.vue'
-import { pickLocalizedText } from '~/shared/pageBuilder'
+} from '#modula/shared/pageBuilder'
+import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
+import PageEditable from '#modula/components/page-builder/PageEditable.vue'
+import PageFormBlock from '#modula/components/page-builder/PageFormBlock.vue'
+import PageMediaCarousel from '#modula/components/page-builder/PageMediaCarousel.vue'
+import PageMediaLightbox from '#modula/components/page-builder/PageMediaLightbox.vue'
+import PageSectionBackground from '#modula/components/page-builder/PageSectionBackground.vue'
+import { pickLocalizedText } from '#modula/shared/pageBuilder'
 
 const props = defineProps<{
   section: PageBuilderSection

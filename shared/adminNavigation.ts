@@ -1,5 +1,5 @@
-import { getAdminRoutePath, getAdminRoutePaths } from '~/shared/adminRoutes'
-import type { AdminPermissionAction, AdminPermissionModule, AdminSpecialPermission } from '~/shared/access'
+import { getAdminRoutePath, getAdminRoutePaths } from '#modula/shared/adminRoutes'
+import type { AdminPermissionAction, AdminPermissionModule, AdminSpecialPermission } from '#modula/shared/access'
 
 export interface AdminNavigationItem {
   id: string
@@ -241,6 +241,14 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
           'mdi:image-multiple-outline',
           getAdminRoutePaths('customizationImages'),
           { requiredModule: 'themes_images', requiredAction: 'read' }
+        ),
+        createAdminNavigationItem(
+          'customization-emails',
+          'admin.navigation.items.emailConnectors',
+          getAdminRoutePath('customizationEmails'),
+          'mdi:email-edit-outline',
+          getAdminRoutePaths('customizationEmails'),
+          { requiredModule: 'layout_customization', requiredAction: 'read' }
         )
       ]
     },

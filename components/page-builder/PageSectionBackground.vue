@@ -34,9 +34,9 @@
 </template>
 
 <script setup lang="ts">
-import type { PageBuilderSection, ThemeColorSelection } from '~/shared/pageBuilder'
-import { pickLocalizedText } from '~/shared/pageBuilder'
-import PageMediaCarousel from '~/components/page-builder/PageMediaCarousel.vue'
+import type { PageBuilderSection, ThemeColorSelection } from '#modula/shared/pageBuilder'
+import { pickLocalizedText } from '#modula/shared/pageBuilder'
+import PageMediaCarousel from '#modula/components/page-builder/PageMediaCarousel.vue'
 
 const props = defineProps<{
   section: PageBuilderSection

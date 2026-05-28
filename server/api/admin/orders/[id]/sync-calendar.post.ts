@@ -1,6 +1,6 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { syncReservationToGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { isSubscriptionsEnabled } from '~/server/utils/settings'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { syncReservationToGoogleCalendar } from '#modula/server/utils/googleCalendarSync'
+import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
 import { prisma } from '../../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {

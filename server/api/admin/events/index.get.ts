@@ -1,7 +1,7 @@
-import { prisma } from '~/prisma/client'
-import { requirePermission } from '~/server/utils/permissions'
-import { eventToListItem } from '~/server/utils/events'
-import type { CmsLocale } from '~/shared/cms'
+import { prisma } from '#modula/prisma/client'
+import { requirePermission } from '#modula/server/utils/permissions'
+import { eventToListItem } from '#modula/server/utils/events'
+import type { CmsLocale } from '#modula/shared/cms'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'events', 'read')

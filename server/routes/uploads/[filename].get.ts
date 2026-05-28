@@ -1,11 +1,11 @@
 import type { H3Event, EventHandlerRequest } from 'h3'
 import { prisma } from '../../../prisma/client'
-import { getUploadObject } from '~/server/utils/uploadStorage'
+import { getUploadObject } from '#modula/server/utils/uploadStorage'
 import {
   createStoredImageVariant,
   findStoredImageVariant,
   normalizeImageVariantSignature
-} from '~/server/utils/imageVariants'
+} from '#modula/server/utils/imageVariants'
 
 type OutputFormat = 'image/avif' | 'image/webp' | 'image/png' | 'image/jpeg' | 'image/gif'
 type ImageResizerBinding = {

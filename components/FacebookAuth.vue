@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { FacebookAuthService } from '~/server/services/facebook/facebookAuthService'
+import { FacebookAuthService } from '#modula/server/services/facebook/facebookAuthService'
 
 interface FacebookPage {
   id: string

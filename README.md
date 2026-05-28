@@ -21,6 +21,53 @@ Historique : Modula CMS a d'abord été développé pour la Ferme du Campeyrigou
 
 ## Architecture
 
+### Modes d'infrastructure
+
+Le CMS supporte maintenant deux axes de configuration explicites :
+
+- `CMS_DB_DRIVER=d1|sqlite`
+- `CMS_STORAGE_DRIVER=r2|fs`
+
+Combinaisons v1 supportées :
+
+- Cloudflare : `d1 + r2`
+- Serveur dédié classique : `sqlite + fs`
+
+Les commandes lisibles par mode sont :
+
+- `npm run dev:cloudflare`
+- `npm run dev:server`
+- `npm run build:cloudflare`
+- `npm run build:server`
+- `npm run preview:cloudflare`
+- `npm run deploy:cloudflare`
+- `npm run start:server`
+
+### Projet hôte
+
+Le CMS peut maintenant servir de base à un projet hôte Nuxt qui l'étend comme layer.
+
+Principe :
+
+1. le projet hôte installe `modula-cms`
+2. il crée son propre `cms.project.config.ts`
+3. son `nuxt.config.ts` appelle `createModulaCmsHostConfig(...)`
+
+Exemple minimal :
+
+```ts
+// nuxt.config.ts du projet hôte
+import projectConfig from './cms.project.config'
+import { createModulaCmsHostConfig } from 'modula-cms/host'
+
+export default createModulaCmsHostConfig(projectConfig)
+```
+
+Un exemple de base est fourni dans :
+
+- `templates/host/nuxt.config.ts`
+- `templates/host/cms.project.config.ts`
+
 Le dépôt est une application Nuxt monorepo :
 
 - `pages/` contient les vues publiques, l'administration et les pages d'activation utilisateur.
@@ -28,8 +75,10 @@ Le dépôt est une application Nuxt monorepo :
 - `server/api/` expose les routes API Nitro pour le CMS, l'admin, l'authentification et les modules métier.
 - `server/services/` et `server/utils/` portent la logique serveur partagée.
 - `shared/` contient les contrats et helpers communs, par exemple le page builder, les routes admin, les thèmes et la résolution CMS.
-- `prisma/schema.prisma` décrit les modèles applicatifs, avec Prisma configuré pour SQLite côté schéma et D1 côté runtime Cloudflare.
-- `migrations/` contient les migrations SQL utilisées par les scripts locaux et D1.
+- `cms.project.config.ts` porte l'identité, les drivers et les seeds de base du projet hôte courant.
+- `prisma/schema.prisma` décrit les modèles applicatifs et reste la source de vérité Prisma pour les types et le modèle.
+- `migrations/` contient les migrations SQL canoniques réellement appliquées par SQLite locale et D1.
+- `prisma/migrations/` n'est plus un chemin d'exécution ; il est conservé comme archive historique.
 - `wrangler.jsonc` déclare le Worker, le binding D1 `DB`, le bucket R2 `UPLOADS_BUCKET` et les variables Cloudflare.
 
 Le runtime utilise en pratique trois bases :
@@ -102,6 +151,10 @@ Le flux d'invitation crée un utilisateur inactif sans mot de passe, génère un
 ### Prisma et bases locales
 
 - `npm run db:generate` : génère le client Prisma.
+- `npm run db:migrate:sqlite` : applique les migrations SQL canoniques sur la SQLite locale.
+- `npm run db:reset:sqlite` : recrée `prisma/local.db` depuis les migrations SQL canoniques.
+- `npm run db:migrate:d1:local` : applique les migrations SQL canoniques sur la D1 locale.
+- `npm run db:migrate:d1:remote` : applique les migrations SQL canoniques sur la D1 distante.
 - `npm run db:local:migrate` : applique les migrations SQL sur la SQLite locale.
 - `npm run db:local:reset` : recrée `prisma/local.db` depuis les migrations.
 - `npm run db:studio` : ouvre Prisma Studio sur `prisma/local.db`.
@@ -109,6 +162,14 @@ Le flux d'invitation crée un utilisateur inactif sans mot de passe, génère un
 - `npm run db:d1:seed:cms-local` : injecte les données CMS locales prévues par le script de seed.
 
 ### Migrations et requêtes D1
+
+Source de vérité migrations :
+
+1. modifier `prisma/schema.prisma`
+2. écrire la migration SQL dans `migrations/`
+3. appliquer cette migration sur SQLite ou D1
+
+`prisma/migrations/` ne doit plus être utilisé pour exécuter les migrations du projet.
 
 - `npm run db:d1:migrate:local` : applique les migrations sur la D1 locale Wrangler.
 - `npm run db:d1:migrate:remote` : applique les migrations sur la D1 distante Cloudflare.

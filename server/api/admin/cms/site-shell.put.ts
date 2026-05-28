@@ -1,10 +1,10 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import {
   saveCmsNavigationItems,
   saveCmsSiteSettings,
   validateCmsNavigationItemsPayload,
   validateCmsSiteSettingsPayload
-} from '~/server/utils/cms'
+} from '#modula/server/utils/cms'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

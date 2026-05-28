@@ -1,6 +1,6 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { syncImageUsageTable } from '~/server/utils/imageReferences'
-import { slugify } from '~/server/utils/slug'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
+import { slugify } from '#modula/server/utils/slug'
 import { prisma } from '../../../../prisma/client'
 
 interface Body {

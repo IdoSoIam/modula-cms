@@ -39,7 +39,10 @@ prisma/d1-local-studio.db
 
 # Legacy local uploads folder no longer used as source of truth
 public/uploads
+cms.project.generated.ts
 
+# npm tarballs
+*.tgz
 
 #IA
 .opencode

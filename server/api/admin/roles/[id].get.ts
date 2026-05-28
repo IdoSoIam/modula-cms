@@ -1,6 +1,6 @@
-import { prisma } from '~/prisma/client'
-import { requirePermission } from '~/server/utils/permissions'
-import { parseJsonSafe } from '~/server/utils/roles'
+import { prisma } from '#modula/prisma/client'
+import { requirePermission } from '#modula/server/utils/permissions'
+import { parseJsonSafe } from '#modula/server/utils/roles'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'roles', 'read')

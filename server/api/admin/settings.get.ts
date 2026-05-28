@@ -1,7 +1,7 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { getAdminPhone, getContactEmail, getGmailSenderEmail, getReservationNotificationEmail, getResendSenderEmail, getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig } from '~/server/utils/settings'
-import { listGoogleCalendars } from '~/server/utils/gmail'
-import { getAllAdminEmailTemplateDefinitions } from '~/server/utils/adminEmailTemplates'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { getAdminPhone, getContactEmail, getGmailSenderEmail, getReservationNotificationEmail, getResendSenderEmail, getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig } from '#modula/server/utils/settings'
+import { listGoogleCalendars } from '#modula/server/utils/gmail'
+import { getAllAdminEmailTemplateDefinitions } from '#modula/server/utils/adminEmailTemplates'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
     googleCalendarId: s[SETTING_KEYS.GOOGLE_CALENDAR_ID] ?? '',
     googleCalendarName: s[SETTING_KEYS.GOOGLE_CALENDAR_NAME] ?? '',
     googleCalendars,
-    facebookFluxDeactivated: s[SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED] === 'true',
+    facebookFluxDeactivated: s[SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED] !== 'false',
     inDevelopment: featureFlags.inDevelopment,
     registerEnabled: featureFlags.registerEnabled,
     subscriptionsEnabled: featureFlags.subscriptionsEnabled,

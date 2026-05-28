@@ -36,8 +36,8 @@
             <input v-model="form.subscriptionsEnabled" type="checkbox" class="toggle toggle-primary" />
             <span class="label-text">{{ t('admin.settingsFeaturesPage.subscriptionsEnabled') }}</span>
           </label>
-          <label class="label cursor-pointer justify-start gap-3">
-            <input v-model="form.facebookFluxDeactivated" type="checkbox" class="toggle toggle-primary" />
+          <label class="label cursor-not-allowed justify-start gap-3 opacity-60">
+            <input v-model="form.facebookFluxDeactivated" type="checkbox" class="toggle toggle-primary" disabled />
             <span class="label-text">{{ t('admin.settingsFeaturesPage.facebookFluxDeactivated') }}</span>
           </label>
         </div>
@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
@@ -127,7 +127,7 @@ const saving = ref(false)
 const { data, pending } = await useFetch<SettingsData>('/api/admin/settings')
 
 const form = reactive({
-  facebookFluxDeactivated: false,
+  facebookFluxDeactivated: true,
   inDevelopment: false,
   registerEnabled: false,
   subscriptionsEnabled: false,
@@ -154,7 +154,7 @@ const ordersWindow = ref({
 
 watchEffect(() => {
   if (!data.value) return
-  form.facebookFluxDeactivated = data.value.facebookFluxDeactivated
+  form.facebookFluxDeactivated = true
   form.inDevelopment = data.value.inDevelopment
   form.registerEnabled = data.value.registerEnabled
   form.subscriptionsEnabled = data.value.subscriptionsEnabled
@@ -176,6 +176,7 @@ watch(() => form.featureFlags.shop.enabled, (enabled) => {
 const save = async () => {
   saving.value = true
   try {
+    form.facebookFluxDeactivated = true
     await $fetch('/api/admin/settings', {
       method: 'PUT',
       body: {
@@ -191,7 +192,7 @@ const save = async () => {
     })
     $toast?.success(t('admin.settingsFeaturesPage.saved'))
   } catch (error: any) {
-    $toast?.error(error.statusMessage || t('admin.settingsFeaturesPage.saveError'))
+    $toast?.error(error?.message || error?.data?.message || t('admin.settingsFeaturesPage.saveError'))
   } finally {
     saving.value = false
   }

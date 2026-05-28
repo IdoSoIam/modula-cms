@@ -1,6 +1,6 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
-import { countImageReferences, listImageUsageAssociations, syncImageUsageTable } from '~/server/utils/imageReferences'
+import { countImageReferences, listImageUsageAssociations, syncImageUsageTable } from '#modula/server/utils/imageReferences'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

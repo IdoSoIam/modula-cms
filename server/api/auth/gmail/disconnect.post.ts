@@ -1,5 +1,5 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { disconnectGmail } from '~/server/utils/gmail'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { disconnectGmail } from '#modula/server/utils/gmail'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

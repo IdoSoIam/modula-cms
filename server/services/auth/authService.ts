@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs'
 import { createHash, randomBytes } from 'node:crypto'
 import { getSessionConfig } from '../../utils/session'
 import { prisma } from '../../../prisma/client'
-import { buildUserAccessPayload, ensureDefaultRoles } from '~/server/utils/permissions'
-import type { UserAccessPayload, UserMemberRolePayload } from '~/shared/access'
+import { buildUserAccessPayload, ensureDefaultRoles } from '#modula/server/utils/permissions'
+import type { UserAccessPayload, UserMemberRolePayload } from '#modula/shared/access'
 
 export interface AuthenticatedUser {
   id: number
@@ -340,7 +340,12 @@ export class AuthService {
 
       return mapUser(user)
     } catch (error) {
-      console.error('Error getting user from session:', error)
+      const code = (error as any)?.code
+      const message = String((error as any)?.message || '')
+      const isPreInstallSchemaMissing = code === 'P2021' || code === 'P2022' || /table\s+main\.(Role|RolePermission|User)\s+does not exist/i.test(message)
+      if (!isPreInstallSchemaMissing) {
+        console.error('Error getting user from session:', error)
+      }
       return null
     }
   }

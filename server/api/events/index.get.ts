@@ -1,8 +1,8 @@
-import { prisma } from '~/prisma/client'
-import { canAccessEvent, eventOccurrenceToListItem, eventToListItem } from '~/server/utils/events'
-import { AuthService } from '~/server/services/auth/authService'
-import { syncEventOccurrencesForEvent } from '~/server/utils/planning'
-import { getFeatureFlags } from '~/server/utils/settings'
+import { prisma } from '#modula/prisma/client'
+import { canAccessEvent, eventOccurrenceToListItem, eventToListItem } from '#modula/server/utils/events'
+import { AuthService } from '#modula/server/services/auth/authService'
+import { syncEventOccurrencesForEvent } from '#modula/server/utils/planning'
+import { getFeatureFlags } from '#modula/server/utils/settings'
 import type {
   EventListItem,
   PlanningCalendarDay,
@@ -10,7 +10,7 @@ import type {
   PlanningWeekColumn,
   PlanningWeekResponse,
   PublicEventsListResponse
-} from '~/shared/events'
+} from '#modula/shared/events'
 
 const authService = new AuthService()
 const MAX_PAGE_SIZE = 24

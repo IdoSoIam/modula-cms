@@ -1,10 +1,10 @@
 import { prisma } from '../../../../../prisma/client'
-import { removeReservationFromGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { sendGmail } from '~/server/utils/gmail'
-import { buildGenericEmail, buildReservationDecisionEmail } from '~/server/utils/orderEmails'
-import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/orderEmailContent'
-import { getReservationNotificationEmail, isSubscriptionsEnabled } from '~/server/utils/settings'
-import { logReservationNotification } from '~/server/utils/orderNotifications'
+import { removeReservationFromGoogleCalendar } from '#modula/server/utils/googleCalendarSync'
+import { sendGmail } from '#modula/server/utils/gmail'
+import { buildGenericEmail, buildReservationDecisionEmail } from '#modula/server/utils/orderEmails'
+import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '#modula/server/utils/orderEmailContent'
+import { getReservationNotificationEmail, isSubscriptionsEnabled } from '#modula/server/utils/settings'
+import { logReservationNotification } from '#modula/server/utils/orderNotifications'
 
 export default defineEventHandler(async (event) => {
   const token = String(getRouterParam(event, 'token') ?? '')

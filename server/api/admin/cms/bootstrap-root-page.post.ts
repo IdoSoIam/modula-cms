@@ -1,5 +1,5 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { ensureCmsRootPage } from '~/server/utils/cms'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { ensureCmsRootPage } from '#modula/server/utils/cms'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

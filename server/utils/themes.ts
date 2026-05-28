@@ -1,6 +1,6 @@
-import { getSetting, setSetting, SETTING_KEYS } from '~/server/utils/settings'
-import type { DaisyUiThemeConfig, PublicDaisyUiThemeConfig } from '~/shared/themes'
-import { buildPublicDaisyUiThemeConfig, createDefaultDaisyUiThemeConfig, normalizeDaisyUiThemeConfig } from '~/shared/themes'
+import { getSetting, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import type { DaisyUiThemeConfig, PublicDaisyUiThemeConfig } from '#modula/shared/themes'
+import { buildPublicDaisyUiThemeConfig, createDefaultDaisyUiThemeConfig, normalizeDaisyUiThemeConfig } from '#modula/shared/themes'
 
 function parseJson<T>(value: string | null | undefined): T | null {
   if (!value) return null

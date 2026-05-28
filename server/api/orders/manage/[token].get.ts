@@ -1,5 +1,5 @@
 import { prisma } from '../../../../prisma/client'
-import { isSubscriptionsEnabled } from '~/server/utils/settings'
+import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
 
 function toPositiveInt(value: unknown, fallback: number, max = 50) {
   const parsed = Number(value)

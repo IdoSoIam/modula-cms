@@ -1,7 +1,7 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { getSettings, SETTING_KEYS } from '~/server/utils/settings'
-import { getReservationDateLocale, resolveReservationTemplate } from '~/server/utils/orderEmailContent'
-import { formatFulfillmentDate, getDeliveryMethodLabel, getDeliveryWindowLabel, getReservationFulfillment } from '~/server/utils/orderFulfillment'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { getSettings, SETTING_KEYS } from '#modula/server/utils/settings'
+import { getReservationDateLocale, resolveReservationTemplate } from '#modula/server/utils/orderEmailContent'
+import { formatFulfillmentDate, getDeliveryMethodLabel, getDeliveryWindowLabel, getReservationFulfillment } from '#modula/server/utils/orderFulfillment'
 import { prisma } from '../../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {

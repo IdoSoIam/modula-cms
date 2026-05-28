@@ -97,8 +97,8 @@
 </template>
 
 <script setup lang="ts">
-import type { PageBuilderSectionBackgroundCarouselSlide } from '~/shared/pageBuilder'
-import { pickLocalizedText } from '~/shared/pageBuilder'
+import type { PageBuilderSectionBackgroundCarouselSlide } from '#modula/shared/pageBuilder'
+import { pickLocalizedText } from '#modula/shared/pageBuilder'
 
 const props = defineProps<{
   open: boolean

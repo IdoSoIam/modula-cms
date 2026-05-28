@@ -1,5 +1,5 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { saveDaisyUiThemeConfig, validateDaisyUiThemeConfigPayload } from '~/server/utils/themes'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { saveDaisyUiThemeConfig, validateDaisyUiThemeConfigPayload } from '#modula/server/utils/themes'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

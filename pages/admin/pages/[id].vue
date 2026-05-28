@@ -179,13 +179,13 @@
 </template>
 
 <script setup lang="ts">
-import CmsPageContentBuilder from '~/components/admin/cms/CmsPageContentBuilder.vue'
-import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import PageRenderer from '~/components/page-builder/PageRenderer.vue'
-import ImageInput from '~/components/ImageInput.vue'
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
-import type { CmsLocale, CmsNavigationItemPayload, CmsPagePayload, CmsSiteSettings } from '~/shared/cms'
-import { clonePageBuilderContent, type PageBuilderContent } from '~/shared/pageBuilder'
+import CmsPageContentBuilder from '#modula/components/admin/cms/CmsPageContentBuilder.vue'
+import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
+import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
+import ImageInput from '#modula/components/ImageInput.vue'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import type { CmsLocale, CmsNavigationItemPayload, CmsPagePayload, CmsSiteSettings } from '#modula/shared/cms'
+import { clonePageBuilderContent, type PageBuilderContent } from '#modula/shared/pageBuilder'
 
 definePageMeta({
   layout: 'admin',

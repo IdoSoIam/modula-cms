@@ -1,10 +1,10 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { prisma } from '../../../../../prisma/client'
-import { buildReservationOccurrenceEmail } from '~/server/utils/orderEmails'
-import { sendGmail } from '~/server/utils/gmail'
-import { logReservationNotification } from '~/server/utils/orderNotifications'
-import { cancelReservationOccurrenceInGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { isSubscriptionsEnabled } from '~/server/utils/settings'
+import { buildReservationOccurrenceEmail } from '#modula/server/utils/orderEmails'
+import { sendGmail } from '#modula/server/utils/gmail'
+import { logReservationNotification } from '#modula/server/utils/orderNotifications'
+import { cancelReservationOccurrenceInGoogleCalendar } from '#modula/server/utils/googleCalendarSync'
+import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
 
 interface Body {
   email: { subject: string; body: string }

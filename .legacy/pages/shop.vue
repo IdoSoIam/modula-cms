@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import ImagePlaceholder from "~/components/ImagePlaceholder.vue";
-import { useProducts } from '~/composables/useProducts';
-import { useCart } from '~/composables/useCart';
-import type { Product } from '~/composables/useProducts';
+import ImagePlaceholder from "#modula/components/ImagePlaceholder.vue";
+import { useProducts } from '#modula/composables/useProducts';
+import { useCart } from '#modula/composables/useCart';
+import type { Product } from '#modula/composables/useProducts';
 
 const { products, fetchProducts } = useProducts();
 const { addToCart } = useCart();

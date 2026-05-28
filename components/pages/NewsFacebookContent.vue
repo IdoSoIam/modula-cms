@@ -10,5 +10,5 @@
 </template>
 
 <script setup lang="ts">
-import FacebookFeed from '~/components/FacebookFeed.vue'
+import FacebookFeed from '#modula/components/FacebookFeed.vue'
 </script>

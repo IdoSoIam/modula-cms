@@ -1,6 +1,6 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { exchangeCodeForTokens } from '~/server/utils/gmail'
-import { getSessionConfig } from '~/server/utils/session'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { exchangeCodeForTokens } from '#modula/server/utils/gmail'
+import { getSessionConfig } from '#modula/server/utils/session'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

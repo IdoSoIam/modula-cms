@@ -15,9 +15,9 @@
 </template>
 
 <script setup lang="ts">
-import type { PageBuilderContent } from '~/shared/pageBuilder'
-import type { PageBuilderEditTarget } from '~/shared/pageBuilderEditor'
-import PageColumnsSection from '~/components/page-builder/PageColumnsSection.vue'
+import type { PageBuilderContent } from '#modula/shared/pageBuilder'
+import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
+import PageColumnsSection from '#modula/components/page-builder/PageColumnsSection.vue'
 
 const props = defineProps<{
   content: PageBuilderContent

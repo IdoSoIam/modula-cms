@@ -285,10 +285,11 @@
 </template>
 
 <script setup lang="ts">
-import OrdersCalendar from '~/components/admin/OrdersCalendar.vue'
-import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import { createDefaultEventPayload, type AdminPlanningCalendarResponse, type EventOccurrenceEditorPayload, type EventPayload, type EventWeekdayValue } from '~/shared/events'
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
+import OrdersCalendar from '#modula/components/admin/OrdersCalendar.vue'
+import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
+import cmsProjectConfig from '#modula/cms.project.config'
+import { createDefaultEventPayload, type AdminPlanningCalendarResponse, type EventOccurrenceEditorPayload, type EventPayload, type EventWeekdayValue } from '#modula/shared/events'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
@@ -372,8 +373,8 @@ const permanenceForm = reactive({
   recurrenceStartTime: '10:00',
   recurrenceEndTime: '13:00',
   recurrenceDays: [1] as EventWeekdayValue[],
-  placeName: 'Cuisine de la ferme',
-  placeCity: 'Saint-Sébastien-d’Aigrefeuille',
+  placeName: cmsProjectConfig.site.defaultVolunteerPlaceName,
+  placeCity: cmsProjectConfig.site.defaultPlaceCity,
   internalParticipationInfo: {
     fr: 'Précisez vos disponibilités et votre expérience éventuelle pour cette permanence.',
     en: 'Share your availability and any useful experience for this volunteer shift.'
@@ -417,8 +418,8 @@ function openCreateEventDialog() {
   eventCreateForm.status = 'DRAFT'
   eventCreateForm.startsAt = toDateTimeLocal(now.toISOString())
   eventCreateForm.endsAt = toDateTimeLocal(inTwoHours.toISOString())
-  eventCreateForm.placeName = 'Ferme du Campeyrigoux'
-  eventCreateForm.placeCity = 'Saint-Sébastien-d’Aigrefeuille'
+  eventCreateForm.placeName = cmsProjectConfig.site.defaultPlaceName
+  eventCreateForm.placeCity = cmsProjectConfig.site.defaultPlaceCity
   eventCreateForm.publicReservationEnabled = false
   eventCreateForm.internalParticipationEnabled = false
   eventDialogRef.value?.showModal()
@@ -438,8 +439,8 @@ function openCreatePermanenceDialog(dayIso?: string) {
   permanenceForm.recurrenceStartTime = '10:00'
   permanenceForm.recurrenceEndTime = '13:00'
   permanenceForm.recurrenceDays = [((baseDate.getDay() as EventWeekdayValue))]
-  permanenceForm.placeName = 'Cuisine de la ferme'
-  permanenceForm.placeCity = 'Saint-Sébastien-d’Aigrefeuille'
+  permanenceForm.placeName = cmsProjectConfig.site.defaultVolunteerPlaceName
+  permanenceForm.placeCity = cmsProjectConfig.site.defaultPlaceCity
   permanenceForm.internalParticipationInfo = {
     fr: 'Précisez vos disponibilités et votre expérience éventuelle pour cette permanence.',
     en: 'Share your availability and any useful experience for this volunteer shift.'

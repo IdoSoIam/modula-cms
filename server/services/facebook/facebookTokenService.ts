@@ -1,7 +1,7 @@
 import fbModule from 'fb'
-import type { FacebookPagesResponse, FacebookError, FacebookPage } from '~/types/facebook'
+import type { FacebookPagesResponse, FacebookError, FacebookPage } from '#modula/types/facebook'
 import { prisma } from '../../../prisma/client'
-import { getEnv } from '~/server/utils/env'
+import { getEnv } from '#modula/server/utils/env'
 
 const FB = fbModule
 

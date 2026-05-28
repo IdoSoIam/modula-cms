@@ -1,7 +1,7 @@
-import type { PageBuilderContent } from '~/shared/pageBuilder'
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { savePageBuilderContent } from '~/server/utils/pageBuilder'
-import { syncImageUsageTable } from '~/server/utils/imageReferences'
+import type { PageBuilderContent } from '#modula/shared/pageBuilder'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { savePageBuilderContent } from '#modula/server/utils/pageBuilder'
+import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

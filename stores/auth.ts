@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { AdminPermissionModule, AdminSpecialPermission, UserAccessPayload, UserMemberRolePayload } from '~/shared/access'
+import type { AdminPermissionModule, AdminSpecialPermission, UserAccessPayload, UserMemberRolePayload } from '#modula/shared/access'
 
 interface User {
   id: number

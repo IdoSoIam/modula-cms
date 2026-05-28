@@ -1,4 +1,4 @@
-import { AuthService } from '~/server/services/auth/authService'
+import { AuthService } from '#modula/server/services/auth/authService'
 
 const authService = new AuthService()
 

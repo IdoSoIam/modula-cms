@@ -1,5 +1,5 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { createCustomAdminEmailTemplate } from '~/server/utils/adminEmailTemplates'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { createCustomAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
 
 interface Body {
   label?: string

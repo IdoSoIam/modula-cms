@@ -142,8 +142,8 @@
 import type {
   PageBuilderSectionBackgroundCarouselSettings,
   PageBuilderSectionBackgroundCarouselSlide
-} from '~/shared/pageBuilder'
-import { pickLocalizedText } from '~/shared/pageBuilder'
+} from '#modula/shared/pageBuilder'
+import { pickLocalizedText } from '#modula/shared/pageBuilder'
 
 const props = defineProps<{
   slides: PageBuilderSectionBackgroundCarouselSlide[]

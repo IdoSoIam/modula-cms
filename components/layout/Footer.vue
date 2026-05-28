@@ -105,9 +105,9 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsFooterColumn, CmsLocalizedText, CmsLocale, CmsSocialLink, PublicSiteShell } from '~/shared/cms'
-import type { ThemeColorSelection } from '~/shared/pageBuilder'
-import { useAuthStore } from '~/stores/auth'
+import type { CmsFooterColumn, CmsLocalizedText, CmsLocale, CmsSocialLink, PublicSiteShell } from '#modula/shared/cms'
+import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
+import { useAuthStore } from '#modula/stores/auth'
 
 interface SiteConfig {
   farmPickup: {

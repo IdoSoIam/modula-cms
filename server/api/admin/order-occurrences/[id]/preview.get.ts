@@ -1,6 +1,6 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { applyTemplateVars, getReservationDateLocale, resolveTemplateFromSettings } from '~/server/utils/orderEmailContent'
-import { formatFulfillmentDate } from '~/server/utils/orderFulfillment'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { applyTemplateVars, getReservationDateLocale, resolveTemplateFromSettings } from '#modula/server/utils/orderEmailContent'
+import { formatFulfillmentDate } from '#modula/server/utils/orderFulfillment'
 import { prisma } from '../../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {

@@ -1,6 +1,6 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { ensureReservationOccurrences } from '~/server/utils/orderOccurrences'
-import { isSubscriptionsEnabled } from '~/server/utils/settings'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { ensureReservationOccurrences } from '#modula/server/utils/orderOccurrences'
+import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
 import { prisma } from '../../../../prisma/client'
 
 function toPositiveInt(value: unknown, fallback: number, max = 100) {

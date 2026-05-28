@@ -1,4 +1,4 @@
-import { useAuthStore } from '~/stores/auth'
+import { useAuthStore } from '#modula/stores/auth'
 
 export interface CartItem {
   productId: number;
@@ -8,7 +8,7 @@ export interface CartItem {
 export const useCart = () => {
   const authStore = useAuthStore();
   const cart = useState<CartItem[]>('cart', () => []);
-  
+
   // Fonction pour synchroniser le panier avec le serveur
   const syncCartWithServer = async () => {
     // TODO: Implémenter la synchronisation avec le serveur
@@ -28,7 +28,7 @@ export const useCart = () => {
 
   const addToCart = (productId: number, quantity: number = 1) => {
     const existingItem = cart.value.find(item => item.productId === productId);
-    
+
     if (existingItem) {
       existingItem.quantity += quantity;
     } else {

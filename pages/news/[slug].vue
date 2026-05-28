@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
-import { formatLocalizedDate } from '~/shared/date'
+import { formatLocalizedDate } from '#modula/shared/date'
 
 interface Article {
   id: number

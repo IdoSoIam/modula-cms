@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthStore } from '#modula/stores/auth'
 
 const authStore = useAuthStore()
 withDefaults(defineProps<{

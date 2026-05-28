@@ -1,5 +1,5 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { getPageBuilderContent } from '~/server/utils/pageBuilder'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { getPageBuilderContent } from '#modula/server/utils/pageBuilder'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

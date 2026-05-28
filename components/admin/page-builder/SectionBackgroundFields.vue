@@ -234,8 +234,8 @@
 </template>
 
 <script setup lang="ts">
-import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import type { PageBuilderSection } from '~/shared/pageBuilder'
+import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
+import type { PageBuilderSection } from '#modula/shared/pageBuilder'
 import {
   CAROUSEL_ANIMATIONS,
   CAROUSEL_ANIMATION_LABELS,
@@ -244,7 +244,7 @@ import {
   SECTION_BACKGROUND_MODE_LABELS,
   SECTION_BACKGROUND_MODES,
   VERTICAL_ALIGNS
-} from '~/shared/pageBuilder'
+} from '#modula/shared/pageBuilder'
 
 const props = defineProps<{
   section: PageBuilderSection

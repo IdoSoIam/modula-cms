@@ -1,8 +1,8 @@
-import { sendGmail } from '~/server/utils/gmail'
-import { buildGenericEmail } from '~/server/utils/orderEmails'
-import { getContactEmail } from '~/server/utils/settings'
-import { resolveTemplateFromSettings, applyTemplateVars, getReservationEmailHtmlLang } from '~/server/utils/orderEmailContent'
-import { enforceRateLimit } from '~/server/utils/rateLimit'
+import { sendGmail } from '#modula/server/utils/gmail'
+import { buildGenericEmail } from '#modula/server/utils/orderEmails'
+import { getContactEmail } from '#modula/server/utils/settings'
+import { resolveTemplateFromSettings, applyTemplateVars, getReservationEmailHtmlLang } from '#modula/server/utils/orderEmailContent'
+import { enforceRateLimit } from '#modula/server/utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
   enforceRateLimit(event, {

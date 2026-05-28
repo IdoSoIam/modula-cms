@@ -30,9 +30,9 @@
 </template>
 
 <script setup lang="ts">
-import ThemeColorPicker from '~/components/admin/ThemeColorPicker.vue'
-import type { PageBuilderButton } from '~/shared/pageBuilder'
-import { BUTTON_SIZE_LABELS, BUTTON_SIZES, BUTTON_TONES } from '~/shared/pageBuilder'
+import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
+import type { PageBuilderButton } from '#modula/shared/pageBuilder'
+import { BUTTON_SIZE_LABELS, BUTTON_SIZES, BUTTON_TONES } from '#modula/shared/pageBuilder'
 
 defineProps<{
   button: PageBuilderButton

@@ -1,6 +1,6 @@
 import { prisma } from '../../../../../prisma/client'
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { deleteUploadObject } from '~/server/utils/uploadStorage'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { deleteUploadObject } from '#modula/server/utils/uploadStorage'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

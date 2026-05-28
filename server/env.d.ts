@@ -1,11 +1,11 @@
 declare module 'h3' {
   interface H3EventContext {
-    cloudflare: {
+    cloudflare?: {
       request: Request
       env: {
-        DB: D1Database
-        UPLOADS_BUCKET: R2Bucket
-        IMAGE_RESIZER: any
+        DB?: D1Database
+        UPLOADS_BUCKET?: R2Bucket
+        IMAGE_RESIZER?: any
       }
       context: ExecutionContext
     }

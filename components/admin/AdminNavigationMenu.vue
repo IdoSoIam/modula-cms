@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import type { AdminNavigationItem, AdminNavigationSection } from '~/shared/adminNavigation'
+import type { AdminNavigationItem, AdminNavigationSection } from '#modula/shared/adminNavigation'
 
 const props = withDefaults(defineProps<{
   sections: AdminNavigationSection[]

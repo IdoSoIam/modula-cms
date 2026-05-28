@@ -9,7 +9,7 @@ import type {
   PageBuilderSection,
   ThemeColorSelection,
   ThemeColorToken
-} from '~/shared/pageBuilder'
+} from '#modula/shared/pageBuilder'
 import {
   createBadgeItem,
   createButtonsItem,
@@ -34,7 +34,7 @@ import {
   createTitleItem,
   isValidIconifyName,
   THEME_COLOR_TOKENS
-} from '~/shared/pageBuilder'
+} from '#modula/shared/pageBuilder'
 import { getFarmPickupConfig, getSetting, setSetting, SETTING_KEYS } from './settings'
 
 function isObject(value: unknown): value is Record<string, unknown> {

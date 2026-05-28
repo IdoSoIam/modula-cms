@@ -11,10 +11,10 @@
 </template>
 
 <script setup lang="ts">
-import type { ResolvedCmsPage } from '~/shared/cms'
-import type { CmsNewsPageSettings } from '~/shared/cms'
-import CmsResolvedPageView from '~/components/cms/CmsResolvedPageView.vue'
-import NewsListPage from '~/components/pages/NewsListPage.vue'
+import type { ResolvedCmsPage } from '#modula/shared/cms'
+import type { CmsNewsPageSettings } from '#modula/shared/cms'
+import CmsResolvedPageView from '#modula/components/cms/CmsResolvedPageView.vue'
+import NewsListPage from '#modula/components/pages/NewsListPage.vue'
 
 const route = useRoute()
 const segments = computed(() => {

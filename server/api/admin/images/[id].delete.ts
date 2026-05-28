@@ -1,8 +1,8 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
-import { countImageReferences, removeImageReferences, syncImageUsageTable } from '~/server/utils/imageReferences'
-import { deleteUploadObject } from '~/server/utils/uploadStorage'
-import { deleteImageVariants } from '~/server/utils/imageVariants'
+import { countImageReferences, removeImageReferences, syncImageUsageTable } from '#modula/server/utils/imageReferences'
+import { deleteUploadObject } from '#modula/server/utils/uploadStorage'
+import { deleteImageVariants } from '#modula/server/utils/imageVariants'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

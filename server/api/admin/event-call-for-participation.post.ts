@@ -1,6 +1,6 @@
-import { prisma } from '~/prisma/client'
-import { listAudienceEligibleUsers, sendParticipationCall } from '~/server/utils/events'
-import { requireSpecialPermission } from '~/server/utils/permissions'
+import { prisma } from '#modula/prisma/client'
+import { listAudienceEligibleUsers, sendParticipationCall } from '#modula/server/utils/events'
+import { requireSpecialPermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
   await requireSpecialPermission(event, 'send_event_participation_emails')

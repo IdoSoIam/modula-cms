@@ -191,10 +191,10 @@
 </template>
 
 <script setup lang="ts">
-import ImageInput from '~/components/ImageInput.vue'
-import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
-import type { CmsNavigationItemPayload, CmsSiteSettings } from '~/shared/cms'
+import ImageInput from '#modula/components/ImageInput.vue'
+import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import type { CmsNavigationItemPayload, CmsSiteSettings } from '#modula/shared/cms'
 
 definePageMeta({
   layout: 'admin',

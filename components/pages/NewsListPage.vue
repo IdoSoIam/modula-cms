@@ -98,10 +98,10 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsNewsPageSettings } from '~/shared/cms'
-import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
-import { formatLocalizedDate } from '~/shared/date'
-import NewsFacebookContent from '~/components/pages/NewsFacebookContent.vue'
+import type { CmsNewsPageSettings } from '#modula/shared/cms'
+import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
+import { formatLocalizedDate } from '#modula/shared/date'
+import NewsFacebookContent from '#modula/components/pages/NewsFacebookContent.vue'
 
 type SortOption = 'dateDesc' | 'dateAsc' | 'title'
 type ViewMode = 'grid' | 'list'

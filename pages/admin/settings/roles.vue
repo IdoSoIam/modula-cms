@@ -94,8 +94,8 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_SPECIAL_PERMISSIONS, DEFAULT_ROLE_DEFINITIONS, type RolePayload } from '~/shared/access'
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
+import { ADMIN_SPECIAL_PERMISSIONS, DEFAULT_ROLE_DEFINITIONS, type RolePayload } from '#modula/shared/access'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',

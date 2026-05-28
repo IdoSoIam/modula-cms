@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { extname } from 'node:path'
-import { slugify } from '~/server/utils/slug'
+import { slugify } from '#modula/server/utils/slug'
 
 export const ALLOWED_IMAGE_UPLOAD_MIME_TYPES = [
   'image/jpeg',

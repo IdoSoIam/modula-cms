@@ -1,11 +1,11 @@
 import { prisma } from '../../../../../prisma/client'
-import { formatDateLabel } from '~/server/utils/dateFormat'
-import { sendGmail } from '~/server/utils/gmail'
-import { buildGenericEmail, getAdminReservationUrl } from '~/server/utils/orderEmails'
-import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/orderEmailContent'
-import { getReservationNotificationEmail } from '~/server/utils/settings'
-import { logReservationNotification } from '~/server/utils/orderNotifications'
-import { createReservationScheduleProposal, normalizeProposalDate, normalizeProposalTime } from '~/server/utils/orderScheduleProposals'
+import { formatDateLabel } from '#modula/server/utils/dateFormat'
+import { sendGmail } from '#modula/server/utils/gmail'
+import { buildGenericEmail, getAdminReservationUrl } from '#modula/server/utils/orderEmails'
+import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '#modula/server/utils/orderEmailContent'
+import { getReservationNotificationEmail } from '#modula/server/utils/settings'
+import { logReservationNotification } from '#modula/server/utils/orderNotifications'
+import { createReservationScheduleProposal, normalizeProposalDate, normalizeProposalTime } from '#modula/server/utils/orderScheduleProposals'
 
 interface Body {
   proposalDate?: string

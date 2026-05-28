@@ -1,5 +1,5 @@
-import { AuthService } from '~/server/services/auth/authService'
-import { getSessionConfig } from '~/server/utils/session'
+import { AuthService } from '#modula/server/services/auth/authService'
+import { getSessionConfig } from '#modula/server/utils/session'
 
 const authService = new AuthService()
 

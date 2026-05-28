@@ -1,5 +1,5 @@
-import { resolvePublicCmsPage } from '~/server/utils/cms'
-import { getFeatureFlags } from '~/server/utils/settings'
+import { resolvePublicCmsPage } from '#modula/server/utils/cms'
+import { getFeatureFlags } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)

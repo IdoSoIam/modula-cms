@@ -1,6 +1,6 @@
-import { prisma } from '~/prisma/client'
-import { requirePermission } from '~/server/utils/permissions'
-import { isAssociationRolesEnabled } from '~/server/utils/settings'
+import { prisma } from '#modula/prisma/client'
+import { requirePermission } from '#modula/server/utils/permissions'
+import { isAssociationRolesEnabled } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'users', 'read')

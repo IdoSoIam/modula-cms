@@ -1221,5 +1221,62 @@
     "page": "Page",
     "of": "of",
     "noData": "No data available"
+  },
+  "install": {
+    "kicker": "First setup",
+    "title": "Configure your CMS",
+    "subtitle": "Create the first administrator, choose the hosting mode, and prepare the project without editing files by hand.",
+    "siteSection": "Site identity",
+    "siteSectionHelp": "This information is used as the generated project baseline.",
+    "siteName": "Site name",
+    "siteNamePlaceholder": "My association, farm, collective...",
+    "taglineFr": "French tagline",
+    "taglineFrPlaceholder": "Example: Depuis 2026",
+    "taglineEn": "English tagline",
+    "taglineEnPlaceholder": "Example: Since 2026",
+    "languageSection": "Default language",
+    "languageSectionHelp": "This language will be used when the project starts.",
+    "locale": {
+      "fr": "French",
+      "en": "English"
+    },
+    "localeFrHelp": "Default interface and content in French.",
+    "localeEnHelp": "Default interface and content in English.",
+    "templateSection": "Site template",
+    "templateSectionHelp": "Choose a starting point for CMS content and settings. You can still change everything later from the admin.",
+    "platformSection": "Hosting mode",
+    "platformSectionHelp": "Choose one of the combinations currently supported by the CMS core.",
+    "runtime": {
+      "server": "Classic server",
+      "cloudflare": "Cloudflare"
+    },
+    "runtimeServerHelp": "Immediate local startup with SQLite and filesystem storage.",
+    "runtimeCloudflareHelp": "D1 + R2 mode. Requires a restart or deployment with Cloudflare bindings.",
+    "adminSection": "First administrator",
+    "adminSectionHelp": "This account immediately gets full back-office access.",
+    "adminFirstName": "First name",
+    "adminFirstNamePlaceholder": "First name",
+    "adminLastName": "Last name",
+    "adminLastNamePlaceholder": "Last name",
+    "adminEmail": "Administrator email",
+    "adminEmailPlaceholder": "admin xample.com",
+    "adminPassword": "Password",
+    "adminPasswordPlaceholder": "At least 8 characters",
+    "runtimeSummary": "Current runtime",
+    "currentRuntime": "Mode",
+    "currentDatabase": "Database",
+    "currentStorage": "Storage",
+    "whatHappensTitle": "What the wizard does",
+    "whatHappens": [
+      "It saves an automatically generated project configuration.",
+      "In server mode, it creates SQLite and applies migrations if needed.",
+      "It creates the first administrator and prepares the project for the next step."
+    ],
+    "restartHintTitle": "Restart required",
+    "restartHintBody": "If you change the execution mode, the configuration is saved but will only be fully applied after the next restart or deployment.",
+    "submit": "Start installation",
+    "submitting": "Installing...",
+    "success": "Installation saved successfully.",
+    "error": "Unable to complete the installation."
   }
 }

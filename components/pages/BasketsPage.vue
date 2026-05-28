@@ -458,9 +458,10 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsBasketsPageSettings } from '~/shared/cms'
-import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '~/shared/cms'
-import { formatLocalizedDate } from '~/shared/date'
+import type { CmsBasketsPageSettings } from '#modula/shared/cms'
+import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
+import { formatLocalizedDate } from '#modula/shared/date'
+import { useAuthStore } from '#modula/stores/auth'
 interface PublicBasket {
   id: number
   name: string

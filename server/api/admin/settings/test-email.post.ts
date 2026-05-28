@@ -1,8 +1,8 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { sendGmail } from '~/server/utils/gmail'
-import { buildGenericEmail } from '~/server/utils/orderEmails'
-import { formatDateTimeLabel, getDefaultTimeZone } from '~/server/utils/dateFormat'
-import { getReservationNotificationEmail, getSettings, SETTING_KEYS } from '~/server/utils/settings'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { sendGmail } from '#modula/server/utils/gmail'
+import { buildGenericEmail } from '#modula/server/utils/orderEmails'
+import { formatDateTimeLabel, getDefaultTimeZone } from '#modula/server/utils/dateFormat'
+import { getReservationNotificationEmail, getSettings, SETTING_KEYS } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

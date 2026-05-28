@@ -1,7 +1,7 @@
-import { prisma } from '~/prisma/client'
-import { DEFAULT_ROLE_DEFINITIONS, type AdminPermissionModule } from '~/shared/access'
-import { requirePermission } from '~/server/utils/permissions'
-import { normalizeRolePayload } from '~/server/utils/roles'
+import { prisma } from '#modula/prisma/client'
+import { DEFAULT_ROLE_DEFINITIONS, type AdminPermissionModule } from '#modula/shared/access'
+import { requirePermission } from '#modula/server/utils/permissions'
+import { normalizeRolePayload } from '#modula/server/utils/roles'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'roles', 'create')

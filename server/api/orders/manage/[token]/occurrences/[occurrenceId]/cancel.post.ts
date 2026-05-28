@@ -1,11 +1,11 @@
 import { prisma } from '../../../../../../../prisma/client'
-import { formatDateForTimeZone } from '~/server/utils/dateFormat'
-import { sendGmail } from '~/server/utils/gmail'
-import { buildGenericEmail, buildReservationOccurrenceEmail } from '~/server/utils/orderEmails'
-import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '~/server/utils/orderEmailContent'
-import { cancelReservationOccurrenceInGoogleCalendar } from '~/server/utils/googleCalendarSync'
-import { getReservationNotificationEmail, isSubscriptionsEnabled } from '~/server/utils/settings'
-import { logReservationNotification } from '~/server/utils/orderNotifications'
+import { formatDateForTimeZone } from '#modula/server/utils/dateFormat'
+import { sendGmail } from '#modula/server/utils/gmail'
+import { buildGenericEmail, buildReservationOccurrenceEmail } from '#modula/server/utils/orderEmails'
+import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSettings } from '#modula/server/utils/orderEmailContent'
+import { cancelReservationOccurrenceInGoogleCalendar } from '#modula/server/utils/googleCalendarSync'
+import { getReservationNotificationEmail, isSubscriptionsEnabled } from '#modula/server/utils/settings'
+import { logReservationNotification } from '#modula/server/utils/orderNotifications'
 
 function formatOccurrenceDate(value: Date) {
   return formatDateForTimeZone(value, 'fr-FR', {

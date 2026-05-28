@@ -1,4 +1,4 @@
-import { buildPublicDaisyUiThemeConfig, createDefaultDaisyUiThemeConfig } from '~/shared/themes'
+import { buildPublicDaisyUiThemeConfig, createDefaultDaisyUiThemeConfig } from '#modula/shared/themes'
 
 export type ThemeValue = string
 

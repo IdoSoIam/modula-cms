@@ -1,5 +1,5 @@
-import { serializeBasket } from '~/server/utils/baskets'
-import { getFeatureFlags } from '~/server/utils/settings'
+import { serializeBasket } from '#modula/server/utils/baskets'
+import { getFeatureFlags } from '#modula/server/utils/settings'
 import { prisma } from '../../../prisma/client'
 
 export default defineEventHandler(async (event) => {

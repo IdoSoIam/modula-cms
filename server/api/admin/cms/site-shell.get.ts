@@ -1,6 +1,6 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { getCmsSiteSettings, listCmsNavigationItems } from '~/server/utils/cms'
-import { getFeatureFlags } from '~/server/utils/settings'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { getCmsSiteSettings, listCmsNavigationItems } from '#modula/server/utils/cms'
+import { getFeatureFlags } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

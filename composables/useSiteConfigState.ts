@@ -1,7 +1,13 @@
-import type { PublicSiteShell } from '~/shared/cms'
-import type { PublicDaisyUiThemeConfig } from '~/shared/themes'
+import type { PublicSiteShell } from '#modula/shared/cms'
+import type { PublicDaisyUiThemeConfig } from '#modula/shared/themes'
 
 interface PublicSiteConfigState {
+  project?: {
+    key: string
+    displayName: string
+    defaultLocale: 'fr' | 'en'
+  }
+  installRequired?: boolean
   facebookFluxDeactivated: boolean
   inDevelopment: boolean
   siteName: string
@@ -36,8 +42,8 @@ interface PublicSiteConfigState {
   contactEmail?: string | null
   adminEmail?: string | null
   adminPhone?: string | null
-  cms?: PublicSiteShell
-  themes?: PublicDaisyUiThemeConfig
+  cms?: PublicSiteShell | null
+  themes?: PublicDaisyUiThemeConfig | null
   constructionPagePath?: string | null
 }
 

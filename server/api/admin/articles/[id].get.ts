@@ -1,4 +1,4 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { prisma } from '../../../../prisma/client'
 
 export default defineEventHandler(async (event) => {

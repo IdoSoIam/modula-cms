@@ -1,5 +1,5 @@
-import { requireAdmin } from '~/server/utils/requireAdmin'
-import { findAdminEmailTemplateDefinition, resolveAdminEmailTemplate } from '~/server/utils/adminEmailTemplates'
+import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { findAdminEmailTemplateDefinition, resolveAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

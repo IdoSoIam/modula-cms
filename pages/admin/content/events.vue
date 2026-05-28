@@ -366,10 +366,11 @@
 </template>
 
 <script setup lang="ts">
-import CmsPageContentBuilder from '~/components/admin/cms/CmsPageContentBuilder.vue'
-import AdminPageBuilderTranslationTabs from '~/components/admin/page-builder/TranslationTabs.vue'
-import { ADMIN_I18N_PATHS } from '~/shared/adminRoutes'
-import { createDefaultEventPayload, type EventListItem, type EventPayload, type EventWeekdayValue } from '~/shared/events'
+import CmsPageContentBuilder from '#modula/components/admin/cms/CmsPageContentBuilder.vue'
+import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
+import cmsProjectConfig from '#modula/cms.project.config'
+import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import { createDefaultEventPayload, type EventListItem, type EventPayload, type EventWeekdayValue } from '#modula/shared/events'
 
 definePageMeta({
   layout: 'admin',
@@ -489,8 +490,8 @@ const openCreateDialog = () => {
   createForm.status = 'DRAFT'
   createForm.startsAt = toDateTimeLocal(now.toISOString())
   createForm.endsAt = toDateTimeLocal(inTwoHours.toISOString())
-  createForm.placeName = 'Ferme du Campeyrigoux'
-  createForm.placeCity = 'Saint-Sébastien-d’Aigrefeuille'
+  createForm.placeName = cmsProjectConfig.site.defaultPlaceName
+  createForm.placeCity = cmsProjectConfig.site.defaultPlaceCity
   createForm.publicReservationEnabled = false
   createForm.internalParticipationEnabled = false
   createDialogRef.value?.showModal()

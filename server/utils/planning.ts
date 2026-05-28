@@ -1,11 +1,12 @@
-import { prisma } from '~/prisma/client'
+import { prisma } from '#modula/prisma/client'
 import type { Event } from '../../node_modules/.prisma/client'
-import type { AdminPlanningCalendarResponse, EventKind, EventListItem, EventPayload, EventWeekdayValue } from '~/shared/events'
-import { createDefaultEventPayload } from '~/shared/events'
-import type { PageBuilderContent } from '~/shared/pageBuilder'
-import { createEmptyColumnsSection, createTextItem, createTitleItem } from '~/shared/pageBuilder'
-import { eventOccurrenceToListItem, eventToListItem } from '~/server/utils/events'
-import type { CmsLocale } from '~/shared/cms'
+import type { AdminPlanningCalendarResponse, EventKind, EventListItem, EventPayload, EventWeekdayValue } from '#modula/shared/events'
+import { createDefaultEventPayload } from '#modula/shared/events'
+import type { PageBuilderContent } from '#modula/shared/pageBuilder'
+import { createEmptyColumnsSection, createTextItem, createTitleItem } from '#modula/shared/pageBuilder'
+import { eventOccurrenceToListItem, eventToListItem } from '#modula/server/utils/events'
+import type { CmsLocale } from '#modula/shared/cms'
+import cmsProjectConfig from '#modula/cms.project.config'
 
 type EventWithAudience = Event & {
   audienceMemberRoles: Array<{ memberRoleId: number; memberRole: { id: number; slug: string; name: string } }>
@@ -119,8 +120,8 @@ export function createPlanningDraftPayload(kind: EventKind): EventPayload {
   payload.slug = `${kind === 'PERMANENCE' ? 'permanence' : 'evenement'}-${Date.now()}`
   payload.startsAt = new Date().toISOString()
   payload.visibility = kind === 'PERMANENCE' ? 'PRIVATE' : 'PUBLIC'
-  payload.placeName = kind === 'PERMANENCE' ? 'Cuisine de la ferme' : 'Ferme du Campeyrigoux'
-  payload.placeCity = 'Saint-Sébastien-d’Aigrefeuille'
+  payload.placeName = kind === 'PERMANENCE' ? cmsProjectConfig.site.defaultVolunteerPlaceName : cmsProjectConfig.site.defaultPlaceName
+  payload.placeCity = cmsProjectConfig.site.defaultPlaceCity
   payload.translations.fr.content = createPlanningExampleContent(kind)
   payload.translations.en.content = createPlanningExampleContent(kind)
   if (kind === 'PERMANENCE') {

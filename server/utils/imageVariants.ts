@@ -1,6 +1,6 @@
 import { extname } from 'node:path'
 import { prisma } from '../../prisma/client'
-import { deleteUploadObject, getUploadObject, putUploadObject } from '~/server/utils/uploadStorage'
+import { deleteUploadObject, getUploadObject, putUploadObject } from '#modula/server/utils/uploadStorage'
 
 export type ImageVariantSignature = {
   width?: number

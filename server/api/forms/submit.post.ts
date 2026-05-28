@@ -1,14 +1,14 @@
-import type { PageBuilderFormField, PageBuilderFormItem } from '~/shared/pageBuilder'
-import { pickLocalizedText } from '~/shared/pageBuilder'
-import { resolvePublicCmsPage } from '~/server/utils/cms'
-import { resolveAdminEmailTemplate } from '~/server/utils/adminEmailTemplates'
-import { applyTemplateVars } from '~/server/utils/orderEmailContent'
-import { buildGenericEmail } from '~/server/utils/orderEmails'
-import { getReservationEmailHtmlLang } from '~/server/utils/orderEmailContent'
-import { sendGmail } from '~/server/utils/gmail'
-import { getContactEmail } from '~/server/utils/settings'
-import { enforceRateLimit } from '~/server/utils/rateLimit'
-import { AuthService } from '~/server/services/auth/authService'
+import type { PageBuilderFormField, PageBuilderFormItem } from '#modula/shared/pageBuilder'
+import { pickLocalizedText } from '#modula/shared/pageBuilder'
+import { resolvePublicCmsPage } from '#modula/server/utils/cms'
+import { resolveAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
+import { applyTemplateVars } from '#modula/server/utils/orderEmailContent'
+import { buildGenericEmail } from '#modula/server/utils/orderEmails'
+import { getReservationEmailHtmlLang } from '#modula/server/utils/orderEmailContent'
+import { sendGmail } from '#modula/server/utils/gmail'
+import { getContactEmail, getFeatureFlags } from '#modula/server/utils/settings'
+import { enforceRateLimit } from '#modula/server/utils/rateLimit'
+import { AuthService } from '#modula/server/services/auth/authService'
 
 interface FormSubmitBody {
   pagePath?: string
@@ -175,7 +175,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const page = await resolvePublicCmsPage(pagePath, locale, false)
+  const featureFlags = await getFeatureFlags()
+  const page = await resolvePublicCmsPage(pagePath, locale, false, featureFlags)
   if (!page) {
     throw createError({
       statusCode: 404,

@@ -1,4 +1,9 @@
 @import "tailwindcss";
+@source "../../components/";
+@source "../../pages/";
+@source "../../layouts/";
+@source "../../app.vue";
+@source "../../error.vue";
 
 @plugin "daisyui" {
   themes: ferme, ferme-dark, prairie, recolte --default, lavande;

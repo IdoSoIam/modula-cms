@@ -141,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatLocalizedDate } from '~/shared/date'
+import { formatLocalizedDate } from '#modula/shared/date'
 const localePath = useLocalePath()
 const { t, locale } = useI18n()
 
