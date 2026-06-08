@@ -22,7 +22,7 @@
             <AppImage
               :src="logoSrc"
               :alt="pickText(cms?.settings.logo.alt)"
-              class="h-auto max-h-24 w-auto min-w-[120px]"
+              class="h-auto max-h-24 w-auto min-w-[120px] min-h-[120px]"
               sizes="220px"
             />
           </div>

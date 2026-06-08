@@ -266,6 +266,22 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
           { requiredModule: 'settings', requiredAction: 'read' }
         ),
         createAdminNavigationItem(
+          'settings-site-template',
+          'admin.navigation.items.siteTemplate',
+          getAdminRoutePath('settingsSiteTemplate'),
+          'mdi:view-dashboard-edit-outline',
+          getAdminRoutePaths('settingsSiteTemplate'),
+          { requiredModule: 'settings', requiredAction: 'read' }
+        ),
+        createAdminNavigationItem(
+          'settings-updates',
+          'admin.navigation.items.updates',
+          getAdminRoutePath('settingsUpdates'),
+          'mdi:update',
+          getAdminRoutePaths('settingsUpdates'),
+          { requiredModule: 'settings', requiredAction: 'read' }
+        ),
+        createAdminNavigationItem(
           'settings-email',
           'admin.navigation.items.emailConnectors',
           getAdminRoutePath('settingsEmailConnectors'),

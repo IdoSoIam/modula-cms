@@ -3,6 +3,8 @@ interface CmsInstallState {
   firstUserCreated: boolean
   databaseReady: boolean
   generatedConfigExists: boolean
+  runtimeCompatible: boolean
+  runtimeIssue: string | null
   currentRuntimeTarget: 'cloudflare' | 'server'
   currentDbDriver: 'd1' | 'sqlite' | 'mysql' | 'postgres'
   currentStorageDriver: 'fs' | 'r2' | 's3'

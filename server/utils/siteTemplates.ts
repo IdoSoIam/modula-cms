@@ -38,7 +38,7 @@ import { ensureCmsRootPage, ensureCmsSystemPages, getCmsPageByPath, getCmsSiteSe
 import { putUploadObject } from '#modula/server/utils/uploadStorage'
 import { saveDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import type { DaisyUiThemeConfig } from '#modula/shared/themes'
-import { normalizeFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { getSetting, normalizeFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 
 function text(fr: string, en: string): CmsLocalizedText {
   return { fr, en }
@@ -793,6 +793,13 @@ export function listSiteTemplates() {
   return CMS_SITE_TEMPLATES
 }
 
+export async function getCurrentSiteTemplateKey(): Promise<CmsSiteTemplateKey | null> {
+  const raw = await getSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY)
+  return raw && CMS_SITE_TEMPLATES.some(template => template.key === raw)
+    ? raw as CmsSiteTemplateKey
+    : null
+}
+
 function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiThemeConfig {
   if (templateKey === 'farm') {
     return {
@@ -976,6 +983,7 @@ export async function applySiteTemplate(templateKey: CmsSiteTemplateKey) {
       })
 
   await Promise.all([
+    setSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY, templateKey),
     setSetting(SETTING_KEYS.SHOP_ENABLED, templateFeatureFlags.shop.enabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, templateFeatureFlags.shop.basketsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SHOP_VEGETABLES_ENABLED, templateFeatureFlags.shop.vegetablesEnabled ? 'true' : 'false'),

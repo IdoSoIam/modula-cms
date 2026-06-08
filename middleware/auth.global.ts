@@ -25,7 +25,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
   try {
     if (tryUseNuxtApp()) {
       const installState = await ensureInstallState()
-      if (installState && !installState.installed) {
+      const requiresInitialInstall = installState && !installState.installed && !installState.generatedConfigExists
+      if (requiresInitialInstall) {
         const isAllowed = installAllowedRoutes.some(route => normalizedPath === route || normalizedPath.startsWith(`${route}/`))
         if (!isAllowed) {
           return navigateTo(localePath('/install'))

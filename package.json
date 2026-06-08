@@ -49,6 +49,8 @@
     "dev": "node ./scripts/dev-install-local.mjs",
     "dev:reset": "node ./scripts/dev-install-local.mjs --reset",
     "build:tgz": "npm pack",
+    "release:build": "node ./scripts/build-runtime-release.mjs",
+    "release:publish": "node ./scripts/publish-runtime-release.mjs",
     "postinstall": "node ./scripts/postinstall.mjs",
     "db:generate": "prisma generate"
   },

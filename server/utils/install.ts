@@ -20,6 +20,8 @@ export interface CmsInstallStatus {
   firstUserCreated: boolean
   databaseReady: boolean
   generatedConfigExists: boolean
+  runtimeCompatible: boolean
+  runtimeIssue: string | null
   currentRuntimeTarget: CmsRuntimeTarget
   currentDbDriver: CmsDbDriver
   currentStorageDriver: CmsStorageDriver
@@ -114,6 +116,18 @@ function isPrismaMissingTableError(error: unknown) {
 
   const message = 'message' in error ? String((error as { message?: unknown }).message || '') : ''
   return /no such table|table .* does not exist|SQLITE_ERROR/i.test(message)
+}
+
+function getPrismaRuntimeIssue(error: unknown): string | null {
+  if (!error || typeof error !== 'object') return null
+  const message = 'message' in error ? String((error as { message?: unknown }).message || '') : ''
+  if (/CMS_DB_DRIVER=d1 requires the Cloudflare DB binding/i.test(message)) {
+    return 'missing_cloudflare_db_binding'
+  }
+  if (/Database driver ".*" is not implemented yet in this runtime/i.test(message)) {
+    return 'unsupported_runtime_driver'
+  }
+  return null
 }
 
 function ensureSupportedWizardCombination(runtimeTarget: CmsRuntimeTarget, dbDriver: CmsDbDriver, storageDriver: CmsStorageDriver) {
@@ -306,6 +320,8 @@ export async function getCmsInstallStatus(event?: H3Event): Promise<CmsInstallSt
   const currentPlatform = resolveCmsPlatformConfig(process.env, cmsProjectConfig)
   let userCount = 0
   let databaseReady = true
+  let runtimeCompatible = true
+  let runtimeIssue: string | null = null
 
   try {
     if (currentPlatform.dbDriver === 'sqlite') {
@@ -313,7 +329,13 @@ export async function getCmsInstallStatus(event?: H3Event): Promise<CmsInstallSt
     }
     userCount = await prisma.user.count()
   } catch (error) {
-    if (isPrismaMissingTableError(error)) {
+    const detectedRuntimeIssue = getPrismaRuntimeIssue(error)
+    if (detectedRuntimeIssue) {
+      databaseReady = false
+      runtimeCompatible = false
+      runtimeIssue = detectedRuntimeIssue
+      userCount = 0
+    } else if (isPrismaMissingTableError(error)) {
       databaseReady = false
       userCount = 0
     } else {
@@ -326,12 +348,15 @@ export async function getCmsInstallStatus(event?: H3Event): Promise<CmsInstallSt
     firstUserCreated: userCount > 0,
     databaseReady,
     generatedConfigExists: generatedProjectConfigExists(),
+    runtimeCompatible,
+    runtimeIssue,
     currentRuntimeTarget: currentPlatform.runtimeTarget,
     currentDbDriver: currentPlatform.dbDriver,
     currentStorageDriver: currentPlatform.storageDriver,
-    canBootstrapCurrentRuntime: currentPlatform.runtimeTarget === 'server' && currentPlatform.dbDriver === 'sqlite'
+    canBootstrapCurrentRuntime: runtimeCompatible && (currentPlatform.runtimeTarget === 'server' && currentPlatform.dbDriver === 'sqlite'
       ? true
       : currentPlatform.runtimeTarget === 'cloudflare' && currentPlatform.dbDriver === 'd1'
+    )
   }
 }
 
