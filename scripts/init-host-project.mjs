@@ -13,7 +13,6 @@ const templateFiles = [
   ['templates/host/cms.project.config.ts', 'cms.project.config.ts'],
   ['templates/host/cms.project.generated.ts', 'cms.project.generated.ts'],
   ['wrangler.jsonc', 'wrangler.jsonc'],
-  ['.env.example', '.env.example'],
   ['.env.example', '.env']
 ]
 

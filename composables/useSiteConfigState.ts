@@ -8,6 +8,8 @@ interface PublicSiteConfigState {
     defaultLocale: 'fr' | 'en'
   }
   installRequired?: boolean
+  runtimeCompatible?: boolean
+  runtimeIssue?: string | null
   facebookFluxDeactivated: boolean
   inDevelopment: boolean
   siteName: string

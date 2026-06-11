@@ -87,6 +87,14 @@ export const ADMIN_I18N_PATHS = {
     fr: '/admin/reglages/global',
     en: '/admin/settings/global'
   },
+  settingsSiteTemplate: {
+    fr: '/admin/reglages/modele-site',
+    en: '/admin/settings/site-template'
+  },
+  settingsUpdates: {
+    fr: '/admin/reglages/mises-a-jour',
+    en: '/admin/settings/updates'
+  },
   settingsFeatures: {
     fr: '/admin/reglages/fonctionnalites',
     en: '/admin/settings/features'

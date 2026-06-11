@@ -34,7 +34,7 @@ export default defineEventHandler(async (event: H3Event) => {
     const role = userCount === 0 ? 'admin' : 'user'
 
     const user = await authService.createUser(email, password, firstName, lastName, birthDateObj, role)
-    const session = await useSession(event, getSessionConfig())
+    const session = await useSession(event, getSessionConfig(event))
     await session.clear()
     await session.update({
       userId: user.id

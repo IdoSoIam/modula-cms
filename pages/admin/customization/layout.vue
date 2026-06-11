@@ -639,7 +639,6 @@ watchEffect(() => {
 })
 
 const previewNavigation = computed(() => buildResolvedNavigationPreview(model.navigation))
-
 const previewSiteConfig = computed(() => ({
   inDevelopment: false,
   registerEnabled: true,
@@ -818,4 +817,5 @@ const save = async () => {
     saving.value = false
   }
 }
+
 </script>

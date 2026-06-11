@@ -1,4 +1,4 @@
-import type { CmsDbDriver, CmsRuntimeTarget, CmsStorageDriver } from '#modula/shared/platform'
+import type { CmsDbDriver, CmsStorageDriver } from '#modula/shared/platform'
 import { bootstrapCmsInstallation, getCmsInstallStatus } from '#modula/server/utils/install'
 import { isCmsSiteTemplateKey, type CmsSiteTemplateKey } from '#modula/shared/siteTemplates'
 
@@ -7,7 +7,6 @@ interface InstallBody {
   taglineFr?: string
   taglineEn?: string
   defaultLocale?: 'fr' | 'en'
-  runtimeTarget?: CmsRuntimeTarget
   dbDriver?: CmsDbDriver
   storageDriver?: CmsStorageDriver
   adminEmail?: string
@@ -28,7 +27,6 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<InstallBody>(event)
   const siteName = body.siteName?.trim() || ''
   const defaultLocale = body.defaultLocale === 'en' ? 'en' : 'fr'
-  const runtimeTarget = body.runtimeTarget === 'cloudflare' ? 'cloudflare' : 'server'
   const dbDriver = body.dbDriver === 'd1' ? 'd1' : 'sqlite'
   const storageDriver = body.storageDriver === 'r2' ? 'r2' : 'fs'
   const siteTemplate = isCmsSiteTemplateKey(body.siteTemplate) ? body.siteTemplate : 'modula-presentation'
@@ -51,7 +49,6 @@ export default defineEventHandler(async (event) => {
       taglineFr: body.taglineFr?.trim(),
       taglineEn: body.taglineEn?.trim(),
       defaultLocale,
-      runtimeTarget,
       dbDriver,
       storageDriver,
       adminEmail,

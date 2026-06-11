@@ -320,7 +320,7 @@ export class AuthService {
   }
 
   async getUserFromSession(event: H3Event): Promise<AuthenticatedUser | null> {
-    const session = await useSession(event, getSessionConfig())
+    const session = await useSession(event, getSessionConfig(event))
     const userId = session.data.userId
 
     if (!userId) {

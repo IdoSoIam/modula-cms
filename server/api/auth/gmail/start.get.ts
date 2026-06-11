@@ -6,7 +6,7 @@ import { getSessionConfig } from '#modula/server/utils/session'
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const session = await useSession(event, getSessionConfig())
+  const session = await useSession(event, getSessionConfig(event))
   const state = randomBytes(16).toString('hex')
   await session.update({ ...session.data, gmailOauthState: state })
 

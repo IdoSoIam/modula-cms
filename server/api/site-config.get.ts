@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
 
   const installStatus = await getCmsInstallStatus()
+  const installRequired = !installStatus.installed && !installStatus.generatedConfigExists
 
   if (!installStatus.databaseReady || !installStatus.installed) {
     return {
@@ -16,7 +17,9 @@ export default defineEventHandler(async (event) => {
         displayName: cmsProjectConfig.site.displayName,
         defaultLocale: cmsProjectConfig.site.defaultLocale
       },
-      installRequired: !installStatus.installed,
+      installRequired,
+      runtimeCompatible: installStatus.runtimeCompatible,
+      runtimeIssue: installStatus.runtimeIssue,
       facebookFluxDeactivated: true,
       inDevelopment: false,
       siteName: cmsProjectConfig.site.displayName,
@@ -64,6 +67,8 @@ export default defineEventHandler(async (event) => {
       defaultLocale: cmsProjectConfig.site.defaultLocale
     },
     installRequired: false,
+    runtimeCompatible: installStatus.runtimeCompatible,
+    runtimeIssue: installStatus.runtimeIssue,
     facebookFluxDeactivated: fb !== 'false',
     inDevelopment: featureFlags.inDevelopment,
     siteName: configuredSiteName,

@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import fs from 'node:fs'
 import cmsProjectConfig from '#modula/cms.project.config'
 import { prisma } from '#modula/prisma/client'
 import type {
@@ -38,13 +38,28 @@ import { ensureCmsRootPage, ensureCmsSystemPages, getCmsPageByPath, getCmsSiteSe
 import { putUploadObject } from '#modula/server/utils/uploadStorage'
 import { saveDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import type { DaisyUiThemeConfig } from '#modula/shared/themes'
-import { normalizeFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { getSetting, normalizeFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 
 function text(fr: string, en: string): CmsLocalizedText {
   return { fr, en }
 }
 
-const templateAssetRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../public/site-templates')
+function resolveTemplateAssetRoot() {
+  const candidates = [
+    path.resolve(process.cwd(), 'public', 'site-templates'),
+    path.resolve(process.cwd(), '.output', 'public', 'site-templates')
+  ]
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
+  }
+
+  return candidates[0]
+}
+
+const templateAssetRoot = resolveTemplateAssetRoot()
 
 type TemplateImageAsset = {
   source: string
@@ -793,6 +808,13 @@ export function listSiteTemplates() {
   return CMS_SITE_TEMPLATES
 }
 
+export async function getCurrentSiteTemplateKey(): Promise<CmsSiteTemplateKey | null> {
+  const raw = await getSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY)
+  return raw && CMS_SITE_TEMPLATES.some(template => template.key === raw)
+    ? raw as CmsSiteTemplateKey
+    : null
+}
+
 function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiThemeConfig {
   if (templateKey === 'farm') {
     return {
@@ -976,6 +998,7 @@ export async function applySiteTemplate(templateKey: CmsSiteTemplateKey) {
       })
 
   await Promise.all([
+    setSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY, templateKey),
     setSetting(SETTING_KEYS.SHOP_ENABLED, templateFeatureFlags.shop.enabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, templateFeatureFlags.shop.basketsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SHOP_VEGETABLES_ENABLED, templateFeatureFlags.shop.vegetablesEnabled ? 'true' : 'false'),
