@@ -1,5 +1,52 @@
 <template>
   <div class="space-y-8" v-if="ready">
+    <div v-if="confirmModal" class="fixed inset-0 z-[1010] flex items-center justify-center bg-neutral/45 px-4">
+      <div class="w-full max-w-2xl rounded-[1.5rem] border border-base-300 bg-base-100 p-6 shadow-2xl">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-semibold">{{ confirmModal.title }}</h2>
+            <p class="mt-2 text-sm opacity-75">{{ confirmModal.description }}</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" @click="closeConfirmModal">{{ t('common.cancel') }}</button>
+        </div>
+
+        <div class="mt-5 rounded-xl border border-base-300 bg-base-200/50 p-4 text-sm">
+          <div class="flex flex-wrap gap-x-6 gap-y-2">
+            <div>
+              <div class="font-medium opacity-70">{{ t('admin.settingsUpdatesPage.currentVersion') }}</div>
+              <div>{{ status?.currentVersion || '-' }}</div>
+            </div>
+            <div>
+              <div class="font-medium opacity-70">{{ t('admin.settingsUpdatesPage.targetVersion') }}</div>
+              <div>{{ confirmModal.release.version }}</div>
+            </div>
+            <div>
+              <div class="font-medium opacity-70">{{ t('admin.settingsUpdatesPage.channel') }}</div>
+              <div>{{ confirmModal.release.channel }}</div>
+            </div>
+          </div>
+          <div v-if="confirmModal.warning" class="mt-4 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-warning-content">
+            {{ confirmModal.warning }}
+          </div>
+        </div>
+
+        <div class="mt-6 flex flex-wrap justify-end gap-3">
+          <button class="btn btn-ghost" @click="closeConfirmModal">{{ t('common.cancel') }}</button>
+          <button
+            v-for="action in confirmModal.actions"
+            :key="action.key"
+            class="btn"
+            :class="action.tone === 'warning' ? 'btn-warning' : action.tone === 'neutral' ? 'btn-outline' : 'btn-primary'"
+            :disabled="deploying || rollingBack"
+            @click="runConfirmAction(action.key)"
+          >
+            <span v-if="(deploying || rollingBack) && confirmActionInFlight === action.key" class="loading loading-spinner loading-xs" />
+            {{ action.label }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="updateOverlayVisible" class="fixed inset-0 z-[1000] flex items-center justify-center bg-base-100/95 backdrop-blur-sm m-0">
       <div class="mx-4 w-full max-w-xl rounded-[1.5rem] border border-base-300 bg-base-100 p-8 shadow-2xl">
         <div class="flex items-center gap-4">
@@ -84,13 +131,21 @@
           </thead>
           <tbody>
             <tr v-for="release in releases" :key="release.id">
-              <td>{{ release.version }}</td>
+              <td>
+                <div class="font-medium">{{ release.version }}</div>
+                <div class="mt-1 text-xs opacity-70">{{ releaseMeta(release).hint }}</div>
+              </td>
               <td>{{ release.channel }}</td>
               <td>{{ formatDate(release.createdAt) }}</td>
               <td>
-                <button class="btn btn-sm btn-primary" :disabled="deploying || !status?.agentReachable || activeJobRunning || release.version === status?.currentVersion" @click="deployRelease(release.version)">
-                  <span v-if="deploying" class="loading loading-spinner loading-xs" />
-                  {{ release.version === status?.currentVersion ? t('admin.settingsUpdatesPage.currentRelease') : t('admin.settingsUpdatesPage.deploy') }}
+                <button
+                  class="btn btn-sm"
+                  :class="releaseMeta(release).disabled ? 'btn-ghost' : 'btn-primary'"
+                  :disabled="deploying || rollingBack || !status?.agentReachable || activeJobRunning || releaseMeta(release).disabled"
+                  @click="openReleaseConfirm(release)"
+                >
+                  <span v-if="(deploying || rollingBack) && confirmActionInFlight && confirmModal?.release.id === release.id" class="loading loading-spinner loading-xs" />
+                  {{ releaseMeta(release).label }}
                 </button>
               </td>
             </tr>
@@ -170,6 +225,33 @@
 import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import type { CmsRegistryDeploymentJob, CmsRegistryPaginatedResult, CmsRegistryReleaseRecord, CmsRegistryRollbackCapabilities } from '#modula/shared/registry'
 
+type ReleaseActionKey = 'deploy' | 'rollback-fast' | 'rollback-full'
+
+type ReleaseActionDescriptor = {
+  key: ReleaseActionKey
+  label: string
+  tone: 'primary' | 'warning' | 'neutral'
+}
+
+type ReleaseMeta = {
+  kind: 'current' | 'upgrade' | 'rollback-choice' | 'rollback-fast' | 'rollback-full' | 'unavailable'
+  label: string
+  hint: string
+  disabled: boolean
+  reason: string | null
+  actions: ReleaseActionDescriptor[]
+  warning: string | null
+}
+
+type ConfirmModalState = {
+  release: CmsRegistryReleaseRecord
+  meta: ReleaseMeta
+  title: string
+  description: string
+  warning: string | null
+  actions: ReleaseActionDescriptor[]
+}
+
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
@@ -185,6 +267,8 @@ const deploying = ref(false)
 const rollingBack = ref(false)
 const reconnecting = ref(false)
 const overlayJob = ref<CmsRegistryDeploymentJob | null>(null)
+const confirmModal = ref<ConfirmModalState | null>(null)
+const confirmActionInFlight = ref<ReleaseActionKey | null>(null)
 const releases = ref<CmsRegistryReleaseRecord[]>([])
 const releasesPagination = reactive({
   total: 0,
@@ -309,6 +393,141 @@ const overlayMessage = computed(() => reconnecting.value
   ? t('admin.settingsUpdatesPage.overlayReconnect')
   : t('admin.settingsUpdatesPage.overlayDeploying'))
 
+const compareVersions = (left: string, right: string) => {
+  const leftParts = left.split('.').map(part => Number.parseInt(part, 10))
+  const rightParts = right.split('.').map(part => Number.parseInt(part, 10))
+  const length = Math.max(leftParts.length, rightParts.length)
+  for (let index = 0; index < length; index += 1) {
+    const leftValue = Number.isFinite(leftParts[index]) ? leftParts[index]! : 0
+    const rightValue = Number.isFinite(rightParts[index]) ? rightParts[index]! : 0
+    if (leftValue > rightValue) return 1
+    if (leftValue < rightValue) return -1
+  }
+  return left.localeCompare(right)
+}
+
+const releaseMeta = (release: CmsRegistryReleaseRecord): ReleaseMeta => {
+  const currentVersion = status.value?.currentVersion || null
+  const rollbackVersion = status.value?.rollbackVersion || null
+  const rollbackCapabilities = status.value?.rollbackCapabilities
+
+  if (release.version === currentVersion) {
+    return {
+      kind: 'current',
+      label: t('admin.settingsUpdatesPage.currentRelease'),
+      hint: t('admin.settingsUpdatesPage.currentReleaseHint'),
+      disabled: true,
+      reason: null,
+      actions: [],
+      warning: null
+    }
+  }
+
+  if (!currentVersion || compareVersions(release.version, currentVersion) > 0) {
+    return {
+      kind: 'upgrade',
+      label: t('admin.settingsUpdatesPage.deploy'),
+      hint: t('admin.settingsUpdatesPage.deployUpgradeHint'),
+      disabled: false,
+      reason: null,
+      actions: [
+        {
+          key: 'deploy',
+          label: t('admin.settingsUpdatesPage.confirmDeploy'),
+          tone: 'primary'
+        }
+      ],
+      warning: null
+    }
+  }
+
+  if (release.version !== rollbackVersion) {
+    return {
+      kind: 'unavailable',
+      label: t('admin.settingsUpdatesPage.deploy'),
+      hint: t('admin.settingsUpdatesPage.rollbackNeedsMatchingBackup'),
+      disabled: true,
+      reason: t('admin.settingsUpdatesPage.rollbackNeedsMatchingBackup'),
+      actions: [],
+      warning: null
+    }
+  }
+
+  const fastAvailable = Boolean(rollbackCapabilities?.fast?.available)
+  const fullAvailable = Boolean(rollbackCapabilities?.full?.available)
+  const fallbackReason = rollbackCapabilities?.full?.reason || rollbackCapabilities?.fast?.reason || t('admin.settingsUpdatesPage.rollbackUnavailable')
+  const fullWarning = rollbackCapabilities?.full?.warning || t('admin.settingsUpdatesPage.rollbackFullWarning')
+
+  if (!fastAvailable && !fullAvailable) {
+    return {
+      kind: 'unavailable',
+      label: t('admin.settingsUpdatesPage.deploy'),
+      hint: fallbackReason,
+      disabled: true,
+      reason: fallbackReason,
+      actions: [],
+      warning: null
+    }
+  }
+
+  if (fastAvailable && fullAvailable) {
+    return {
+      kind: 'rollback-choice',
+      label: t('admin.settingsUpdatesPage.deploy'),
+      hint: t('admin.settingsUpdatesPage.rollbackChoiceHint'),
+      disabled: false,
+      reason: null,
+      actions: [
+        {
+          key: 'rollback-fast',
+          label: t('admin.settingsUpdatesPage.confirmRollbackFast'),
+          tone: 'neutral'
+        },
+        {
+          key: 'rollback-full',
+          label: t('admin.settingsUpdatesPage.confirmRollbackFull'),
+          tone: 'warning'
+        }
+      ],
+      warning: fullWarning
+    }
+  }
+
+  if (fastAvailable) {
+    return {
+      kind: 'rollback-fast',
+      label: t('admin.settingsUpdatesPage.deploy'),
+      hint: t('admin.settingsUpdatesPage.rollbackFastOnlyHint'),
+      disabled: false,
+      reason: null,
+      actions: [
+        {
+          key: 'rollback-fast',
+          label: t('admin.settingsUpdatesPage.confirmRollbackFast'),
+          tone: 'primary'
+        }
+      ],
+      warning: null
+    }
+  }
+
+  return {
+    kind: 'rollback-full',
+    label: t('admin.settingsUpdatesPage.deploy'),
+    hint: t('admin.settingsUpdatesPage.rollbackFullOnlyHint'),
+    disabled: false,
+    reason: null,
+    actions: [
+      {
+        key: 'rollback-full',
+        label: t('admin.settingsUpdatesPage.confirmRollbackFull'),
+        tone: 'warning'
+      }
+    ],
+    warning: fullWarning
+  }
+}
+
 async function loadReleasesPage(offset = releasesPagination.offset) {
   const page = await apiFetch<CmsRegistryPaginatedResult<CmsRegistryReleaseRecord>>('/api/admin/updates/releases', {
     query: {
@@ -356,10 +575,6 @@ const deployRelease = async (version: string) => {
 }
 
 const rollbackRelease = async (mode: 'fast' | 'full') => {
-  if (mode === 'full' && import.meta.client) {
-    const confirmed = window.confirm(t('admin.settingsUpdatesPage.rollbackFullConfirm'))
-    if (!confirmed) return
-  }
   rollingBack.value = true
   try {
     const job = await apiFetch<CmsRegistryDeploymentJob>('/api/admin/updates/rollback', {
@@ -383,6 +598,48 @@ const rollbackRelease = async (mode: 'fast' | 'full') => {
     $toast?.error(error?.data?.message || t('admin.settingsUpdatesPage.rollbackError'))
   } finally {
     rollingBack.value = false
+  }
+}
+
+const openReleaseConfirm = (release: CmsRegistryReleaseRecord) => {
+  const meta = releaseMeta(release)
+  if (meta.disabled || !meta.actions.length) return
+
+  confirmModal.value = {
+    release,
+    meta,
+    title: meta.kind === 'upgrade'
+      ? t('admin.settingsUpdatesPage.confirmDeployTitle', { version: release.version })
+      : t('admin.settingsUpdatesPage.confirmRollbackTitle', { version: release.version }),
+    description: meta.kind === 'upgrade'
+      ? t('admin.settingsUpdatesPage.confirmDeployDescription', { current: status.value?.currentVersion || '-', target: release.version })
+      : t('admin.settingsUpdatesPage.confirmRollbackDescription', { current: status.value?.currentVersion || '-', target: release.version }),
+    warning: meta.warning,
+    actions: meta.actions
+  }
+}
+
+const closeConfirmModal = () => {
+  if (deploying.value || rollingBack.value) return
+  confirmModal.value = null
+  confirmActionInFlight.value = null
+}
+
+const runConfirmAction = async (action: ReleaseActionKey) => {
+  const modal = confirmModal.value
+  if (!modal) return
+  confirmActionInFlight.value = action
+  try {
+    if (action === 'deploy') {
+      await deployRelease(modal.release.version)
+    } else if (action === 'rollback-fast') {
+      await rollbackRelease('fast')
+    } else {
+      await rollbackRelease('full')
+    }
+    confirmModal.value = null
+  } finally {
+    confirmActionInFlight.value = null
   }
 }
 

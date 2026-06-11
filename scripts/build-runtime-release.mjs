@@ -34,7 +34,7 @@ await writeFile(manifestPath, JSON.stringify(releaseManifest, null, 2), 'utf8')
 await writeFile(distManifestPath, JSON.stringify(releaseManifest, null, 2), 'utf8')
 
 try {
-  const entries = ['.output', '.env.example', '.release-manifest.json', 'migrations']
+  const entries = ['.output', '.release-manifest.json', 'migrations']
   if (existsSync(path.join(cwd, updateScriptPath))) {
     entries.push(updateScriptPath)
   }

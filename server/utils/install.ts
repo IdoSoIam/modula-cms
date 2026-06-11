@@ -58,15 +58,17 @@ interface WritableProjectConfigOptions {
 const GENERATED_PROJECT_CONFIG_PATH = path.resolve(process.cwd(), 'cms.project.generated.ts')
 
 function getMigrationsDir(event?: H3Event): string {
+  const resolveMigrationsDir = (value: string) => path.isAbsolute(value) ? value : path.resolve(process.cwd(), value)
+
   if (event) {
     try {
       const config = useRuntimeConfig(event)
-      if (config.cmsMigrationsDir) return config.cmsMigrationsDir as string
+      if (config.cmsMigrationsDir) return resolveMigrationsDir(config.cmsMigrationsDir as string)
     } catch { /* fall through */ }
   }
   try {
     const config = useRuntimeConfig()
-    if (config.cmsMigrationsDir) return config.cmsMigrationsDir as string
+    if (config.cmsMigrationsDir) return resolveMigrationsDir(config.cmsMigrationsDir as string)
   } catch { /* fall through */ }
   return path.resolve(process.cwd(), 'migrations')
 }

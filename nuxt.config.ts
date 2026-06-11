@@ -180,7 +180,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    cmsMigrationsDir: process.env.CMS_MIGRATIONS_DIR?.trim() || 'migrations',
+    cmsMigrationsDir: path.resolve(process.cwd(), process.env.CMS_MIGRATIONS_DIR?.trim() || 'migrations'),
     ipx: {
       http: {
         domains: [

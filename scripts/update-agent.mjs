@@ -1,5 +1,5 @@
 import { createServer } from 'node:http'
-import { copyFile, cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { copyFile, cp, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
@@ -810,8 +810,33 @@ async function switchCurrent(version) {
   if (!existsSync(targetDir)) {
     throw new Error(`Release directory missing: ${targetDir}`)
   }
-  await rm(currentDir, { recursive: true, force: true })
-  await cp(targetDir, currentDir, { recursive: true })
+  await replaceDirectory(targetDir, currentDir)
+}
+
+async function replaceDirectory(sourceDir, destinationDir) {
+  const previousDir = `${destinationDir}.previous-swap`
+  await rm(previousDir, { recursive: true, force: true }).catch(() => {})
+  if (existsSync(destinationDir)) {
+    await renameWithRetry(destinationDir, previousDir)
+  }
+  await cp(sourceDir, destinationDir, { recursive: true })
+  await rm(previousDir, { recursive: true, force: true }).catch(() => {})
+}
+
+async function renameWithRetry(from, to, attempts = 8, delayMs = 350) {
+  let lastError = null
+  for (let index = 0; index < attempts; index += 1) {
+    try {
+      await rename(from, to)
+      return
+    } catch (error) {
+      lastError = error
+      if (index < attempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+  }
+  throw lastError
 }
 
 async function restoreVersion(jobs, job, version, startCommand, stopCommand, options = {}) {
