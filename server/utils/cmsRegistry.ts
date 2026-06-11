@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto'
 import { basename, extname } from 'node:path'
 import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import path from 'node:path'
 import { getCmsPageByPath, getCmsSiteSettings, listCmsNavigationItems, listCmsPages, saveCmsNavigationItems, saveCmsPage, saveCmsSiteSettings } from '#modula/server/utils/cms'
 import { getFeatureFlags } from '#modula/server/utils/settings'
 import { getDaisyUiThemeConfig, saveDaisyUiThemeConfig } from '#modula/server/utils/themes'
@@ -9,6 +11,8 @@ import type {
   CmsRegistryAssetReference,
   CmsRegistryDeploymentJob,
   CmsRegistryInstanceRecord,
+  CmsRegistryPaginatedResult,
+  CmsRegistryRollbackCapabilities,
   CmsRegistryReleaseRecord,
   CmsRegistryTemplateRecord,
   CmsRegistryTemplateSnapshot
@@ -36,9 +40,10 @@ export function isCmsRegistryConfigured() {
 }
 
 export function getCmsUpdateAgentConfig() {
+  const registry = getRegistryConfig()
   return {
-    url: process.env.CMS_UPDATE_AGENT_URL?.trim() || 'http://127.0.0.1:4401',
-    token: process.env.CMS_UPDATE_AGENT_TOKEN?.trim() || 'modula-local-agent'
+    url: 'http://127.0.0.1:4401',
+    token: registry.apiKey || registry.instanceSlug || 'modula-cms-local'
   }
 }
 
@@ -120,13 +125,29 @@ function collectStringUrls(value: unknown, collected = new Set<string>()) {
 
 async function readBundledAsset(url: string) {
   const filename = basename(url)
-  const sourcePath = new URL(`../../public${url}`, import.meta.url)
+  const sourcePath = resolveBundledAssetPath(url)
   const bytes = await readFile(sourcePath)
   return {
     filename,
     bytes: new Uint8Array(bytes),
     contentType: url.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream'
   }
+}
+
+function resolveBundledAssetPath(url: string) {
+  const normalized = url.replace(/^\//, '').replace(/\//g, path.sep)
+  const candidates = [
+    path.resolve(process.cwd(), 'public', normalized),
+    path.resolve(process.cwd(), '.output', 'public', normalized)
+  ]
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate
+    }
+  }
+
+  return candidates[0]
 }
 
 async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTemplateSnapshot, 'assetManifest'>) {
@@ -343,7 +364,25 @@ export async function applyRegistryTemplate(slug: string) {
 }
 
 export async function listRegistryReleases() {
-  return await registryFetch<CmsRegistryReleaseRecord[]>('/v1/releases')
+  return await listRegistryReleasesPage(10, 0)
+}
+
+export async function listRegistryReleasesPage(limit = 10, offset = 0) {
+  const query = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset)
+  })
+  return await registryFetch<CmsRegistryPaginatedResult<CmsRegistryReleaseRecord>>(`/v1/releases?${query.toString()}`)
+}
+
+export async function listRegistryDeployments(limit = 20, offset = 0) {
+  const config = getRegistryConfig()
+  const query = new URLSearchParams({
+    instanceSlug: config.instanceSlug,
+    limit: String(limit),
+    offset: String(offset)
+  })
+  return await registryFetch<CmsRegistryPaginatedResult<CmsRegistryDeploymentJob>>(`/v1/deployments?${query.toString()}`)
 }
 
 export async function registerRegistryInstance() {
@@ -366,19 +405,28 @@ async function updateAgentFetch<T>(path: string, options: RegistryFetchOptions =
     throw createError({
       statusCode: 503,
       statusMessage: 'CMS update agent unavailable',
-      message: 'L’agent de mise à jour n’est pas configuré.'
+      message: 'Le moteur local de mise à jour est indisponible sur cette instance.'
     })
   }
 
-  const response = await fetch(`${config.url.replace(/\/$/, '')}${path}`, {
-    method: options.method || 'GET',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${config.token}`,
-      ...options.headers
-    },
-    body: options.body == null ? undefined : JSON.stringify(options.body)
-  })
+  let response: Response
+  try {
+    response = await fetch(`${config.url.replace(/\/$/, '')}${path}`, {
+      method: options.method || 'GET',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${config.token}`,
+        ...options.headers
+      },
+      body: options.body == null ? undefined : JSON.stringify(options.body)
+    })
+  } catch {
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'CMS update agent unavailable',
+      message: 'Le moteur local de mise à jour est injoignable sur cette instance.'
+    })
+  }
 
   if (!response.ok) {
     const text = await response.text()
@@ -395,10 +443,21 @@ async function updateAgentFetch<T>(path: string, options: RegistryFetchOptions =
 export async function getUpdateAgentStatus() {
   return await updateAgentFetch<{
     currentVersion: string | null
+    rollbackVersion: string | null
     releaseChannel: string
     releases: CmsRegistryReleaseRecord[]
     jobs: CmsRegistryDeploymentJob[]
+    jobsPagination: CmsRegistryPaginatedResult<CmsRegistryDeploymentJob>
+    rollbackCapabilities: CmsRegistryRollbackCapabilities
   }>('/status')
+}
+
+export async function getUpdateAgentJobs(limit = 10, offset = 0) {
+  const query = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset)
+  })
+  return await updateAgentFetch<CmsRegistryPaginatedResult<CmsRegistryDeploymentJob>>(`/jobs?${query.toString()}`)
 }
 
 export async function triggerUpdateAgentDeployment(version: string) {
@@ -410,4 +469,11 @@ export async function triggerUpdateAgentDeployment(version: string) {
 
 export async function getUpdateAgentJob(jobId: string) {
   return await updateAgentFetch<CmsRegistryDeploymentJob>(`/jobs/${encodeURIComponent(jobId)}`)
+}
+
+export async function triggerUpdateAgentRollback(mode: 'fast' | 'full' = 'fast') {
+  return await updateAgentFetch<CmsRegistryDeploymentJob>('/rollback', {
+    method: 'POST',
+    body: { mode }
+  })
 }

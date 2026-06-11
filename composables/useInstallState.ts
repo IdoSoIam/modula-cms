@@ -6,9 +6,13 @@ interface CmsInstallState {
   runtimeCompatible: boolean
   runtimeIssue: string | null
   currentRuntimeTarget: 'cloudflare' | 'server'
+  detectedRuntimeTarget: 'cloudflare' | 'server'
+  configuredRuntimeTarget: 'cloudflare' | 'server'
   currentDbDriver: 'd1' | 'sqlite' | 'mysql' | 'postgres'
   currentStorageDriver: 'fs' | 'r2' | 's3'
   canBootstrapCurrentRuntime: boolean
+  cloudflareConfigDetected: boolean
+  canSelectCloudflareDrivers: boolean
   siteTemplates?: Array<{
     key: string
     label: { fr: string; en: string }

@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const user = await authService.setPasswordFromSetupToken(token, password)
-  const session = await useSession(event, getSessionConfig())
+  const session = await useSession(event, getSessionConfig(event))
   await session.clear()
   await session.update({ userId: user.id })
 

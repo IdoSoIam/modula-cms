@@ -86,7 +86,47 @@ export interface CmsRegistryDeploymentJob {
   createdAt: string
   updatedAt: string
   logs: CmsRegistryDeploymentLog[]
-  metadata?: Record<string, any> | null
+  metadata?: {
+    progressPercent?: number
+    currentStep?: string
+    rollbackVersion?: string | null
+    previousVersion?: string | null
+    restoredVersion?: string | null
+    rollbackStrategy?: 'fast' | 'full' | null
+    schemaCompatibleRollback?: boolean
+    databaseBackup?: {
+      path: string
+      createdAt: string
+      previousVersion: string | null
+      targetVersion: string | null
+    } | null
+    manifest?: Record<string, any>
+    currentDir?: string
+    releaseDir?: string
+    mode?: 'deploy' | 'rollback'
+    [key: string]: any
+  } | null
+}
+
+export interface CmsRegistryRollbackCapabilities {
+  fast: {
+    available: boolean
+    reason?: string | null
+  }
+  full: {
+    available: boolean
+    reason?: string | null
+    warning?: string | null
+    backupCreatedAt?: string | null
+  }
+}
+
+export interface CmsRegistryPaginatedResult<T> {
+  items: T[]
+  total: number
+  limit: number
+  offset: number
+  hasMore: boolean
 }
 
 export interface CmsRegistryInstanceRecord {

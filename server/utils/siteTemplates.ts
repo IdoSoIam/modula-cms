@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import fs from 'node:fs'
 import cmsProjectConfig from '#modula/cms.project.config'
 import { prisma } from '#modula/prisma/client'
 import type {
@@ -44,7 +44,22 @@ function text(fr: string, en: string): CmsLocalizedText {
   return { fr, en }
 }
 
-const templateAssetRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../public/site-templates')
+function resolveTemplateAssetRoot() {
+  const candidates = [
+    path.resolve(process.cwd(), 'public', 'site-templates'),
+    path.resolve(process.cwd(), '.output', 'public', 'site-templates')
+  ]
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
+  }
+
+  return candidates[0]
+}
+
+const templateAssetRoot = resolveTemplateAssetRoot()
 
 type TemplateImageAsset = {
   source: string

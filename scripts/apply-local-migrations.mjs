@@ -54,13 +54,66 @@ try {
         return tableExists('Image') && !columnExists('Image', 'data')
       case '0003_add_cms_foundations.sql':
         return tableExists('CmsPage') && tableExists('CmsNavigationItem')
+      case '0004_add_cms_page_specialrole.sql':
+        return tableExists('CmsPage') && columnExists('CmsPage', 'specialRole')
+      case '0005_add_image_variants_and_usages.sql':
+        return tableExists('ImageVariant') && tableExists('ImageUsage')
+      case '0006_add_roles_and_events.sql':
+        return tableExists('Role') && tableExists('Event') && tableExists('RolePermission')
+      case '0007_add_member_roles_and_event_audience_split.sql':
+        return tableExists('MemberRole') && tableExists('UserMemberRole') && tableExists('EventAudienceMemberRole')
+      case '0008_add_event_recurrence_and_occurrences.sql':
+        return tableExists('EventOccurrence') && columnExists('Event', 'recurrenceType')
+      case '0009_add_password_setup_tokens.sql':
+        return tableExists('PasswordSetupToken')
+      case '0010_add_cms_update_jobs.sql':
+        return tableExists('cms_update_jobs') && tableExists('cms_update_job_logs')
       default:
         return false
     }
   }
 
+  const getMigrationAliases = (file) => {
+    switch (file) {
+      case '0007_add_member_roles_and_event_audience_split.sql':
+        return ['007_add_member_roles_and_event_audience_split.sql']
+      case '0008_add_event_recurrence_and_occurrences.sql':
+        return ['008_add_event_recurrence_and_occurrences.sql']
+      case '0009_add_password_setup_tokens.sql':
+        return ['009_add_password_setup_tokens.sql']
+      case '0010_add_cms_update_jobs.sql':
+        return ['010_add_cms_update_jobs.sql']
+      default:
+        return []
+    }
+  }
+
+  const reconcileMigrationAliases = () => {
+    const pairs = [
+      ['007_add_member_roles_and_event_audience_split.sql', '0007_add_member_roles_and_event_audience_split.sql'],
+      ['008_add_event_recurrence_and_occurrences.sql', '0008_add_event_recurrence_and_occurrences.sql'],
+      ['009_add_password_setup_tokens.sql', '0009_add_password_setup_tokens.sql'],
+      ['010_add_cms_update_jobs.sql', '0010_add_cms_update_jobs.sql']
+    ]
+
+    for (const [legacyName, canonicalName] of pairs) {
+      const row = db.prepare('SELECT 1 FROM "_local_migrations" WHERE name = ?').get(legacyName)
+      if (row) {
+        db.prepare('INSERT OR IGNORE INTO "_local_migrations" ("name") VALUES (?)').run(canonicalName)
+        db.prepare('DELETE FROM "_local_migrations" WHERE name = ?').run(legacyName)
+      }
+    }
+  }
+
+  reconcileMigrationAliases()
+
   for (const file of migrationFiles) {
-    if (appliedNames.has(file)) {
+    const aliases = getMigrationAliases(file)
+    const matchedAlias = aliases.find((alias) => appliedNames.has(alias))
+    if (appliedNames.has(file) || matchedAlias) {
+      if (matchedAlias && !appliedNames.has(file)) {
+        db.prepare('INSERT OR IGNORE INTO "_local_migrations" ("name") VALUES (?)').run(file)
+      }
       continue
     }
 

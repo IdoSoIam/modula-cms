@@ -172,10 +172,14 @@ export function normalizeCmsRuntimeTarget(value: string | undefined | null): Cms
   }
 }
 
+export function inferCmsRuntimeTargetFromDrivers(dbDriver: CmsDbDriver): CmsRuntimeTarget {
+  return dbDriver === 'd1' ? 'cloudflare' : 'server'
+}
+
 export function resolveCmsPlatformConfig(env: Record<string, string | undefined>, project: CmsProjectConfig): ResolvedCmsPlatformConfig {
   const dbDriver = normalizeCmsDbDriver(env.CMS_DB_DRIVER) || project.platform.dbDriver
   const storageDriver = normalizeCmsStorageDriver(env.CMS_STORAGE_DRIVER || env.IMAGE_STORAGE_DRIVER) || project.platform.storageDriver
-  const runtimeTarget = normalizeCmsRuntimeTarget(env.CMS_RUNTIME_TARGET) || project.platform.runtimeTarget || (dbDriver === 'd1' ? 'cloudflare' : 'server')
+  const runtimeTarget = normalizeCmsRuntimeTarget(env.CMS_RUNTIME_TARGET) || project.platform.runtimeTarget || inferCmsRuntimeTargetFromDrivers(dbDriver)
   const filesystemDir = (env.CMS_FILESYSTEM_STORAGE_DIR || env.IMAGE_FILESYSTEM_DIR || project.storage.filesystemDir || 'public/uploads').trim()
   const publicUploadsPath = (env.CMS_PUBLIC_UPLOADS_PATH || project.storage.publicUploadsPath || '/uploads').trim()
   const siteUrl = env.SITE_URL || project.site.publicUrl || '/'

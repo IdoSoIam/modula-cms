@@ -54,7 +54,7 @@
           <button
             class="btn"
             :disabled="updatingRemote || !selectedRemoteSlug"
-            @click="updateRemoteTemplate"
+            @onClick="() => updateRemoteTemplate(selectedRemoteSlug)"
           >
             <span v-if="updatingRemote" class="loading loading-spinner loading-xs" />
             {{ t('admin.settingsSiteTemplatePage.updateFromCurrentSite') }}
@@ -107,27 +107,27 @@
 
           <div v-else class="mt-4 space-y-4">
             <div class="grid gap-3 md:grid-cols-2">
-              <label class="form-control">
+              <label class="form-control flex flex-col">
                 <span class="label-text">{{ t('admin.settingsSiteTemplatePage.slug') }}</span>
                 <input v-model="remoteForm.slug" class="input input-bordered" type="text">
               </label>
-              <label class="form-control">
+              <label class="form-control flex flex-col">
                 <span class="label-text">{{ t('admin.settingsSiteTemplatePage.icon') }}</span>
                 <input v-model="remoteForm.icon" class="input input-bordered" type="text">
               </label>
-              <label class="form-control">
+              <label class="form-control flex flex-col">
                 <span class="label-text">{{ t('admin.settingsSiteTemplatePage.labelFr') }}</span>
                 <input v-model="remoteForm.label.fr" class="input input-bordered" type="text">
               </label>
-              <label class="form-control">
+              <label class="form-control flex flex-col">
                 <span class="label-text">{{ t('admin.settingsSiteTemplatePage.labelEn') }}</span>
                 <input v-model="remoteForm.label.en" class="input input-bordered" type="text">
               </label>
-              <label class="form-control md:col-span-2">
+              <label class="form-control flex flex-col md:col-span-2">
                 <span class="label-text">{{ t('admin.settingsSiteTemplatePage.descriptionFr') }}</span>
                 <textarea v-model="remoteForm.description.fr" class="textarea textarea-bordered" rows="2" />
               </label>
-              <label class="form-control md:col-span-2">
+              <label class="form-control flex flex-col md:col-span-2">
                 <span class="label-text">{{ t('admin.settingsSiteTemplatePage.descriptionEn') }}</span>
                 <textarea v-model="remoteForm.description.en" class="textarea textarea-bordered" rows="2" />
               </label>
@@ -230,12 +230,29 @@ interface SiteTemplatePageModel {
 
 const { t, locale } = useI18n()
 const { $toast } = useNuxtApp() as any
+const authHeaders = process.server ? useRequestHeaders(['cookie']) : undefined
 const applyingLocalTemplate = ref(false)
 const creatingRemote = ref(false)
 const updatingRemote = ref(false)
 const registering = ref(false)
 
+async function apiFetch<T>(url: string, options: Parameters<typeof $fetch<T>>[1] = {}) {
+  if (process.server) {
+    const requestFetch = useRequestFetch()
+    return await requestFetch<T>(url, {
+      ...options,
+      headers: {
+        ...(authHeaders || {}),
+        ...((options as any)?.headers || {})
+      }
+    })
+  }
+
+  return await $fetch<T>(url, options)
+}
+
 const { data } = await useFetch<SiteTemplatePageModel>('/api/admin/cms/site-shell', {
+  headers: authHeaders,
   transform: (value: any) => ({
     currentTemplateKey: value?.currentTemplateKey ?? null,
     siteTemplates: value?.siteTemplates ?? []
@@ -272,7 +289,7 @@ const selectedRemoteTemplate = computed(() =>
 )
 
 const loadRemoteTemplates = async () => {
-  const response = await $fetch<{ configured: boolean; templates: CmsRegistryTemplateRecord[] }>('/api/admin/registry/templates')
+  const response = await apiFetch<{ configured: boolean; templates: CmsRegistryTemplateRecord[] }>('/api/admin/registry/templates')
   registryConfigured.value = response.configured
   remoteTemplates.value = response.templates || []
   if (!selectedRemoteSlug.value && remoteTemplates.value[0]) {
@@ -302,7 +319,7 @@ const applySelectedLocalTemplate = async () => {
   if (!selectedLocalTemplateKey.value || selectedLocalTemplateKey.value === currentTemplateKey.value) return
   applyingLocalTemplate.value = true
   try {
-    const response = await $fetch<SiteTemplatePageModel>('/api/admin/cms/site-template', {
+    const response = await apiFetch<SiteTemplatePageModel>('/api/admin/cms/site-template', {
       method: 'POST',
       body: { templateKey: selectedLocalTemplateKey.value }
     })
@@ -320,7 +337,7 @@ const applySelectedLocalTemplate = async () => {
 const createRemoteTemplate = async () => {
   creatingRemote.value = true
   try {
-    await $fetch('/api/admin/registry/templates', {
+    await apiFetch('/api/admin/registry/templates', {
       method: 'POST',
       body: remoteForm
     })
@@ -338,7 +355,7 @@ const updateRemoteTemplate = async (slug = selectedRemoteSlug.value) => {
   if (!slug) return
   updatingRemote.value = true
   try {
-    await $fetch(`/api/admin/registry/templates/${encodeURIComponent(slug)}/version`, {
+    await apiFetch(`/api/admin/registry/templates/${encodeURIComponent(slug)}/version`, {
       method: 'POST',
       body: remoteForm
     })
@@ -354,7 +371,7 @@ const updateRemoteTemplate = async (slug = selectedRemoteSlug.value) => {
 
 const publishRemoteTemplate = async (slug: string, versionId: string) => {
   try {
-    await $fetch(`/api/admin/registry/templates/${encodeURIComponent(slug)}/publish`, {
+    await apiFetch(`/api/admin/registry/templates/${encodeURIComponent(slug)}/publish`, {
       method: 'POST',
       body: { versionId }
     })
@@ -368,7 +385,7 @@ const publishRemoteTemplate = async (slug: string, versionId: string) => {
 
 const applyRemoteTemplate = async (slug: string) => {
   try {
-    await $fetch(`/api/admin/registry/templates/${encodeURIComponent(slug)}/apply`, { method: 'POST' })
+    await apiFetch(`/api/admin/registry/templates/${encodeURIComponent(slug)}/apply`, { method: 'POST' })
     $toast?.success(t('admin.settingsSiteTemplatePage.remoteTemplateApplied'))
   } catch (error: any) {
     $toast?.error(error?.data?.message || t('admin.settingsSiteTemplatePage.remoteTemplateError'))
@@ -377,7 +394,7 @@ const applyRemoteTemplate = async (slug: string) => {
 
 const deleteRemote = async (slug: string) => {
   try {
-    await $fetch(`/api/admin/registry/templates/${encodeURIComponent(slug)}`, { method: 'DELETE' })
+    await apiFetch(`/api/admin/registry/templates/${encodeURIComponent(slug)}`, { method: 'DELETE' })
     await loadRemoteTemplates()
     if (selectedRemoteSlug.value === slug) {
       selectedRemoteSlug.value = remoteTemplates.value[0]?.slug || ''
@@ -391,7 +408,7 @@ const deleteRemote = async (slug: string) => {
 const registerInstance = async () => {
   registering.value = true
   try {
-    await $fetch('/api/admin/registry/register', { method: 'POST' })
+    await apiFetch('/api/admin/registry/register', { method: 'POST' })
     $toast?.success(t('admin.settingsSiteTemplatePage.instanceRegistered'))
   } catch (error: any) {
     $toast?.error(error?.data?.message || t('admin.settingsSiteTemplatePage.remoteTemplateError'))

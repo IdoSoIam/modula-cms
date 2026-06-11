@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const code = String(query.code ?? '')
   const state = String(query.state ?? '')
 
-  const session = await useSession(event, getSessionConfig())
+  const session = await useSession(event, getSessionConfig(event))
   const expected = (session.data as any).gmailOauthState
 
   if (!code || !state || state !== expected) {

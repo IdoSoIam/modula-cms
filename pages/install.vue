@@ -139,7 +139,7 @@
             <section class="space-y-4">
               <div class="flex items-center gap-3">
                 <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <Icon name="mdi:server" size="20" />
+                  <Icon name="mdi:database-cog-outline" size="20" />
                 </div>
                 <div>
                   <h2 class="text-xl font-bold">{{ t('install.platformSection') }}</h2>
@@ -147,18 +147,28 @@
                 </div>
               </div>
 
+              <div class="rounded-[1.75rem] border border-base-300 bg-base-200/70 p-4 text-sm text-base-content/75">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-semibold">{{ t('install.detectedRuntime') }}</span>
+                  <span class="badge badge-primary badge-soft">{{ detectedRuntimeLabel }}</span>
+                  <span v-if="installState?.cloudflareConfigDetected" class="badge badge-outline">wrangler.jsonc</span>
+                </div>
+                <p class="mt-2">{{ environmentHelpText }}</p>
+              </div>
+
               <div class="grid gap-4 md:grid-cols-2">
                 <button
                   type="button"
                   class="rounded-[1.75rem] border p-5 text-left transition"
-                  :class="form.runtimeTarget === 'server' ? 'border-primary bg-primary/10 shadow-sm' : 'border-base-300 bg-base-100'"
-                  @click="selectRuntime('server')"
+                  :class="form.dbDriver === 'sqlite' ? 'border-primary bg-primary/10 shadow-sm' : 'border-base-300 bg-base-100'"
+                  :disabled="installState?.detectedRuntimeTarget === 'cloudflare'"
+                  @click="selectDataStack('server')"
                 >
                   <div class="mb-2 flex items-center gap-2">
                     <Icon name="mdi:harddisk" size="18" />
-                    <span class="font-bold">{{ t('install.runtime.server') }}</span>
+                    <span class="font-bold">{{ t('install.stack.server') }}</span>
                   </div>
-                  <p class="text-sm text-base-content/65">{{ t('install.runtimeServerHelp') }}</p>
+                  <p class="text-sm text-base-content/65">{{ t('install.stackServerHelp') }}</p>
                   <div class="mt-3 flex flex-wrap gap-2 text-xs">
                     <span class="badge badge-outline">SQLite</span>
                     <span class="badge badge-outline">Filesystem</span>
@@ -168,14 +178,15 @@
                 <button
                   type="button"
                   class="rounded-[1.75rem] border p-5 text-left transition"
-                  :class="form.runtimeTarget === 'cloudflare' ? 'border-primary bg-primary/10 shadow-sm' : 'border-base-300 bg-base-100'"
-                  @click="selectRuntime('cloudflare')"
+                  :class="form.dbDriver === 'd1' ? 'border-primary bg-primary/10 shadow-sm' : 'border-base-300 bg-base-100'"
+                  :disabled="!installState?.canSelectCloudflareDrivers"
+                  @click="selectDataStack('cloudflare')"
                 >
                   <div class="mb-2 flex items-center gap-2">
                     <Icon name="mdi:cloud-outline" size="18" />
-                    <span class="font-bold">{{ t('install.runtime.cloudflare') }}</span>
+                    <span class="font-bold">{{ t('install.stack.cloudflare') }}</span>
                   </div>
-                  <p class="text-sm text-base-content/65">{{ t('install.runtimeCloudflareHelp') }}</p>
+                  <p class="text-sm text-base-content/65">{{ t('install.stackCloudflareHelp') }}</p>
                   <div class="mt-3 flex flex-wrap gap-2 text-xs">
                     <span class="badge badge-outline">D1</span>
                     <span class="badge badge-outline">R2</span>
@@ -260,8 +271,12 @@
             <h2 class="text-lg font-bold">{{ t('install.runtimeSummary') }}</h2>
             <div class="mt-4 space-y-3 text-sm">
               <div class="flex items-center justify-between gap-4 rounded-2xl bg-base-200 px-4 py-3">
+                <span class="text-base-content/70">{{ t('install.detectedRuntime') }}</span>
+                <span class="font-semibold">{{ detectedRuntimeLabel }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-4 rounded-2xl bg-base-200 px-4 py-3">
                 <span class="text-base-content/70">{{ t('install.currentRuntime') }}</span>
-                <span class="font-semibold">{{ currentRuntimeLabel }}</span>
+                <span class="font-semibold">{{ configuredRuntimeLabel }}</span>
               </div>
               <div class="flex items-center justify-between gap-4 rounded-2xl bg-base-200 px-4 py-3">
                 <span class="text-base-content/70">{{ t('install.currentDatabase') }}</span>
@@ -317,7 +332,6 @@ const form = reactive({
   taglineFr: '',
   taglineEn: '',
   defaultLocale: siteConfig.value?.project?.defaultLocale || 'fr' as 'fr' | 'en',
-  runtimeTarget: (installState?.currentRuntimeTarget === 'cloudflare' ? 'cloudflare' : 'server') as 'cloudflare' | 'server',
   dbDriver: (installState?.currentDbDriver === 'd1' ? 'd1' : 'sqlite') as 'd1' | 'sqlite',
   storageDriver: (installState?.currentStorageDriver === 'r2' ? 'r2' : 'fs') as 'r2' | 'fs',
   siteTemplate: (installState?.siteTemplates?.[0]?.key || 'modula-presentation') as string,
@@ -331,15 +345,26 @@ const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
-const currentRuntimeLabel = computed(() => installState?.currentRuntimeTarget === 'cloudflare'
+const detectedRuntimeLabel = computed(() => installState?.detectedRuntimeTarget === 'cloudflare'
+  ? t('install.runtime.cloudflare')
+  : t('install.runtime.server'))
+const configuredRuntimeLabel = computed(() => installState?.configuredRuntimeTarget === 'cloudflare'
   ? t('install.runtime.cloudflare')
   : t('install.runtime.server'))
 const currentStorageLabel = computed(() => installState?.currentStorageDriver === 'r2' ? 'R2' : 'Filesystem')
 const availableTemplates = computed(() => installState?.siteTemplates || [])
 const selectedTemplate = computed(() => availableTemplates.value.find(item => item.key === form.siteTemplate) || availableTemplates.value[0] || null)
+const environmentHelpText = computed(() => {
+  if (installState?.detectedRuntimeTarget === 'cloudflare') {
+    return t('install.detectedRuntimeCloudflareHelp')
+  }
+  if (installState?.cloudflareConfigDetected) {
+    return t('install.detectedRuntimeServerWithCloudflareHelp')
+  }
+  return t('install.detectedRuntimeServerHelp')
+})
 const needsRestartHint = computed(() =>
-  form.runtimeTarget !== installState?.currentRuntimeTarget
-  || form.dbDriver !== installState?.currentDbDriver
+  form.dbDriver !== installState?.currentDbDriver
   || form.storageDriver !== installState?.currentStorageDriver
 )
 
@@ -356,12 +381,13 @@ function setDefaultLocale(nextLocale: 'fr' | 'en') {
   setLocale(nextLocale)
 }
 
-function selectRuntime(nextRuntime: 'server' | 'cloudflare') {
-  form.runtimeTarget = nextRuntime
-  if (nextRuntime === 'cloudflare') {
+function selectDataStack(nextStack: 'server' | 'cloudflare') {
+  if (nextStack === 'cloudflare') {
+    if (!installState?.canSelectCloudflareDrivers) return
     form.dbDriver = 'd1'
     form.storageDriver = 'r2'
   } else {
+    if (installState?.detectedRuntimeTarget === 'cloudflare') return
     form.dbDriver = 'sqlite'
     form.storageDriver = 'fs'
   }

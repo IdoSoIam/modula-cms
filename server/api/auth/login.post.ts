@@ -33,7 +33,7 @@ export default defineEventHandler(async (event: H3Event) => {
       })
     }
 
-    const session = await useSession(event, getSessionConfig())
+    const session = await useSession(event, getSessionConfig(event))
     await session.clear()
     await session.update({
       userId: user.id

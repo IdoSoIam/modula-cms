@@ -13,10 +13,10 @@ import { resolveCmsPlatformConfig } from '../shared/platform'
 config()
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+  prisma: typeof PrismaClient | undefined
 }
 
-function createPrismaClient(): PrismaClient {
+function createPrismaClient(): any {
   const platformConfig = resolveCmsPlatformConfig(process.env, cmsProjectConfig)
 
   if (platformConfig.dbDriver === 'd1') {
@@ -45,7 +45,7 @@ function createPrismaClient(): PrismaClient {
   })
 }
 
-export function getPrismaClient(): PrismaClient {
+export function getPrismaClient(): any {
   if (!globalForPrisma.prisma) {
     globalForPrisma.prisma = createPrismaClient()
   }
@@ -53,7 +53,7 @@ export function getPrismaClient(): PrismaClient {
   return globalForPrisma.prisma
 }
 
-export const prisma = new Proxy({} as PrismaClient, {
+export const prisma = new Proxy({} as typeof PrismaClient, {
   get(_, prop: string | symbol) {
     const client = getPrismaClient()
     return (client as any)[prop]

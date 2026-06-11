@@ -13,6 +13,12 @@ function getFallbackPublicThemeConfig() {
   return FALLBACK_PUBLIC_THEME_CONFIG
 }
 
+function getCurrentDomTheme() {
+  if (!import.meta.client) return null
+  const value = document.documentElement.getAttribute('data-theme')
+  return value && value.trim() ? value.trim() : null
+}
+
 export const useTheme = () => {
   const siteConfig = useSiteConfigState()
   const fallbackConfig = getFallbackPublicThemeConfig()
@@ -21,11 +27,14 @@ export const useTheme = () => {
   const defaultDarkTheme = computed(() =>
     publicThemeConfig.value.allThemeNames.find((name) => name.includes('dark')) || defaultTheme.value
   )
-  const theme = useState<ThemeValue>('theme', () => defaultTheme.value)
+  const theme = useState<ThemeValue>('theme', () => getCurrentDomTheme() || defaultTheme.value)
 
   const setTheme = (value: ThemeValue) => {
     const allowedThemes = publicThemeConfig.value.allThemeNames
-    const nextTheme = allowedThemes.includes(value) ? value : defaultTheme.value
+    const domTheme = getCurrentDomTheme()
+    const nextTheme = allowedThemes.includes(value)
+      ? value
+      : (domTheme && allowedThemes.includes(domTheme) ? domTheme : defaultTheme.value)
     theme.value = nextTheme
     if (!import.meta.client) return
     document.documentElement.setAttribute('data-theme', nextTheme)
@@ -38,7 +47,7 @@ export const useTheme = () => {
 
   watch(defaultTheme, (value) => {
     if (!theme.value || !publicThemeConfig.value.allThemeNames.includes(theme.value)) {
-      theme.value = value
+      theme.value = getCurrentDomTheme() || value
     }
   }, { immediate: true })
 

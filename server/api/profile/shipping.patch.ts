@@ -6,7 +6,7 @@ const authService = new AuthService()
 
 export default defineEventHandler(async (event: H3Event) => {
   try {
-    const session = await useSession(event, getSessionConfig())
+    const session = await useSession(event, getSessionConfig(event))
     const userId = session.data.userId
 
     if (!userId) {
