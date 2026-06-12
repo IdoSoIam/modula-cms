@@ -1729,6 +1729,21 @@ export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPaylo
     return
   }
 
+  const currentRows = await prisma.cmsNavigationItem.findMany({
+    select: {
+      id: true,
+      labelsJson: true
+    }
+  })
+  const existingById = new Map(currentRows.map((row) => [row.id, row]))
+  const existingByNavigationKey = new Map<string, number>()
+  for (const row of currentRows) {
+    const labels = safeParseNavigationLabels(row.labelsJson)
+    const navigationItemKey = typeof labels?.navigationItemKey === 'string' ? labels.navigationItemKey.trim() : ''
+    if (navigationItemKey) {
+      existingByNavigationKey.set(navigationItemKey, row.id)
+    }
+  }
   const existingIds = new Set<number>()
 
   for (const [index, item] of items.entries()) {
@@ -1748,10 +1763,16 @@ export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPaylo
       position: item.position ?? index
     }
 
-    if (item.id) {
-      existingIds.add(item.id)
+    const matchingId = item.id && existingById.has(item.id)
+      ? item.id
+      : (item.navigationItemKey && existingByNavigationKey.has(item.navigationItemKey)
+          ? existingByNavigationKey.get(item.navigationItemKey)!
+          : null)
+
+    if (matchingId) {
+      existingIds.add(matchingId)
       await prisma.cmsNavigationItem.update({
-        where: { id: item.id },
+        where: { id: matchingId },
         data
       })
     } else {
@@ -1768,6 +1789,15 @@ export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPaylo
     await prisma.cmsNavigationItem.deleteMany({
       where: { id: { in: staleIds } }
     })
+  }
+}
+
+function safeParseNavigationLabels(value: string | null | undefined) {
+  if (!value) return null
+  try {
+    return JSON.parse(value) as Record<string, unknown>
+  } catch {
+    return null
   }
 }
 

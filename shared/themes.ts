@@ -340,9 +340,10 @@ export function getDefaultThemeName(config: DaisyUiThemeConfig) {
 
 export function buildPublicDaisyUiThemeConfig(config: DaisyUiThemeConfig): PublicDaisyUiThemeConfig {
   const enabledThemes = config.themes.filter((theme) => theme.enabled)
+  const defaultThemeName = getDefaultThemeName(config)
   return {
     enableThemeController: config.enableThemeController,
-    defaultTheme: getDefaultThemeName(config),
+    defaultTheme: defaultThemeName,
     themeSelectorThemes: enabledThemes
       .filter((theme) => theme.includeInThemeSelector)
       .map((theme) => ({
@@ -351,14 +352,14 @@ export function buildPublicDaisyUiThemeConfig(config: DaisyUiThemeConfig): Publi
         preview: theme.colors.base100
       })),
     allThemeNames: enabledThemes.map((theme) => theme.name),
-    generatedCss: enabledThemes.map((theme) => renderDaisyUiThemeCss(theme, config.enableThemeController)).join('\n\n')
+    generatedCss: enabledThemes.map((theme) => renderDaisyUiThemeCss(theme, config.enableThemeController, theme.name === defaultThemeName)).join('\n\n')
   }
 }
 
-export function renderDaisyUiThemeCss(theme: DaisyUiThemeDefinition, includeThemeControllerSelector: boolean) {
-  const selectors = [
-    `[data-theme="${theme.name}"]`
-  ]
+export function renderDaisyUiThemeCss(theme: DaisyUiThemeDefinition, includeThemeControllerSelector: boolean, includeRootSelector = false) {
+  const selectors = includeRootSelector
+    ? [':root', `[data-theme="${theme.name}"]`]
+    : [`[data-theme="${theme.name}"]`]
 
   if (includeThemeControllerSelector && theme.includeInThemeSelector) {
     selectors.unshift(`:root:has(input.theme-controller[value="${theme.name}"]:checked)`)

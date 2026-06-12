@@ -7,7 +7,9 @@
 <script setup lang="ts">
 import { buildPublicDaisyUiThemeConfig, createDefaultDaisyUiThemeConfig } from '#modula/shared/themes'
 
-const siteConfig = await useSiteConfig()
+const resolvedSiteConfig = await ensureSiteConfigState()
+const siteConfigState = useSiteConfigState()
+const siteConfig = computed(() => siteConfigState.value ?? resolvedSiteConfig ?? null)
 const inDevelopment = computed(() => siteConfig.value?.inDevelopment === true)
 const defaultLocale = computed(() => siteConfig.value?.project?.defaultLocale || 'fr')
 const faviconHref = computed(() => siteConfig.value?.cms?.settings.favicon.src || '/brand/modula-mark.svg')
@@ -23,10 +25,12 @@ const faviconType = computed(() => {
   return undefined
 })
 const fallbackThemeConfig = buildPublicDaisyUiThemeConfig(createDefaultDaisyUiThemeConfig())
-const themeConfig = computed(() => siteConfig.value?.themes ?? fallbackThemeConfig)
+const initialThemeConfig = resolvedSiteConfig?.themes ?? fallbackThemeConfig
+const initialDefaultLocale = resolvedSiteConfig?.project?.defaultLocale || 'fr'
+const themeConfig = computed(() => siteConfig.value?.themes ?? initialThemeConfig)
 const defaultThemeName = computed(() => themeConfig.value.defaultTheme || 'modula-studio')
 const validThemes = computed(() => themeConfig.value.allThemeNames?.length ? themeConfig.value.allThemeNames : ['modula-studio', 'modula-ocean', 'modula-noir', 'modula-sunset'])
-const generatedThemeCss = computed(() => themeConfig.value.generatedCss || fallbackThemeConfig.generatedCss)
+const generatedThemeCss = computed(() => themeConfig.value.generatedCss || initialThemeConfig.generatedCss || fallbackThemeConfig.generatedCss)
 const preferredThemeCookie = useCookie<string | null>('theme', {
   sameSite: 'lax',
   maxAge: 60 * 60 * 24 * 365
@@ -65,7 +69,8 @@ useHead(() => ({
   style: generatedThemeCss.value ? [
     {
       key: 'dynamic-daisyui-themes',
-      innerHTML: generatedThemeCss.value
+      innerHTML: generatedThemeCss.value,
+      tagPriority: 'critical'
     }
   ] : [],
   meta: inDevelopment.value ? [
@@ -83,9 +88,9 @@ useHead(() => ({
       key: 'theme-bootstrap',
       innerHTML: `
         (function() {
-          const DEFAULT_THEME = ${JSON.stringify(defaultThemeName.value)};
-          const VALID_THEMES = ${JSON.stringify(validThemes.value)};
-          const DEFAULT_LOCALE = ${JSON.stringify(defaultLocale.value)};
+          const DEFAULT_THEME = ${JSON.stringify(initialThemeConfig.defaultTheme || 'modula-studio')};
+          const VALID_THEMES = ${JSON.stringify(initialThemeConfig.allThemeNames?.length ? initialThemeConfig.allThemeNames : ['modula-studio', 'modula-ocean', 'modula-noir', 'modula-sunset'])};
+          const DEFAULT_LOCALE = ${JSON.stringify(initialDefaultLocale)};
           const VALID_LOCALES = ['fr', 'en'];
           const LOCALE_STORAGE_KEY = 'preferred-locale';
           try {
