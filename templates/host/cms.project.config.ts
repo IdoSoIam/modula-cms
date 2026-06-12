@@ -1,4 +1,3 @@
-import generatedCmsProjectConfig from './cms.project.generated'
 import { defineCmsProjectConfig, mergeCmsProjectConfig, parseCmsProjectConfigJson } from 'modula-cms/project-config'
 
 const baseConfig = defineCmsProjectConfig({
@@ -50,8 +49,5 @@ const baseConfig = defineCmsProjectConfig({
 const envCmsProjectConfig = parseCmsProjectConfigJson(process.env.CMS_PROJECT_CONFIG_JSON)
 
 export default defineCmsProjectConfig(
-  mergeCmsProjectConfig(
-    mergeCmsProjectConfig(baseConfig, generatedCmsProjectConfig),
-    envCmsProjectConfig
-  )
+  mergeCmsProjectConfig(baseConfig, envCmsProjectConfig)
 )

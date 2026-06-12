@@ -6,194 +6,47 @@
 @source "../../error.vue";
 
 @plugin "daisyui" {
-  themes: ferme, ferme-dark, prairie, recolte --default, lavande;
+  themes: modula-studio --default, modula-ocean, modula-noir --prefersdark, modula-sunset;
 }
 
-/* ============================================================
-   Champ ensoleillé — thème par défaut, paille + vert prairie
-   ============================================================ */
 @plugin "daisyui/theme" {
-  name: "ferme";
-  default: false;
-  prefersdark: false;
-  color-scheme: light;
-
-  --color-base-100: #fbf6ec;
-  --color-base-200: #f3ead4;
-  --color-base-300: #e6d8b4;
-  --color-base-content: #3e3325;
-
-  --color-primary: #5a7d3a;
-  --color-primary-content: #fbf6ec;
-
-  --color-secondary: #b07a2a;
-  --color-secondary-content: #fbf6ec;
-
-  --color-accent: #c94f2c;
-  --color-accent-content: #fbf6ec;
-
-  --color-neutral: #6b5a44;
-  --color-neutral-content: #f3ead4;
-
-  --color-info: #6b8caf;
-  --color-info-content: #fbf6ec;
-
-  --color-success: #6f8f3d;
-  --color-success-content: #fbf6ec;
-
-  --color-warning: #d99b2c;
-  --color-warning-content: #3e3325;
-
-  --color-error: #b54a2a;
-  --color-error-content: #fbf6ec;
-
-  --radius-selector: 0.425rem;
-  --radius-field: 0.425rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
-  --border: 1px;
-  --depth: 1;
-  --noise: 0;
-}
-
-/* ============================================================
-   Nuit à l'étable — dark, terre nocturne + lampe à huile
-   ============================================================ */
-@plugin "daisyui/theme" {
-  name: "ferme-dark";
-  default: false;
-  prefersdark: true;
-  color-scheme: dark;
-
-  --color-base-100: #221c14;
-  --color-base-200: #2d251a;
-  --color-base-300: #3a2f22;
-  --color-base-content: #f3ead4;
-
-  --color-primary: #8fae68;
-  --color-primary-content: #1a160f;
-
-  --color-secondary: #d8a155;
-  --color-secondary-content: #1a160f;
-
-  --color-accent: #d97447;
-  --color-accent-content: #1a160f;
-
-  --color-neutral: #4a3e2c;
-  --color-neutral-content: #d9cba9;
-
-  --color-info: #94b3cf;
-  --color-info-content: #1a160f;
-
-  --color-success: #9bbd66;
-  --color-success-content: #1a160f;
-
-  --color-warning: #e0b15a;
-  --color-warning-content: #1a160f;
-
-  --color-error: #d96a52;
-  --color-error-content: #1a160f;
-
-  --radius-selector: 0.425rem;
-  --radius-field: 0.425rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
-  --border: 1px;
-  --depth: 1;
-  --noise: 0;
-}
-
-/* ============================================================
-   Prairie — vert dominant, herbe fraîche
-   ============================================================ */
-@plugin "daisyui/theme" {
-  name: "prairie";
-  default: false;
-  prefersdark: false;
-  color-scheme: light;
-
-  --color-base-100: #f4f7ec;
-  --color-base-200: #e8eed7;
-  --color-base-300: #d6e0bb;
-  --color-base-content: #2e3a1f;
-
-  --color-primary: #4a7a32;
-  --color-primary-content: #f4f7ec;
-
-  --color-secondary: #8fb04a;
-  --color-secondary-content: #2e3a1f;
-
-  --color-accent: #d9b96b;
-  --color-accent-content: #2e3a1f;
-
-  --color-neutral: #5d6b3f;
-  --color-neutral-content: #f4f7ec;
-
-  --color-info: #7fa07a;
-  --color-info-content: #f4f7ec;
-
-  --color-success: #6a994e;
-  --color-success-content: #f4f7ec;
-
-  --color-warning: #c9a94a;
-  --color-warning-content: #2e3a1f;
-
-  --color-error: #b54a2a;
-  --color-error-content: #f4f7ec;
-
-  --radius-selector: 0.425rem;
-  --radius-field: 0.425rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
-  --border: 1px;
-  --depth: 1;
-  --noise: 0;
-}
-
-/* ============================================================
-   Récolte — automne, citrouille / châtaigne / maïs
-   ============================================================ */
-@plugin "daisyui/theme" {
-  name: "recolte";
+  name: "modula-studio";
   default: true;
   prefersdark: false;
   color-scheme: light;
 
-  --color-base-100: #fbf1e0;
-  --color-base-200: #f4e0c0;
-  --color-base-300: #e8c89a;
-  --color-base-content: #3e2918;
+  --color-base-100: #f7f7fc;
+  --color-base-200: #ebeaf6;
+  --color-base-300: #ddd9ed;
+  --color-base-content: #1e2236;
 
-  --color-primary: #b04a1e;
-  --color-primary-content: #fbf1e0;
+  --color-primary: #4b56d2;
+  --color-primary-content: #f3f5ff;
 
-  --color-secondary: #8a5a2b;
-  --color-secondary-content: #fbf1e0;
+  --color-secondary: #0f8b8d;
+  --color-secondary-content: #e7ffff;
 
-  --color-accent: #d99423;
-  --color-accent-content: #3e2918;
+  --color-accent: #ff8c4b;
+  --color-accent-content: #2f1504;
 
-  --color-neutral: #6e4a2a;
-  --color-neutral-content: #fbf1e0;
+  --color-neutral: #394062;
+  --color-neutral-content: #e8ecff;
 
-  --color-info: #8a7250;
-  --color-info-content: #fbf1e0;
+  --color-info: #3b82f6;
+  --color-info-content: #edf5ff;
 
-  --color-success: #7a8a3a;
-  --color-success-content: #fbf1e0;
+  --color-success: #2f9e66;
+  --color-success-content: #edfff5;
 
-  --color-warning: #d9a233;
-  --color-warning-content: #3e2918;
+  --color-warning: #d48a2f;
+  --color-warning-content: #311b06;
 
-  --color-error: #a83817;
-  --color-error-content: #fbf1e0;
+  --color-error: #cc3f4b;
+  --color-error-content: #ffedf1;
 
-  --radius-selector: 0.425rem;
-  --radius-field: 0.425rem;
-  --radius-box: 0.5rem;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1.1rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
@@ -201,47 +54,134 @@
   --noise: 0;
 }
 
-/* ============================================================
-   Lavande — Provence, lavande + paille
-   ============================================================ */
 @plugin "daisyui/theme" {
-  name: "lavande";
+  name: "modula-ocean";
   default: false;
   prefersdark: false;
   color-scheme: light;
 
-  --color-base-100: #f6f2f8;
-  --color-base-200: #ebe2ee;
-  --color-base-300: #d8c8de;
-  --color-base-content: #3a2e44;
+  --color-base-100: #eef7fb;
+  --color-base-200: #dff0f8;
+  --color-base-300: #c6e3f0;
+  --color-base-content: #153447;
 
-  --color-primary: #7a5da8;
-  --color-primary-content: #f6f2f8;
+  --color-primary: #1f7ca0;
+  --color-primary-content: #e8f8ff;
 
-  --color-secondary: #b3996b;
-  --color-secondary-content: #f6f2f8;
+  --color-secondary: #2f67c9;
+  --color-secondary-content: #ecf2ff;
 
-  --color-accent: #d99b8a;
-  --color-accent-content: #3a2e44;
+  --color-accent: #ec8d3c;
+  --color-accent-content: #2f1705;
 
-  --color-neutral: #5e4a6e;
-  --color-neutral-content: #f6f2f8;
+  --color-neutral: #27506a;
+  --color-neutral-content: #e7f6ff;
 
-  --color-info: #8aa3c9;
-  --color-info-content: #f6f2f8;
+  --color-info: #2f7fd3;
+  --color-info-content: #edf6ff;
 
-  --color-success: #7a9a6a;
-  --color-success-content: #f6f2f8;
+  --color-success: #2f9e75;
+  --color-success-content: #edfff8;
 
-  --color-warning: #d4a85c;
-  --color-warning-content: #3a2e44;
+  --color-warning: #d09b2f;
+  --color-warning-content: #312106;
 
-  --color-error: #b9534a;
-  --color-error-content: #f6f2f8;
+  --color-error: #c34b4b;
+  --color-error-content: #ffefef;
 
-  --radius-selector: 0.425rem;
-  --radius-field: 0.425rem;
-  --radius-box: 0.5rem;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1.1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "modula-noir";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: #151823;
+  --color-base-200: #1d2330;
+  --color-base-300: #283043;
+  --color-base-content: #e9ecff;
+
+  --color-primary: #6d7dff;
+  --color-primary-content: #0f1224;
+
+  --color-secondary: #3ec3c5;
+  --color-secondary-content: #082020;
+
+  --color-accent: #ff9f63;
+  --color-accent-content: #281306;
+
+  --color-neutral: #394463;
+  --color-neutral-content: #e4eaff;
+
+  --color-info: #62a9ff;
+  --color-info-content: #081325;
+
+  --color-success: #62c18d;
+  --color-success-content: #081e13;
+
+  --color-warning: #f1b35b;
+  --color-warning-content: #2b1807;
+
+  --color-error: #f57b84;
+  --color-error-content: #28070d;
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1.1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "modula-sunset";
+  default: false;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #fff6f1;
+  --color-base-200: #ffe8dc;
+  --color-base-300: #ffd6c2;
+  --color-base-content: #43231b;
+
+  --color-primary: #cf5b3d;
+  --color-primary-content: #fff0ea;
+
+  --color-secondary: #7f4fc3;
+  --color-secondary-content: #f4efff;
+
+  --color-accent: #e29f38;
+  --color-accent-content: #3a2507;
+
+  --color-neutral: #614032;
+  --color-neutral-content: #ffefe7;
+
+  --color-info: #3f86c8;
+  --color-info-content: #eff7ff;
+
+  --color-success: #4f9a64;
+  --color-success-content: #f1fff5;
+
+  --color-warning: #d0892f;
+  --color-warning-content: #2f1c06;
+
+  --color-error: #c34842;
+  --color-error-content: #ffefee;
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1.1rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;

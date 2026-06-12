@@ -1,102 +1,125 @@
 import type { CmsLocalizedText } from '#modula/shared/cms'
 
-export const CMS_SITE_TEMPLATE_KEYS = ['modula-presentation', 'farm', 'association'] as const
+export const FALLBACK_SITE_TEMPLATE_KEY = 'modula-presentation'
+export const CMS_SITE_TEMPLATE_KEYS = [FALLBACK_SITE_TEMPLATE_KEY] as const
+export const BUNDLED_SYSTEM_SITE_TEMPLATE_KEYS = ['modula-presentation', 'farm', 'association'] as const
 
-export type CmsSiteTemplateKey = typeof CMS_SITE_TEMPLATE_KEYS[number]
+export type CmsSiteTemplateKey = string
+export type BundledSystemSiteTemplateKey = typeof BUNDLED_SYSTEM_SITE_TEMPLATE_KEYS[number]
 
 export interface CmsSiteTemplateDefinition {
-  key: CmsSiteTemplateKey
+  key: string
   label: CmsLocalizedText
   description: CmsLocalizedText
   icon: string
   previewImage: string
   highlights: CmsLocalizedText[]
   themeNames: string[]
+  sourceType?: 'system' | 'custom' | 'fallback'
 }
 
-export const CMS_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
+export const FALLBACK_SITE_TEMPLATE: CmsSiteTemplateDefinition = {
+  key: FALLBACK_SITE_TEMPLATE_KEY,
+  label: {
+    fr: 'Modula CMS simple',
+    en: 'Simple Modula CMS'
+  },
+  description: {
+    fr: 'Fallback local minimal quand aucun modèle distant n’est disponible.',
+    en: 'Minimal local fallback when no remote template is available.'
+  },
+  icon: 'mdi:view-dashboard-outline',
+  previewImage: '/site-templates/preview-modula.svg',
+  highlights: [
+    {
+      fr: 'Socle simple, neutre et immédiatement installable.',
+      en: 'Simple, neutral and immediately installable baseline.'
+    }
+  ],
+  themeNames: ['Modula Studio'],
+  sourceType: 'fallback'
+}
+
+export const BUNDLED_SYSTEM_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
   {
     key: 'modula-presentation',
     label: {
-      fr: 'Présentation Modula CMS',
-      en: 'Modula CMS showcase'
+      fr: 'Modula CMS simple',
+      en: 'Simple Modula CMS'
     },
     description: {
-      fr: 'Un site vitrine générique pour présenter le CMS, ses pages et ses modules.',
-      en: 'A generic showcase website to present the CMS, its pages and its modules.'
+      fr: 'Vitrine CMS polyvalente avec pages éditoriales, événements et planning.',
+      en: 'Versatile CMS showcase with editorial pages, events and planning.'
     },
     icon: 'mdi:view-dashboard-outline',
     previewImage: '/site-templates/preview-modula.svg',
     highlights: [
       {
-        fr: 'Présentation visuelle des templates, des modules et du live edit.',
-        en: 'Visual presentation of templates, modules and live edit.'
+        fr: 'Base neutre et claire pour présenter un projet, une activité ou un service.',
+        en: 'Clear and neutral baseline for showcasing a project, activity or service.'
       },
       {
-        fr: 'Thèmes premium dédiés à la vitrine CMS.',
-        en: 'Premium themes dedicated to the CMS showcase.'
+        fr: 'Navigation, contenus et thèmes pensés pour servir de socle générique.',
+        en: 'Navigation, content and themes designed as a generic foundation.'
       }
     ],
-    themeNames: ['Modula Studio', 'Modula Ocean', 'Modula Noir', 'Modula Sunset']
+    themeNames: ['Modula Studio', 'Modula Ocean', 'Modula Noir', 'Modula Sunset'],
+    sourceType: 'system'
   },
   {
     key: 'farm',
     label: {
-      fr: 'Ferme / production locale',
-      en: 'Farm / local production'
+      fr: 'Template ferme',
+      en: 'Farm template'
     },
     description: {
-      fr: 'Met l\'accent sur les paniers, les actualités, les visites et la vente directe.',
-      en: 'Focuses on baskets, news, visits and direct sales.'
+      fr: 'Présente paniers, actualités de la ferme, vente directe et événements saisonniers.',
+      en: 'Showcases baskets, farm news, direct sales and seasonal events.'
     },
-    icon: 'mdi:sprout-outline',
+    icon: 'mdi:tractor-variant',
     previewImage: '/site-templates/preview-farm.svg',
     highlights: [
       {
-        fr: 'Parcours orienté vente directe et saisonnalité.',
-        en: 'Flow focused on direct sales and seasonality.'
+        fr: 'Pensé pour une ferme locale avec paniers, récoltes et rendez-vous publics.',
+        en: 'Designed for a local farm with baskets, harvest updates and public activities.'
       },
       {
-        fr: 'Bloc contact prêt à l\'emploi avec infos de ferme.',
-        en: 'Ready-to-use contact block with farm details.'
-      },
-      {
-        fr: 'Charte champêtre claire et chaleureuse.',
-        en: 'Warm, field-inspired visual identity.'
+        fr: 'Active les fonctionnalités boutique et la communication terrain.',
+        en: 'Enables shop features and field-oriented communication.'
       }
     ],
-    themeNames: ['Recolte', 'Champ ensoleillé', 'Nuit à l\'étable']
+    themeNames: ['Harvest'],
+    sourceType: 'system'
   },
   {
     key: 'association',
     label: {
-      fr: 'Association / collectif',
-      en: 'Association / collective'
+      fr: 'Template association',
+      en: 'Association template'
     },
     description: {
-      fr: 'Met l\'accent sur les permanences, les événements et l\'engagement bénévole.',
-      en: 'Focuses on volunteer shifts, events and community participation.'
+      fr: 'Orienté planning, événements publics et mobilisation bénévole.',
+      en: 'Focused on planning, public events and volunteer coordination.'
     },
     icon: 'mdi:account-group-outline',
     previewImage: '/site-templates/preview-association.svg',
     highlights: [
       {
-        fr: 'Planning central pour permanences et participation.',
-        en: 'Central planning for shifts and participation.'
+        fr: 'Met l’accent sur le planning, les permanences et la vie collective.',
+        en: 'Emphasizes planning, volunteer shifts and community life.'
       },
       {
-        fr: 'Séparation claire entre communication publique et interne.',
-        en: 'Clear separation between public and internal communication.'
-      },
-      {
-        fr: 'Thème collectif contrasté et lisible.',
-        en: 'Contrasted and readable collective theme.'
+        fr: 'Active les rôles associatifs et une structure adaptée aux événements.',
+        en: 'Enables association roles and an event-oriented structure.'
       }
     ],
-    themeNames: ['Collective Day', 'Collective Night']
+    themeNames: ['Collective Day'],
+    sourceType: 'system'
   }
 ]
 
+export const CMS_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [FALLBACK_SITE_TEMPLATE]
+
 export function isCmsSiteTemplateKey(value: unknown): value is CmsSiteTemplateKey {
-  return typeof value === 'string' && (CMS_SITE_TEMPLATE_KEYS as readonly string[]).includes(value)
+  return typeof value === 'string' && value.trim().length > 0
 }

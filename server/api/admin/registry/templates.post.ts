@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { createRegistryTemplate } from '#modula/server/utils/cmsRegistry'
+import { canManageSystemRegistryTemplates, createRegistryTemplate } from '#modula/server/utils/cmsRegistry'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -12,10 +12,16 @@ export default defineEventHandler(async (event) => {
     previewImage?: string
     highlights?: Array<{ fr?: string, en?: string }>
     themeNames?: string[]
+    scope?: 'custom' | 'system'
   }>(event)
 
   if (!body?.slug?.trim()) {
     throw createError({ statusCode: 400, statusMessage: 'Template slug required' })
+  }
+
+  const scope = body?.scope === 'system' ? 'system' : 'custom'
+  if (scope === 'system' && !canManageSystemRegistryTemplates()) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden', message: 'Cette instance ne peut pas modifier les modèles système.' })
   }
 
   return await createRegistryTemplate({
@@ -34,5 +40,5 @@ export default defineEventHandler(async (event) => {
       ? body.highlights.map(item => ({ fr: item?.fr?.trim() || '', en: item?.en?.trim() || '' }))
       : [],
     themeNames: Array.isArray(body.themeNames) ? body.themeNames.map(item => String(item).trim()).filter(Boolean) : []
-  })
+  }, scope)
 })

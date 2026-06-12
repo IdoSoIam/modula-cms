@@ -86,6 +86,17 @@
       </article>
     </section>
 
+    <section v-if="!status?.updatesEnabled" class="rounded-box border border-warning/30 bg-warning/10 p-6">
+      <h2 class="text-xl font-semibold">{{ t('admin.settingsUpdatesPage.updatesDisabledTitle') }}</h2>
+      <p class="mt-2 text-sm opacity-80">{{ updatesDisabledMessage }}</p>
+      <ul class="mt-4 space-y-2 text-sm opacity-80">
+        <li>{{ t('admin.settingsUpdatesPage.manualUpdateStepPull') }}</li>
+        <li>{{ t('admin.settingsUpdatesPage.manualUpdateStepInstall') }}</li>
+        <li>{{ t('admin.settingsUpdatesPage.manualUpdateStepMigrate') }}</li>
+        <li>{{ t('admin.settingsUpdatesPage.manualUpdateStepRestart') }}</li>
+      </ul>
+    </section>
+
     <section v-if="activeJob" class="rounded-box border border-base-300 bg-base-100 p-6">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -141,7 +152,7 @@
                 <button
                   class="btn btn-sm"
                   :class="releaseMeta(release).disabled ? 'btn-ghost' : 'btn-primary'"
-                  :disabled="deploying || rollingBack || !status?.agentReachable || activeJobRunning || releaseMeta(release).disabled"
+                  :disabled="deploying || rollingBack || !status?.updatesEnabled || !status?.agentReachable || activeJobRunning || releaseMeta(release).disabled"
                   @click="openReleaseConfirm(release)"
                 >
                   <span v-if="(deploying || rollingBack) && confirmActionInFlight && confirmModal?.release.id === release.id" class="loading loading-spinner loading-xs" />
@@ -167,11 +178,11 @@
           <button class="btn btn-ghost btn-sm" :disabled="!jobsPagination.hasMore" @click="changeJobsPage(1)">
             {{ t('admin.settingsUpdatesPage.nextPage') }}
           </button>
-          <button class="btn btn-outline btn-sm" :disabled="rollingBack || !status?.agentReachable || !status?.rollbackCapabilities?.fast?.available || activeJobRunning" @click="rollbackRelease('fast')">
+          <button class="btn btn-outline btn-sm" :disabled="rollingBack || !status?.updatesEnabled || !status?.agentReachable || !status?.rollbackCapabilities?.fast?.available || activeJobRunning" @click="rollbackRelease('fast')">
             <span v-if="rollingBack" class="loading loading-spinner loading-xs" />
             {{ t('admin.settingsUpdatesPage.rollbackFast') }}
           </button>
-          <button class="btn btn-outline btn-sm" :disabled="rollingBack || !status?.agentReachable || !status?.rollbackCapabilities?.full?.available || activeJobRunning" @click="rollbackRelease('full')">
+          <button class="btn btn-outline btn-sm" :disabled="rollingBack || !status?.updatesEnabled || !status?.agentReachable || !status?.rollbackCapabilities?.full?.available || activeJobRunning" @click="rollbackRelease('full')">
             <span v-if="rollingBack" class="loading loading-spinner loading-xs" />
             {{ t('admin.settingsUpdatesPage.rollbackFull') }}
           </button>
@@ -215,6 +226,56 @@
         <div v-if="!jobs.length" class="text-sm opacity-70">
           {{ t('admin.settingsUpdatesPage.noJobs') }}
         </div>
+      </div>
+    </section>
+
+    <section class="rounded-box border border-base-300 bg-base-100 p-6">
+      <h2 class="text-xl font-semibold">{{ t('admin.settingsUpdatesPage.systemInfoTitle') }}</h2>
+      <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.runtimeTarget') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.runtimeTarget || '-' }}</div>
+        </article>
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.appVersion') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.appVersion || '-' }}</div>
+        </article>
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.nodeVersion') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.nodeVersion || '-' }}</div>
+        </article>
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.npmVersion') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.npmVersion || '-' }}</div>
+        </article>
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.nuxtVersion') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.nuxtVersion || '-' }}</div>
+        </article>
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.nitroVersion') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.nitroVersion || '-' }}</div>
+        </article>
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.osVersion') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.platform || '-' }}</div>
+        </article>
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.architecture') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.architecture || '-' }}</div>
+        </article>
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.hostname') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.hostname || '-' }}</div>
+        </article>
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.freeMemoryMb') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.freeMemoryMb ?? '-' }}</div>
+        </article>
+        <article class="rounded-xl bg-base-200/60 p-4">
+          <div class="text-sm opacity-70">{{ t('admin.settingsUpdatesPage.totalMemoryMb') }}</div>
+          <div class="mt-1 font-medium">{{ status?.systemInfo?.totalMemoryMb ?? '-' }}</div>
+        </article>
       </div>
     </section>
 
@@ -287,6 +348,8 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
 let reconnectTimer: ReturnType<typeof setInterval> | null = null
 const status = ref<{
   configured: boolean
+  updatesEnabled: boolean
+  updatesDisabledReason: string | null
   agentReachable: boolean
   currentVersion: string | null
   rollbackVersion: string | null
@@ -296,6 +359,19 @@ const status = ref<{
   jobs: CmsRegistryDeploymentJob[]
   jobsPagination: CmsRegistryPaginatedResult<CmsRegistryDeploymentJob>
   rollbackCapabilities: CmsRegistryRollbackCapabilities
+  systemInfo: {
+    appVersion: string | null
+    runtimeTarget: string | null
+    nodeVersion: string | null
+    npmVersion: string | null
+    nuxtVersion: string | null
+    nitroVersion: string | null
+    platform: string | null
+    architecture: string | null
+    hostname: string | null
+    totalMemoryMb: number | null
+    freeMemoryMb: number | null
+  }
 } | null>(null)
 
 async function apiFetch<T>(url: string, options: Parameters<typeof $fetch<T>>[1] = {}) {
@@ -392,6 +468,12 @@ const overlayStep = computed(() => {
 const overlayMessage = computed(() => reconnecting.value
   ? t('admin.settingsUpdatesPage.overlayReconnect')
   : t('admin.settingsUpdatesPage.overlayDeploying'))
+const updatesDisabledMessage = computed(() => {
+  if (status.value?.updatesDisabledReason === 'cloudflare') {
+    return t('admin.settingsUpdatesPage.updatesDisabledCloudflare')
+  }
+  return t('admin.settingsUpdatesPage.updatesDisabledDevelopment')
+})
 
 const compareVersions = (left: string, right: string) => {
   const leftParts = left.split('.').map(part => Number.parseInt(part, 10))
@@ -428,7 +510,7 @@ const releaseMeta = (release: CmsRegistryReleaseRecord): ReleaseMeta => {
       kind: 'upgrade',
       label: t('admin.settingsUpdatesPage.deploy'),
       hint: t('admin.settingsUpdatesPage.deployUpgradeHint'),
-      disabled: false,
+      disabled: !status.value?.updatesEnabled,
       reason: null,
       actions: [
         {
@@ -475,7 +557,7 @@ const releaseMeta = (release: CmsRegistryReleaseRecord): ReleaseMeta => {
       kind: 'rollback-choice',
       label: t('admin.settingsUpdatesPage.deploy'),
       hint: t('admin.settingsUpdatesPage.rollbackChoiceHint'),
-      disabled: false,
+      disabled: !status.value?.updatesEnabled,
       reason: null,
       actions: [
         {
@@ -498,7 +580,7 @@ const releaseMeta = (release: CmsRegistryReleaseRecord): ReleaseMeta => {
       kind: 'rollback-fast',
       label: t('admin.settingsUpdatesPage.deploy'),
       hint: t('admin.settingsUpdatesPage.rollbackFastOnlyHint'),
-      disabled: false,
+      disabled: !status.value?.updatesEnabled,
       reason: null,
       actions: [
         {
@@ -515,7 +597,7 @@ const releaseMeta = (release: CmsRegistryReleaseRecord): ReleaseMeta => {
     kind: 'rollback-full',
     label: t('admin.settingsUpdatesPage.deploy'),
     hint: t('admin.settingsUpdatesPage.rollbackFullOnlyHint'),
-    disabled: false,
+    disabled: !status.value?.updatesEnabled,
     reason: null,
     actions: [
       {

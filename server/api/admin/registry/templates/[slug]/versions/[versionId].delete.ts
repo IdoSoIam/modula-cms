@@ -1,12 +1,14 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { canManageSystemRegistryTemplates, deleteRegistryTemplate } from '#modula/server/utils/cmsRegistry'
+import { canManageSystemRegistryTemplates, deleteRegistryTemplateVersion } from '#modula/server/utils/cmsRegistry'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const slug = getRouterParam(event, 'slug')
+  const versionId = getRouterParam(event, 'versionId')
   const query = getQuery(event)
-  if (!slug) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing template slug' })
+
+  if (!slug || !versionId) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing template version parameters' })
   }
 
   const scope = query.scope === 'system' ? 'system' : 'custom'
@@ -14,5 +16,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden', message: 'Cette instance ne peut pas modifier les modèles système.' })
   }
 
-  return await deleteRegistryTemplate(slug, scope)
+  return await deleteRegistryTemplateVersion(slug, versionId, scope)
 })

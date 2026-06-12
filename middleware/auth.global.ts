@@ -25,7 +25,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   try {
     if (tryUseNuxtApp()) {
       const installState = await ensureInstallState()
-      const requiresInitialInstall = installState && !installState.installed && !installState.generatedConfigExists
+      const requiresInitialInstall = installState && !installState.installed
       if (requiresInitialInstall) {
         const isAllowed = installAllowedRoutes.some(route => normalizedPath === route || normalizedPath.startsWith(`${route}/`))
         if (!isAllowed) {

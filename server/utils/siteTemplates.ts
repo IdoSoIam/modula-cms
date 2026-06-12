@@ -33,7 +33,13 @@ import {
   type PageBuilderCard,
   type PageBuilderContent
 } from '#modula/shared/pageBuilder'
-import { CMS_SITE_TEMPLATES, type CmsSiteTemplateKey } from '#modula/shared/siteTemplates'
+import type { CmsRegistryTemplateSnapshot } from '#modula/shared/registry'
+import {
+  FALLBACK_SITE_TEMPLATE_KEY,
+  type BundledSystemSiteTemplateKey,
+  type CmsSiteTemplateKey
+} from '#modula/shared/siteTemplates'
+import { applyRegistryTemplate, exportTemplateAssets, listMergedSiteTemplates } from '#modula/server/utils/cmsRegistry'
 import { ensureCmsRootPage, ensureCmsSystemPages, getCmsPageByPath, getCmsSiteSettings, saveCmsNavigationItems, saveCmsPage, saveCmsSiteSettings } from '#modula/server/utils/cms'
 import { putUploadObject } from '#modula/server/utils/uploadStorage'
 import { saveDaisyUiThemeConfig } from '#modula/server/utils/themes'
@@ -86,6 +92,12 @@ const TEMPLATE_IMAGE_ASSETS: Record<CmsSiteTemplateKey, TemplateImageAsset[]> = 
     { source: 'preview-association.svg', filename: 'template-preview-association.svg', mimeType: 'image/svg+xml', width: 1200, height: 760 }
   ]
 }
+
+const TEMPLATE_UPLOAD_TO_BUNDLED_URL = Object.fromEntries(
+  Object.values(TEMPLATE_IMAGE_ASSETS)
+    .flat()
+    .map((asset) => [getUploadUrl(asset.filename), `/site-templates/${asset.source}`])
+) as Record<string, string>
 
 function getUploadUrl(filename: string) {
   return `/uploads/${filename}`
@@ -804,15 +816,13 @@ function createPagePayload(path: string, slug: string, titleFr: string, titleEn:
   }
 }
 
-export function listSiteTemplates() {
-  return CMS_SITE_TEMPLATES
+export async function listSiteTemplates(): Promise<CmsSiteTemplateDefinition[]> {
+  return await listMergedSiteTemplates()
 }
 
 export async function getCurrentSiteTemplateKey(): Promise<CmsSiteTemplateKey | null> {
   const raw = await getSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY)
-  return raw && CMS_SITE_TEMPLATES.some(template => template.key === raw)
-    ? raw as CmsSiteTemplateKey
-    : null
+  return raw?.trim() || null
 }
 
 function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiThemeConfig {
@@ -947,27 +957,8 @@ function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiTheme
   }
 }
 
-export async function applySiteTemplate(templateKey: CmsSiteTemplateKey) {
-  await ensureCmsRootPage()
-  await ensureCmsSystemPages()
-  await ensureTemplateAssets(templateKey)
-
-  const currentSettings = await getCmsSiteSettings()
-  const nextSettings = buildTemplateSettings(templateKey, currentSettings)
-  await saveCmsSiteSettings({
-    ...currentSettings,
-    ...nextSettings,
-    cookieBanner: currentSettings.cookieBanner as CmsCookieBannerSettings
-  })
-
-  const siteName = currentSettings.siteName.fr || cmsProjectConfig.seed.defaultSiteName.fr
-  const siteNameEn = currentSettings.siteName.en || cmsProjectConfig.seed.defaultSiteName.en
-  await savePageByPath('/', createPagePayload('/', 'home', 'Accueil', 'Home', buildTemplateHomePage(templateKey, text(siteName, siteNameEn))))
-  await savePageByPath('/contact', createPagePayload('/contact', 'contact', 'Contact', 'Contact', buildTemplateContactPage(templateKey)))
-  await saveCmsNavigationItems(templateNavigation(templateKey))
-  await saveDaisyUiThemeConfig(buildTemplateThemeConfig(templateKey))
-
-  const templateFeatureFlags = normalizeFeatureFlags(templateKey === 'farm'
+function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
+  return normalizeFeatureFlags(templateKey === 'farm'
     ? {
       inDevelopment: false,
       registerEnabled: false,
@@ -996,6 +987,80 @@ export async function applySiteTemplate(templateKey: CmsSiteTemplateKey) {
         eventsEnabled: false,
         newsEnabled: false
       })
+}
+
+function replaceTemplateUploadUrlsWithBundledUrls<T>(value: T): T {
+  if (typeof value === 'string') {
+    return (TEMPLATE_UPLOAD_TO_BUNDLED_URL[value] || value) as T
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceTemplateUploadUrlsWithBundledUrls(item)) as T
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, replaceTemplateUploadUrlsWithBundledUrls(item)])
+    ) as T
+  }
+  return value
+}
+
+export async function buildBundledSystemTemplateSnapshot(templateKey: BundledSystemSiteTemplateKey): Promise<CmsRegistryTemplateSnapshot> {
+  const baseSettings = createDefaultCmsSiteSettings()
+  baseSettings.siteName = {
+    fr: cmsProjectConfig.seed.defaultSiteName.fr,
+    en: cmsProjectConfig.seed.defaultSiteName.en
+  }
+  baseSettings.siteTagline = {
+    fr: cmsProjectConfig.seed.defaultSiteTagline.fr,
+    en: cmsProjectConfig.seed.defaultSiteTagline.en
+  }
+
+  const nextSettings = buildTemplateSettings(templateKey, baseSettings)
+  const siteNameFr = nextSettings.siteName.fr || cmsProjectConfig.seed.defaultSiteName.fr
+  const siteNameEn = nextSettings.siteName.en || cmsProjectConfig.seed.defaultSiteName.en
+  const partialSnapshot = replaceTemplateUploadUrlsWithBundledUrls({
+    siteSettings: {
+      ...baseSettings,
+      ...nextSettings,
+      cookieBanner: baseSettings.cookieBanner as CmsCookieBannerSettings
+    },
+    navigation: templateNavigation(templateKey),
+    pages: [
+      createPagePayload('/', 'home', 'Accueil', 'Home', buildTemplateHomePage(templateKey, text(siteNameFr, siteNameEn))),
+      createPagePayload('/contact', 'contact', 'Contact', 'Contact', buildTemplateContactPage(templateKey))
+    ],
+    themeConfig: buildTemplateThemeConfig(templateKey),
+    featureFlags: buildTemplateFeatureFlags(templateKey)
+  })
+
+  const assetManifest = await exportTemplateAssets(partialSnapshot)
+  return {
+    ...partialSnapshot,
+    assetManifest
+  }
+}
+
+export async function applyBundledSiteTemplate(templateKey: BundledSystemSiteTemplateKey) {
+  await ensureCmsRootPage()
+  await ensureCmsSystemPages()
+  await ensureTemplateAssets(templateKey)
+
+  const currentSettings = await getCmsSiteSettings()
+  const nextSettings = buildTemplateSettings(templateKey, currentSettings)
+  await saveCmsSiteSettings({
+    ...currentSettings,
+    ...nextSettings,
+    cookieBanner: currentSettings.cookieBanner as CmsCookieBannerSettings
+  })
+
+  const siteName = currentSettings.siteName.fr || cmsProjectConfig.seed.defaultSiteName.fr
+  const siteNameEn = currentSettings.siteName.en || cmsProjectConfig.seed.defaultSiteName.en
+  await savePageByPath('/', createPagePayload('/', 'home', 'Accueil', 'Home', buildTemplateHomePage(templateKey, text(siteName, siteNameEn))))
+  await savePageByPath('/contact', createPagePayload('/contact', 'contact', 'Contact', 'Contact', buildTemplateContactPage(templateKey)))
+  await saveCmsNavigationItems(templateNavigation(templateKey))
+  await saveDaisyUiThemeConfig(buildTemplateThemeConfig(templateKey))
+
+  const templateFeatureFlags = buildTemplateFeatureFlags(templateKey)
 
   await Promise.all([
     setSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY, templateKey),
@@ -1007,4 +1072,13 @@ export async function applySiteTemplate(templateKey: CmsSiteTemplateKey) {
     setSetting(SETTING_KEYS.NEWS_ENABLED, templateFeatureFlags.newsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED, 'true')
   ])
+}
+
+export async function applySiteTemplate(templateKey: CmsSiteTemplateKey) {
+  if (templateKey !== FALLBACK_SITE_TEMPLATE_KEY) {
+    await applyRegistryTemplate(templateKey)
+    await setSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY, templateKey)
+    return
+  }
+  await applyBundledSiteTemplate(templateKey)
 }

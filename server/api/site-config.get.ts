@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
 
   const installStatus = await getCmsInstallStatus()
-  const installRequired = !installStatus.installed && !installStatus.generatedConfigExists
+  const installRequired = !installStatus.installed
 
   if (!installStatus.databaseReady || !installStatus.installed) {
     return {
