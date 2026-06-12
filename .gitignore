@@ -21,6 +21,7 @@ logs
 .fleet
 .idea
 .wrangler
+wrangler.jsonc
 worker-configuration.d.ts
 
 # Local env files
