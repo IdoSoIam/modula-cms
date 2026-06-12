@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { getCmsPageByPath, getCmsSiteSettings, listCmsNavigationItems, listCmsPages, saveCmsNavigationItems, saveCmsPage, saveCmsSiteSettings } from '#modula/server/utils/cms'
-import { getFeatureFlags } from '#modula/server/utils/settings'
+import { getFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { getDaisyUiThemeConfig, saveDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import { getUploadObject, putUploadObject } from '#modula/server/utils/uploadStorage'
 import type {
@@ -17,7 +17,8 @@ import type {
   CmsRegistryTemplateRecord,
   CmsRegistryTemplateSnapshot
 } from '#modula/shared/registry'
-import type { CmsPagePayload } from '#modula/shared/cms'
+import type { CmsLocalizedText, CmsPagePayload } from '#modula/shared/cms'
+import { FALLBACK_SITE_TEMPLATE, type CmsSiteTemplateDefinition } from '#modula/shared/siteTemplates'
 
 type RegistryFetchOptions = {
   method?: string
@@ -25,18 +26,38 @@ type RegistryFetchOptions = {
   headers?: Record<string, string>
 }
 
-function getRegistryConfig() {
+type RegistryScope = 'custom' | 'system'
+
+function getRegistryConfig(scope: RegistryScope = 'custom') {
+  const customUrl = process.env.CMS_REGISTRY_URL?.trim() || ''
+  const customApiKey = process.env.CMS_REGISTRY_API_KEY?.trim() || ''
+  const customInstanceSlug = process.env.CMS_INSTANCE_SLUG?.trim() || ''
+  const systemUrl = process.env.CMS_SYSTEM_TEMPLATES_REGISTRY_URL?.trim() || customUrl
+  const systemApiKey = process.env.CMS_SYSTEM_TEMPLATES_REGISTRY_API_KEY?.trim() || customApiKey
+  const systemInstanceSlug = process.env.CMS_SYSTEM_TEMPLATES_INSTANCE_SLUG?.trim() || customInstanceSlug
+
+  const current = scope === 'system'
+    ? { url: systemUrl, apiKey: systemApiKey, instanceSlug: systemInstanceSlug }
+    : { url: customUrl, apiKey: customApiKey, instanceSlug: customInstanceSlug }
+
   return {
-    url: process.env.CMS_REGISTRY_URL?.trim() || '',
-    apiKey: process.env.CMS_REGISTRY_API_KEY?.trim() || '',
-    instanceSlug: process.env.CMS_INSTANCE_SLUG?.trim() || '',
+    ...current,
     releaseChannel: process.env.CMS_RELEASE_CHANNEL?.trim() || 'stable'
   }
 }
 
 export function isCmsRegistryConfigured() {
-  const config = getRegistryConfig()
+  const config = getRegistryConfig('custom')
   return Boolean(config.url && config.apiKey && config.instanceSlug)
+}
+
+export function isCmsSystemTemplatesRegistryConfigured() {
+  const config = getRegistryConfig('system')
+  return Boolean(config.url && config.apiKey)
+}
+
+export function canManageSystemRegistryTemplates() {
+  return process.env.CMS_CAN_MANAGE_SYSTEM_TEMPLATES === 'true'
 }
 
 export function getCmsUpdateAgentConfig() {
@@ -51,8 +72,8 @@ export function isCmsUpdateAgentConfigured() {
   return isCmsRegistryConfigured()
 }
 
-async function registryFetch<T>(path: string, options: RegistryFetchOptions = {}): Promise<T> {
-  const config = getRegistryConfig()
+async function registryFetch<T>(path: string, options: RegistryFetchOptions = {}, scope: RegistryScope = 'custom'): Promise<T> {
+  const config = getRegistryConfig(scope)
   if (!config.url || !config.apiKey) {
     throw createError({
       statusCode: 503,
@@ -150,7 +171,7 @@ function resolveBundledAssetPath(url: string) {
   return candidates[0]
 }
 
-async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTemplateSnapshot, 'assetManifest'>) {
+export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTemplateSnapshot, 'assetManifest'>) {
   const urls = [...collectStringUrls(snapshotSource)]
   const manifest: CmsRegistryAssetReference[] = []
 
@@ -289,14 +310,101 @@ export async function importTemplateSnapshot(snapshot: CmsRegistryTemplateSnapsh
     const existing = await getCmsPageByPath(page.path)
     await saveCmsPage(existing?.id ?? null, page)
   }
+  await Promise.all([
+    setSetting(SETTING_KEYS.IN_DEVELOPMENT, prepared.featureFlags.inDevelopment ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.REGISTER_ENABLED, prepared.featureFlags.registerEnabled ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.SUBSCRIPTIONS_ENABLED, prepared.featureFlags.subscriptionsEnabled ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.SHOP_ENABLED, prepared.featureFlags.shop.enabled ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, prepared.featureFlags.shop.basketsEnabled ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.SHOP_VEGETABLES_ENABLED, prepared.featureFlags.shop.vegetablesEnabled ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, prepared.featureFlags.associationRolesEnabled ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.EVENTS_ENABLED, prepared.featureFlags.eventsEnabled ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.NEWS_ENABLED, prepared.featureFlags.newsEnabled ? 'true' : 'false')
+  ])
 }
 
 export async function listRegistryTemplates() {
   return await registryFetch<CmsRegistryTemplateRecord[]>('/v1/templates')
 }
 
-export async function getRegistryTemplate(slug: string) {
-  return await registryFetch<CmsRegistryTemplateRecord>(`/v1/templates/${encodeURIComponent(slug)}`)
+export async function listSystemRegistryTemplates() {
+  return await registryFetch<CmsRegistryTemplateRecord[]>('/v1/templates', {}, 'system')
+}
+
+export async function listManagedRegistryTemplates(): Promise<CmsRegistryTemplateRecord[]> {
+  const customConfig = getRegistryConfig('custom')
+  const systemConfig = getRegistryConfig('system')
+
+  if (!customConfig.url) {
+    return isCmsSystemTemplatesRegistryConfigured() ? await listSystemRegistryTemplates() : []
+  }
+
+  if (
+    customConfig.url
+    && systemConfig.url
+    && customConfig.url === systemConfig.url
+    && customConfig.apiKey === systemConfig.apiKey
+  ) {
+    return await listRegistryTemplates()
+  }
+
+  const [systemTemplates, customTemplates] = await Promise.all([
+    isCmsSystemTemplatesRegistryConfigured() ? listSystemRegistryTemplates().catch(() => []) : Promise.resolve([]),
+    isCmsRegistryConfigured() ? listRegistryTemplates().catch(() => []) : Promise.resolve([])
+  ])
+
+  const merged = new Map<string, CmsRegistryTemplateRecord>()
+  for (const template of systemTemplates) merged.set(template.slug, template)
+  for (const template of customTemplates) merged.set(template.slug, template)
+  return [...merged.values()].filter(template => !template.deletedAt)
+}
+
+export async function listMergedSiteTemplates(): Promise<CmsSiteTemplateDefinition[]> {
+  const fallback = [FALLBACK_SITE_TEMPLATE]
+  try {
+    const customConfig = getRegistryConfig('custom')
+    const systemConfig = getRegistryConfig('system')
+
+    let records: CmsRegistryTemplateRecord[] = []
+    if (
+      customConfig.url
+      && systemConfig.url
+      && customConfig.url === systemConfig.url
+      && customConfig.apiKey === systemConfig.apiKey
+    ) {
+      records = await listRegistryTemplates()
+    } else {
+      const [systemTemplates, customTemplates] = await Promise.all([
+        isCmsSystemTemplatesRegistryConfigured() ? listSystemRegistryTemplates().catch(() => []) : Promise.resolve([]),
+        isCmsRegistryConfigured() ? listRegistryTemplates().catch(() => []) : Promise.resolve([])
+      ])
+      const merged = new Map<string, CmsRegistryTemplateRecord>()
+      for (const template of systemTemplates) merged.set(template.slug, template)
+      for (const template of customTemplates) merged.set(template.slug, template)
+      records = [...merged.values()]
+    }
+
+    const publishedTemplates = records
+      .filter(template => !template.deletedAt && template.currentVersionId)
+      .map((template) => ({
+        key: template.slug,
+        label: template.label,
+        description: template.description,
+        icon: template.icon,
+        previewImage: template.previewImage || FALLBACK_SITE_TEMPLATE.previewImage,
+        highlights: template.highlights || [],
+        themeNames: template.themeNames || [],
+        sourceType: template.sourceType
+      } satisfies CmsSiteTemplateDefinition))
+
+    return publishedTemplates.length ? publishedTemplates : fallback
+  } catch {
+    return fallback
+  }
+}
+
+export async function getRegistryTemplate(slug: string, scope: RegistryScope = 'custom') {
+  return await registryFetch<CmsRegistryTemplateRecord>(`/v1/templates/${encodeURIComponent(slug)}`, {}, scope)
 }
 
 export async function createRegistryTemplate(input: {
@@ -307,15 +415,28 @@ export async function createRegistryTemplate(input: {
   previewImage?: string
   highlights?: CmsLocalizedText[]
   themeNames?: string[]
-}) {
+}, scope: RegistryScope = 'custom') {
   const snapshot = await exportCurrentTemplateSnapshot()
+  return await createRegistryTemplateFromSnapshot(input, snapshot, scope)
+}
+
+export async function createRegistryTemplateFromSnapshot(input: {
+  slug: string
+  label: CmsLocalizedText
+  description: CmsLocalizedText
+  icon: string
+  previewImage?: string
+  highlights?: CmsLocalizedText[]
+  themeNames?: string[]
+}, snapshot: CmsRegistryTemplateSnapshot, scope: RegistryScope = 'custom') {
   return await registryFetch<CmsRegistryTemplateRecord>('/v1/templates', {
     method: 'POST',
     body: {
       ...input,
+      sourceType: scope === 'system' ? 'system' : 'custom',
       snapshot
     }
-  })
+  }, scope)
 }
 
 export async function updateRegistryTemplate(slug: string, input: {
@@ -325,31 +446,66 @@ export async function updateRegistryTemplate(slug: string, input: {
   previewImage?: string
   highlights?: CmsLocalizedText[]
   themeNames?: string[]
-}) {
+}, scope: RegistryScope = 'custom') {
   const snapshot = await exportCurrentTemplateSnapshot()
+  return await updateRegistryTemplateFromSnapshot(slug, input, snapshot, scope)
+}
+
+export async function updateRegistryTemplateFromSnapshot(slug: string, input: {
+  label?: CmsLocalizedText
+  description?: CmsLocalizedText
+  icon?: string
+  previewImage?: string
+  highlights?: CmsLocalizedText[]
+  themeNames?: string[]
+}, snapshot: CmsRegistryTemplateSnapshot, scope: RegistryScope = 'custom') {
   return await registryFetch<CmsRegistryTemplateRecord>(`/v1/templates/${encodeURIComponent(slug)}/versions`, {
     method: 'POST',
     body: {
       ...input,
       snapshot
     }
-  })
+  }, scope)
 }
 
-export async function publishRegistryTemplateVersion(slug: string, versionId: string) {
+export async function publishRegistryTemplateVersion(slug: string, versionId: string, scope: RegistryScope = 'custom') {
   return await registryFetch<CmsRegistryTemplateRecord>(`/v1/templates/${encodeURIComponent(slug)}/publish/${encodeURIComponent(versionId)}`, {
     method: 'POST'
-  })
+  }, scope)
 }
 
-export async function deleteRegistryTemplate(slug: string) {
+export async function deleteRegistryTemplateVersion(slug: string, versionId: string, scope: RegistryScope = 'custom') {
+  return await registryFetch<CmsRegistryTemplateRecord>(`/v1/templates/${encodeURIComponent(slug)}/versions/${encodeURIComponent(versionId)}`, {
+    method: 'DELETE'
+  }, scope)
+}
+
+export async function deleteRegistryTemplate(slug: string, scope: RegistryScope = 'custom') {
   return await registryFetch<{ ok: true }>(`/v1/templates/${encodeURIComponent(slug)}`, {
     method: 'DELETE'
-  })
+  }, scope)
 }
 
 export async function applyRegistryTemplate(slug: string) {
-  const template = await getRegistryTemplate(slug)
+  let template: CmsRegistryTemplateRecord | null = null
+  try {
+    template = await getRegistryTemplate(slug, 'custom')
+  } catch {
+    template = null
+  }
+
+  if (!template && isCmsSystemTemplatesRegistryConfigured()) {
+    template = await getRegistryTemplate(slug, 'system')
+  }
+
+  if (!template) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Template unavailable',
+      message: 'Ce modèle n’a pas été trouvé dans les registres configurés.'
+    })
+  }
+
   if (!template.snapshot) {
     throw createError({
       statusCode: 404,

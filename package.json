@@ -5,58 +5,30 @@
   "description": "CMS modulaire Nuxt avec pages éditoriales, admin, planning et installation guidée.",
   "license": "UNLICENSED",
   "type": "module",
-  "bin": {
-    "modula-cms-init": "./scripts/init-host-project.mjs"
-  },
-  "exports": {
-    "./host": "./cms/host.ts",
-    "./project-config": "./shared/platform.ts",
-    "./generated-project-config-template": "./templates/host/cms.project.generated.ts"
-  },
-  "files": [
-    "assets",
-    "cms",
-    "components",
-    "composables",
-    "i18n",
-    "layouts",
-    "middleware",
-    "migrations",
-    "pages",
-    "plugins",
-    "prisma/client.ts",
-    "prisma/schema.prisma",
-    "public",
-    "scripts",
-    "server",
-    "shared",
-    "stores",
-    "templates",
-    "types",
-    ".env.example",
-    "app.vue",
-    "cms.project.config.ts",
-    "cms.project.generated.ts",
-    "i18n.config.ts",
-    "nuxt.config.ts",
-    "package.json",
-    "prisma.config.ts",
-    "README.md",
-    "worker-configuration.d.ts",
-    "wrangler.jsonc"
-  ],
   "scripts": {
     "dev": "node ./scripts/dev-install-local.mjs",
     "dev:reset": "node ./scripts/dev-install-local.mjs --reset",
-    "build:tgz": "npm pack",
+    
     "release:build": "node ./scripts/build-runtime-release.mjs",
     "release:publish": "node ./scripts/publish-runtime-release.mjs",
     "release:publish:git": "node ./scripts/publish-runtime-release-with-git.mjs",
+    "registry:seed:bundled": "node ./scripts/seed-bundled-registry-templates.mjs",
     "postinstall": "node ./scripts/postinstall.mjs",
+
     "db:generate": "prisma generate",
     "db:migrate": "node ./scripts/apply-local-migrations.mjs",
     "db:migrate:prisma": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+
+    "cms:dev:cloudflare": "node ./scripts/run-platform-command.mjs cloudflare dev",
+    "cms:build:cloudflare": "node ./scripts/run-platform-command.mjs cloudflare build",
+    "cms:deploy:cloudflare": "node ./scripts/run-platform-command.mjs cloudflare deploy",
+    "cms:db:d1:migrate:local": "node ./scripts/d1-migrate.mjs local",
+    "cms:db:d1:migrate:remote": "node ./scripts/d1-migrate.mjs remote",
+    "cms:db:d1:pull:prod": "node ./scripts/d1-sync.mjs d1-remote-to-local",
+    "cms:db:d1:push:prod": "node ./scripts/d1-sync.mjs d1-local-to-remote",
+    "cms:r2:pull:prod": "node ./scripts/r2-sync.mjs remote-to-local",
+    "cms:r2:push:prod": "node ./scripts/r2-sync.mjs local-to-remote"
   },
   "dependencies": {
     "@iconify-json/mdi": "^1.2.3",

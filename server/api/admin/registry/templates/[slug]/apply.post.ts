@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { applyRegistryTemplate } from '#modula/server/utils/cmsRegistry'
+import { applySiteTemplate } from '#modula/server/utils/siteTemplates'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -8,5 +8,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Missing template slug' })
   }
 
-  return await applyRegistryTemplate(slug)
+  await applySiteTemplate(slug)
+  return { ok: true, currentTemplateKey: slug }
 })

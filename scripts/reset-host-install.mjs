@@ -5,7 +5,6 @@ import { execSync } from 'node:child_process'
 
 const cwd = process.cwd()
 const localDbPath = path.resolve(cwd, 'prisma', 'local.db')
-const generatedConfigPath = path.resolve(cwd, 'cms.project.generated.ts')
 const localMigrationsTablePath = path.resolve(cwd, 'prisma', '.local-migrations.db')
 const wranglerStatePath = path.resolve(cwd, '.wrangler', 'state')
 
@@ -35,23 +34,11 @@ function removeDirectoryIfExists(dirPath) {
 stopHostNodeProcesses()
 
 const deletedDb = removeIfExists(localDbPath)
-const deletedGeneratedConfig = removeIfExists(generatedConfigPath)
 const deletedLocalMigrationsDb = removeIfExists(localMigrationsTablePath)
 const deletedWranglerState = removeDirectoryIfExists(wranglerStatePath)
 
-const generatedPlaceholder = [
-  "import type { CmsProjectConfig } from 'modula-cms/project-config'",
-  '',
-  'const generatedProjectConfig: CmsProjectConfig | undefined = undefined',
-  '',
-  'export default generatedProjectConfig',
-  ''
-].join('\n')
-fs.writeFileSync(generatedConfigPath, generatedPlaceholder, 'utf8')
-
 console.log(`[modula-cms] reset install terminé dans ${cwd}`)
 console.log(`- local.db supprimé: ${deletedDb ? 'oui' : 'non'}`)
-console.log(`- cms.project.generated.ts réinitialisé: ${deletedGeneratedConfig ? 'oui' : 'non (écrasé)'}`)
 console.log(`- .local-migrations.db supprimé: ${deletedLocalMigrationsDb ? 'oui' : 'non'}`)
 console.log(`- .wrangler/state supprimé: ${deletedWranglerState ? 'oui' : 'non'}`)
 console.log('- relancez ensuite `npm run dev` puis ouvrez /install')

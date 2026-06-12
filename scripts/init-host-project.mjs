@@ -11,7 +11,6 @@ const targetDir = process.cwd()
 const templateFiles = [
   ['templates/host/nuxt.config.ts', 'nuxt.config.ts'],
   ['templates/host/cms.project.config.ts', 'cms.project.config.ts'],
-  ['templates/host/cms.project.generated.ts', 'cms.project.generated.ts'],
   ['wrangler.jsonc', 'wrangler.jsonc'],
   ['.env.example', '.env']
 ]
@@ -82,7 +81,7 @@ function ensurePackageJson() {
 
 function ensureGitignoreEntries() {
   const gitignorePath = path.join(targetDir, '.gitignore')
-  const entries = ['.nuxt', '.output', 'node_modules', '.env', 'cms.project.generated.ts']
+  const entries = ['.nuxt', '.output', 'node_modules', '.env']
   const existing = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : ''
   const lines = new Set(existing.split(/\r?\n/).filter(Boolean))
   let changed = false

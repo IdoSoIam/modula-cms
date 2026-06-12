@@ -14,24 +14,6 @@
               {{ t('install.subtitle') }}
             </p>
           </div>
-          <div class="tabs tabs-box self-start bg-base-200">
-            <button
-              type="button"
-              class="tab"
-              :class="{ 'tab-active': locale === 'fr' }"
-              @click="changeLocale('fr')"
-            >
-              Français
-            </button>
-            <button
-              type="button"
-              class="tab"
-              :class="{ 'tab-active': locale === 'en' }"
-              @click="changeLocale('en')"
-            >
-              English
-            </button>
-          </div>
         </div>
       </section>
 
@@ -378,7 +360,6 @@ function localized(value: { fr: string; en: string }) {
 
 function setDefaultLocale(nextLocale: 'fr' | 'en') {
   form.defaultLocale = nextLocale
-  setLocale(nextLocale)
 }
 
 function selectDataStack(nextStack: 'server' | 'cloudflare') {

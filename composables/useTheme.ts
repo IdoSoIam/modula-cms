@@ -3,6 +3,7 @@ import { buildPublicDaisyUiThemeConfig, createDefaultDaisyUiThemeConfig } from '
 export type ThemeValue = string
 
 const STORAGE_KEY = 'theme'
+const COOKIE_KEY = 'theme'
 const FALLBACK_PUBLIC_THEME_CONFIG = buildPublicDaisyUiThemeConfig(createDefaultDaisyUiThemeConfig())
 export const AVAILABLE_THEMES = FALLBACK_PUBLIC_THEME_CONFIG.themeSelectorThemes.map((theme) => ({
   label: theme.displayName,
@@ -21,6 +22,10 @@ function getCurrentDomTheme() {
 
 export const useTheme = () => {
   const siteConfig = useSiteConfigState()
+  const themeCookie = useCookie<string | null>(COOKIE_KEY, {
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 365
+  })
   const fallbackConfig = getFallbackPublicThemeConfig()
   const publicThemeConfig = computed(() => siteConfig.value?.themes ?? fallbackConfig)
   const defaultTheme = computed(() => publicThemeConfig.value.defaultTheme)
@@ -40,8 +45,10 @@ export const useTheme = () => {
     document.documentElement.setAttribute('data-theme', nextTheme)
     if (nextTheme === defaultTheme.value) {
       localStorage.removeItem(STORAGE_KEY)
+      themeCookie.value = null
     } else {
       localStorage.setItem(STORAGE_KEY, nextTheme)
+      themeCookie.value = nextTheme
     }
   }
 

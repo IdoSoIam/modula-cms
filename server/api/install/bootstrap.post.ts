@@ -1,6 +1,6 @@
 import type { CmsDbDriver, CmsStorageDriver } from '#modula/shared/platform'
 import { bootstrapCmsInstallation, getCmsInstallStatus } from '#modula/server/utils/install'
-import { isCmsSiteTemplateKey, type CmsSiteTemplateKey } from '#modula/shared/siteTemplates'
+import { FALLBACK_SITE_TEMPLATE_KEY, isCmsSiteTemplateKey, type CmsSiteTemplateKey } from '#modula/shared/siteTemplates'
 
 interface InstallBody {
   siteName?: string
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   const defaultLocale = body.defaultLocale === 'en' ? 'en' : 'fr'
   const dbDriver = body.dbDriver === 'd1' ? 'd1' : 'sqlite'
   const storageDriver = body.storageDriver === 'r2' ? 'r2' : 'fs'
-  const siteTemplate = isCmsSiteTemplateKey(body.siteTemplate) ? body.siteTemplate : 'modula-presentation'
+  const siteTemplate = isCmsSiteTemplateKey(body.siteTemplate) ? body.siteTemplate : FALLBACK_SITE_TEMPLATE_KEY
   const adminEmail = body.adminEmail?.trim().toLowerCase() || ''
   const adminPassword = body.adminPassword?.trim() || ''
 

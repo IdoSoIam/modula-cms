@@ -8,20 +8,10 @@ const shouldReset = process.argv.includes('--reset')
 
 const localDbPath = path.resolve(cwd, 'prisma', 'local.db')
 const wranglerStatePath = path.resolve(cwd, '.wrangler', 'state')
-const generatedConfigPath = path.resolve(cwd, 'cms.project.generated.ts')
 
 function resetLocalInstallState() {
   if (fs.existsSync(localDbPath)) fs.rmSync(localDbPath, { force: true })
   if (fs.existsSync(wranglerStatePath)) fs.rmSync(wranglerStatePath, { recursive: true, force: true })
-  const generatedPlaceholder = [
-    "import type { CmsProjectConfig } from './shared/platform'",
-    '',
-    'const generatedProjectConfig: CmsProjectConfig | undefined = undefined',
-    '',
-    'export default generatedProjectConfig',
-    ''
-  ].join('\n')
-  fs.writeFileSync(generatedConfigPath, generatedPlaceholder, 'utf8')
 }
 
 if (shouldReset) {
@@ -49,4 +39,3 @@ const child = spawn('npx', ['nuxt', 'dev'], {
 child.on('exit', (code) => {
   process.exit(code ?? 0)
 })
-

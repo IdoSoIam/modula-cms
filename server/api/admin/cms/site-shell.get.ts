@@ -18,6 +18,6 @@ export default defineEventHandler(async (event) => {
     navigation,
     featureFlags,
     currentTemplateKey,
-    siteTemplates: listSiteTemplates()
+    siteTemplates: await listSiteTemplates()
   }
 })
