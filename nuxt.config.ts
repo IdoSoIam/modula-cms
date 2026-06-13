@@ -8,6 +8,8 @@ const layerRoot = fileURLToPath(new URL('.', import.meta.url))
 const prismaClientPath = path.resolve(layerRoot, 'prisma/client.ts')
 const prismaClientPathWithoutExtension = path.resolve(layerRoot, 'prisma/client')
 const prismaClientCloudflareStubPath = path.resolve(layerRoot, 'prisma/client-cloudflare.ts')
+const prismaPackageCloudflareStubPath = path.resolve(layerRoot, 'prisma/prisma-client-package-cloudflare-stub.ts')
+const prismaAdapterCloudflareStubPath = path.resolve(layerRoot, 'prisma/prisma-adapter-cloudflare-stub.ts')
 
 const cmsProjectConfig = parseCmsProjectConfigJson(process.env.CMS_PROJECT_CONFIG_JSON) || defaultCmsProjectConfig
 const platformConfig = resolveCmsPlatformConfig(process.env, cmsProjectConfig)
@@ -37,7 +39,13 @@ export default defineNuxtConfig({
   debug: false,
   alias: {
     '#modula': layerRoot,
-    ...(isCloudflareRuntime ? { '#modula/prisma/client': prismaClientCloudflareStubPath } : {})
+    ...(isCloudflareRuntime
+      ? {
+          '#modula/prisma/client': prismaClientCloudflareStubPath,
+          '@prisma/client': prismaPackageCloudflareStubPath,
+          '@prisma/adapter-better-sqlite3': prismaAdapterCloudflareStubPath
+        }
+      : {})
   },
   experimental: {
     appManifest: false
@@ -63,7 +71,9 @@ export default defineNuxtConfig({
         ? {
             '#modula/prisma/client': prismaClientCloudflareStubPath,
             [prismaClientPath]: prismaClientCloudflareStubPath,
-            [prismaClientPathWithoutExtension]: prismaClientCloudflareStubPath
+            [prismaClientPathWithoutExtension]: prismaClientCloudflareStubPath,
+            '@prisma/client': prismaPackageCloudflareStubPath,
+            '@prisma/adapter-better-sqlite3': prismaAdapterCloudflareStubPath
           }
         : {})
     },
@@ -105,7 +115,9 @@ export default defineNuxtConfig({
         ? {
             '#modula/prisma/client': prismaClientCloudflareStubPath,
             [prismaClientPath]: prismaClientCloudflareStubPath,
-            [prismaClientPathWithoutExtension]: prismaClientCloudflareStubPath
+            [prismaClientPathWithoutExtension]: prismaClientCloudflareStubPath,
+            '@prisma/client': prismaPackageCloudflareStubPath,
+            '@prisma/adapter-better-sqlite3': prismaAdapterCloudflareStubPath
           }
         : {}
     },
