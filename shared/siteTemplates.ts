@@ -3,6 +3,23 @@ import type { CmsLocalizedText } from '#modula/shared/cms'
 export const FALLBACK_SITE_TEMPLATE_KEY = 'modula-presentation'
 export const CMS_SITE_TEMPLATE_KEYS = [FALLBACK_SITE_TEMPLATE_KEY] as const
 export const BUNDLED_SYSTEM_SITE_TEMPLATE_KEYS = ['modula-presentation', 'farm', 'association'] as const
+export const BUNDLED_SYSTEM_TEMPLATE_ASSET_SOURCES: Record<string, string[]> = {
+  'modula-presentation': [
+    '/site-templates/modula-hero.svg',
+    '/site-templates/preview-modula.svg',
+    '/site-templates/preview-farm.svg',
+    '/site-templates/preview-association.svg',
+    '/site-templates/modula-mark.svg'
+  ],
+  farm: [
+    '/site-templates/farm-hero.svg',
+    '/site-templates/preview-farm.svg'
+  ],
+  association: [
+    '/site-templates/association-hero.svg',
+    '/site-templates/preview-association.svg'
+  ]
+}
 
 export type CmsSiteTemplateKey = string
 export type BundledSystemSiteTemplateKey = typeof BUNDLED_SYSTEM_SITE_TEMPLATE_KEYS[number]
@@ -29,7 +46,7 @@ export const FALLBACK_SITE_TEMPLATE: CmsSiteTemplateDefinition = {
     en: 'Minimal local fallback when no remote template is available.'
   },
   icon: 'mdi:view-dashboard-outline',
-  previewImage: '/site-templates/preview-modula.svg',
+  previewImage: '/brand/modula-mark.svg',
   highlights: [
     {
       fr: 'Socle simple, neutre et immédiatement installable.',

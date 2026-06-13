@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { basename, extname } from 'node:path'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -18,7 +18,7 @@ import type {
   CmsRegistryTemplateSnapshot
 } from '#modula/shared/registry'
 import type { CmsLocalizedText, CmsPagePayload } from '#modula/shared/cms'
-import { FALLBACK_SITE_TEMPLATE, type CmsSiteTemplateDefinition } from '#modula/shared/siteTemplates'
+import { BUNDLED_SYSTEM_TEMPLATE_ASSET_SOURCES, FALLBACK_SITE_TEMPLATE, type CmsSiteTemplateDefinition } from '#modula/shared/siteTemplates'
 
 type RegistryFetchOptions = {
   method?: string
@@ -27,6 +27,11 @@ type RegistryFetchOptions = {
 }
 
 type RegistryScope = 'custom' | 'system'
+
+type TemplateAssetMaterializationContext = {
+  cache: Map<string, string>
+  preservedFilenames: Set<string>
+}
 
 function getRegistryConfig(scope: RegistryScope = 'custom') {
   const customUrl = process.env.CMS_REGISTRY_URL?.trim() || ''
@@ -129,7 +134,7 @@ async function registryUploadAsset(filename: string, contentType: string, bytes:
 
 function collectStringUrls(value: unknown, collected = new Set<string>()) {
   if (typeof value === 'string') {
-    if (value.startsWith('/uploads/') || value.startsWith('/site-templates/')) {
+    if (value.startsWith('/uploads/') || value.startsWith('/site-templates/') || value.startsWith('/brand/')) {
       collected.add(value)
     }
     return collected
@@ -151,13 +156,28 @@ async function readBundledAsset(url: string) {
   return {
     filename,
     bytes: new Uint8Array(bytes),
-    contentType: url.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream'
+    contentType: url.endsWith('.svg')
+      ? 'image/svg+xml'
+      : url.endsWith('.ico')
+        ? 'image/x-icon'
+        : 'application/octet-stream'
   }
 }
 
 function resolveBundledAssetPath(url: string) {
+  if (url === '/site-templates/modula-mark.svg') {
+    return path.resolve(process.cwd(), 'public', 'modula-mark.svg')
+  }
+  if (url === '/brand/modula-mark.svg') {
+    return path.resolve(process.cwd(), 'public', 'modula-mark.svg')
+  }
+  if (url === '/brand/favicon.ico') {
+    return path.resolve(process.cwd(), 'public', 'favicon.ico')
+  }
+
   const normalized = url.replace(/^\//, '').replace(/\//g, path.sep)
   const candidates = [
+    path.resolve(process.cwd(), 'system-assets', normalized),
     path.resolve(process.cwd(), 'public', normalized),
     path.resolve(process.cwd(), '.output', 'public', normalized)
   ]
@@ -187,7 +207,7 @@ export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTempl
         continue
       }
 
-      if (url.startsWith('/site-templates/')) {
+      if (url.startsWith('/site-templates/') || url.startsWith('/brand/')) {
         const asset = await readBundledAsset(url)
         manifest.push(await registryUploadAsset(asset.filename, asset.contentType, asset.bytes, url))
       }
@@ -258,10 +278,6 @@ function rewriteSnapshotAssetUrls<T>(value: T, assets: CmsRegistryAssetReference
 }
 
 async function importRegistryAsset(asset: CmsRegistryAssetReference) {
-  if (asset.sourceUrl.startsWith('/site-templates/')) {
-    return asset.downloadUrl
-  }
-
   const config = getRegistryConfig()
   const response = await fetch(asset.downloadUrl, {
     headers: {
@@ -276,15 +292,276 @@ async function importRegistryAsset(asset: CmsRegistryAssetReference) {
     })
   }
   const bytes = new Uint8Array(await response.arrayBuffer())
-  const targetName = `${asset.id}${extname(asset.filename) || ''}`
+  const targetName = buildTemplateManagedTargetName(asset)
   await putUploadObject(targetName, bytes, asset.contentType)
+  await registerImportedTemplateImage(targetName, asset.contentType, bytes.byteLength)
   return `/uploads/${targetName}`
 }
 
-async function materializeSnapshotAssets(snapshot: CmsRegistryTemplateSnapshot) {
+function sanitizeTemplateFilenamePart(value: string) {
+  return value
+    .trim()
+    .replace(/^\/+/, '')
+    .replace(/[\\/]+/g, '-')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function buildTemplateManagedTargetName(asset: CmsRegistryAssetReference) {
+  const sourceUrl = asset.sourceUrl?.trim() || ''
+  const sourceBase = sourceUrl ? basename(sourceUrl) : ''
+  const filenameBase = asset.filename?.trim() || ''
+  const candidate = sanitizeTemplateFilenamePart(sourceBase || filenameBase || '')
+  const extension = extname(candidate || filenameBase) || extname(asset.filename || '') || ''
+  const stem = candidate
+    ? candidate.slice(0, extension ? -extension.length : undefined)
+    : `asset-${asset.id || randomUUID()}`
+
+  return `template-${stem}${extension}`
+}
+
+async function registerImportedTemplateImage(filename: string, contentType: string, size: number) {
+  if (!contentType.startsWith('image/')) {
+    return
+  }
+
+  const { isRuntimeD1Active } = await import('#modula/server/platform/runtimeDb')
+  if (isRuntimeD1Active()) {
+    return
+  }
+
+  const { prisma } = await import('#modula/prisma/client')
+  const url = `/uploads/${filename}`
+  const existing = await prisma.image.findFirst({
+    where: {
+      OR: [
+        { filename },
+        { url }
+      ]
+    }
+  })
+
+  if (existing) {
+    await prisma.image.update({
+      where: { id: existing.id },
+      data: {
+        filename,
+        url,
+        mimeType: contentType,
+        size
+      }
+    })
+    return
+  }
+
+  await prisma.image.create({
+    data: {
+      filename,
+      url,
+      mimeType: contentType,
+      size,
+      width: null,
+      height: null,
+      uploadedById: null
+    }
+  })
+}
+
+async function findRegistryAssetBySourceUrl(sourceUrl: string, scope: RegistryScope = 'custom') {
+  const query = new URLSearchParams({ sourceUrl })
+  return await registryFetch<CmsRegistryAssetReference>(`/v1/template-assets/by-source?${query.toString()}`, {}, scope)
+}
+
+async function syncImportedTemplateImageUsages() {
+  const { isRuntimeD1Active } = await import('#modula/server/platform/runtimeDb')
+  if (isRuntimeD1Active()) {
+    return
+  }
+
+  const { syncImageUsageTable } = await import('#modula/server/utils/imageReferences')
+  await syncImageUsageTable()
+}
+
+async function materializePreservedBrandAsset<T extends { src: string } | null | undefined>(
+  value: T,
+  scope: RegistryScope,
+  context: TemplateAssetMaterializationContext
+): Promise<T> {
+  if (!value?.src) {
+    return value
+  }
+
+  const nextSrc = await materializeBundledTemplateAssetUrls(value.src, scope, context)
+  if (typeof nextSrc !== 'string' || nextSrc === value.src) {
+    return value
+  }
+
+  return {
+    ...value,
+    src: nextSrc
+  } as T
+}
+
+function isTemplateManagedFilename(filename: string) {
+  return filename.startsWith('asset_') || filename.startsWith('template-') || filename.startsWith('brand-template-')
+}
+
+async function registerTemplateManagedLocalAsset(sourceUrl: string) {
+  const asset = await readBundledAsset(sourceUrl)
+  const targetName = buildTemplateManagedTargetName({
+    id: '',
+    filename: asset.filename,
+    contentType: asset.contentType,
+    checksum: '',
+    downloadUrl: '',
+    publicUrl: '',
+    sourceUrl
+  })
+  await putUploadObject(targetName, asset.bytes, asset.contentType)
+  await registerImportedTemplateImage(targetName, asset.contentType, asset.bytes.byteLength)
+  return `/uploads/${targetName}`
+}
+
+function mimeTypeToExtension(contentType: string) {
+  switch (contentType) {
+    case 'image/svg+xml':
+      return '.svg'
+    case 'image/png':
+      return '.png'
+    case 'image/jpeg':
+      return '.jpg'
+    case 'image/webp':
+      return '.webp'
+    case 'image/x-icon':
+    case 'image/vnd.microsoft.icon':
+      return '.ico'
+    default:
+      return ''
+  }
+}
+
+async function importTemplateAssetFromSourceUrl(
+  sourceUrl: string,
+  scope: RegistryScope,
+  context: TemplateAssetMaterializationContext
+) {
+  const cached = context.cache.get(sourceUrl)
+  if (cached) {
+    return cached
+  }
+
+  try {
+    const remoteAsset = await findRegistryAssetBySourceUrl(sourceUrl, scope)
+    const materialized = await importRegistryAsset(remoteAsset)
+    context.cache.set(sourceUrl, materialized)
+    context.preservedFilenames.add(buildTemplateManagedTargetName(remoteAsset))
+    return materialized
+  } catch {}
+
+  const localAsset = await registerTemplateManagedLocalAsset(sourceUrl)
+  context.cache.set(sourceUrl, localAsset)
+  context.preservedFilenames.add(localAsset.replace(/^\/uploads\//, ''))
+  return localAsset
+}
+
+async function materializeBundledTemplateAssetUrls<T>(
+  value: T,
+  scope: RegistryScope = 'custom',
+  context: TemplateAssetMaterializationContext = {
+    cache: new Map<string, string>(),
+    preservedFilenames: new Set<string>()
+  }
+): Promise<T> {
+  if (typeof value === 'string') {
+    if (value.startsWith('/site-templates/') || value.startsWith('/brand/')) {
+      return await importTemplateAssetFromSourceUrl(value, scope, context) as T
+    }
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    return await Promise.all(value.map(item => materializeBundledTemplateAssetUrls(item, scope, context))) as T
+  }
+
+  if (value && typeof value === 'object') {
+    const entries = await Promise.all(
+      Object.entries(value as Record<string, unknown>).map(async ([key, item]) => {
+        return [key, await materializeBundledTemplateAssetUrls(item, scope, context)]
+      })
+    )
+    return Object.fromEntries(entries) as T
+  }
+
+  return value
+}
+
+async function cleanupUnusedTemplateManagedImages(preservedFilenames: Set<string> = new Set()) {
+  const { isRuntimeD1Active } = await import('#modula/server/platform/runtimeDb')
+  if (isRuntimeD1Active()) {
+    return
+  }
+
+  const [{ prisma }, { listImageUsageAssociations }, { deleteImageVariants }, { deleteUploadObject }] = await Promise.all([
+    import('#modula/prisma/client'),
+    import('#modula/server/utils/imageReferences'),
+    import('#modula/server/utils/imageVariants'),
+    import('#modula/server/utils/uploadStorage')
+  ])
+
+  const managedImages = await prisma.image.findMany({
+    where: {
+      uploadedById: null
+    },
+    select: {
+      id: true,
+      filename: true,
+      url: true
+    }
+  })
+
+  for (const image of managedImages) {
+    if (!isTemplateManagedFilename(image.filename)) continue
+    if (preservedFilenames.has(image.filename)) continue
+
+    const usages = await listImageUsageAssociations(image.id)
+    if (usages.length > 0) continue
+
+    await deleteImageVariants(image.id)
+    if (image.url.startsWith('/uploads/')) {
+      await deleteUploadObject(image.filename)
+    }
+    await prisma.image.delete({ where: { id: image.id } })
+  }
+}
+
+async function ensureRegistryTemplateAuxiliaryAssetsImported(
+  template: CmsRegistryTemplateRecord,
+  scope: RegistryScope,
+  context: TemplateAssetMaterializationContext
+) {
+  const sources = BUNDLED_SYSTEM_TEMPLATE_ASSET_SOURCES[template.slug] || []
+  if (!sources.length) {
+    return
+  }
+
+  for (const sourceUrl of sources) {
+    await importTemplateAssetFromSourceUrl(sourceUrl, scope, context)
+  }
+}
+
+async function materializeSnapshotAssets(
+  snapshot: CmsRegistryTemplateSnapshot,
+  scope: RegistryScope = 'custom',
+  context: TemplateAssetMaterializationContext = {
+    cache: new Map<string, string>(),
+    preservedFilenames: new Set<string>()
+  }
+) {
   const assetUrlMap = new Map<string, string>()
   for (const asset of snapshot.assetManifest) {
     assetUrlMap.set(asset.downloadUrl, await importRegistryAsset(asset))
+    context.preservedFilenames.add(buildTemplateManagedTargetName(asset))
   }
 
   const rewriteDownloadedUrls = <T>(value: T): T => {
@@ -302,12 +579,37 @@ async function materializeSnapshotAssets(snapshot: CmsRegistryTemplateSnapshot) 
     return value
   }
 
-  return rewriteDownloadedUrls(snapshot)
+  const downloadedSnapshot = rewriteDownloadedUrls(snapshot)
+  return await materializeBundledTemplateAssetUrls(downloadedSnapshot, scope, context)
 }
 
-export async function importTemplateSnapshot(snapshot: CmsRegistryTemplateSnapshot) {
-  const prepared = await materializeSnapshotAssets(snapshot)
-  await saveCmsSiteSettings(prepared.siteSettings)
+export async function importTemplateSnapshot(
+  snapshot: CmsRegistryTemplateSnapshot,
+  options: {
+    replaceBrandAssets?: boolean
+    registryScope?: RegistryScope
+  } = {}
+) {
+  const registryScope = options.registryScope || 'custom'
+  const context: TemplateAssetMaterializationContext = {
+    cache: new Map<string, string>(),
+    preservedFilenames: new Set<string>()
+  }
+  const prepared = await materializeSnapshotAssets(snapshot, registryScope, context)
+  const currentSettings = await getCmsSiteSettings()
+  const [preservedLogo, preservedFavicon] = await Promise.all([
+    materializePreservedBrandAsset(currentSettings.logo, registryScope, context),
+    materializePreservedBrandAsset(currentSettings.favicon, registryScope, context)
+  ])
+  const nextSettings = options.replaceBrandAssets
+    ? prepared.siteSettings
+    : {
+        ...prepared.siteSettings,
+        logo: preservedLogo,
+        favicon: preservedFavicon
+      }
+
+  await saveCmsSiteSettings(nextSettings)
   await saveCmsNavigationItems(prepared.navigation)
   await saveDaisyUiThemeConfig(prepared.themeConfig)
   for (const page of prepared.pages) {
@@ -325,14 +627,95 @@ export async function importTemplateSnapshot(snapshot: CmsRegistryTemplateSnapsh
     setSetting(SETTING_KEYS.EVENTS_ENABLED, prepared.featureFlags.eventsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.NEWS_ENABLED, prepared.featureFlags.newsEnabled ? 'true' : 'false')
   ])
+  await syncImportedTemplateImageUsages()
+  await cleanupUnusedTemplateManagedImages(context.preservedFilenames)
+}
+
+function toRegistryPublicTemplateAssetUrl(assetId: string, scope: RegistryScope = 'custom') {
+  const config = getRegistryConfig(scope)
+  if (!config.url) return ''
+  return `${config.url.replace(/\/$/, '')}/public/template-assets/${encodeURIComponent(assetId)}`
+}
+
+function buildRegistryAssetPublicUrlMap(records: CmsRegistryTemplateRecord[], scope: RegistryScope) {
+  const map = new Map<string, string>()
+
+  for (const record of records) {
+    for (const asset of record.snapshot?.assetManifest || []) {
+      const sourceUrl = asset.sourceUrl?.trim() || ''
+      if (!sourceUrl) continue
+
+      const publicUrl = asset.publicUrl?.trim()
+        || (asset.id ? toRegistryPublicTemplateAssetUrl(asset.id, scope) : '')
+
+      if (publicUrl && !map.has(sourceUrl)) {
+        map.set(sourceUrl, publicUrl)
+      }
+    }
+  }
+
+  return map
+}
+
+function normalizeTemplatePreviewImage(
+  record: CmsRegistryTemplateRecord,
+  scope: RegistryScope = 'custom',
+  sharedAssetUrls: Map<string, string> = new Map()
+) {
+  const previewImage = record.previewImage?.trim() || ''
+  if (!previewImage) return previewImage
+
+  const normalizedPreviewPath = previewImage.replace(/^https?:\/\/[^/]+/i, '')
+  const sharedPublicUrl = sharedAssetUrls.get(normalizedPreviewPath)
+  if (sharedPublicUrl) {
+    return sharedPublicUrl
+  }
+
+  const previewAsset = record.snapshot?.assetManifest?.find((asset) => {
+    const sourceUrl = asset.sourceUrl?.trim() || ''
+    const normalizedSourcePath = sourceUrl.replace(/^https?:\/\/[^/]+/i, '')
+    return normalizedSourcePath === normalizedPreviewPath
+  })
+
+  if (previewAsset?.publicUrl) {
+    return previewAsset.publicUrl
+  }
+
+  if (previewAsset?.id) {
+    const publicUrl = toRegistryPublicTemplateAssetUrl(previewAsset.id, scope)
+    if (publicUrl) return publicUrl
+  }
+
+  const legacyDownloadMatch = previewImage.match(/\/v1\/template-assets\/([^/]+)\/download$/)
+  if (legacyDownloadMatch) {
+    const publicUrl = toRegistryPublicTemplateAssetUrl(decodeURIComponent(legacyDownloadMatch[1]!), scope)
+    if (publicUrl) return publicUrl
+  }
+
+  return previewImage
+}
+
+function normalizeRegistryTemplateRecord(
+  record: CmsRegistryTemplateRecord,
+  scope: RegistryScope = 'custom',
+  sharedAssetUrls: Map<string, string> = new Map()
+): CmsRegistryTemplateRecord {
+  return {
+    ...record,
+    previewImage: normalizeTemplatePreviewImage(record, scope, sharedAssetUrls)
+  }
 }
 
 export async function listRegistryTemplates() {
-  return await registryFetch<CmsRegistryTemplateRecord[]>('/v1/templates')
+  const records = await registryFetch<CmsRegistryTemplateRecord[]>('/v1/templates')
+  const sharedAssetUrls = buildRegistryAssetPublicUrlMap(records, 'custom')
+  return records.map(record => normalizeRegistryTemplateRecord(record, 'custom', sharedAssetUrls))
 }
 
 export async function listSystemRegistryTemplates() {
-  return await registryFetch<CmsRegistryTemplateRecord[]>('/v1/templates', {}, 'system')
+  const records = await registryFetch<CmsRegistryTemplateRecord[]>('/v1/templates', {}, 'system')
+  const sharedAssetUrls = buildRegistryAssetPublicUrlMap(records, 'system')
+  return records.map(record => normalizeRegistryTemplateRecord(record, 'system', sharedAssetUrls))
 }
 
 export async function listManagedRegistryTemplates(): Promise<CmsRegistryTemplateRecord[]> {
@@ -365,6 +748,13 @@ export async function listManagedRegistryTemplates(): Promise<CmsRegistryTemplat
 
 export async function listMergedSiteTemplates(): Promise<CmsSiteTemplateDefinition[]> {
   const fallback = [FALLBACK_SITE_TEMPLATE]
+  const customConfigured = isCmsRegistryConfigured()
+  const systemConfigured = isCmsSystemTemplatesRegistryConfigured()
+
+  if (!customConfigured && !systemConfigured) {
+    return fallback
+  }
+
   try {
     const customConfig = getRegistryConfig('custom')
     const systemConfig = getRegistryConfig('system')
@@ -379,8 +769,8 @@ export async function listMergedSiteTemplates(): Promise<CmsSiteTemplateDefiniti
       records = await listRegistryTemplates()
     } else {
       const [systemTemplates, customTemplates] = await Promise.all([
-        isCmsSystemTemplatesRegistryConfigured() ? listSystemRegistryTemplates().catch(() => []) : Promise.resolve([]),
-        isCmsRegistryConfigured() ? listRegistryTemplates().catch(() => []) : Promise.resolve([])
+        systemConfigured ? listSystemRegistryTemplates().catch(() => []) : Promise.resolve([]),
+        customConfigured ? listRegistryTemplates().catch(() => []) : Promise.resolve([])
       ])
       const merged = new Map<string, CmsRegistryTemplateRecord>()
       for (const template of systemTemplates) merged.set(template.slug, template)
@@ -401,14 +791,15 @@ export async function listMergedSiteTemplates(): Promise<CmsSiteTemplateDefiniti
         sourceType: template.sourceType
       } satisfies CmsSiteTemplateDefinition))
 
-    return publishedTemplates.length ? publishedTemplates : fallback
+    return publishedTemplates
   } catch {
-    return fallback
+    return []
   }
 }
 
 export async function getRegistryTemplate(slug: string, scope: RegistryScope = 'custom') {
-  return await registryFetch<CmsRegistryTemplateRecord>(`/v1/templates/${encodeURIComponent(slug)}`, {}, scope)
+  const record = await registryFetch<CmsRegistryTemplateRecord>(`/v1/templates/${encodeURIComponent(slug)}`, {}, scope)
+  return normalizeRegistryTemplateRecord(record, scope)
 }
 
 export async function createRegistryTemplate(input: {
@@ -490,8 +881,14 @@ export async function deleteRegistryTemplate(slug: string, scope: RegistryScope 
   }, scope)
 }
 
-export async function applyRegistryTemplate(slug: string) {
+export async function applyRegistryTemplate(
+  slug: string,
+  options: {
+    replaceBrandAssets?: boolean
+  } = {}
+) {
   let template: CmsRegistryTemplateRecord | null = null
+  let resolvedScope: RegistryScope = 'custom'
   try {
     template = await getRegistryTemplate(slug, 'custom')
   } catch {
@@ -500,6 +897,7 @@ export async function applyRegistryTemplate(slug: string) {
 
   if (!template && isCmsSystemTemplatesRegistryConfigured()) {
     template = await getRegistryTemplate(slug, 'system')
+    resolvedScope = 'system'
   }
 
   if (!template) {
@@ -519,7 +917,19 @@ export async function applyRegistryTemplate(slug: string) {
   }
 
   const preparedSnapshot = rewriteSnapshotAssetUrls(template.snapshot, template.snapshot.assetManifest || [])
-  await importTemplateSnapshot(preparedSnapshot)
+  await importTemplateSnapshot(preparedSnapshot, {
+    ...options,
+    registryScope: resolvedScope
+  })
+  if (template.sourceType === 'system') {
+    const context: TemplateAssetMaterializationContext = {
+      cache: new Map<string, string>(),
+      preservedFilenames: new Set<string>()
+    }
+    await ensureRegistryTemplateAuxiliaryAssetsImported(template, resolvedScope, context)
+    await syncImportedTemplateImageUsages()
+    await cleanupUnusedTemplateManagedImages(context.preservedFilenames)
+  }
   return template
 }
 

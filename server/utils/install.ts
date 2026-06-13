@@ -429,7 +429,9 @@ export async function bootstrapCmsInstallation(event: H3Event, payload: CmsInsta
   let templateApplied = true
   let templateApplyError: string | null = null
   try {
-    await applySiteTemplate(payload.siteTemplate)
+    await applySiteTemplate(payload.siteTemplate, {
+      replaceBrandAssets: true
+    })
   } catch (error: any) {
     templateApplied = false
     templateApplyError = error?.message || 'Erreur inconnue lors de l’application du template.'

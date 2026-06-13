@@ -5,9 +5,9 @@
         <Icon name="mdi:arrow-u-left-top-bold" size="28" />
       </div>
       <p class="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-warning">Paiement interrompu</p>
-      <h1 class="text-3xl font-bold">Le paiement n’a pas été finalisé.</h1>
+      <h1 class="text-3xl font-bold">Le paiement n'a pas été finalisé.</h1>
       <p class="mt-3 max-w-2xl opacity-70">
-        Aucune transaction n’a été validée. Vous pouvez reprendre votre parcours ou revenir à l’accueil.
+        Aucune transaction n'a été validée. Vous pouvez reprendre votre parcours ou revenir à l'accueil.
       </p>
 
       <div class="mt-8 flex flex-wrap gap-3">

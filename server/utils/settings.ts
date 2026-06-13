@@ -57,7 +57,6 @@ export const SETTING_KEYS = {
   CMS_SITE_TEMPLATE_KEY: 'cms_site_template_key_v1',
   DAISYUI_THEME_CONFIG: 'daisyui_theme_config_v1',
   EMAIL_VISUAL_TEMPLATE_CONFIG: 'email_visual_template_config_v1',
-  FACEBOOK_FLUX_DEACTIVATED: 'facebook_flux_deactivated',
   IN_DEVELOPMENT: 'in_development',
   ORDERS_OPEN_FROM: 'orders_open_from',
   ORDERS_OPEN_TO: 'orders_open_to',

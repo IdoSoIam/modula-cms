@@ -6,7 +6,7 @@ import { applySiteTemplate, getCurrentSiteTemplateKey, listSiteTemplates } from 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const body = await readBody<{ templateKey?: string }>(event)
+  const body = await readBody<{ templateKey?: string, replaceBrandAssets?: boolean }>(event)
   if (!body?.templateKey?.trim()) {
     throw createError({
       statusCode: 400,
@@ -15,7 +15,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await applySiteTemplate(body.templateKey)
+  await applySiteTemplate(body.templateKey, {
+    replaceBrandAssets: body.replaceBrandAssets === true
+  })
 
   const [settings, navigation, featureFlags, currentTemplateKey] = await Promise.all([
     getCmsSiteSettings(),

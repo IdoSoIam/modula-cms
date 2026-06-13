@@ -365,13 +365,13 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
     },
     socialLinks: [
       {
-        id: 'facebook',
+        id: 'website',
         label: {
-          fr: 'Facebook',
-          en: 'Facebook'
+          fr: 'Site web',
+          en: 'Website'
         },
         href: '',
-        icon: 'mdi:facebook'
+        icon: 'mdi:web'
       }
     ],
     basketsPage: {
@@ -497,19 +497,6 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
           required: false,
           enabled: true
         },
-        {
-          id: 'facebook-sdk',
-          name: { fr: 'Facebook SDK', en: 'Facebook SDK' },
-          description: {
-            fr: 'Active l\'intégration Facebook susceptible de déposer des cookies tiers.',
-            en: 'Enables the Facebook integration which may set third-party cookies.'
-          },
-          category: 'third_party',
-          storage: 'script',
-          keys: ['facebook-sdk', 'fbm_*', 'fbc', 'fbp'],
-          required: false,
-          enabled: false
-        }
       ]
     }
   }

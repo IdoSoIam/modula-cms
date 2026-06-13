@@ -46,12 +46,13 @@ export default defineEventHandler(async (event) => {
 
   for (const definition of BUNDLED_SYSTEM_SITE_TEMPLATES) {
     const snapshot = await buildBundledSystemTemplateSnapshot(definition.key as BundledSystemSiteTemplateKey)
+    const previewAsset = snapshot.assetManifest.find((asset) => asset.sourceUrl === definition.previewImage)
     const metadata = {
       slug: definition.key,
       label: definition.label,
       description: definition.description,
       icon: definition.icon,
-      previewImage: definition.previewImage,
+      previewImage: previewAsset?.publicUrl || previewAsset?.downloadUrl || definition.previewImage,
       highlights: definition.highlights,
       themeNames: definition.themeNames
     }

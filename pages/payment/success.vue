@@ -7,8 +7,8 @@
       <p class="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-success">Paiement confirmé</p>
       <h1 class="text-3xl font-bold">Merci, votre paiement a bien été pris en compte.</h1>
       <p class="mt-3 max-w-2xl opacity-70">
-        Vous pouvez fermer cette page ou revenir à l’accueil. Si votre parcours métier nécessite une confirmation
-        complémentaire, utilisez l’identifiant de session affiché ci-dessous.
+        Vous pouvez fermer cette page ou revenir à l'accueil. Si votre parcours métier nécessite une confirmation
+        complémentaire, utilisez l'identifiant de session affiché ci-dessous.
       </p>
 
       <div v-if="sessionId" class="mt-6 rounded-2xl border border-base-300 bg-base-200/70 p-4 text-sm">
