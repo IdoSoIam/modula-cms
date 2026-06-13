@@ -79,6 +79,72 @@ export interface RuntimeMemberRoleAssignmentRow {
   color: string | null
 }
 
+export interface RuntimeArticleRow {
+  id: number
+  title: string
+  slug: string
+  excerpt: string | null
+  content: string
+  coverUrl: string | null
+  published: number | boolean
+  publishedAt: string | null
+  authorId: number | null
+  createdAt: string
+  updatedAt: string
+  authorFirstName?: string | null
+  authorLastName?: string | null
+  authorEmail?: string | null
+}
+
+export interface RuntimeRoleListRow {
+  id: number
+  slug: string
+  name: string
+  description: string | null
+  isSystem: number | boolean
+  isDefault: number | boolean
+  specialPermissionsJson: string
+}
+
+export interface RuntimeImageVariantRow {
+  id: number
+  imageId: number
+  storageKey: string
+  mimeType: string
+  size: number
+  width: number | null
+  height: number | null
+  fit: string | null
+  quality: number | null
+  format: string
+  createdAt: string
+}
+
+export interface RuntimeImageUsageRow {
+  id: number
+  imageId: number
+  scopeType: string
+  scopeId: string
+  fieldKey: string
+  label: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RuntimeStatsSummary {
+  vegetables: number
+  activeBaskets: number
+  pendingReservations: number
+  upcomingReservations: number
+  activeSubscriptions: number
+  upcomingOccurrences7Days: number
+  upcomingOccurrencesMonth: number
+  completedOccurrences: number
+  cancelledOccurrences: number
+  archivedReservations: number
+  rejectedReservations: number
+}
+
 function getD1() {
   return getCloudflareRuntimeEnv()?.DB || null
 }
@@ -106,6 +172,11 @@ async function d1Run(sql: string, bindings: unknown[] = []) {
   return await db.prepare(sql).bind(...bindings).run()
 }
 
+async function d1Count(sql: string, bindings: unknown[] = []) {
+  const row = await d1First<{ count: number }>(sql, bindings)
+  return Number(row?.count || 0)
+}
+
 export async function countRuntimeUsers() {
   const row = await d1First<{ count: number }>('SELECT COUNT(*) as count FROM "User"')
   return Number(row?.count || 0)
@@ -121,6 +192,144 @@ export async function getRuntimeUserById(userId: number) {
 
 export async function getRuntimeUserByEmail(email: string) {
   return await d1First<RuntimeUserRow>('SELECT * FROM "User" WHERE "email" = ? LIMIT 1', [email])
+}
+
+export async function listRuntimeArticles() {
+  return await d1All<RuntimeArticleRow>(
+    `SELECT a.*, u."firstName" as "authorFirstName", u."lastName" as "authorLastName", u."email" as "authorEmail"
+     FROM "Article" a
+     LEFT JOIN "User" u ON u."id" = a."authorId"
+     ORDER BY a."updatedAt" DESC`
+  )
+}
+
+export async function listRuntimeUsers() {
+  return await d1All<RuntimeUserRow>('SELECT * FROM "User" ORDER BY "createdAt" DESC')
+}
+
+export async function listRuntimeRoles() {
+  return await d1All<RuntimeRoleListRow>(
+    'SELECT * FROM "Role" ORDER BY "isSystem" DESC, "name" ASC'
+  )
+}
+
+export async function listRuntimeImages() {
+  return await d1All<RuntimeImageRow>('SELECT * FROM "Image" ORDER BY "createdAt" DESC')
+}
+
+export async function listRuntimeImageVariants(imageId: number) {
+  return await d1All<RuntimeImageVariantRow>(
+    'SELECT * FROM "ImageVariant" WHERE "imageId" = ? ORDER BY "createdAt" DESC',
+    [imageId]
+  )
+}
+
+export async function listRuntimeImageUsages(imageId: number) {
+  return await d1All<RuntimeImageUsageRow>(
+    'SELECT * FROM "ImageUsage" WHERE "imageId" = ? ORDER BY "scopeType" ASC, "label" ASC',
+    [imageId]
+  )
+}
+
+export async function countRuntimeStats(options: {
+  subscriptionsEnabled: boolean
+  todayIso: string
+  next7DaysIso: string
+  monthEndIso: string
+}) {
+  const {
+    subscriptionsEnabled,
+    todayIso,
+    next7DaysIso,
+    monthEndIso
+  } = options
+
+  const [
+    vegetables,
+    activeBaskets,
+    pendingReservations,
+    upcomingReservations,
+    activeSubscriptions,
+    upcomingOccurrences7Days,
+    upcomingOccurrencesMonth,
+    completedOccurrences,
+    cancelledOccurrences,
+    archivedReservations,
+    rejectedReservations
+  ] = await Promise.all([
+    d1Count('SELECT COUNT(*) as count FROM "Vegetable"'),
+    d1Count('SELECT COUNT(*) as count FROM "Basket" WHERE "active" = 1'),
+    d1Count('SELECT COUNT(*) as count FROM "Reservation" WHERE "status" = ? AND "archivedAt" IS NULL', ['PENDING']),
+    d1Count(
+      `SELECT COUNT(*) as count
+       FROM "Reservation"
+       WHERE "archivedAt" IS NULL AND (
+         ("fulfillmentDate" IS NOT NULL AND "fulfillmentDate" >= ?)
+         OR "createdAt" >= ?
+       )`,
+      [todayIso, todayIso]
+    ),
+    subscriptionsEnabled
+      ? d1Count(
+          `SELECT COUNT(*) as count
+           FROM "Reservation"
+           WHERE "status" = ? AND "monthlySubscription" = 1 AND "subscriptionActive" = 1 AND "archivedAt" IS NULL`,
+          ['CONFIRMED']
+        )
+      : Promise.resolve(0),
+    subscriptionsEnabled
+      ? d1Count(
+          'SELECT COUNT(*) as count FROM "ReservationOccurrence" WHERE "status" = ? AND "occurrenceDate" >= ? AND "occurrenceDate" <= ?',
+          ['SCHEDULED', todayIso, next7DaysIso]
+        )
+      : d1Count(
+          'SELECT COUNT(*) as count FROM "Reservation" WHERE "status" = ? AND "archivedAt" IS NULL AND "fulfillmentDate" >= ? AND "fulfillmentDate" <= ?',
+          ['CONFIRMED', todayIso, next7DaysIso]
+        ),
+    subscriptionsEnabled
+      ? d1Count(
+          'SELECT COUNT(*) as count FROM "ReservationOccurrence" WHERE "status" = ? AND "occurrenceDate" >= ? AND "occurrenceDate" <= ?',
+          ['SCHEDULED', todayIso, monthEndIso]
+        )
+      : d1Count(
+          'SELECT COUNT(*) as count FROM "Reservation" WHERE "status" = ? AND "archivedAt" IS NULL AND "fulfillmentDate" >= ? AND "fulfillmentDate" <= ?',
+          ['CONFIRMED', todayIso, monthEndIso]
+        ),
+    subscriptionsEnabled
+      ? d1Count(
+          'SELECT COUNT(*) as count FROM "ReservationOccurrence" WHERE "occurrenceDate" < ?',
+          [todayIso]
+        )
+      : d1Count(
+          'SELECT COUNT(*) as count FROM "Reservation" WHERE "archivedAt" IS NULL AND "fulfillmentDate" < ?',
+          [todayIso]
+        ),
+    subscriptionsEnabled
+      ? d1Count(
+          'SELECT COUNT(*) as count FROM "ReservationOccurrence" WHERE "status" = ? AND "occurrenceDate" >= ?',
+          ['CANCELLED', todayIso]
+        )
+      : d1Count(
+          'SELECT COUNT(*) as count FROM "Reservation" WHERE "status" = ? AND "archivedAt" IS NULL AND "fulfillmentDate" >= ?',
+          ['CANCELLED', todayIso]
+        ),
+    d1Count('SELECT COUNT(*) as count FROM "Reservation" WHERE "archivedAt" IS NOT NULL'),
+    d1Count('SELECT COUNT(*) as count FROM "Reservation" WHERE "status" = ? AND "archivedAt" IS NULL', ['REJECTED'])
+  ])
+
+  return {
+    vegetables,
+    activeBaskets,
+    pendingReservations,
+    upcomingReservations,
+    activeSubscriptions,
+    upcomingOccurrences7Days,
+    upcomingOccurrencesMonth,
+    completedOccurrences,
+    cancelledOccurrences,
+    archivedReservations,
+    rejectedReservations
+  } satisfies RuntimeStatsSummary
 }
 
 export async function getRuntimeRoleById(roleId: number) {
