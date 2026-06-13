@@ -31,6 +31,53 @@ export interface RuntimeCmsNavigationRow {
   updatedAt?: string
 }
 
+export interface RuntimeImageRow {
+  id: number
+  filename: string
+  url: string
+  mimeType: string
+  size: number
+  width: number | null
+  height: number | null
+  uploadedById: number | null
+  createdAt: string
+}
+
+export interface RuntimeRolePermissionRow {
+  module: string
+  canRead: number | boolean
+  canCreate: number | boolean
+  canUpdate: number | boolean
+  canDelete: number | boolean
+}
+
+export interface RuntimeRoleRow {
+  id: number
+  slug: string
+  specialPermissionsJson: string
+}
+
+export interface RuntimeUserRow {
+  id: number
+  email: string
+  firstName: string | null
+  lastName: string | null
+  role: string
+  roleId: number | null
+  isActive: number | boolean
+  street: string | null
+  city: string | null
+  postalCode: string | null
+  country: string | null
+}
+
+export interface RuntimeMemberRoleAssignmentRow {
+  id: number
+  slug: string
+  name: string
+  color: string | null
+}
+
 function getD1() {
   return getCloudflareRuntimeEnv()?.DB || null
 }
@@ -61,6 +108,36 @@ async function d1Run(sql: string, bindings: unknown[] = []) {
 export async function countRuntimeUsers() {
   const row = await d1First<{ count: number }>('SELECT COUNT(*) as count FROM "User"')
   return Number(row?.count || 0)
+}
+
+export async function getRuntimeImageByFilename(filename: string) {
+  return await d1First<RuntimeImageRow>('SELECT * FROM "Image" WHERE "filename" = ? ORDER BY "id" DESC LIMIT 1', [filename])
+}
+
+export async function getRuntimeUserById(userId: number) {
+  return await d1First<RuntimeUserRow>('SELECT * FROM "User" WHERE "id" = ? LIMIT 1', [userId])
+}
+
+export async function getRuntimeRoleById(roleId: number) {
+  return await d1First<RuntimeRoleRow>('SELECT "id", "slug", "specialPermissionsJson" FROM "Role" WHERE "id" = ? LIMIT 1', [roleId])
+}
+
+export async function getRuntimeRolePermissions(roleId: number) {
+  return await d1All<RuntimeRolePermissionRow>(
+    'SELECT "module", "canRead", "canCreate", "canUpdate", "canDelete" FROM "RolePermission" WHERE "roleId" = ? ORDER BY "id" ASC',
+    [roleId]
+  )
+}
+
+export async function getRuntimeUserMemberRoles(userId: number) {
+  return await d1All<RuntimeMemberRoleAssignmentRow>(
+    `SELECT mr."id", mr."slug", mr."name", mr."color"
+     FROM "UserMemberRole" umr
+     INNER JOIN "MemberRole" mr ON mr."id" = umr."memberRoleId"
+     WHERE umr."userId" = ?
+     ORDER BY mr."id" ASC`,
+    [userId]
+  )
 }
 
 export async function getRuntimeSettings(keys: string[]) {

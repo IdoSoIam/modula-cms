@@ -1,6 +1,7 @@
 import type { H3Event, EventHandlerRequest } from 'h3'
 import { prisma } from '../../../prisma/client'
 import { getUploadObject } from '#modula/server/utils/uploadStorage'
+import { getRuntimeImageByFilename, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 import {
   createStoredImageVariant,
   findStoredImageVariant,
@@ -128,15 +129,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Nom de fichier manquant' })
   }
 
-  const image = await prisma.image.findFirst({
-    where: { filename },
-    select: {
-      id: true,
-      filename: true,
-      mimeType: true,
-      createdAt: true
-    }
-  })
+  const image = isRuntimeD1Active()
+    ? await getRuntimeImageByFilename(filename)
+    : await prisma.image.findFirst({
+        where: { filename },
+        select: {
+          id: true,
+          filename: true,
+          mimeType: true,
+          createdAt: true
+        }
+      })
 
   if (!image) {
     throw createError({ statusCode: 404, statusMessage: 'Image introuvable' })
@@ -163,7 +166,7 @@ export default defineEventHandler(async (event) => {
       quality,
       format: outputFormat
     })
-    const existingVariant = await findStoredImageVariant(image.id, signature)
+    const existingVariant = isRuntimeD1Active() ? null : await findStoredImageVariant(image.id, signature)
 
     if (existingVariant) {
       setBaseHeaders(event, existingVariant.variant.mimeType, existingVariant.variant.createdAt)
@@ -190,6 +193,11 @@ export default defineEventHandler(async (event) => {
 
     const arrayBuffer = await response.arrayBuffer()
     const body = new Uint8Array(arrayBuffer)
+    if (isRuntimeD1Active()) {
+      setBaseHeaders(event, outputFormat, lastModified)
+      return new Response(body)
+    }
+
     const storedVariant = await createStoredImageVariant({
       imageId: image.id,
       originalFilename: image.filename,
