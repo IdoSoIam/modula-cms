@@ -1,10 +1,15 @@
 import { prisma } from '../../../prisma/client'
 import { getFeatureFlags } from '#modula/server/utils/settings'
+import { isRuntimeD1Active, listRuntimePublishedArticles } from '#modula/server/platform/runtimeDb'
 
 export default defineEventHandler(async () => {
   const featureFlags = await getFeatureFlags()
   if (!featureFlags.newsEnabled) {
     throw createError({ statusCode: 404, statusMessage: 'Actualités introuvables' })
+  }
+
+  if (isRuntimeD1Active()) {
+    return await listRuntimePublishedArticles()
   }
 
   const items = await prisma.article.findMany({

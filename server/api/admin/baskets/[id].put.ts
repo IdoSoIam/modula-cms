@@ -1,4 +1,10 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import {
+  getRuntimeVegetablesByIds,
+  isRuntimeD1Active,
+  replaceRuntimeBasketItems,
+  updateRuntimeBasket
+} from '#modula/server/platform/runtimeDb'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { serializeBasket } from '#modula/server/utils/baskets'
 import { prisma } from '../../../../prisma/client'
@@ -30,7 +36,9 @@ export default defineEventHandler(async (event) => {
 
   if (body.items) {
     const veggies = body.items.length
-      ? await prisma.vegetable.findMany({ where: { id: { in: body.items.map(i => i.vegetableId) } } })
+      ? isRuntimeD1Active()
+        ? await getRuntimeVegetablesByIds(body.items.map(i => i.vegetableId))
+        : await prisma.vegetable.findMany({ where: { id: { in: body.items.map(i => i.vegetableId) } } })
       : []
     const computed = body.items.reduce((sum, it) => {
       const v = veggies.find(x => x.id === it.vegetableId)
@@ -39,13 +47,23 @@ export default defineEventHandler(async (event) => {
     data.computedPrice = computed
     if (body.finalPrice === undefined) data.finalPrice = computed
 
-    await prisma.basketItem.deleteMany({ where: { basketId: id } })
-    await prisma.basketItem.createMany({
-      data: body.items.map(it => ({ basketId: id, vegetableId: it.vegetableId, quantity: it.quantity }))
-    })
+    if (isRuntimeD1Active()) {
+      await replaceRuntimeBasketItems(id, body.items)
+    } else {
+      await prisma.basketItem.deleteMany({ where: { basketId: id } })
+      await prisma.basketItem.createMany({
+        data: body.items.map(it => ({ basketId: id, vegetableId: it.vegetableId, quantity: it.quantity }))
+      })
+    }
   }
 
   if (body.finalPrice !== undefined) data.finalPrice = body.finalPrice
+
+  if (isRuntimeD1Active()) {
+    const basket = await updateRuntimeBasket(id, data)
+    await syncImageUsageTable()
+    return basket
+  }
 
   const basket = await prisma.basket.update({
     where: { id },
