@@ -5,6 +5,9 @@ import defaultCmsProjectConfig from './cms.project.config'
 import { parseCmsProjectConfigJson, resolveCmsPlatformConfig } from './shared/platform'
 
 const layerRoot = fileURLToPath(new URL('.', import.meta.url))
+const prismaClientPath = path.resolve(layerRoot, 'prisma/client.ts')
+const prismaClientPathWithoutExtension = path.resolve(layerRoot, 'prisma/client')
+const prismaClientCloudflareStubPath = path.resolve(layerRoot, 'prisma/client-cloudflare.ts')
 
 const cmsProjectConfig = parseCmsProjectConfigJson(process.env.CMS_PROJECT_CONFIG_JSON) || defaultCmsProjectConfig
 const platformConfig = resolveCmsPlatformConfig(process.env, cmsProjectConfig)
@@ -33,7 +36,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   debug: false,
   alias: {
-    '#modula': layerRoot
+    '#modula': layerRoot,
+    ...(isCloudflareRuntime ? { '#modula/prisma/client': prismaClientCloudflareStubPath } : {})
   },
   experimental: {
     appManifest: false
@@ -55,6 +59,13 @@ export default defineNuxtConfig({
       '~/cms.project.config': path.resolve(layerRoot, 'cms.project.config'),
       '../shared/': path.resolve(layerRoot, 'shared') + '/',
       '../shared/platform.ts': path.resolve(layerRoot, 'shared/platform.ts'),
+      ...(isCloudflareRuntime
+        ? {
+            '#modula/prisma/client': prismaClientCloudflareStubPath,
+            [prismaClientPath]: prismaClientCloudflareStubPath,
+            [prismaClientPathWithoutExtension]: prismaClientCloudflareStubPath
+          }
+        : {})
     },
     ...(isCloudflareRuntime
       ? {
@@ -89,6 +100,15 @@ export default defineNuxtConfig({
     ...(isCloudflareRuntime ? ['nitro-cloudflare-dev'] : [])
   ],
   vite: {
+    resolve: {
+      alias: isCloudflareRuntime
+        ? {
+            '#modula/prisma/client': prismaClientCloudflareStubPath,
+            [prismaClientPath]: prismaClientCloudflareStubPath,
+            [prismaClientPathWithoutExtension]: prismaClientCloudflareStubPath
+          }
+        : {}
+    },
     plugins: [
       tailwindcss(),
       {
