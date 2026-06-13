@@ -25,6 +25,6 @@ if (!databaseName) {
 }
 
 const remoteFlag = mode === 'remote' ? '--remote' : '--local'
-const command = `npx wrangler d1 migrations apply ${databaseName} ${remoteFlag} --config "${wranglerConfigPath}" --cwd "${cwd}" --persist-to ".wrangler/state" --migrations-dir "${migrationsDir}"`
+const command = `npx wrangler d1 migrations apply ${databaseName} ${remoteFlag} --config "${wranglerConfigPath}" --cwd "${cwd}" ${mode === 'local' ? '--persist-to ".wrangler/state"' : ''}`
 execSync(command, { cwd, stdio: 'inherit', shell: true })
 
