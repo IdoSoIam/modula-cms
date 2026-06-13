@@ -1,4 +1,5 @@
 import type { ReservationScheduleProposalSource } from '@prisma/client'
+import { createRuntimeReservationScheduleProposal, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 import { prisma } from '../../prisma/client'
 
 export function normalizeProposalTime(value: string | null | undefined) {
@@ -35,6 +36,23 @@ export async function createReservationScheduleProposal(input: {
   const proposalDate = normalizeProposalDate(input.proposalDate)
 
   try {
+    if (isRuntimeD1Active()) {
+      await createRuntimeReservationScheduleProposal({
+        reservationId: input.reservationId,
+        proposedBy: input.proposedBy,
+        proposalDate,
+        proposalTime,
+        proposalLocation: input.proposalLocation?.trim() || null
+      })
+      return {
+        reservationId: input.reservationId,
+        proposedBy: input.proposedBy,
+        proposalDate,
+        proposalTime,
+        proposalLocation: input.proposalLocation?.trim() || null
+      }
+    }
+
     return await prisma.reservationScheduleProposal.create({
       data: {
         reservationId: input.reservationId,
@@ -45,7 +63,7 @@ export async function createReservationScheduleProposal(input: {
       }
     })
   } catch (error: any) {
-    if (error?.code === 'P2002') {
+    if (error?.code === 'P2002' || String(error?.message || '').includes('UNIQUE constraint failed')) {
       throw createError({
         statusCode: 409,
         statusMessage: 'Ce creneau a deja ete propose pour cette reservation'

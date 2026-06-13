@@ -805,6 +805,284 @@ export async function listRuntimePublishedArticles() {
   )
 }
 
+export async function listRuntimePickupPoints(options: { activeOnly?: boolean } = {}) {
+  return await d1All<RuntimePickupPointRow>(
+    `SELECT * FROM "PickupPoint" ${options.activeOnly ? 'WHERE "active" = 1' : ''} ORDER BY "position" ASC, "name" ASC`
+  )
+}
+
+export async function getRuntimePickupPointById(id: number) {
+  return await d1First<RuntimePickupPointRow>('SELECT * FROM "PickupPoint" WHERE "id" = ? LIMIT 1', [id])
+}
+
+export async function createRuntimePickupPoint(data: {
+  name: string
+  address: string | null
+  details: string | null
+  delayDays: number
+  deliveryDay: number | null
+  pickupStartTime: string | null
+  openingHours: string | null
+  websiteUrl: string | null
+  active: boolean
+  position: number
+}) {
+  await d1Run(
+    'INSERT INTO "PickupPoint" ("name", "address", "details", "delayDays", "deliveryDay", "pickupStartTime", "openingHours", "websiteUrl", "active", "position", "createdAt", "updatedAt") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+    [data.name, data.address, data.details, data.delayDays, data.deliveryDay, data.pickupStartTime, data.openingHours, data.websiteUrl, data.active ? 1 : 0, data.position]
+  )
+  return await d1First<RuntimePickupPointRow>('SELECT * FROM "PickupPoint" WHERE "name" = ? ORDER BY "id" DESC LIMIT 1', [data.name])
+}
+
+export async function updateRuntimePickupPoint(id: number, data: Partial<{
+  name: string
+  address: string | null
+  details: string | null
+  delayDays: number
+  deliveryDay: number | null
+  pickupStartTime: string | null
+  openingHours: string | null
+  websiteUrl: string | null
+  active: boolean
+  position: number
+}>) {
+  const sets: string[] = []
+  const bindings: unknown[] = []
+  if (data.name !== undefined) {
+    sets.push('"name" = ?')
+    bindings.push(data.name)
+  }
+  if (data.address !== undefined) {
+    sets.push('"address" = ?')
+    bindings.push(data.address)
+  }
+  if (data.details !== undefined) {
+    sets.push('"details" = ?')
+    bindings.push(data.details)
+  }
+  if (data.delayDays !== undefined) {
+    sets.push('"delayDays" = ?')
+    bindings.push(data.delayDays)
+  }
+  if (data.deliveryDay !== undefined) {
+    sets.push('"deliveryDay" = ?')
+    bindings.push(data.deliveryDay)
+  }
+  if (data.pickupStartTime !== undefined) {
+    sets.push('"pickupStartTime" = ?')
+    bindings.push(data.pickupStartTime)
+  }
+  if (data.openingHours !== undefined) {
+    sets.push('"openingHours" = ?')
+    bindings.push(data.openingHours)
+  }
+  if (data.websiteUrl !== undefined) {
+    sets.push('"websiteUrl" = ?')
+    bindings.push(data.websiteUrl)
+  }
+  if (data.active !== undefined) {
+    sets.push('"active" = ?')
+    bindings.push(data.active ? 1 : 0)
+  }
+  if (data.position !== undefined) {
+    sets.push('"position" = ?')
+    bindings.push(data.position)
+  }
+  if (sets.length) {
+    bindings.push(id)
+    await d1Run(`UPDATE "PickupPoint" SET ${sets.join(', ')}, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?`, bindings)
+  }
+  return await getRuntimePickupPointById(id)
+}
+
+export async function deleteRuntimePickupPoint(id: number) {
+  await d1Run('DELETE FROM "PickupPoint" WHERE "id" = ?', [id])
+}
+
+export async function listRuntimeDeliveryTours(options: { activeOnly?: boolean } = {}) {
+  const tours = await d1All<RuntimeDeliveryTourRow>(
+    `SELECT * FROM "DeliveryTour" ${options.activeOnly ? 'WHERE "active" = 1' : ''} ORDER BY "dayOfWeek" ASC, "startTime" ASC`
+  )
+  const cities = await listRuntimeTourCitiesByTourIds(tours.map((tour) => tour.id))
+  const citiesByTourId = new Map<number, RuntimeTourCityRow[]>()
+  for (const city of cities) {
+    const bucket = citiesByTourId.get(city.tourId) ?? []
+    bucket.push(city)
+    citiesByTourId.set(city.tourId, bucket)
+  }
+  return tours.map((tour) => ({
+    ...tour,
+    active: toBoolean(tour.active),
+    monthlyPrice: tour.monthlyPrice == null ? null : Number(tour.monthlyPrice),
+    cities: (citiesByTourId.get(tour.id) ?? []).map((city) => ({ ...city }))
+  }))
+}
+
+export async function getRuntimeDeliveryTourById(id: number) {
+  const tours = await listRuntimeDeliveryTours()
+  return tours.find((tour) => tour.id === id) ?? null
+}
+
+export async function createRuntimeDeliveryTour(data: {
+  name: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  monthlyPrice: number | null
+  notes: string | null
+  active: boolean
+  cities: { city: string; postalCodes: string | null }[]
+}) {
+  await d1Run(
+    'INSERT INTO "DeliveryTour" ("name", "dayOfWeek", "startTime", "endTime", "monthlyPrice", "notes", "active", "createdAt", "updatedAt") VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+    [data.name, data.dayOfWeek, data.startTime, data.endTime, data.monthlyPrice, data.notes, data.active ? 1 : 0]
+  )
+  const row = await d1First<{ id: number }>('SELECT "id" FROM "DeliveryTour" WHERE "name" = ? ORDER BY "id" DESC LIMIT 1', [data.name])
+  if (!row) return null
+  for (const city of data.cities) {
+    await d1Run(
+      'INSERT INTO "TourCity" ("tourId", "city", "postalCodes", "createdAt") VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+      [row.id, city.city, city.postalCodes]
+    )
+  }
+  return await getRuntimeDeliveryTourById(row.id)
+}
+
+export async function replaceRuntimeDeliveryTourCities(tourId: number, cities: { city: string; postalCodes: string | null }[]) {
+  await d1Run('DELETE FROM "TourCity" WHERE "tourId" = ?', [tourId])
+  for (const city of cities) {
+    await d1Run(
+      'INSERT INTO "TourCity" ("tourId", "city", "postalCodes", "createdAt") VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+      [tourId, city.city, city.postalCodes]
+    )
+  }
+}
+
+export async function updateRuntimeDeliveryTour(id: number, data: Partial<{
+  name: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  monthlyPrice: number | null
+  notes: string | null
+  active: boolean
+}>) {
+  const sets: string[] = []
+  const bindings: unknown[] = []
+  if (data.name !== undefined) {
+    sets.push('"name" = ?')
+    bindings.push(data.name)
+  }
+  if (data.dayOfWeek !== undefined) {
+    sets.push('"dayOfWeek" = ?')
+    bindings.push(data.dayOfWeek)
+  }
+  if (data.startTime !== undefined) {
+    sets.push('"startTime" = ?')
+    bindings.push(data.startTime)
+  }
+  if (data.endTime !== undefined) {
+    sets.push('"endTime" = ?')
+    bindings.push(data.endTime)
+  }
+  if (data.monthlyPrice !== undefined) {
+    sets.push('"monthlyPrice" = ?')
+    bindings.push(data.monthlyPrice)
+  }
+  if (data.notes !== undefined) {
+    sets.push('"notes" = ?')
+    bindings.push(data.notes)
+  }
+  if (data.active !== undefined) {
+    sets.push('"active" = ?')
+    bindings.push(data.active ? 1 : 0)
+  }
+  if (sets.length) {
+    bindings.push(id)
+    await d1Run(`UPDATE "DeliveryTour" SET ${sets.join(', ')}, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?`, bindings)
+  }
+  return await getRuntimeDeliveryTourById(id)
+}
+
+export async function deleteRuntimeDeliveryTour(id: number) {
+  await d1Run('DELETE FROM "DeliveryTour" WHERE "id" = ?', [id])
+}
+
+export async function listRuntimeTourCities() {
+  return await d1All<RuntimeTourCityRow>('SELECT * FROM "TourCity" ORDER BY "city" ASC')
+}
+
+export async function createRuntimeReservation(data: {
+  basketId: number
+  userId: number | null
+  customerName: string
+  email: string
+  language: string
+  phone: string | null
+  message: string | null
+  status: string
+  deliveryType: string | null
+  pickupPointId: number | null
+  deliveryTourId: number | null
+  deliveryAddress: string | null
+  deliveryCity: string | null
+  deliveryPostalCode: string | null
+  fulfillmentDate: Date | null
+  fulfillmentTime: string | null
+  fulfillmentLocation: string | null
+  monthlySubscription: boolean
+  publicActionToken: string
+  scheduleProposalPendingBy: string | null
+  lastScheduleProposalAt: Date | null
+}) {
+  await d1Run(
+    `INSERT INTO "Reservation" (
+      "basketId", "userId", "customerName", "email", "language", "phone", "message", "status",
+      "deliveryType", "pickupPointId", "deliveryTourId", "deliveryAddress", "deliveryCity", "deliveryPostalCode",
+      "fulfillmentDate", "fulfillmentTime", "fulfillmentLocation", "monthlySubscription", "publicActionToken",
+      "scheduleProposalPendingBy", "lastScheduleProposalAt", "createdAt", "updatedAt"
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    [
+      data.basketId,
+      data.userId,
+      data.customerName,
+      data.email,
+      data.language,
+      data.phone,
+      data.message,
+      data.status,
+      data.deliveryType,
+      data.pickupPointId,
+      data.deliveryTourId,
+      data.deliveryAddress,
+      data.deliveryCity,
+      data.deliveryPostalCode,
+      data.fulfillmentDate ? data.fulfillmentDate.toISOString() : null,
+      data.fulfillmentTime,
+      data.fulfillmentLocation,
+      data.monthlySubscription ? 1 : 0,
+      data.publicActionToken,
+      data.scheduleProposalPendingBy,
+      data.lastScheduleProposalAt ? data.lastScheduleProposalAt.toISOString() : null
+    ]
+  )
+  const row = await d1First<{ id: number }>('SELECT "id" FROM "Reservation" WHERE "publicActionToken" = ? LIMIT 1', [data.publicActionToken])
+  return row ? await getRuntimeReservationById(row.id) : null
+}
+
+export async function createRuntimeReservationScheduleProposal(input: {
+  reservationId: number
+  proposedBy: string
+  proposalDate: Date
+  proposalTime: string
+  proposalLocation?: string | null
+}) {
+  await d1Run(
+    'INSERT INTO "ReservationScheduleProposal" ("reservationId", "proposedBy", "proposalDate", "proposalTime", "proposalLocation", "createdAt", "updatedAt") VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+    [input.reservationId, input.proposedBy, input.proposalDate.toISOString(), input.proposalTime, input.proposalLocation?.trim() || null]
+  )
+}
+
 export async function countRuntimeStats(options: {
   subscriptionsEnabled: boolean
   todayIso: string

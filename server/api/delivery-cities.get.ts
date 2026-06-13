@@ -1,12 +1,15 @@
 import { prisma } from '../../prisma/client'
+import { isRuntimeD1Active, listRuntimeTourCities } from '#modula/server/platform/runtimeDb'
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800')
 
-  const cities = await prisma.tourCity.findMany({
-    select: { city: true, postalCodes: true },
-    orderBy: { city: 'asc' }
-  })
+  const cities = isRuntimeD1Active()
+    ? await listRuntimeTourCities()
+    : await prisma.tourCity.findMany({
+        select: { city: true, postalCodes: true },
+        orderBy: { city: 'asc' }
+      })
 
   // Dédoublonner et trier
   const uniqueCities = Array.from(new Map(cities.map(c => [c.city.toLowerCase(), c])).values())
