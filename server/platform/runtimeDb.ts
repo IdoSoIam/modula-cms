@@ -60,6 +60,7 @@ export interface RuntimeRoleRow {
 export interface RuntimeUserRow {
   id: number
   email: string
+  password?: string
   firstName: string | null
   lastName: string | null
   role: string
@@ -116,6 +117,10 @@ export async function getRuntimeImageByFilename(filename: string) {
 
 export async function getRuntimeUserById(userId: number) {
   return await d1First<RuntimeUserRow>('SELECT * FROM "User" WHERE "id" = ? LIMIT 1', [userId])
+}
+
+export async function getRuntimeUserByEmail(email: string) {
+  return await d1First<RuntimeUserRow>('SELECT * FROM "User" WHERE "email" = ? LIMIT 1', [email])
 }
 
 export async function getRuntimeRoleById(roleId: number) {

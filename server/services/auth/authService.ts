@@ -8,6 +8,7 @@ import type { UserAccessPayload, UserMemberRolePayload } from '#modula/shared/ac
 import {
   getRuntimeRoleById,
   getRuntimeRolePermissions,
+  getRuntimeUserByEmail,
   getRuntimeUserById,
   getRuntimeUserMemberRoles,
   isRuntimeD1Active
@@ -128,9 +129,26 @@ async function getRuntimeSessionUser(userId: number) {
   const user = await getRuntimeUserById(userId)
   if (!user) return null
 
+  return await getRuntimeAuthenticatedUser(user)
+}
+
+async function getRuntimeAuthenticatedUser(user: {
+  id: number
+  email: string
+  firstName: string | null
+  lastName: string | null
+  role: string
+  roleId: number | null
+  isActive: number | boolean
+  street: string | null
+  city: string | null
+  postalCode: string | null
+  country: string | null
+}) {
+
   const [managedRole, memberRoles] = await Promise.all([
     user.roleId ? getRuntimeRoleById(user.roleId) : Promise.resolve(null),
-    getRuntimeUserMemberRoles(userId)
+    getRuntimeUserMemberRoles(user.id)
   ])
 
   const permissions = managedRole
@@ -341,6 +359,20 @@ export class AuthService {
     try {
       await ensureDefaultRoles()
       const normalizedEmail = email.trim().toLowerCase()
+      if (isRuntimeD1Active()) {
+        const runtimeUser = await getRuntimeUserByEmail(normalizedEmail)
+        if (!runtimeUser?.password) {
+          return null
+        }
+
+        const isValid = await bcrypt.compare(password, runtimeUser.password)
+        if (!isValid || !runtimeUser.isActive) {
+          return null
+        }
+
+        return mapUser(await getRuntimeAuthenticatedUser(runtimeUser) as any)
+      }
+
       const user = await prisma.user.findUnique({
         where: { email: normalizedEmail },
         select: userSelect
