@@ -64,9 +64,7 @@ export default defineNuxtConfig({
         }
       }
       : {}),
-    rollupConfig: {
-      external: ['facebook-node-sdk', 'fb']
-    }
+    rollupConfig: {}
   },
 
   devtools: {
@@ -211,8 +209,7 @@ export default defineNuxtConfig({
       imageDeliveryMode,
       imageCloudflareBaseURL,
       imageSourceBaseURL,
-      facebookAppId: process.env.FACEBOOK_APP_ID,
-      facebookPageId: process.env.FACEBOOK_PAGE_ID
+      stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY?.trim() || ''
     }
   }
 

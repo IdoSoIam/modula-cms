@@ -1,6 +1,6 @@
 import cmsProjectConfig from '#modula/cms.project.config'
 import { getCmsSpecialPagePath, getPublicSiteShell } from '#modula/server/utils/cms'
-import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getDefaultFeatureFlags, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getDefaultFeatureFlags, getOrdersWindow, getFeatureFlags, getFarmPickupConfig } from '#modula/server/utils/settings'
 import { getPublicDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import { getCmsInstallStatus } from '#modula/server/utils/install'
 
@@ -20,7 +20,6 @@ export default defineEventHandler(async (event) => {
       installRequired,
       runtimeCompatible: installStatus.runtimeCompatible,
       runtimeIssue: installStatus.runtimeIssue,
-      facebookFluxDeactivated: true,
       inDevelopment: false,
       siteName: cmsProjectConfig.site.displayName,
       ordersWindow: {
@@ -43,8 +42,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const featureFlags = await getFeatureFlags()
-  const [fb, ordersWindow, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath] = await Promise.all([
-    getSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED),
+  const [ordersWindow, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath] = await Promise.all([
     getOrdersWindow(),
     getFarmPickupConfig(),
     getContactEmail(),
@@ -69,7 +67,6 @@ export default defineEventHandler(async (event) => {
     installRequired: false,
     runtimeCompatible: installStatus.runtimeCompatible,
     runtimeIssue: installStatus.runtimeIssue,
-    facebookFluxDeactivated: fb !== 'false',
     inDevelopment: featureFlags.inDevelopment,
     siteName: configuredSiteName,
     ordersWindow,

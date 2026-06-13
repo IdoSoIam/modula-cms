@@ -91,7 +91,6 @@
           </div>
         </div>
 
-        <NewsFacebookContent v-else />
       </div>
     </div>
   </div>
@@ -101,7 +100,6 @@
 import type { CmsNewsPageSettings } from '#modula/shared/cms'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
 import { formatLocalizedDate } from '#modula/shared/date'
-import NewsFacebookContent from '#modula/components/pages/NewsFacebookContent.vue'
 
 type SortOption = 'dateDesc' | 'dateAsc' | 'title'
 type ViewMode = 'grid' | 'list'
@@ -118,15 +116,13 @@ const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const router = useRouter()
 
-const showArticles = props.forceArticles === true || props.showArticles === true
+const showArticles = true
 
 const defaultSettings = createDefaultCmsSiteSettings().newsPage
 const siteConfig = await useSiteConfig()
 const effectiveSettings = computed(() => props.settings || siteConfig.value?.cms?.settings?.newsPage || defaultSettings)
 
-const { data: articles, pending: articlesPending } = showArticles
-  ? usePublicArticles()
-  : { data: ref(null), pending: ref(false) }
+const { data: articles, pending: articlesPending } = usePublicArticles()
 
 const sortBy = ref<SortOption>('dateDesc')
 const viewMode = ref<ViewMode>(effectiveSettings.value.defaultViewMode)

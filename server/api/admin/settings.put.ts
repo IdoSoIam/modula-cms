@@ -13,7 +13,6 @@ interface Body {
   mailSecondaryProvider?: 'gmail' | 'resend'
   googleCalendarId?: string
   googleCalendarName?: string
-  facebookFluxDeactivated?: boolean
   inDevelopment?: boolean
   registerEnabled?: boolean
   subscriptionsEnabled?: boolean
@@ -89,7 +88,6 @@ export default defineEventHandler(async (event) => {
   if (typeof body.googleCalendarName === 'string') {
     await setSetting(SETTING_KEYS.GOOGLE_CALENDAR_NAME, body.googleCalendarName.trim())
   }
-  await setSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED, 'true')
   if (typeof body.inDevelopment === 'boolean' || typeof body.featureFlags?.inDevelopment === 'boolean') {
     await setSetting(SETTING_KEYS.IN_DEVELOPMENT, featureFlags.inDevelopment ? 'true' : 'false')
   }

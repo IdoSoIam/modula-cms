@@ -42,9 +42,7 @@ if (error.value) {
   })
 }
 
-const renderNewsArticles =
-  resolvedPage.value?.rendererKey === 'news'
-  && siteConfig?.facebookFluxDeactivated === true
+const renderNewsArticles = resolvedPage.value?.rendererKey === 'news'
 
 const newsPageSettings = (siteConfig?.cms?.settings?.newsPage ?? null) as CmsNewsPageSettings | null
 

@@ -258,6 +258,10 @@ function rewriteSnapshotAssetUrls<T>(value: T, assets: CmsRegistryAssetReference
 }
 
 async function importRegistryAsset(asset: CmsRegistryAssetReference) {
+  if (asset.sourceUrl.startsWith('/site-templates/')) {
+    return asset.downloadUrl
+  }
+
   const config = getRegistryConfig()
   const response = await fetch(asset.downloadUrl, {
     headers: {

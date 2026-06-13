@@ -171,7 +171,6 @@ type SupportedLocale = 'fr' | 'en'
 type LocaleOption = { code: SupportedLocale, name: string }
 
 interface PreviewSiteConfig {
-  facebookFluxDeactivated?: boolean
   inDevelopment?: boolean
   registerEnabled?: boolean
   cms?: PublicSiteShell

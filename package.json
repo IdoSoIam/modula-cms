@@ -38,7 +38,6 @@
     "@nuxtjs/i18n": "^10.2.4",
     "@pinia/nuxt": "^0.11.3",
     "@prisma/adapter-better-sqlite3": "^7.8.0",
-    "@prisma/adapter-d1": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@tailwindcss/vite": "^4.2.4",
     "@tanstack/vue-query": "^5.100.1",
@@ -49,18 +48,16 @@
     "bcryptjs": "^3.0.2",
     "daisyui": "^5.5.19",
     "dotenv": "^17.4.2",
-    "facebook-node-sdk": "^0.2.0",
-    "fb": "^2.0.0",
     "nuxt": "^4.4.2",
     "pinia": "^3.0.4",
     "prisma": "^7.8.0",
+    "stripe": "^18.3.0",
     "tailwindcss": "^4.2.4",
     "vue": "^3.5.33",
     "vue-router": "^5.0.6"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/fb": "^0.0.30",
     "@types/node": "^25.6.0",
     "nitro-cloudflare-dev": "^0.2.2",
     "wrangler": "^4.95.0"

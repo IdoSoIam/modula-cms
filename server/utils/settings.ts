@@ -1,5 +1,13 @@
-import { prisma } from '../../prisma/client'
 import cmsProjectConfig from '#modula/cms.project.config'
+import {
+  deleteRuntimeSetting,
+  deleteRuntimeSettings,
+  getRuntimeSetting,
+  getRuntimeSettings,
+  isRuntimeD1Active,
+  setRuntimeSetting
+} from '#modula/server/platform/runtimeDb'
+import { prisma } from '../../prisma/client'
 
 export const SETTING_KEYS = {
   ADMIN_EMAIL: 'admin_email',
@@ -258,11 +266,18 @@ La Ferme du Campeyrigoux`
 }
 
 export async function getSetting(key: string): Promise<string | null> {
+  if (isRuntimeD1Active()) {
+    return await getRuntimeSetting(key)
+  }
   const row = await prisma.siteParams.findUnique({ where: { key } })
   return row?.value ?? null
 }
 
 export async function setSetting(key: string, value: string): Promise<void> {
+  if (isRuntimeD1Active()) {
+    await setRuntimeSetting(key, value)
+    return
+  }
   await prisma.siteParams.upsert({
     where: { key },
     update: { value },
@@ -271,6 +286,10 @@ export async function setSetting(key: string, value: string): Promise<void> {
 }
 
 export async function deleteSetting(key: string): Promise<void> {
+  if (isRuntimeD1Active()) {
+    await deleteRuntimeSetting(key)
+    return
+  }
   await prisma.siteParams.deleteMany({
     where: { key }
   })
@@ -278,6 +297,10 @@ export async function deleteSetting(key: string): Promise<void> {
 
 export async function deleteSettings(keys: string[]): Promise<void> {
   if (!keys.length) return
+  if (isRuntimeD1Active()) {
+    await deleteRuntimeSettings(keys)
+    return
+  }
 
   await prisma.siteParams.deleteMany({
     where: { key: { in: keys } }
@@ -285,6 +308,9 @@ export async function deleteSettings(keys: string[]): Promise<void> {
 }
 
 export async function getSettings(keys: string[]): Promise<Record<string, string>> {
+  if (isRuntimeD1Active()) {
+    return await getRuntimeSettings(keys)
+  }
   const rows = await prisma.siteParams.findMany({ where: { key: { in: keys } } })
   return Object.fromEntries(rows.map((r) => [r.key, r.value]))
 }
