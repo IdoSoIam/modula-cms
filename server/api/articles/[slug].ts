@@ -1,4 +1,4 @@
-import { prisma } from '../../../prisma/client'
+import { db } from '#modula/server/generated/db'
 import { getFeatureFlags } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   if (!featureFlags.newsEnabled) {
     throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
   }
-  const article = await prisma.article.findUnique({
+  const article = await db.article.findUnique({
     where: { slug },
     select: {
       id: true,

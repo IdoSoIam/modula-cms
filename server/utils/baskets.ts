@@ -1,7 +1,7 @@
-import { prisma } from '../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export async function computeBasketPrice(basketId: number): Promise<number> {
-  const items = await prisma.basketItem.findMany({
+  const items = await db.basketItem.findMany({
     where: { basketId },
     include: { vegetable: true }
   })

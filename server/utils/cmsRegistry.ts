@@ -331,9 +331,9 @@ async function registerImportedTemplateImage(filename: string, contentType: stri
     return
   }
 
-  const { prisma } = await import('#modula/prisma/client')
+  const { db } = await import('#modula/server/data/client')
   const url = `/uploads/${filename}`
-  const existing = await prisma.image.findFirst({
+  const existing = await db.image.findFirst({
     where: {
       OR: [
         { filename },
@@ -343,7 +343,7 @@ async function registerImportedTemplateImage(filename: string, contentType: stri
   })
 
   if (existing) {
-    await prisma.image.update({
+    await db.image.update({
       where: { id: existing.id },
       data: {
         filename,
@@ -355,7 +355,7 @@ async function registerImportedTemplateImage(filename: string, contentType: stri
     return
   }
 
-  await prisma.image.create({
+  await db.image.create({
     data: {
       filename,
       url,
@@ -502,14 +502,14 @@ async function cleanupUnusedTemplateManagedImages(preservedFilenames: Set<string
     return
   }
 
-  const [{ prisma }, { listImageUsageAssociations }, { deleteImageVariants }, { deleteUploadObject }] = await Promise.all([
-    import('#modula/prisma/client'),
+  const [{ db }, { listImageUsageAssociations }, { deleteImageVariants }, { deleteUploadObject }] = await Promise.all([
+    import('#modula/server/data/client'),
     import('#modula/server/utils/imageReferences'),
     import('#modula/server/utils/imageVariants'),
     import('#modula/server/utils/uploadStorage')
   ])
 
-  const managedImages = await prisma.image.findMany({
+  const managedImages = await db.image.findMany({
     where: {
       uploadedById: null
     },
@@ -531,7 +531,7 @@ async function cleanupUnusedTemplateManagedImages(preservedFilenames: Set<string
     if (image.url.startsWith('/uploads/')) {
       await deleteUploadObject(image.filename)
     }
-    await prisma.image.delete({ where: { id: image.id } })
+    await db.image.delete({ where: { id: image.id } })
   }
 }
 

@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { DEFAULT_ROLE_DEFINITIONS, type AdminPermissionModule } from '#modula/shared/access'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { normalizeRolePayload } from '#modula/server/utils/roles'
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   await requirePermission(event, 'roles', 'create')
   const body = normalizeRolePayload(await readBody(event), false)
 
-  const role = await prisma.role.create({
+  const role = await db.role.create({
     data: {
       slug: body.slug,
       name: body.name,

@@ -2,7 +2,7 @@ import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { ensureReservationOccurrences } from '#modula/server/utils/orderOccurrences'
 import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
 import { getRuntimeReservationById, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 function toPositiveInt(value: unknown, fallback: number, max = 100) {
   const parsed = Number(value)
@@ -120,7 +120,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const reservation = await prisma.reservation.findUnique({
+  const reservation = await db.reservation.findUnique({
     where: { id },
     include: {
       basket: true,
@@ -137,7 +137,7 @@ export default defineEventHandler(async (event) => {
 
   const [occurrenceTotal, occurrences, notificationTotal, notifications] = await Promise.all([
     subscriptionsEnabled
-      ? prisma.reservationOccurrence.count({
+      ? db.reservationOccurrence.count({
           where: {
             reservationId: id,
             occurrenceDate: { gte: today }
@@ -145,7 +145,7 @@ export default defineEventHandler(async (event) => {
         })
       : Promise.resolve(0),
     subscriptionsEnabled
-      ? prisma.reservationOccurrence.findMany({
+      ? db.reservationOccurrence.findMany({
           where: {
             reservationId: id,
             occurrenceDate: { gte: today }
@@ -155,8 +155,8 @@ export default defineEventHandler(async (event) => {
           take: occurrenceLimit
         })
       : Promise.resolve([]),
-    prisma.reservationNotification.count({ where: { reservationId: id } }),
-    prisma.reservationNotification.findMany({
+    db.reservationNotification.count({ where: { reservationId: id } }),
+    db.reservationNotification.findMany({
       where: { reservationId: id },
       orderBy: { createdAt: 'desc' },
       skip: (notificationPage - 1) * notificationLimit,

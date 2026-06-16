@@ -1,6 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { createRuntimeDeliveryTour, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 interface CityInput {
   city: string
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return prisma.deliveryTour.create({
+  return db.deliveryTour.create({
     data: {
       name: body.name.trim(),
       dayOfWeek: body.dayOfWeek,

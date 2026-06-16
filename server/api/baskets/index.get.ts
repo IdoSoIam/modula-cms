@@ -1,7 +1,7 @@
 import { serializeBasket } from '#modula/server/utils/baskets'
 import { getRuntimeReservationUsageCountsByBasketIds, isRuntimeD1Active, listRuntimeBaskets } from '#modula/server/platform/runtimeDb'
 import { getFeatureFlags } from '#modula/server/utils/settings'
-import { prisma } from '../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
@@ -38,14 +38,14 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const baskets = await prisma.basket.findMany({
+  const baskets = await db.basket.findMany({
     where: { active: true },
     orderBy: [{ position: 'asc' }, { id: 'asc' }],
     include: { items: { include: { vegetable: true } } }
   })
 
   const ids = baskets.map(b => b.id)
-  const counts = await prisma.reservation.groupBy({
+  const counts = await db.reservation.groupBy({
     by: ['basketId'],
     where: { basketId: { in: ids }, status: { in: ['PENDING', 'CONFIRMED'] } },
     _count: { _all: true }

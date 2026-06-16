@@ -1,5 +1,5 @@
 import type { H3Event, EventHandlerRequest } from 'h3'
-import { prisma } from '../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { getUploadObject } from '#modula/server/utils/uploadStorage'
 import { getRuntimeImageByFilename, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 import {
@@ -131,7 +131,7 @@ export default defineEventHandler(async (event) => {
 
   const image = isRuntimeD1Active()
     ? await getRuntimeImageByFilename(filename)
-    : await prisma.image.findFirst({
+    : await db.image.findFirst({
         where: { filename },
         select: {
           id: true,

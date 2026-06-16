@@ -1,6 +1,6 @@
 # Modula CMS, CMS multi-site modulaire
 
-Modula CMS est un CMS multi-site construit avec Nuxt 4, Vue 3, TypeScript, Prisma, Cloudflare D1/R2 et DaisyUI. Le projet regroupe une interface publique, un back-office et une API Nitro dans une application Nuxt unique, avec une base SQLite pour certains usages locaux et D1 pour le runtime Cloudflare.
+Modula CMS est un CMS multi-site construit avec Nuxt 4, Vue 3, TypeScript, un client de données interne multi-runtime, Cloudflare D1/R2 et DaisyUI. Le projet regroupe une interface publique, un back-office et une API Nitro dans une application Nuxt unique, avec SQLite pour le runtime serveur classique et D1 pour le runtime Cloudflare.
 
 Historique : Modula CMS a d'abord été développé pour la Ferme du Campeyrigoux, puis a évolué vers un CMS multi-site modulaire.
 
@@ -8,7 +8,7 @@ Historique : Modula CMS a d'abord été développé pour la Ferme du Campeyrigou
 
 - Nuxt 4 avec Nitro, preset Cloudflare module.
 - Vue 3 et TypeScript.
-- Prisma 7 avec adaptateurs SQLite et Cloudflare D1.
+- Client de données interne généré, avec adaptateurs SQLite et Cloudflare D1.
 - Cloudflare Workers via Wrangler, avec D1 pour les données applicatives.
 - Cloudflare R2 pour le stockage des images quand le runtime Cloudflare est disponible.
 - Tailwind CSS 4 et DaisyUI 5 pour les composants et les thèmes.
@@ -76,23 +76,22 @@ Le dépôt est une application Nuxt monorepo :
 - `server/services/` et `server/utils/` portent la logique serveur partagée.
 - `shared/` contient les contrats et helpers communs, par exemple le page builder, les routes admin, les thèmes et la résolution CMS.
 - `cms.project.config.ts` porte l'identité, les drivers et les seeds de base du projet hôte courant.
-- `prisma/schema.prisma` décrit les modèles applicatifs et reste la source de vérité Prisma pour les types et le modèle.
+- `schema/` et `server/generated/` portent le schéma source et les artefacts générés du client de données interne.
 - `migrations/` contient les migrations SQL canoniques réellement appliquées par SQLite locale et D1.
-- `prisma/migrations/` n'est plus un chemin d'exécution ; il est conservé comme archive historique.
+- `db/archive/prisma-migrations/` conserve l'ancien historique Prisma à titre d'archive.
 - `wrangler.jsonc` déclare le Worker, le binding D1 `DB`, le bucket R2 `UPLOADS_BUCKET` et les variables Cloudflare.
 
-Le runtime utilise en pratique trois bases :
+Le runtime utilise en pratique trois états de base :
 
-- SQLite locale Prisma : `prisma/local.db`.
+- SQLite locale : `.data/sqlite/local.db`.
 - D1 locale Wrangler : utilisée par `npm run dev` et `npm run preview`.
 - D1 distante Cloudflare : utilisée après `npm run deploy`.
 
 Points importants :
 
-- `npm run dev` ne lit pas `prisma/local.db`.
+- `npm run dev` ne lit pas `.data/sqlite/local.db` quand le runtime Cloudflare local est actif.
 - Avec `nitro-cloudflare-dev`, `npm run dev` utilise le binding Cloudflare local, donc la D1 locale Wrangler.
 - `npm run preview` utilise aussi la D1 locale Wrangler via `wrangler dev --local`.
-- `npm run db:studio` ouvre Prisma Studio sur `prisma/local.db`, pas sur la D1 locale.
 - Le stockage image utilise R2 quand le runtime Cloudflare est disponible, avec un fallback local en base pour certains usages de développement.
 
 ## Fonctionnalités vérifiées dans le code
@@ -148,28 +147,26 @@ Le flux d'invitation crée un utilisateur inactif sans mot de passe, génère un
 - `npm run generate` : lance la génération Nuxt.
 - `npm run cf-typegen` : génère les types Wrangler.
 
-### Prisma et bases locales
+### Base locale et données
 
-- `npm run db:generate` : génère le client Prisma.
 - `npm run db:migrate:sqlite` : applique les migrations SQL canoniques sur la SQLite locale.
-- `npm run db:reset:sqlite` : recrée `prisma/local.db` depuis les migrations SQL canoniques.
+- `npm run db:reset:sqlite` : recrée `.data/sqlite/local.db` depuis les migrations SQL canoniques.
 - `npm run db:migrate:d1:local` : applique les migrations SQL canoniques sur la D1 locale.
 - `npm run db:migrate:d1:remote` : applique les migrations SQL canoniques sur la D1 distante.
 - `npm run db:local:migrate` : applique les migrations SQL sur la SQLite locale.
-- `npm run db:local:reset` : recrée `prisma/local.db` depuis les migrations.
-- `npm run db:studio` : ouvre Prisma Studio sur `prisma/local.db`.
-- `npm run db:studio:d1:local` : exporte la D1 locale vers `prisma/d1-local-studio.db`, puis ouvre Prisma Studio sur ce miroir.
+- `npm run db:local:reset` : recrée `.data/sqlite/local.db` depuis les migrations.
 - `npm run db:d1:seed:cms-local` : injecte les données CMS locales prévues par le script de seed.
 
 ### Migrations et requêtes D1
 
 Source de vérité migrations :
 
-1. modifier `prisma/schema.prisma`
-2. écrire la migration SQL dans `migrations/`
-3. appliquer cette migration sur SQLite ou D1
+1. modifier le schéma source TypeScript
+2. regénérer les artefacts internes
+3. écrire la migration SQL dans `migrations/`
+4. appliquer cette migration sur SQLite ou D1
 
-`prisma/migrations/` ne doit plus être utilisé pour exécuter les migrations du projet.
+`db/archive/prisma-migrations/` ne doit jamais être utilisé pour exécuter les migrations du projet.
 
 - `npm run db:d1:migrate:local` : applique les migrations sur la D1 locale Wrangler.
 - `npm run db:d1:migrate:remote` : applique les migrations sur la D1 distante Cloudflare.
@@ -178,7 +175,7 @@ Source de vérité migrations :
 
 ### Synchronisation des bases
 
-- `npm run db:d1:import:sqlite-local` : copie les données de `prisma/local.db` vers la D1 locale.
+- `npm run db:d1:import:sqlite-local` : copie les données de `.data/sqlite/local.db` vers la D1 locale.
 - `npm run db:d1:push:prod` : copie les données de la D1 locale vers la D1 distante.
 - `npm run db:d1:pull:prod` : copie les données de la D1 distante vers la D1 locale.
 

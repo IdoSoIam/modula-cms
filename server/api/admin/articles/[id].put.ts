@@ -1,7 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { slugify } from '#modula/server/utils/slug'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/generated/db'
 
 interface Body {
   title?: string
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
 
-  const existing = await prisma.article.findUnique({ where: { id } })
+  const existing = await db.article.findUnique({ where: { id } })
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
 
   const body = await readBody<Body>(event)
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
     const baseSlug = slugify(body.slug)
     let slug = baseSlug
     let i = 1
-    while (await prisma.article.findFirst({ where: { slug, NOT: { id } } })) {
+    while (await db.article.findFirst({ where: { slug, NOT: { id } } })) {
       slug = `${baseSlug}-${++i}`
     }
     data.slug = slug
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     data.publishedAt = body.published ? (existing.publishedAt ?? new Date()) : existing.publishedAt
   }
 
-  const article = await prisma.article.update({ where: { id }, data })
+  const article = await db.article.update({ where: { id }, data })
   await syncImageUsageTable()
   return article
 })

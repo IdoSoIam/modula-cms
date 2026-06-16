@@ -1,4 +1,4 @@
-import { prisma } from '../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { getPageBuilderContent, savePageBuilderContent } from '#modula/server/utils/pageBuilder'
 import type { PageBuilderColumnItem, PageBuilderSection } from '#modula/shared/pageBuilder'
 import {
@@ -329,19 +329,19 @@ export async function syncImageUsageTable() {
   }
 
   const [images, vegetables, baskets, articles, cmsPages] = await Promise.all([
-    prisma.image.findMany({
+    db.image.findMany({
       select: { id: true, url: true }
     }),
-    prisma.vegetable.findMany({
+    db.vegetable.findMany({
       select: { id: true, name: true, imageUrl: true }
     }),
-    prisma.basket.findMany({
+    db.basket.findMany({
       select: { id: true, name: true, imageUrl: true }
     }),
-    prisma.article.findMany({
+    db.article.findMany({
       select: { id: true, title: true, slug: true, coverUrl: true, content: true }
     }),
-    prisma.cmsPage.findMany({
+    db.cmsPage.findMany({
       select: {
         id: true,
         path: true,
@@ -529,10 +529,10 @@ export async function syncImageUsageTable() {
 
   const dedupedUsages = dedupeImageUsages(usages)
 
-  await prisma.imageUsage.deleteMany()
+  await db.imageUsage.deleteMany()
 
   if (dedupedUsages.length) {
-    await prisma.imageUsage.createMany({
+    await db.imageUsage.createMany({
       data: dedupedUsages
     })
   }
@@ -543,7 +543,7 @@ export async function listImageUsageAssociations(imageId: number) {
     return await listRuntimeImageUsages(imageId)
   }
 
-  return await prisma.imageUsage.findMany({
+  return await db.imageUsage.findMany({
     where: { imageId },
     orderBy: [
       { scopeType: 'asc' },
@@ -553,19 +553,19 @@ export async function listImageUsageAssociations(imageId: number) {
 }
 
 export async function updateImageReferences(oldUrl: string, newUrl: string) {
-  await prisma.vegetable.updateMany({
+  await db.vegetable.updateMany({
     where: { imageUrl: oldUrl },
     data: { imageUrl: newUrl }
   })
-  await prisma.basket.updateMany({
+  await db.basket.updateMany({
     where: { imageUrl: oldUrl },
     data: { imageUrl: newUrl }
   })
-  await prisma.article.updateMany({
+  await db.article.updateMany({
     where: { coverUrl: oldUrl },
     data: { coverUrl: newUrl }
   })
-  await prisma.$executeRawUnsafe(
+  await db.$executeRawUnsafe(
     'UPDATE "Article" SET "content" = REPLACE("content", ?, ?) WHERE "content" LIKE ?',
     oldUrl,
     newUrl,
@@ -581,22 +581,22 @@ export async function updateImageReferences(oldUrl: string, newUrl: string) {
 }
 
 export async function removeImageReferences(url: string) {
-  await prisma.vegetable.updateMany({
+  await db.vegetable.updateMany({
     where: { imageUrl: url },
     data: { imageUrl: null }
   })
 
-  await prisma.basket.updateMany({
+  await db.basket.updateMany({
     where: { imageUrl: url },
     data: { imageUrl: null }
   })
 
-  await prisma.article.updateMany({
+  await db.article.updateMany({
     where: { coverUrl: url },
     data: { coverUrl: null }
   })
 
-  await prisma.$executeRawUnsafe(
+  await db.$executeRawUnsafe(
     'UPDATE "Article" SET "content" = REPLACE("content", ?, ?) WHERE "content" LIKE ?',
     url,
     '',
@@ -675,7 +675,7 @@ export async function countImageReferences(url: string) {
     }
   }
 
-  const image = await prisma.image.findFirst({
+  const image = await db.image.findFirst({
     where: { url },
     select: { id: true }
   })
@@ -702,7 +702,7 @@ export async function countImageReferences(url: string) {
   }
 
   const usages = await listImageUsageAssociations(image.id)
-  const cmsPages = await prisma.cmsPage.findMany({
+  const cmsPages = await db.cmsPage.findMany({
     select: {
       id: true,
       path: true,

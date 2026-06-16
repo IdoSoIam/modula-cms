@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { getRuntimeRolePermissions, isRuntimeD1Active, listRuntimeRoles } from '#modula/server/platform/runtimeDb'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { parseJsonSafe } from '#modula/server/utils/roles'
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     })))
   }
 
-  const roles = await prisma.role.findMany({
+  const roles = await db.role.findMany({
     include: {
       permissions: true
     },

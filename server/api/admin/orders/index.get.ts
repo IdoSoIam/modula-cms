@@ -1,9 +1,9 @@
-import type { Prisma } from '@prisma/client'
+import type { DbTypes } from '#modula/server/data/types'
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { ensureReservationOccurrences } from '#modula/server/utils/orderOccurrences'
 import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
 import { isRuntimeD1Active, listRuntimeReservations } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 function toPositiveInt(value: unknown, fallback: number, max = 100) {
   const parsed = Number(value)
@@ -153,7 +153,7 @@ export default defineEventHandler(async (event) => {
     occurrences: {
       orderBy: { occurrenceDate: 'asc' as const }
     }
-  } satisfies Prisma.ReservationInclude
+  } satisfies DbTypes.ReservationInclude
 
   if (isRuntimeD1Active()) {
     const reservations = await listRuntimeReservations({
@@ -256,7 +256,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const reservations = await prisma.reservation.findMany({
+  const reservations = await db.reservation.findMany({
     where: includeArchived && baseStatuses.length
       ? {
           OR: [
@@ -282,7 +282,7 @@ export default defineEventHandler(async (event) => {
     )
   }
 
-  const hydratedReservations = await prisma.reservation.findMany({
+  const hydratedReservations = await db.reservation.findMany({
     where: { id: { in: reservations.map((reservation) => reservation.id) } },
     include
   })

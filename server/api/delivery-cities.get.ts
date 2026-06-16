@@ -1,4 +1,4 @@
-import { prisma } from '../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { isRuntimeD1Active, listRuntimeTourCities } from '#modula/server/platform/runtimeDb'
 
 export default defineEventHandler(async (event) => {
@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
 
   const cities = isRuntimeD1Active()
     ? await listRuntimeTourCities()
-    : await prisma.tourCity.findMany({
+    : await db.tourCity.findMany({
         select: { city: true, postalCodes: true },
         orderBy: { city: 'asc' }
       })

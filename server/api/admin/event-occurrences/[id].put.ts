@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -9,14 +9,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<any>(event)
-  const occurrence = await prisma.eventOccurrence.findUnique({
+  const occurrence = await db.eventOccurrence.findUnique({
     where: { id }
   })
   if (!occurrence) {
     throw createError({ statusCode: 404, statusMessage: 'Occurrence introuvable' })
   }
 
-  const updated = await prisma.eventOccurrence.update({
+  const updated = await db.eventOccurrence.update({
     where: { id },
     data: {
       status: body?.status === 'CANCELLED' ? 'CANCELLED' : 'SCHEDULED',

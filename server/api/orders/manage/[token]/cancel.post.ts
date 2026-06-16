@@ -1,4 +1,4 @@
-import { prisma } from '../../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { removeReservationFromGoogleCalendar } from '#modula/server/utils/googleCalendarSync'
 import { sendGmail } from '#modula/server/utils/gmail'
 import { buildGenericEmail, buildReservationDecisionEmail } from '#modula/server/utils/orderEmails'
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Lien invalide' })
   }
 
-  const reservation = await prisma.reservation.findUnique({
+  const reservation = await db.reservation.findUnique({
     where: { publicActionToken: token },
     include: {
       basket: true,
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
     return { ok: true, alreadyCancelled: true }
   }
 
-  const updated = await prisma.reservation.update({
+  const updated = await db.reservation.update({
     where: { id: reservation.id },
     data: {
       status: 'CANCELLED',
@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
     await removeReservationFromGoogleCalendar(updated)
   }
 
-  await prisma.reservationOccurrence.updateMany({
+  await db.reservationOccurrence.updateMany({
     where: { reservationId: reservation.id, status: 'SCHEDULED' },
     data: {
       status: 'CANCELLED',

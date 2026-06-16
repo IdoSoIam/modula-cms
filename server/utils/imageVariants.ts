@@ -1,5 +1,5 @@
 import { extname } from 'node:path'
-import { prisma } from '../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { deleteUploadObject, getUploadObject, putUploadObject } from '#modula/server/utils/uploadStorage'
 
 export type ImageVariantSignature = {
@@ -71,7 +71,7 @@ export function buildImageVariantStorageKey(filename: string, signature: ImageVa
 
 export async function findStoredImageVariant(imageId: number, signature: ImageVariantSignature) {
   const normalized = normalizeImageVariantSignature(signature)
-  const variant = await prisma.imageVariant.findFirst({
+  const variant = await db.imageVariant.findFirst({
     where: {
       imageId,
       width: normalized.width ?? null,
@@ -89,7 +89,7 @@ export async function findStoredImageVariant(imageId: number, signature: ImageVa
 
   const object = await getUploadObject(variant.storageKey)
   if (!object) {
-    await prisma.imageVariant.delete({ where: { id: variant.id } })
+    await db.imageVariant.delete({ where: { id: variant.id } })
     return null
   }
 
@@ -112,7 +112,7 @@ export async function createStoredImageVariant(input: {
 
   await putUploadObject(storageKey, input.data, input.mimeType)
 
-  return await prisma.imageVariant.upsert({
+  return await db.imageVariant.upsert({
     where: { storageKey },
     create: {
       imageId: input.imageId,
@@ -138,7 +138,7 @@ export async function createStoredImageVariant(input: {
 }
 
 export async function deleteImageVariants(imageId: number) {
-  const variants = await prisma.imageVariant.findMany({
+  const variants = await db.imageVariant.findMany({
     where: { imageId },
     select: { id: true, storageKey: true }
   })
@@ -148,6 +148,6 @@ export async function deleteImageVariants(imageId: number) {
   }))
 
   if (variants.length) {
-    await prisma.imageVariant.deleteMany({ where: { imageId } })
+    await db.imageVariant.deleteMany({ where: { imageId } })
   }
 }

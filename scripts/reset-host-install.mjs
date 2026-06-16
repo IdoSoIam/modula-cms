@@ -4,8 +4,8 @@ import path from 'node:path'
 import { execSync } from 'node:child_process'
 
 const cwd = process.cwd()
-const localDbPath = path.resolve(cwd, 'prisma', 'local.db')
-const localMigrationsTablePath = path.resolve(cwd, 'prisma', '.local-migrations.db')
+const localDbPath = path.resolve(cwd, '.data', 'sqlite', 'local.db')
+const localMigrationsTablePath = path.resolve(cwd, '.data', 'sqlite', '.local-migrations.db')
 const wranglerStatePath = path.resolve(cwd, '.wrangler', 'state')
 
 function stopHostNodeProcesses() {

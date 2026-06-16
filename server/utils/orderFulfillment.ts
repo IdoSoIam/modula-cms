@@ -1,4 +1,4 @@
-import type { DeliveryTour, DeliveryType, PickupPoint, Reservation } from '@prisma/client'
+import type { DeliveryTour, DeliveryType, PickupPoint, Reservation } from '#modula/server/data/types'
 import { getDefaultTimeZone } from './dateFormat'
 import type { FarmPickupConfig } from './settings'
 

@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { normalizeEventPayload, submitEventPublicReservation } from '#modula/server/utils/events'
 import { AuthService } from '#modula/server/services/auth/authService'
 
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<{ customerName?: string; email?: string; phone?: string; seats?: number; message?: string; locale?: 'fr' | 'en' }>(event)
-  const eventRow = await prisma.event.findUnique({
+  const eventRow = await db.event.findUnique({
     where: { slug },
     include: {
       audienceMemberRoles: { include: { memberRole: true } }

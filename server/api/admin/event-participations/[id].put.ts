@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Statut invalide' })
   }
 
-  await prisma.eventInternalParticipation.update({
+  await db.eventInternalParticipation.update({
     where: { id },
     data: {
       status: status as any,

@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant utilisateur invalide' })
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await db.user.findUnique({
     where: { id },
     select: { id: true, isActive: true }
   })
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Utilisateur introuvable' })
   }
 
-  const activeToken = await prisma.passwordSetupToken.findFirst({
+  const activeToken = await db.passwordSetupToken.findFirst({
     where: { userId: id, usedAt: null, expiresAt: { gt: new Date() } },
     orderBy: { expiresAt: 'desc' },
     select: { expiresAt: true, createdAt: true }

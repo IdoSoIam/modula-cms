@@ -13,7 +13,7 @@ import {
   getRuntimeReservationUsageCountsByBasketIds,
   isRuntimeD1Active
 } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { AuthService } from '../../services/auth/authService'
 import { randomBytes } from 'node:crypto'
 
@@ -55,14 +55,14 @@ export default defineEventHandler(async (event) => {
 
   const basket = isRuntimeD1Active()
     ? await getRuntimeBasketById(body.basketId)
-    : await prisma.basket.findUnique({ where: { id: body.basketId } })
+    : await db.basket.findUnique({ where: { id: body.basketId } })
   if (!basket || !basket.active) {
     throw createError({ statusCode: 404, statusMessage: 'Panier introuvable' })
   }
 
   const used = isRuntimeD1Active()
     ? (await getRuntimeReservationUsageCountsByBasketIds([basket.id])).get(basket.id) ?? 0
-    : await prisma.reservation.count({
+    : await db.reservation.count({
         where: { basketId: basket.id, status: { in: ['PENDING', 'CONFIRMED'] } }
       })
   if (used >= basket.available) {
@@ -88,7 +88,7 @@ export default defineEventHandler(async (event) => {
     if (!body.pickupPointId) throw createError({ statusCode: 400, statusMessage: 'Point relais requis' })
     const p = isRuntimeD1Active()
       ? await getRuntimePickupPointById(body.pickupPointId)
-      : await prisma.pickupPoint.findUnique({
+      : await db.pickupPoint.findUnique({
           where: { id: body.pickupPointId },
           select: {
             id: true,
@@ -109,7 +109,7 @@ export default defineEventHandler(async (event) => {
     if (!body.deliveryAddress?.trim()) throw createError({ statusCode: 400, statusMessage: 'Adresse requise pour la tournée' })
     const t = isRuntimeD1Active()
       ? await getRuntimeDeliveryTourById(body.deliveryTourId)
-      : await prisma.deliveryTour.findUnique({
+      : await db.deliveryTour.findUnique({
           where: { id: body.deliveryTourId },
           select: {
             id: true,
@@ -182,7 +182,7 @@ export default defineEventHandler(async (event) => {
         scheduleProposalPendingBy: deliveryType === 'FARM' ? 'ADMIN' : null,
         lastScheduleProposalAt: deliveryType === 'FARM' ? new Date() : null
       })
-    : await prisma.reservation.create({
+    : await db.reservation.create({
         data: {
           basketId: basket.id,
           userId: sessionUser?.id ?? null,

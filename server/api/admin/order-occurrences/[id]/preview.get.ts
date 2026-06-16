@@ -1,7 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { applyTemplateVars, getReservationDateLocale, resolveTemplateFromSettings } from '#modula/server/utils/orderEmailContent'
 import { formatFulfillmentDate } from '#modula/server/utils/orderFulfillment'
-import { prisma } from '../../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
 
-  const occurrence = await prisma.reservationOccurrence.findUnique({
+  const occurrence = await db.reservationOccurrence.findUnique({
     where: { id },
     include: {
       reservation: {

@@ -4,7 +4,7 @@ import {
   replaceRuntimeDeliveryTourCities,
   updateRuntimeDeliveryTour
 } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 interface CityInput {
   city: string
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
         postalCodes: c.postalCodes?.trim() || null
       })))
     } else {
-      await prisma.tourCity.deleteMany({ where: { tourId: id } })
+      await db.tourCity.deleteMany({ where: { tourId: id } })
       data.cities = {
         create: body.cities.filter(c => c.city.trim()).map(c => ({
           city: c.city.trim(),
@@ -58,5 +58,5 @@ export default defineEventHandler(async (event) => {
     return await updateRuntimeDeliveryTour(id, data)
   }
 
-  return prisma.deliveryTour.update({ where: { id }, data, include: { cities: true } })
+  return db.deliveryTour.update({ where: { id }, data, include: { cities: true } })
 })

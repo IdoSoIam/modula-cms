@@ -1,4 +1,4 @@
-import { prisma } from '../../../../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { formatDateForTimeZone } from '#modula/server/utils/dateFormat'
 import { sendGmail } from '#modula/server/utils/gmail'
 import { buildGenericEmail, buildReservationOccurrenceEmail } from '#modula/server/utils/orderEmails'
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Lien invalide' })
   }
 
-  const reservation = await prisma.reservation.findUnique({
+  const reservation = await db.reservation.findUnique({
     where: { publicActionToken: token },
     include: {
       basket: true,
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
   if (!occurrence) throw createError({ statusCode: 404, statusMessage: 'Occurrence introuvable' })
   if (occurrence.status === 'CANCELLED') return { ok: true, alreadyCancelled: true }
 
-  const updatedOccurrence = await prisma.reservationOccurrence.update({
+  const updatedOccurrence = await db.reservationOccurrence.update({
     where: { id: occurrence.id },
     data: {
       status: 'CANCELLED',

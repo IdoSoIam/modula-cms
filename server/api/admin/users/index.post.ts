@@ -1,5 +1,5 @@
 import { AuthService } from '#modula/server/services/auth/authService'
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { resolveAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
 import { getSiteOrigin, sendGmail } from '#modula/server/utils/gmail'
@@ -66,8 +66,8 @@ export default defineEventHandler(async (event) => {
 
   const normalizedRoleId = body.roleId == null || body.roleId === '' || body.roleId === 'null' ? null : Number(body.roleId)
   const roleRow = normalizedRoleId && Number.isInteger(normalizedRoleId)
-    ? await prisma.role.findUnique({ where: { id: normalizedRoleId } })
-    : await prisma.role.findFirst({ where: { isDefault: true }, orderBy: { id: 'asc' } })
+    ? await db.role.findUnique({ where: { id: normalizedRoleId } })
+    : await db.role.findFirst({ where: { isDefault: true }, orderBy: { id: 'asc' } })
 
   const firstName = typeof body.firstName === 'string' ? body.firstName.trim() : undefined
   const lastName = typeof body.lastName === 'string' ? body.lastName.trim() : undefined
@@ -92,7 +92,7 @@ export default defineEventHandler(async (event) => {
   )
 
   if (roleRow && user.roleId !== roleRow.id) {
-    await prisma.user.update({
+    await db.user.update({
       where: { id: user.id },
       data: { roleId: roleRow.id }
     })
@@ -108,7 +108,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (associationRolesEnabled && memberRoleIds.length) {
-    await prisma.userMemberRole.createMany({
+    await db.userMemberRole.createMany({
       data: memberRoleIds.map(memberRoleId => ({
         userId: user.id,
         memberRoleId

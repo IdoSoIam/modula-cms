@@ -1,4 +1,4 @@
-import { prisma } from '../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { getNextDateForDayOfWeek } from '#modula/server/utils/orderFulfillment'
 import { getFarmPickupConfig } from '#modula/server/utils/settings'
 import { isRuntimeD1Active, listRuntimeDeliveryTours, listRuntimePickupPoints } from '#modula/server/platform/runtimeDb'
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
           openingHours: item.openingHours,
           websiteUrl: item.websiteUrl
         })))
-      : prisma.pickupPoint.findMany({
+      : db.pickupPoint.findMany({
           where: { active: true },
           orderBy: [{ position: 'asc' }, { name: 'asc' }],
           select: {
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
         }),
     isRuntimeD1Active()
       ? listRuntimeDeliveryTours({ activeOnly: true })
-      : prisma.deliveryTour.findMany({
+      : db.deliveryTour.findMany({
           where: { active: true },
           orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
           include: { cities: true }

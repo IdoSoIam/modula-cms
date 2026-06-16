@@ -1,5 +1,5 @@
-import type { DeliveryTour, PickupPoint, Reservation, Basket } from '@prisma/client'
-import { prisma } from '../../prisma/client'
+import type { DeliveryTour, PickupPoint, Reservation, Basket } from '#modula/server/data/types'
+import { db } from '#modula/server/data/client'
 import {
   buildGoogleCalendarEventPayload,
   deleteGoogleCalendarEvent,
@@ -105,7 +105,7 @@ export async function syncReservationToGoogleCalendar(reservation: ReservationFo
     }
   }
 
-  await prisma.reservation.update({
+  await db.reservation.update({
     where: { id: reservation.id },
     data: {
       googleCalendarEventId: event.id,
@@ -123,7 +123,7 @@ export async function removeReservationFromGoogleCalendar(reservation: Reservati
   }
 
   const deletion = await deleteGoogleCalendarEvent(calendarId, reservation.googleCalendarEventId)
-  await prisma.reservation.update({
+  await db.reservation.update({
     where: { id: reservation.id },
     data: {
       googleCalendarEventId: null,
@@ -183,7 +183,7 @@ export async function syncReservationOccurrenceToGoogleCalendar(
   }
 
   await patchGoogleCalendarEvent(calendarId, instance.id, payload, 'none')
-  await prisma.reservationOccurrence.update({
+  await db.reservationOccurrence.update({
     where: { id: occurrence.id },
     data: { googleCalendarEventId: instance.id }
   })
@@ -206,7 +206,7 @@ export async function cancelReservationOccurrenceInGoogleCalendar(
   }
 
   await patchGoogleCalendarEvent(calendarId, instance.id, { status: 'cancelled' }, 'none')
-  await prisma.reservationOccurrence.update({
+  await db.reservationOccurrence.update({
     where: { id: occurrence.id },
     data: { googleCalendarEventId: instance.id }
   })

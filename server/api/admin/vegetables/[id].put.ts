@@ -7,7 +7,7 @@ import {
   updateRuntimeVegetable
 } from '#modula/server/platform/runtimeDb'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
       return { ...updated, price: Number(updated.price), active: updated.active === true || updated.active === 1 }
     }
 
-    const v = await prisma.vegetable.update({ where: { id }, data })
+    const v = await db.vegetable.update({ where: { id }, data })
     if (body.price !== undefined) {
       await recomputeBasketsForVegetable(id)
     }
@@ -66,12 +66,12 @@ async function recomputeRuntimeBasketsForVegetable(vegetableId: number) {
 }
 
 async function recomputeBasketsForVegetable(vegetableId: number) {
-  const baskets = await prisma.basket.findMany({
+  const baskets = await db.basket.findMany({
     where: { items: { some: { vegetableId } } },
     include: { items: { include: { vegetable: true } } }
   })
   for (const b of baskets) {
     const computed = b.items.reduce((sum, it) => sum + Number(it.vegetable.price) * Number(it.quantity), 0)
-    await prisma.basket.update({ where: { id: b.id }, data: { computedPrice: computed } })
+    await db.basket.update({ where: { id: b.id }, data: { computedPrice: computed } })
   }
 }

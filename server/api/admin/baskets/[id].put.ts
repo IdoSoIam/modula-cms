@@ -7,7 +7,7 @@ import {
 } from '#modula/server/platform/runtimeDb'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { serializeBasket } from '#modula/server/utils/baskets'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 interface Body {
   name?: string
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
     const veggies = body.items.length
       ? isRuntimeD1Active()
         ? await getRuntimeVegetablesByIds(body.items.map(i => i.vegetableId))
-        : await prisma.vegetable.findMany({ where: { id: { in: body.items.map(i => i.vegetableId) } } })
+        : await db.vegetable.findMany({ where: { id: { in: body.items.map(i => i.vegetableId) } } })
       : []
     const computed = body.items.reduce((sum, it) => {
       const v = veggies.find(x => x.id === it.vegetableId)
@@ -50,8 +50,8 @@ export default defineEventHandler(async (event) => {
     if (isRuntimeD1Active()) {
       await replaceRuntimeBasketItems(id, body.items)
     } else {
-      await prisma.basketItem.deleteMany({ where: { basketId: id } })
-      await prisma.basketItem.createMany({
+      await db.basketItem.deleteMany({ where: { basketId: id } })
+      await db.basketItem.createMany({
         data: body.items.map(it => ({ basketId: id, vegetableId: it.vegetableId, quantity: it.quantity }))
       })
     }
@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
     return basket
   }
 
-  const basket = await prisma.basket.update({
+  const basket = await db.basket.update({
     where: { id },
     data,
     include: { items: { include: { vegetable: true } } }

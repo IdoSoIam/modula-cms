@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { requireAssociationRolesEnabled } from '#modula/server/utils/settings'
 
@@ -11,12 +11,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant invalide' })
   }
 
-  const existing = await prisma.memberRole.findUnique({ where: { id } })
+  const existing = await db.memberRole.findUnique({ where: { id } })
   if (!existing) {
     throw createError({ statusCode: 404, statusMessage: 'Rôle associatif introuvable' })
   }
 
-  await prisma.memberRole.delete({
+  await db.memberRole.delete({
     where: { id }
   })
 

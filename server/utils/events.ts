@@ -1,5 +1,5 @@
-import { prisma } from '#modula/prisma/client'
-import type { Event, EventAudienceMemberRole, EventInternalParticipation, EventOccurrence, EventPublicReservation, MemberRole, User } from '../../node_modules/.prisma/client'
+import { db } from '#modula/server/data/client'
+import type { Event, EventAudienceMemberRole, EventInternalParticipation, EventOccurrence, EventPublicReservation, MemberRole, User } from '#modula/server/data/types'
 import { createDefaultCmsSiteSettings, type CmsLocale, type CmsLocalizedText } from '#modula/shared/cms'
 import type { PageBuilderContent } from '#modula/shared/pageBuilder'
 import {
@@ -386,14 +386,14 @@ export async function createOrUpdateEvent(input: EventPayload, userId?: number |
 
   const data = serializeEventPayload(input)
   const record = input.id
-    ? await prisma.event.update({
+    ? await db.event.update({
         where: { id: input.id },
         data: {
           ...data,
           updatedById: userId ?? null
         }
       })
-    : await prisma.event.create({
+    : await db.event.create({
         data: {
           ...data,
           createdById: userId ?? null,
@@ -402,11 +402,11 @@ export async function createOrUpdateEvent(input: EventPayload, userId?: number |
       })
 
   if (associationRolesEnabled) {
-    await prisma.eventAudienceMemberRole.deleteMany({
+    await db.eventAudienceMemberRole.deleteMany({
       where: { eventId: record.id }
     })
     if (input.audienceMemberRoleIds.length) {
-      await prisma.eventAudienceMemberRole.createMany({
+      await db.eventAudienceMemberRole.createMany({
         data: Array.from(new Set(input.audienceMemberRoleIds)).map(memberRoleId => ({
           eventId: record.id,
           memberRoleId
@@ -415,7 +415,7 @@ export async function createOrUpdateEvent(input: EventPayload, userId?: number |
     }
   }
 
-  return prisma.event.findUniqueOrThrow({
+  return db.event.findUniqueOrThrow({
     where: { id: record.id },
     include: {
       audienceMemberRoles: {
@@ -432,7 +432,7 @@ export async function submitEventPublicReservation(eventRow: EventWithRelations,
     throw createError({ statusCode: 400, statusMessage: 'Nom et email sont requis' })
   }
   if (eventRow.publicCapacity != null) {
-    const reservedSeats = await prisma.eventPublicReservation.aggregate({
+    const reservedSeats = await db.eventPublicReservation.aggregate({
       where: {
         eventId: eventRow.id,
         status: {
@@ -449,7 +449,7 @@ export async function submitEventPublicReservation(eventRow: EventWithRelations,
     }
   }
 
-  const reservation = await prisma.eventPublicReservation.create({
+  const reservation = await db.eventPublicReservation.create({
     data: {
       eventId: eventRow.id,
       userId: userId ?? null,
@@ -502,7 +502,7 @@ export async function submitEventPublicReservation(eventRow: EventWithRelations,
 
 export async function submitInternalParticipation(eventRow: EventWithRelations, payload: EventInternalParticipationPayload, user: { id: number; email: string; firstName?: string; lastName?: string }, locale: CmsLocale) {
   if (eventRow.internalCapacity != null) {
-    const currentCount = await prisma.eventInternalParticipation.count({
+    const currentCount = await db.eventInternalParticipation.count({
       where: {
         eventId: eventRow.id,
         status: {
@@ -510,7 +510,7 @@ export async function submitInternalParticipation(eventRow: EventWithRelations, 
         }
       }
     })
-    const existing = await prisma.eventInternalParticipation.findUnique({
+    const existing = await db.eventInternalParticipation.findUnique({
       where: {
         eventId_userId: {
           eventId: eventRow.id,
@@ -524,7 +524,7 @@ export async function submitInternalParticipation(eventRow: EventWithRelations, 
   }
 
   const status: EventInternalParticipationStatus = eventRow.internalParticipationApprovalMode === 'AUTO' ? 'CONFIRMED' : 'PENDING'
-  const participation = await prisma.eventInternalParticipation.upsert({
+  const participation = await db.eventInternalParticipation.upsert({
     where: {
       eventId_userId: {
         eventId: eventRow.id,
@@ -595,7 +595,7 @@ export async function sendParticipationCall(options: {
   body?: string
 }) {
   const translation = resolveEventTranslation(options.eventRow, options.locale)
-  const eligibleUsers = await prisma.user.findMany({
+  const eligibleUsers = await db.user.findMany({
     where: {
       id: { in: options.selectedUserIds },
       isActive: true
@@ -603,7 +603,7 @@ export async function sendParticipationCall(options: {
   })
 
   const alreadyParticipantIds = new Set(
-    await prisma.eventInternalParticipation.findMany({
+    await db.eventInternalParticipation.findMany({
       where: { eventId: options.eventRow.id },
       select: { userId: true }
     }).then(rows => rows.map(row => row.userId))
@@ -664,7 +664,7 @@ export async function sendParticipationCall(options: {
 export async function listAudienceEligibleUsers(eventRow: EventWithRelations) {
   const memberRoleIds = eventRow.audienceMemberRoles.map(entry => entry.memberRoleId)
   if (!memberRoleIds.length) return []
-  return prisma.user.findMany({
+  return db.user.findMany({
     where: {
       memberRoles: {
         some: {

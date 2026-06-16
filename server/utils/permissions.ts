@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 import {
   ADMIN_PERMISSION_MODULES,
@@ -47,7 +47,7 @@ function roleSeedToPermissionRows() {
 }
 
 async function getUserWithRole(userId: number) {
-  return prisma.user.findUnique({
+  return db.user.findUnique({
     where: { id: userId },
     include: {
       managedRole: {
@@ -72,7 +72,7 @@ export async function ensureDefaultRoles() {
     ensureDefaultRolesPromise = (async () => {
       for (const role of DEFAULT_ROLE_DEFINITIONS) {
         const specialPermissionsJson = JSON.stringify(role.specialPermissions)
-        await prisma.role.upsert({
+        await db.role.upsert({
           where: { slug: role.slug },
           update: {
             name: role.name,
@@ -92,7 +92,7 @@ export async function ensureDefaultRoles() {
         })
       }
 
-      const roles = await prisma.role.findMany({
+      const roles = await db.role.findMany({
         where: {
           slug: {
             in: DEFAULT_ROLE_DEFINITIONS.map(role => role.slug)
@@ -104,7 +104,7 @@ export async function ensureDefaultRoles() {
       for (const permission of roleSeedToPermissionRows()) {
         const role = roleBySlug.get(permission.roleSlug)
         if (!role) continue
-        await prisma.rolePermission.upsert({
+        await db.rolePermission.upsert({
           where: {
             roleId_module: {
               roleId: role.id,
@@ -130,14 +130,14 @@ export async function ensureDefaultRoles() {
 
       const defaultRole = roleBySlug.get('utilisateur_public') ?? roleBySlug.get('redacteur') ?? roleBySlug.get('admin')
       if (defaultRole) {
-        await prisma.user.updateMany({
+        await db.user.updateMany({
           where: { roleId: null },
           data: { roleId: defaultRole.id }
         })
       }
 
       for (const memberRole of MEMBER_ROLE_DEFINITIONS) {
-        await prisma.memberRole.upsert({
+        await db.memberRole.upsert({
           where: { slug: memberRole.slug },
           update: {
             name: memberRole.name,

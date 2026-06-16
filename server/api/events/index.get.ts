@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { canAccessEvent, eventOccurrenceToListItem, eventToListItem } from '#modula/server/utils/events'
 import { AuthService } from '#modula/server/services/auth/authService'
 import { syncEventOccurrencesForEvent } from '#modula/server/utils/planning'
@@ -169,8 +169,8 @@ export default defineEventHandler(async (event) => {
       visibility: 'PUBLIC' as const
     }
     const [total, rows] = await Promise.all([
-      prisma.event.count({ where }),
-      prisma.event.findMany({
+      db.event.count({ where }),
+      db.event.findMany({
         where,
         include: {
           audienceMemberRoles: {
@@ -200,7 +200,7 @@ export default defineEventHandler(async (event) => {
     const firstGridDay = startOfWeek(monthStart)
     const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
     const lastGridDay = endOfWeek(monthEnd)
-    const recurring = await prisma.event.findMany({
+    const recurring = await db.event.findMany({
       where: {
         kind: 'PERMANENCE',
         recurrenceType: 'WEEKLY'
@@ -210,7 +210,7 @@ export default defineEventHandler(async (event) => {
       await syncEventOccurrencesForEvent(item as any)
     }
     const [rows, occurrences] = await Promise.all([
-      prisma.event.findMany({
+      db.event.findMany({
         where: {
           kind: 'EVENT',
           status: 'PUBLISHED',
@@ -228,7 +228,7 @@ export default defineEventHandler(async (event) => {
         },
         orderBy: [{ startsAt: 'asc' }]
       }),
-      prisma.eventOccurrence.findMany({
+      db.eventOccurrence.findMany({
         where: {
           occurrenceDate: {
             gte: firstGridDay,
@@ -294,7 +294,7 @@ export default defineEventHandler(async (event) => {
 
   const weekStart = getWeekStart(typeof query.weekStart === 'string' ? query.weekStart : undefined)
   const weekEnd = endOfWeek(weekStart)
-  const recurring = await prisma.event.findMany({
+  const recurring = await db.event.findMany({
     where: {
       kind: 'PERMANENCE',
       recurrenceType: 'WEEKLY'
@@ -304,7 +304,7 @@ export default defineEventHandler(async (event) => {
     await syncEventOccurrencesForEvent(item as any)
   }
   const [rows, occurrences] = await Promise.all([
-    prisma.event.findMany({
+    db.event.findMany({
       where: {
         kind: 'EVENT',
         status: 'PUBLISHED',
@@ -322,7 +322,7 @@ export default defineEventHandler(async (event) => {
       },
       orderBy: [{ startsAt: 'asc' }]
     }),
-    prisma.eventOccurrence.findMany({
+    db.eventOccurrence.findMany({
       where: {
         occurrenceDate: {
           gte: weekStart,

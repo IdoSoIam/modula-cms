@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { listAudienceEligibleUsers, sendParticipationCall } from '#modula/server/utils/events'
 import { requireSpecialPermission } from '#modula/server/utils/permissions'
 
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Événement invalide' })
   }
 
-  const eventRow = await prisma.event.findUnique({
+  const eventRow = await db.event.findUnique({
     where: { id: eventId },
     include: {
       audienceMemberRoles: {

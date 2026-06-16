@@ -1,6 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { deleteRuntimePickupPoint, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   if (isRuntimeD1Active()) {
     await deleteRuntimePickupPoint(id)
   } else {
-    await prisma.pickupPoint.delete({ where: { id } })
+    await db.pickupPoint.delete({ where: { id } })
   }
   return { ok: true }
 })

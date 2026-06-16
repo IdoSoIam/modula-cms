@@ -1,7 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { createRuntimeVegetable, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
         : null
     }
 
-    const v = await prisma.vegetable.create({
+    const v = await db.vegetable.create({
       data: { name: body.name.trim(), unit: body.unit, price: body.price, active: body.active ?? true, imageUrl: body.imageUrl || null }
     })
     await syncImageUsageTable()

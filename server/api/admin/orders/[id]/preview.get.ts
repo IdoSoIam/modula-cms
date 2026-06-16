@@ -2,14 +2,14 @@ import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { getSettings, SETTING_KEYS } from '#modula/server/utils/settings'
 import { getReservationDateLocale, resolveReservationTemplate } from '#modula/server/utils/orderEmailContent'
 import { formatFulfillmentDate, getDeliveryMethodLabel, getDeliveryWindowLabel, getReservationFulfillment } from '#modula/server/utils/orderFulfillment'
-import { prisma } from '../../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
 
-  const r = await prisma.reservation.findUnique({
+  const r = await db.reservation.findUnique({
     where: { id },
     include: {
       basket: true,

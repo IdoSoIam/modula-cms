@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { prisma } from '../../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { buildReservationOccurrenceEmail } from '#modula/server/utils/orderEmails'
 import { sendGmail } from '#modula/server/utils/gmail'
 import { logReservationNotification } from '#modula/server/utils/orderNotifications'
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
 
   const body = await readBody<Body>(event)
-  const occurrence = await prisma.reservationOccurrence.findUnique({
+  const occurrence = await db.reservationOccurrence.findUnique({
     where: { id },
     include: {
       reservation: {
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
 
   if (!occurrence) throw createError({ statusCode: 404, statusMessage: 'Occurrence introuvable' })
 
-  const updatedOccurrence = await prisma.reservationOccurrence.update({
+  const updatedOccurrence = await db.reservationOccurrence.update({
     where: { id },
     data: {
       occurrenceDate: new Date(`${body.occurrenceDate}T12:00:00`),

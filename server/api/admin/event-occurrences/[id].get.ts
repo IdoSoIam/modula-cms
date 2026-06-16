@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { eventOccurrenceToPayload, eventToPayload } from '#modula/server/utils/events'
 import { requirePermission } from '#modula/server/utils/permissions'
 
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant occurrence invalide' })
   }
 
-  const occurrence = await prisma.eventOccurrence.findUnique({
+  const occurrence = await db.eventOccurrence.findUnique({
     where: { id },
     include: {
       event: {

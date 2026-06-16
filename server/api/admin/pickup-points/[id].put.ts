@@ -1,6 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { isRuntimeD1Active, updateRuntimePickupPoint } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -33,5 +33,5 @@ export default defineEventHandler(async (event) => {
     const point = await updateRuntimePickupPoint(id, data)
     return point ? { ...point, active: point.active === true || point.active === 1 } : null
   }
-  return prisma.pickupPoint.update({ where: { id }, data })
+  return db.pickupPoint.update({ where: { id }, data })
 })

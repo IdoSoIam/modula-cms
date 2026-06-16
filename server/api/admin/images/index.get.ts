@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { countImageReferences, listImageUsageAssociations, syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { isRuntimeD1Active, listRuntimeImageVariants, listRuntimeImages } from '#modula/server/platform/runtimeDb'
 
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     }))
   }
 
-  const images = await prisma.image.findMany({
+  const images = await db.image.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
       variants: {
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
       height: item.height,
       uploadedById: item.uploadedById,
       createdAt: item.createdAt,
-      variants: item.variants.map((variant) => ({
+      variants: item.variants?.map((variant: any) => ({
         ...variant,
         usages,
         references

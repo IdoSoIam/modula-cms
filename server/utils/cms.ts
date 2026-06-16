@@ -1,5 +1,5 @@
-import { prisma } from '#modula/prisma/client'
-import type { CmsNavigationItem, CmsPage } from '@prisma/client'
+import { db } from '#modula/server/data/client'
+import type { CmsNavigationItem, CmsPage } from '#modula/server/data/types'
 import type {
   CmsHeaderNavigationStyle,
   CmsHeaderMobileLogoPosition,
@@ -1234,7 +1234,7 @@ export async function listCmsPages() {
       ...pageRowToPayload(row as unknown as CmsPage)
     }))
   }
-  const rows = await withCmsTableFallback(() => prisma.cmsPage.findMany({
+  const rows = await withCmsTableFallback(() => db.cmsPage.findMany({
     orderBy: [
       { path: 'asc' }
     ]
@@ -1252,7 +1252,7 @@ export async function getCmsPageById(id: number) {
     return row ? { id: row.id, ...pageRowToPayload(row as unknown as CmsPage) } : null
   }
   const row = await withCmsTableFallback(
-    () => prisma.cmsPage.findUnique({ where: { id } }),
+    () => db.cmsPage.findUnique({ where: { id } }),
     async () => null
   )
   return row ? { id: row.id, ...pageRowToPayload(row) } : null
@@ -1265,7 +1265,7 @@ export async function getCmsPageByPath(path: string) {
     return row ? { id: row.id, ...pageRowToPayload(row as unknown as CmsPage) } : null
   }
   const row = await withCmsTableFallback(
-    () => prisma.cmsPage.findFirst({ where: { path: normalizedPath } }),
+    () => db.cmsPage.findFirst({ where: { path: normalizedPath } }),
     async () => null
   )
   return row ? { id: row.id, ...pageRowToPayload(row) } : null
@@ -1281,7 +1281,7 @@ export async function getCmsSpecialPagePath(role: CmsPageSpecialRole) {
     return role === 'construction' ? '/construction' : null
   }
   const row = await withCmsTableFallback(
-    () => prisma.cmsPage.findFirst({
+    () => db.cmsPage.findFirst({
       where: {
         specialRole: role,
         status: 'PUBLISHED'
@@ -1348,7 +1348,7 @@ export async function ensureCmsRootPage() {
   }
 
   const existing = await withCmsTableFallback(
-    () => prisma.cmsPage.findFirst({
+    () => db.cmsPage.findFirst({
       where: {
         OR: [
           { path: '/' },
@@ -1448,7 +1448,7 @@ async function ensureCmsApplicationPage(path: string, slug: string, titleFr: str
   }
 
   const existing = await withCmsTableFallback(
-    () => prisma.cmsPage.findFirst({
+    () => db.cmsPage.findFirst({
       where: {
         OR: [
           { path },
@@ -1551,7 +1551,7 @@ async function ensureCmsStandardPage(options: {
   }
 
   const existing = await withCmsTableFallback(
-    () => prisma.cmsPage.findFirst({
+    () => db.cmsPage.findFirst({
       where: {
         OR: [
           { path: options.path },
@@ -1779,7 +1779,7 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
   }
 
   if (payload.specialRole) {
-    await withCmsTableFallback(() => prisma.cmsPage.updateMany({
+    await withCmsTableFallback(() => db.cmsPage.updateMany({
       where: {
         specialRole: payload.specialRole,
         ...(id ? { NOT: { id } } : {})
@@ -1792,13 +1792,13 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
 
   if (id) {
     const existing = await withCmsTableFallback(
-      () => prisma.cmsPage.findUnique({ where: { id } }),
+      () => db.cmsPage.findUnique({ where: { id } }),
       async () => null
     )
     if (!existing) return null
 
     const updated = await withCmsTableFallback(
-      () => prisma.cmsPage.update({
+      () => db.cmsPage.update({
         where: { id },
         data
       }),
@@ -1812,7 +1812,7 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
   }
 
   const created = await withCmsTableFallback(
-    () => prisma.cmsPage.create({
+    () => db.cmsPage.create({
       data
     }),
     async () => null
@@ -1831,12 +1831,12 @@ export async function deleteCmsPage(id: number) {
   }
 
   await withCmsTableFallback(async () => {
-    await prisma.cmsNavigationItem.updateMany({
+    await db.cmsNavigationItem.updateMany({
       where: { pageId: id },
       data: { pageId: null }
     })
 
-    await prisma.cmsPage.delete({
+    await db.cmsPage.delete({
       where: { id }
     })
   }, async () => undefined)
@@ -1898,7 +1898,7 @@ export async function listCmsNavigationItems(menu?: CmsNavigationMenu) {
     })).sort((a, b) => a.position - b.position)
   }
 
-  const rows = await withCmsTableFallback(() => prisma.cmsNavigationItem.findMany({
+  const rows = await withCmsTableFallback(() => db.cmsNavigationItem.findMany({
     where: menu ? { menu } : undefined,
     orderBy: [
       { menu: 'asc' },
@@ -1982,7 +1982,7 @@ export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPaylo
 
   const cmsTablesAvailable = await withCmsTableFallback(
     async () => {
-      await prisma.cmsNavigationItem.findFirst({ select: { id: true } })
+      await db.cmsNavigationItem.findFirst({ select: { id: true } })
       return true
     },
     async () => false
@@ -1992,7 +1992,7 @@ export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPaylo
     return
   }
 
-  const currentRows = await prisma.cmsNavigationItem.findMany({
+  const currentRows = await db.cmsNavigationItem.findMany({
     select: {
       id: true,
       labelsJson: true
@@ -2034,22 +2034,22 @@ export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPaylo
 
     if (matchingId) {
       existingIds.add(matchingId)
-      await prisma.cmsNavigationItem.update({
+      await db.cmsNavigationItem.update({
         where: { id: matchingId },
         data
       })
     } else {
-      const created = await prisma.cmsNavigationItem.create({ data })
+      const created = await db.cmsNavigationItem.create({ data })
       existingIds.add(created.id)
     }
   }
 
-  const allRows = await prisma.cmsNavigationItem.findMany({
+  const allRows = await db.cmsNavigationItem.findMany({
     select: { id: true }
   })
   const staleIds = allRows.map((row) => row.id).filter((id) => !existingIds.has(id))
   if (staleIds.length) {
-    await prisma.cmsNavigationItem.deleteMany({
+    await db.cmsNavigationItem.deleteMany({
       where: { id: { in: staleIds } }
     })
   }
@@ -2087,7 +2087,7 @@ async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string, fe
       .map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale)))
   }
 
-  const rows = await withCmsTableFallback(() => prisma.cmsNavigationItem.findMany({
+  const rows = await withCmsTableFallback(() => db.cmsNavigationItem.findMany({
     where: {
       menu,
       visible: true
@@ -2157,7 +2157,7 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
   const row = isRuntimeD1Active()
     ? await getRuntimeCmsPageByPath(normalizedPath)
     : await withCmsTableFallback(
-        () => prisma.cmsPage.findFirst(includeDraft
+        () => db.cmsPage.findFirst(includeDraft
           ? { where: { path: normalizedPath } }
           : { where: { path: normalizedPath, status: 'PUBLISHED' as const } }),
         async () => null

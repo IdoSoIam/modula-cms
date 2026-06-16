@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { H3Event } from 'h3'
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import cmsProjectConfig from '#modula/cms.project.config'
 import type { CmsDbDriver, CmsProjectConfig, CmsRuntimeTarget, CmsStorageDriver } from '#modula/shared/platform'
 import { inferCmsRuntimeTargetFromDrivers, resolveCmsPlatformConfig } from '#modula/shared/platform'
@@ -12,8 +12,10 @@ import { getSessionConfig } from '#modula/server/utils/session'
 import { applySiteTemplate } from '#modula/server/utils/siteTemplates'
 import type { CmsSiteTemplateKey } from '#modula/shared/siteTemplates'
 import { getCmsSiteSettings, saveCmsSiteSettings } from '#modula/server/utils/cms'
-import { isCloudflareRuntime } from '#modula/server/platform/runtime'
+import { getCloudflareRuntimeEnv, isCloudflareRuntime } from '#modula/server/platform/runtime'
 import { countRuntimeUsers, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
+import { applySqliteMigrations, loadResolvedMigrations, renderMigrationStateTableSql } from '#modula/db/migration-system'
+import { d1BootstrapSql, schemaSnapshotHash, sqliteBootstrapSql } from '#modula/server/generated/bootstrap.generated'
 
 export interface CmsInstallStatus {
   installed: boolean
@@ -171,134 +173,59 @@ export function generatedProjectConfigExists() {
 function resolveSqliteDatabasePath() {
   const connectionString = process.env.DATABASE_URL?.startsWith('file:')
     ? process.env.DATABASE_URL
-    : 'file:./prisma/local.db'
+    : 'file:./.data/sqlite/local.db'
   const rawPath = connectionString.replace(/^file:/, '')
   return path.isAbsolute(rawPath) ? rawPath : path.resolve(process.cwd(), rawPath)
 }
 
-function inferAlreadyApplied(db: any, file: string) {
-  const tableExists = (tableName: string) => {
-    const row = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(tableName)
-    return Boolean(row)
-  }
-
-  const columnExists = (tableName: string, columnName: string) => {
-    if (!tableExists(tableName)) return false
-    const columns = db.prepare(`PRAGMA table_info("${tableName}")`).all() as Array<{ name: string }>
-    return columns.some((column) => column.name === columnName)
-  }
-
-  switch (file) {
-    case '0001_init.sql':
-      return tableExists('SiteParams')
-    case '0002_drop_image_data.sql':
-      return tableExists('Image') && !columnExists('Image', 'data')
-    case '0003_add_cms_foundations.sql':
-      return tableExists('CmsPage') && tableExists('CmsNavigationItem')
-    case '0004_add_cms_page_specialrole.sql':
-      return tableExists('CmsPage') && columnExists('CmsPage', 'specialRole')
-    case '0005_add_image_variants_and_usages.sql':
-      return tableExists('ImageVariant') && tableExists('ImageUsage')
-    case '0006_add_roles_and_events.sql':
-      return tableExists('Role') && tableExists('Event') && tableExists('RolePermission')
-    case '0007_add_member_roles_and_event_audience_split.sql':
-      return tableExists('MemberRole') && tableExists('UserMemberRole') && tableExists('EventAudienceMemberRole')
-    case '0008_add_event_recurrence_and_occurrences.sql':
-      return tableExists('EventOccurrence') && columnExists('Event', 'recurrenceType')
-    case '0009_add_password_setup_tokens.sql':
-      return tableExists('PasswordSetupToken')
-    case '0010_add_cms_update_jobs.sql':
-      return tableExists('cms_update_jobs') && tableExists('cms_update_job_logs')
-    default:
-      return false
-  }
-}
-
-function getMigrationAliases(file: string) {
-  switch (file) {
-    case '0007_add_member_roles_and_event_audience_split.sql':
-      return ['007_add_member_roles_and_event_audience_split.sql']
-    case '0008_add_event_recurrence_and_occurrences.sql':
-      return ['008_add_event_recurrence_and_occurrences.sql']
-    case '0009_add_password_setup_tokens.sql':
-      return ['009_add_password_setup_tokens.sql']
-    case '0010_add_cms_update_jobs.sql':
-      return ['010_add_cms_update_jobs.sql']
-    default:
-      return []
-  }
-}
-
-function reconcileMigrationAliases(db: any) {
-  const pairs: Array<[string, string]> = [
-    ['007_add_member_roles_and_event_audience_split.sql', '0007_add_member_roles_and_event_audience_split.sql'],
-    ['008_add_event_recurrence_and_occurrences.sql', '0008_add_event_recurrence_and_occurrences.sql'],
-    ['009_add_password_setup_tokens.sql', '0009_add_password_setup_tokens.sql'],
-    ['010_add_cms_update_jobs.sql', '0010_add_cms_update_jobs.sql']
-  ]
-
-  for (const [legacyName, canonicalName] of pairs) {
-    const row = db.prepare('SELECT 1 FROM "_local_migrations" WHERE name = ?').get(legacyName)
-    if (row) {
-      db.prepare('INSERT OR IGNORE INTO "_local_migrations" ("name") VALUES (?)').run(canonicalName)
-      db.prepare('DELETE FROM "_local_migrations" WHERE name = ?').run(legacyName)
-    }
-  }
-}
-
 export async function applySqliteMigrationsIfNeeded(event?: H3Event) {
-  const migrationsDir = getMigrationsDir(event)
-  if (!fs.existsSync(migrationsDir)) {
-    throw new Error(`Migration directory not found: ${migrationsDir}`)
+  await applySqliteMigrations({
+    migrationsDir: getMigrationsDir(event),
+    databasePath: resolveSqliteDatabasePath(),
+    bootstrapSql: sqliteBootstrapSql,
+    schemaHash: schemaSnapshotHash
+  })
+}
+
+async function applyRuntimeD1MigrationsIfNeeded(event?: H3Event) {
+  const db = getCloudflareRuntimeEnv()?.DB
+  if (!db) return
+
+  const migrations = loadResolvedMigrations(getMigrationsDir(event))
+  await db.exec(renderMigrationStateTableSql())
+
+  const tablesResult = await db.prepare(`
+    SELECT name
+    FROM sqlite_master
+    WHERE type = 'table'
+      AND name NOT LIKE 'sqlite_%'
+    ORDER BY name ASC
+  `).all<{ name: string }>()
+  const tableRows = Array.isArray(tablesResult.results) ? tablesResult.results : []
+  const tableNames = tableRows.map(row => row.name)
+
+  const appliedResult = await db.prepare(`SELECT id FROM "_cms_migrations" ORDER BY id ASC`).all<{ id: string }>()
+  const appliedRows = Array.isArray(appliedResult.results) ? appliedResult.results : []
+  if (appliedRows.length > 0) {
+    return
   }
 
-  const databasePath = resolveSqliteDatabasePath()
-  fs.mkdirSync(path.dirname(databasePath), { recursive: true })
+  const userTables = tableNames.filter(name => !['d1_migrations', '_cms_migrations'].includes(name))
+  if (userTables.length === 0) {
+    await db.exec(d1BootstrapSql)
+    await db.exec(renderMigrationStateTableSql())
+  }
 
-  const { default: BetterSqlite3 } = await import('better-sqlite3')
-  const db = new BetterSqlite3(databasePath)
-  try {
-    db.pragma('foreign_keys = ON')
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS "_local_migrations" (
-        "name" TEXT NOT NULL PRIMARY KEY,
-        "appliedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-    `)
-    reconcileMigrationAliases(db)
-
-    const migrationFiles = fs.readdirSync(migrationsDir)
-      .filter(file => file.endsWith('.sql'))
-      .sort()
-    const appliedRows = db.prepare('SELECT name FROM "_local_migrations"').all() as Array<{ name: string }>
-    const appliedNames = new Set(appliedRows.map(row => row.name))
-
-    for (const file of migrationFiles) {
-      const aliases = getMigrationAliases(file)
-      const matchedAlias = aliases.find(alias => appliedNames.has(alias))
-      if (appliedNames.has(file) || matchedAlias) {
-        if (matchedAlias && !appliedNames.has(file)) {
-          db.prepare('INSERT OR IGNORE INTO "_local_migrations" ("name") VALUES (?)').run(file)
-        }
-        continue
-      }
-
-      if (inferAlreadyApplied(db, file)) {
-        db.prepare('INSERT OR IGNORE INTO "_local_migrations" ("name") VALUES (?)').run(file)
-        continue
-      }
-
-      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8')
-      if (!sql.trim()) {
-        db.prepare('INSERT OR IGNORE INTO "_local_migrations" ("name") VALUES (?)').run(file)
-        continue
-      }
-
-      db.exec(sql)
-      db.prepare('INSERT OR IGNORE INTO "_local_migrations" ("name") VALUES (?)').run(file)
-    }
-  } finally {
-    db.close()
+  for (const migration of migrations) {
+    await db.prepare(`
+      INSERT OR IGNORE INTO "_cms_migrations" ("id", "name", "source", "schemaHash")
+      VALUES (?, ?, ?, ?)
+    `).bind(
+      migration.id,
+      migration.name,
+      userTables.length === 0 ? 'bootstrap' : 'legacy-baseline',
+      schemaSnapshotHash
+    ).run()
   }
 }
 
@@ -314,10 +241,12 @@ export async function getCmsInstallStatus(event?: H3Event): Promise<CmsInstallSt
   try {
     if (currentPlatform.dbDriver === 'sqlite') {
       await applySqliteMigrationsIfNeeded(event)
+    } else if (currentPlatform.dbDriver === 'd1' && isRuntimeD1Active()) {
+      await applyRuntimeD1MigrationsIfNeeded(event)
     }
     userCount = isRuntimeD1Active()
       ? await countRuntimeUsers()
-      : await prisma.user.count()
+      : await db.user.count()
   } catch (error) {
     const detectedRuntimeIssue = getPrismaRuntimeIssue(error)
     if (detectedRuntimeIssue) {
@@ -379,11 +308,13 @@ export async function bootstrapCmsInstallation(event: H3Event, payload: CmsInsta
 
   if (payload.dbDriver === 'sqlite') {
     await applySqliteMigrationsIfNeeded(event)
+  } else if (payload.dbDriver === 'd1' && isRuntimeD1Active()) {
+    await applyRuntimeD1MigrationsIfNeeded(event)
   }
 
   let existingUserCount = 0
   try {
-    existingUserCount = await prisma.user.count()
+    existingUserCount = await db.user.count()
   } catch (error) {
     if (isPrismaMissingTableError(error)) {
       throw createError({

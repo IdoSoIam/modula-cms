@@ -1,6 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { createRuntimePickupPoint, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     })
     return point ? { ...point, active: point.active === true || point.active === 1 } : null
   }
-  return prisma.pickupPoint.create({
+  return db.pickupPoint.create({
     data: {
       name: body.name.trim(),
       address: body.address?.trim() || null,

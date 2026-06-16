@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { putUploadObject } from '#modula/server/utils/uploadStorage'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import {
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
 
   await putUploadObject(filename, prepared.buffer, prepared.mimeType)
 
-  const created = await prisma.image.create({
+  const created = await db.image.create({
     data: {
       filename,
       url,

@@ -1,4 +1,4 @@
-import { prisma } from '../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export async function logReservationNotification(options: {
   reservationId: number
@@ -8,7 +8,7 @@ export async function logReservationNotification(options: {
   subject: string
   summary?: string | null
 }) {
-  await prisma.reservationNotification.create({
+  await db.reservationNotification.create({
     data: {
       reservationId: options.reservationId,
       occurrenceId: options.occurrenceId ?? null,

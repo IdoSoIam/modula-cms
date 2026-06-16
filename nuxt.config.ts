@@ -5,12 +5,6 @@ import defaultCmsProjectConfig from './cms.project.config'
 import { parseCmsProjectConfigJson, resolveCmsPlatformConfig } from './shared/platform'
 
 const layerRoot = fileURLToPath(new URL('.', import.meta.url))
-const prismaClientPath = path.resolve(layerRoot, 'prisma/client.ts')
-const prismaClientPathWithoutExtension = path.resolve(layerRoot, 'prisma/client')
-const prismaClientCloudflareStubPath = path.resolve(layerRoot, 'prisma/client-cloudflare.ts')
-const prismaPackageCloudflareStubPath = path.resolve(layerRoot, 'prisma/prisma-client-package-cloudflare-stub.ts')
-const prismaAdapterCloudflareStubPath = path.resolve(layerRoot, 'prisma/prisma-adapter-cloudflare-stub.ts')
-
 const cmsProjectConfig = parseCmsProjectConfigJson(process.env.CMS_PROJECT_CONFIG_JSON) || defaultCmsProjectConfig
 const platformConfig = resolveCmsPlatformConfig(process.env, cmsProjectConfig)
 const isCloudflareRuntime = platformConfig.runtimeTarget === 'cloudflare'
@@ -38,14 +32,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   debug: false,
   alias: {
-    '#modula': layerRoot,
-    ...(isCloudflareRuntime
-      ? {
-          '#modula/prisma/client': prismaClientCloudflareStubPath,
-          '@prisma/client': prismaPackageCloudflareStubPath,
-          '@prisma/adapter-better-sqlite3': prismaAdapterCloudflareStubPath
-        }
-      : {})
+    '#modula': layerRoot
   },
   experimental: {
     appManifest: false
@@ -61,21 +48,11 @@ export default defineNuxtConfig({
     alias: {
       '~/server': path.resolve(layerRoot, 'server'),
       '~/shared': path.resolve(layerRoot, 'shared'),
-      '~/prisma': path.resolve(layerRoot, 'prisma'),
       '~/types': path.resolve(layerRoot, 'types'),
       '~/cms': path.resolve(layerRoot, 'cms'),
       '~/cms.project.config': path.resolve(layerRoot, 'cms.project.config'),
       '../shared/': path.resolve(layerRoot, 'shared') + '/',
-      '../shared/platform.ts': path.resolve(layerRoot, 'shared/platform.ts'),
-      ...(isCloudflareRuntime
-        ? {
-            '#modula/prisma/client': prismaClientCloudflareStubPath,
-            [prismaClientPath]: prismaClientCloudflareStubPath,
-            [prismaClientPathWithoutExtension]: prismaClientCloudflareStubPath,
-            '@prisma/client': prismaPackageCloudflareStubPath,
-            '@prisma/adapter-better-sqlite3': prismaAdapterCloudflareStubPath
-          }
-        : {})
+      '../shared/platform.ts': path.resolve(layerRoot, 'shared/platform.ts')
     },
     ...(isCloudflareRuntime
       ? {
@@ -111,15 +88,7 @@ export default defineNuxtConfig({
   ],
   vite: {
     resolve: {
-      alias: isCloudflareRuntime
-        ? {
-            '#modula/prisma/client': prismaClientCloudflareStubPath,
-            [prismaClientPath]: prismaClientCloudflareStubPath,
-            [prismaClientPathWithoutExtension]: prismaClientCloudflareStubPath,
-            '@prisma/client': prismaPackageCloudflareStubPath,
-            '@prisma/adapter-better-sqlite3': prismaAdapterCloudflareStubPath
-          }
-        : {}
+      alias: {}
     },
     plugins: [
       tailwindcss(),

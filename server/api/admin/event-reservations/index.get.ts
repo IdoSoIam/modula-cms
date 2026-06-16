@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { resolveEventTranslation } from '#modula/server/utils/events'
 
@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const eventId = Number(query.eventId)
   const status = typeof query.status === 'string' ? query.status : ''
 
-  const rows = await prisma.eventPublicReservation.findMany({
+  const rows = await db.eventPublicReservation.findMany({
     where: {
       ...(Number.isInteger(eventId) && eventId > 0 ? { eventId } : {}),
       ...(status ? { status: status as any } : {})
