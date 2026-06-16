@@ -20,10 +20,14 @@
           v-for="img in images"
           :key="img.id"
           type="button"
-          class="relative group aspect-square overflow-hidden rounded border border-base-300 hover:border-primary"
+          class="group overflow-hidden rounded border border-base-300 text-left hover:border-primary"
           @click="select(img)"
         >
-          <AppImage :src="img.url" :alt="img.filename" class="w-full h-full object-cover" sizes="160px" loading="lazy" />
+          <AppImage :src="img.url" :alt="img.filename" class="aspect-square w-full object-cover" sizes="160px" loading="lazy" />
+          <div class="space-y-1 p-2 text-[10px]">
+            <div class="truncate font-medium">{{ img.filename }}</div>
+            <div class="opacity-60">{{ formatImageSize(img.size) }}</div>
+          </div>
         </button>
       </div>
 
@@ -49,6 +53,12 @@ const fileInput = ref<HTMLInputElement>()
 const images = ref<ImageRow[]>([])
 const pending = ref(false)
 const uploading = ref(false)
+const formatImageSize = (size: number) => {
+  if (!Number.isFinite(size) || size <= 0) return '0 o'
+  if (size < 1024) return `${size} o`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(size < 10 * 1024 ? 1 : 0)} Ko`
+  return `${(size / (1024 * 1024)).toFixed(size < 10 * 1024 * 1024 ? 1 : 0)} Mo`
+}
 
 const load = async () => {
   pending.value = true

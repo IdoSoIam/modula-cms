@@ -15,7 +15,8 @@ const updateScriptPath = path.join('scripts', 'update-agent.mjs')
 
 await mkdir(distDir, { recursive: true })
 
-await run('npx nuxt build')
+await rm(path.join(cwd, '.output'), { recursive: true, force: true })
+await run('node ./scripts/run-platform-command.mjs server build')
 
 const releaseManifest = {
   version,

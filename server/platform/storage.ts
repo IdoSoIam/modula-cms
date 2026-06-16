@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, extname, join, resolve } from 'node:path'
 import { getCloudflareRuntimeEnv } from '#modula/server/platform/runtime'
 
@@ -68,15 +68,67 @@ function guessContentTypeFromFilename(filename: string) {
 
 function getFilesystemUploadsDir() {
   const config = useRuntimeConfig()
-  const relativeDir = typeof config.cmsFilesystemStorageDir === 'string' && config.cmsFilesystemStorageDir.trim()
-    ? config.cmsFilesystemStorageDir.trim()
-    : 'public/uploads'
+  const runtimeEnvDir = process.env.CMS_FILESYSTEM_STORAGE_DIR?.trim() || process.env.IMAGE_FILESYSTEM_DIR?.trim() || ''
+  const relativeDir = runtimeEnvDir
+    || (typeof config.cmsFilesystemStorageDir === 'string' && config.cmsFilesystemStorageDir.trim()
+      ? config.cmsFilesystemStorageDir.trim()
+      : 'public/uploads')
 
   return resolve(process.cwd(), relativeDir)
 }
 
+function getLegacyFilesystemUploadsDirs() {
+  const targetDir = getFilesystemUploadsDir()
+  const candidates = [
+    resolve(process.cwd(), 'public', 'uploads'),
+    resolve(process.cwd(), '.output', 'public', 'uploads')
+  ]
+
+  return candidates.filter(candidate => candidate !== targetDir)
+}
+
+async function hydrateFilesystemUploadsDirFromLegacyLocations(targetDir: string) {
+  for (const sourceDir of getLegacyFilesystemUploadsDirs()) {
+    try {
+      const entries = await readdir(sourceDir, { withFileTypes: true })
+      for (const entry of entries) {
+        if (!entry.isFile()) continue
+
+        const sourcePath = join(sourceDir, entry.name)
+        const targetPath = join(targetDir, entry.name)
+
+        try {
+          await stat(targetPath)
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            throw error
+          }
+
+          await copyFile(sourcePath, targetPath)
+        }
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error
+      }
+    }
+  }
+}
+
+let ensureFilesystemUploadsDirPromise: Promise<void> | null = null
+
 async function ensureFilesystemUploadsDir() {
-  await mkdir(getFilesystemUploadsDir(), { recursive: true })
+  if (!ensureFilesystemUploadsDirPromise) {
+    ensureFilesystemUploadsDirPromise = (async () => {
+      const targetDir = getFilesystemUploadsDir()
+      await mkdir(targetDir, { recursive: true })
+      await hydrateFilesystemUploadsDirFromLegacyLocations(targetDir)
+    })().finally(() => {
+      ensureFilesystemUploadsDirPromise = null
+    })
+  }
+
+  await ensureFilesystemUploadsDirPromise
 }
 
 function getUploadsBucket() {
@@ -232,16 +284,17 @@ const r2StorageAdapter: UploadStorageAdapter = {
 
 export function getUploadStorageAdapter(): UploadStorageAdapter {
   const config = useRuntimeConfig()
-  if (config.cmsStorageDriver === 'fs') {
+  const runtimeStorageDriver = (process.env.CMS_STORAGE_DRIVER?.trim() || process.env.IMAGE_STORAGE_DRIVER?.trim() || String(config.cmsStorageDriver || '')).toLowerCase()
+  if (runtimeStorageDriver === 'fs' || runtimeStorageDriver === 'filesystem' || runtimeStorageDriver === 'local') {
     return filesystemStorageAdapter
   }
 
-  if (config.cmsStorageDriver === 'r2') {
+  if (runtimeStorageDriver === 'r2') {
     return r2StorageAdapter
   }
 
   throw createError({
     statusCode: 501,
-    statusMessage: `Storage driver "${String(config.cmsStorageDriver)}" is not implemented yet`
+    statusMessage: `Storage driver "${String(runtimeStorageDriver || config.cmsStorageDriver)}" is not implemented yet`
   })
 }

@@ -199,11 +199,11 @@
               <div class="mt-4 flex flex-wrap gap-3">
                 <button
                   class="btn btn-primary"
-                  :disabled="applyingTemplate || currentTemplateKey === selectedTemplateKey"
+                  :disabled="applyingTemplate || !canApplySelectedTemplate"
                   @click="applySelectedTemplate"
                 >
                   <span v-if="applyingTemplate" class="loading loading-spinner loading-xs" />
-                  {{ t('admin.settingsSiteTemplatePage.applyTemplate') }}
+                  {{ applyTemplateButtonLabel }}
                 </button>
 
                 <button
@@ -266,6 +266,7 @@ import type { CmsLocalizedText } from '#modula/shared/cms'
 import type { CmsRegistryTemplateRecord, CmsRegistryTemplateVersionSummary } from '#modula/shared/registry'
 import {
   BUNDLED_SYSTEM_SITE_TEMPLATE_KEYS,
+  FALLBACK_SITE_TEMPLATE_KEY,
   type CmsSiteTemplateDefinition,
   type CmsSiteTemplateKey
 } from '#modula/shared/siteTemplates'
@@ -302,7 +303,7 @@ const publishingTemplate = ref(false)
 const discardingDraftTemplate = ref(false)
 const deletingTemplate = ref(false)
 const autoRegisterAttempted = ref(false)
-const replaceBrandAssetsOnApply = ref(false)
+const replaceBrandAssetsOnApply = ref(true)
 
 async function apiFetch<T>(url: string, options: Parameters<typeof $fetch<T>>[1] = {}) {
   if (process.server) {
@@ -390,8 +391,17 @@ const selectedScope = computed<'custom' | 'system'>(() =>
 )
 const canCreateSelectedTemplate = computed(() =>
   registryConfigured.value
-  && !selectedRemoteTemplate.value
-  && (!selectedIsSystemTemplate.value || canManageSystemTemplates.value)
+  && canManageSystemTemplates.value
+)
+const canApplySelectedTemplate = computed(() =>
+  Boolean(selectedTemplateKey.value)
+  && (
+    selectedTemplateKey.value !== currentTemplateKey.value
+    || Boolean(selectedRemoteTemplate.value)
+  )
+)
+const shouldApplyFromRegistry = computed(() =>
+  Boolean(selectedTemplateKey.value && selectedTemplateKey.value !== FALLBACK_SITE_TEMPLATE_KEY)
 )
 const canUpdateSelectedTemplate = computed(() =>
   registryConfigured.value
@@ -413,6 +423,13 @@ const discardableDraftVersion = computed<CmsRegistryTemplateVersionSummary | nul
   const versions = [...selectedRemoteTemplate.value.versions].sort((a, b) => b.versionNumber - a.versionNumber)
   return versions.find(version => version.status === 'draft') || null
 })
+const applyTemplateButtonLabel = computed(() => {
+  if (selectedRemoteTemplate.value && selectedTemplateKey.value === currentTemplateKey.value) {
+    return 'Resynchroniser le modèle'
+  }
+
+  return t('admin.settingsSiteTemplatePage.applyTemplate')
+})
 
 function fillTemplateForm() {
   const remote = selectedRemoteTemplate.value
@@ -431,6 +448,10 @@ watch([selectedTemplateKey, remoteTemplates, availableTemplates], () => {
     selectedTemplateKey.value = availableTemplates.value[0].key
   }
   fillTemplateForm()
+}, { immediate: true })
+
+watch([selectedTemplateKey, selectedRemoteTemplate], () => {
+  replaceBrandAssetsOnApply.value = Boolean(selectedRemoteTemplate.value)
 }, { immediate: true })
 
 async function ensureRegistryRegistration() {
@@ -493,17 +514,17 @@ function buildTemplatePayload() {
 }
 
 async function applySelectedTemplate() {
-  if (!selectedTemplateKey.value || selectedTemplateKey.value === currentTemplateKey.value) return
+  if (!canApplySelectedTemplate.value || !selectedTemplateKey.value) return
   const replaceBrandAssetsWarning = replaceBrandAssetsOnApply.value
     ? `\n\n${t('admin.settingsSiteTemplatePage.replaceBrandAssetsConfirm')}`
-    : ''
+    : '\n\nLe logo et le favicon actuels seront conservés.'
   const confirmed = window.confirm(`${t('admin.settingsSiteTemplatePage.confirmApplyTitle')}\n\n${t('admin.settingsSiteTemplatePage.warning')}${replaceBrandAssetsWarning}`)
   if (!confirmed) return
 
   applyingTemplate.value = true
   try {
-    if (selectedRemoteTemplate.value) {
-      await apiFetch(`/api/admin/registry/templates/${encodeURIComponent(selectedRemoteTemplate.value.slug)}/apply`, {
+    if (shouldApplyFromRegistry.value && selectedTemplateKey.value) {
+      await apiFetch(`/api/admin/registry/templates/${encodeURIComponent(selectedTemplateKey.value)}/apply`, {
         method: 'POST',
         body: {
           replaceBrandAssets: replaceBrandAssetsOnApply.value

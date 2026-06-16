@@ -42,7 +42,7 @@ import {
 } from '#modula/shared/siteTemplates'
 import { applyRegistryTemplate, exportTemplateAssets, listMergedSiteTemplates } from '#modula/server/utils/cmsRegistry'
 import { ensureCmsRootPage, ensureCmsSystemPages, getCmsPageByPath, getCmsSiteSettings, saveCmsNavigationItems, saveCmsPage, saveCmsSiteSettings } from '#modula/server/utils/cms'
-import { putUploadObject } from '#modula/server/utils/uploadStorage'
+import { getUploadObject, putUploadObject } from '#modula/server/utils/uploadStorage'
 import { saveDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import type { DaisyUiThemeConfig } from '#modula/shared/themes'
 import { getSetting, normalizeFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
@@ -106,12 +106,38 @@ function getUploadUrl(filename: string) {
 }
 
 async function ensureTemplateImageAsset(asset: TemplateImageAsset) {
+  const existingUpload = await getUploadObject(asset.filename)
   const existing = await db.image.findFirst({
     where: { filename: asset.filename }
   })
 
   if (existing) {
+    if (existingUpload && existing.url !== getUploadUrl(asset.filename)) {
+      return await db.image.update({
+        where: { id: existing.id },
+        data: {
+          url: getUploadUrl(asset.filename),
+          mimeType: asset.mimeType,
+          size: existingUpload.size || existing.size
+        }
+      })
+    }
+
     return existing
+  }
+
+  if (existingUpload) {
+    return await db.image.create({
+      data: {
+        filename: asset.filename,
+        url: getUploadUrl(asset.filename),
+        mimeType: asset.mimeType,
+        size: existingUpload.size || 0,
+        width: asset.width,
+        height: asset.height,
+        uploadedById: null
+      }
+    })
   }
 
   const sourcePath = path.resolve(templateAssetRoot, asset.source)
@@ -1166,7 +1192,7 @@ export async function applySiteTemplate(
     return
   } catch (error: any) {
     const statusCode = error?.statusCode || error?.status
-    if (statusCode && ![404, 503].includes(statusCode)) {
+    if (!statusCode || ![404, 503].includes(statusCode)) {
       throw error
     }
   }

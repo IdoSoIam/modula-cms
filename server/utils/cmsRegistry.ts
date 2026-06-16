@@ -165,30 +165,50 @@ async function readBundledAsset(url: string) {
 }
 
 function resolveBundledAssetPath(url: string) {
-  if (url === '/site-templates/modula-mark.svg') {
-    return path.resolve(process.cwd(), 'public', 'modula-mark.svg')
-  }
-  if (url === '/brand/modula-mark.svg') {
-    return path.resolve(process.cwd(), 'public', 'modula-mark.svg')
-  }
-  if (url === '/brand/favicon.ico') {
-    return path.resolve(process.cwd(), 'public', 'favicon.ico')
-  }
-
   const normalized = url.replace(/^\//, '').replace(/\//g, path.sep)
-  const candidates = [
+  const managedTemplateFilename = buildTemplateManagedTargetName({
+    id: '',
+    filename: basename(url),
+    contentType: guessTemplateImageContentType(url),
+    size: 0,
+    checksum: '',
+    storageKey: '',
+    downloadUrl: '',
+    publicUrl: '',
+    sourceUrl: url
+  })
+  const baseCandidates = [
+    path.resolve(process.cwd(), 'public', 'uploads', managedTemplateFilename),
+    path.resolve(process.cwd(), '.output', 'public', 'uploads', managedTemplateFilename),
     path.resolve(process.cwd(), 'system-assets', normalized),
     path.resolve(process.cwd(), 'public', normalized),
     path.resolve(process.cwd(), '.output', 'public', normalized)
   ]
 
-  for (const candidate of candidates) {
+  if (url === '/site-templates/modula-mark.svg' || url === '/brand/modula-mark.svg') {
+    const candidates = [
+      path.resolve(process.cwd(), 'public', 'modula-mark.svg'),
+      path.resolve(process.cwd(), '.output', 'public', 'modula-mark.svg'),
+      ...baseCandidates
+    ]
+    return candidates.find(candidate => existsSync(candidate)) || candidates[1]!
+  }
+
+  if (url === '/brand/favicon.ico') {
+    const candidates = [
+      path.resolve(process.cwd(), 'public', 'favicon.ico'),
+      path.resolve(process.cwd(), '.output', 'public', 'favicon.ico')
+    ]
+    return candidates.find(candidate => existsSync(candidate)) || candidates[1]!
+  }
+
+  for (const candidate of baseCandidates) {
     if (existsSync(candidate)) {
       return candidate
     }
   }
 
-  return candidates[0]!
+  return baseCandidates[0]!
 }
 
 export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTemplateSnapshot, 'assetManifest'>) {
@@ -263,16 +283,20 @@ function resolveSnapshotAssetUrl(value: string, assets: CmsRegistryAssetReferenc
   return matched.downloadUrl
 }
 
-function rewriteSnapshotAssetUrls<T>(value: T, assets: CmsRegistryAssetReference[]): T {
+function rewriteSnapshotAssetUrls<T>(value: T, assets: CmsRegistryAssetReference[], path: string[] = []): T {
+  const currentKey = path[path.length - 1] || ''
   if (typeof value === 'string') {
+    if (path.includes('assetManifest') || ['sourceUrl', 'downloadUrl', 'publicUrl', 'storageKey', 'filename', 'contentType', 'checksum', 'id'].includes(currentKey)) {
+      return value as T
+    }
     return resolveSnapshotAssetUrl(value, assets) as T
   }
   if (Array.isArray(value)) {
-    return value.map(item => rewriteSnapshotAssetUrls(item, assets)) as T
+    return value.map((item, index) => rewriteSnapshotAssetUrls(item, assets, [...path, String(index)])) as T
   }
   if (value && typeof value === 'object') {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, rewriteSnapshotAssetUrls(item, assets)])
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, rewriteSnapshotAssetUrls(item, assets, [...path, key])])
     ) as T
   }
   return value
@@ -372,6 +396,64 @@ async function findRegistryAssetBySourceUrl(sourceUrl: string, scope: RegistrySc
 async function syncImportedTemplateImageUsages() {
   const { syncImageUsageTable } = await import('#modula/server/utils/imageReferences')
   await syncImageUsageTable()
+}
+
+function guessTemplateImageContentType(filename: string) {
+  if (filename.endsWith('.svg')) return 'image/svg+xml'
+  if (filename.endsWith('.png')) return 'image/png'
+  if (filename.endsWith('.webp')) return 'image/webp'
+  if (filename.endsWith('.jpg') || filename.endsWith('.jpeg')) return 'image/jpeg'
+  if (filename.endsWith('.ico')) return 'image/x-icon'
+  return 'application/octet-stream'
+}
+
+async function reconcileTemplateManagedImageRecords() {
+  const [{ db }, { listUploadObjects }] = await Promise.all([
+    import('#modula/server/data/client'),
+    import('#modula/server/utils/uploadStorage')
+  ])
+
+  const uploadedObjects = await listUploadObjects()
+  for (const object of uploadedObjects) {
+    if (!isTemplateManagedFilename(object.key)) continue
+
+    const url = `/uploads/${object.key}`
+    const mimeType = object.httpMetadata?.contentType || guessTemplateImageContentType(object.key)
+    const size = Number(object.size || 0)
+    const existing = await db.image.findFirst({
+      where: {
+        OR: [
+          { filename: object.key },
+          { url }
+        ]
+      }
+    })
+
+    if (existing) {
+      await db.image.update({
+        where: { id: existing.id },
+        data: {
+          filename: object.key,
+          url,
+          mimeType,
+          size
+        }
+      })
+      continue
+    }
+
+    await db.image.create({
+      data: {
+        filename: object.key,
+        url,
+        mimeType,
+        size,
+        width: null,
+        height: null,
+        uploadedById: null
+      }
+    })
+  }
 }
 
 async function materializePreservedBrandAsset<T extends { src: string } | null | undefined>(
@@ -615,6 +697,7 @@ export async function importTemplateSnapshot(
     setSetting(SETTING_KEYS.EVENTS_ENABLED, prepared.featureFlags.eventsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.NEWS_ENABLED, prepared.featureFlags.newsEnabled ? 'true' : 'false')
   ])
+  await reconcileTemplateManagedImageRecords()
   await syncImportedTemplateImageUsages()
   await cleanupUnusedTemplateManagedImages(context.preservedFilenames)
 }
@@ -915,6 +998,7 @@ export async function applyRegistryTemplate(
       preservedFilenames: new Set<string>()
     }
     await ensureRegistryTemplateAuxiliaryAssetsImported(template, resolvedScope, context)
+    await reconcileTemplateManagedImageRecords()
     await syncImportedTemplateImageUsages()
     await cleanupUnusedTemplateManagedImages(context.preservedFilenames)
   }

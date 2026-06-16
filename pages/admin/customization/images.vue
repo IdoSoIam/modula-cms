@@ -27,6 +27,7 @@
         <AppImage :src="img.url" :alt="img.filename" class="aspect-square w-full object-cover" sizes="300px" loading="lazy" />
         <div class="space-y-1 p-2 text-[10px]">
           <div class="truncate font-medium">{{ img.filename }}</div>
+          <div class="opacity-60">{{ formatImageSize(img.size) }}</div>
           <div class="opacity-60">
             {{ totalReferences(img.references) }} association(s)
           </div>
@@ -280,6 +281,12 @@ const replacementFile = ref<File | null>(null)
 const replacementPreviewUrl = ref<string | null>(null)
 const editForm = reactive({ filename: '' })
 const displayedImageUrl = computed(() => replacementPreviewUrl.value || editing.value?.url || '')
+const formatImageSize = (size: number) => {
+  if (!Number.isFinite(size) || size <= 0) return '0 o'
+  if (size < 1024) return `${size} o`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(size < 10 * 1024 ? 1 : 0)} Ko`
+  return `${(size / (1024 * 1024)).toFixed(size < 10 * 1024 * 1024 ? 1 : 0)} Mo`
+}
 
 const totalReferences = (references: ImageReferences) =>
   references.vegetables
