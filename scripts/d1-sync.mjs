@@ -7,6 +7,7 @@ import Database from 'better-sqlite3'
 const projectRoot = process.cwd()
 const databaseName = 'ferme-du-campeyrigoux'
 const appTables = [
+  'd1_migrations',
   'SiteParams',
   'Role',
   'RolePermission',
