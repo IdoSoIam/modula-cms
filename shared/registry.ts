@@ -23,6 +23,7 @@ export interface CmsRegistryAssetReference {
   checksum: string
   storageKey: string
   downloadUrl: string
+  publicUrl?: string
   sourceUrl: string
 }
 

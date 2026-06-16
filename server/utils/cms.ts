@@ -62,6 +62,23 @@ import { CMS_THEME_COLOR_TOKENS } from '#modula/shared/cms'
 import { getPageBuilderContent, normalizePageBuilderContent } from '#modula/server/utils/pageBuilder'
 import { getSetting, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { createCustomAdminEmailTemplate, findAdminEmailTemplateDefinition, syncCustomAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
+import {
+  clearRuntimeCmsSpecialRoleConflicts,
+  deleteRuntimeCmsNavigationItems,
+  deleteRuntimeCmsPage,
+  findRuntimeCmsApplicationCandidate,
+  findRuntimeCmsRootCandidate,
+  findRuntimeCmsStandardCandidate,
+  getRuntimeCmsNavigationItemsVisible,
+  getRuntimeCmsPageById,
+  getRuntimeCmsPageByPath,
+  getRuntimeCmsSpecialPage,
+  isRuntimeD1Active,
+  listRuntimeCmsNavigationItems,
+  listRuntimeCmsPages,
+  saveRuntimeCmsNavigationItem,
+  saveRuntimeCmsPage
+} from '#modula/server/platform/runtimeDb'
 
 function isMissingCmsTableError(error: unknown) {
   return Boolean(
@@ -1200,12 +1217,23 @@ function normalizePlanningPageSettings(value: unknown, fallback: CmsPlanningPage
 export async function saveCmsSiteSettings(settings: CmsSiteSettings) {
   await setSetting(SETTING_KEYS.CMS_SITE_SETTINGS, JSON.stringify(settings))
 
+  if (isRuntimeD1Active()) {
+    return
+  }
+
   const { syncImageUsageTable } = await import('./imageReferences')
   await syncImageUsageTable()
 }
 
 export async function listCmsPages() {
   await ensureCmsSystemPages()
+  if (isRuntimeD1Active()) {
+    const rows = await listRuntimeCmsPages()
+    return rows.map((row) => ({
+      id: row.id,
+      ...pageRowToPayload(row as unknown as CmsPage)
+    }))
+  }
   const rows = await withCmsTableFallback(() => prisma.cmsPage.findMany({
     orderBy: [
       { path: 'asc' }
@@ -1219,6 +1247,10 @@ export async function listCmsPages() {
 }
 
 export async function getCmsPageById(id: number) {
+  if (isRuntimeD1Active()) {
+    const row = await getRuntimeCmsPageById(id)
+    return row ? { id: row.id, ...pageRowToPayload(row as unknown as CmsPage) } : null
+  }
   const row = await withCmsTableFallback(
     () => prisma.cmsPage.findUnique({ where: { id } }),
     async () => null
@@ -1228,6 +1260,10 @@ export async function getCmsPageById(id: number) {
 
 export async function getCmsPageByPath(path: string) {
   const normalizedPath = normalizePath(path)
+  if (isRuntimeD1Active()) {
+    const row = await getRuntimeCmsPageByPath(normalizedPath)
+    return row ? { id: row.id, ...pageRowToPayload(row as unknown as CmsPage) } : null
+  }
   const row = await withCmsTableFallback(
     () => prisma.cmsPage.findFirst({ where: { path: normalizedPath } }),
     async () => null
@@ -1237,6 +1273,13 @@ export async function getCmsPageByPath(path: string) {
 
 export async function getCmsSpecialPagePath(role: CmsPageSpecialRole) {
   await ensureCmsSystemPages()
+  if (isRuntimeD1Active()) {
+    const row = await getRuntimeCmsSpecialPage(role)
+    if (row?.path) {
+      return normalizePath(row.path)
+    }
+    return role === 'construction' ? '/construction' : null
+  }
   const row = await withCmsTableFallback(
     () => prisma.cmsPage.findFirst({
       where: {
@@ -1258,6 +1301,52 @@ export async function getCmsSpecialPagePath(role: CmsPageSpecialRole) {
 }
 
 export async function ensureCmsRootPage() {
+  if (isRuntimeD1Active()) {
+    const existing = await findRuntimeCmsRootCandidate()
+    const rootPageContent = await getPageBuilderContent()
+    const rootPayload: CmsPagePayload = {
+      ...createDefaultCmsPagePayload('/', 'Page d’accueil'),
+      path: '/',
+      slug: 'home',
+      status: 'PUBLISHED',
+      title: 'Page d’accueil',
+      translations: {
+        fr: {
+          title: 'Page d’accueil',
+          navigationLabel: 'Page d’accueil',
+          seo: {
+            metaTitle: 'Page d’accueil',
+            metaDescription: 'Modifiez cette page depuis le CMS pour publier votre propre contenu.',
+            ogImage: '',
+            noindex: false
+          },
+          content: rootPageContent
+        },
+        en: {
+          title: 'Home page',
+          navigationLabel: 'Home page',
+          seo: {
+            metaTitle: 'Home page',
+            metaDescription: 'Edit this page from the CMS to publish your own content.',
+            ogImage: '',
+            noindex: false
+          },
+          content: rootPageContent
+        }
+      }
+    }
+
+    if (existing) {
+      const payload = pageRowToPayload(existing as unknown as CmsPage)
+      if (payload.path === '/' && payload.slug === 'home') {
+        return existing.id
+      }
+    }
+
+    const created = await saveCmsPage(existing?.id ?? null, rootPayload)
+    return created?.id ?? null
+  }
+
   const existing = await withCmsTableFallback(
     () => prisma.cmsPage.findFirst({
       where: {
@@ -1316,6 +1405,48 @@ export async function ensureCmsRootPage() {
 }
 
 async function ensureCmsApplicationPage(path: string, slug: string, titleFr: string, titleEn: string, rendererKey: string) {
+  if (isRuntimeD1Active()) {
+    const existing = await findRuntimeCmsApplicationCandidate(path, slug, rendererKey)
+    const applicationPayload: CmsPagePayload = {
+      ...createDefaultCmsPagePayload(path, titleFr),
+      path,
+      slug,
+      pageType: 'APPLICATION',
+      status: 'PUBLISHED',
+      rendererKey,
+      title: titleFr,
+      translations: {
+        fr: {
+          title: titleFr,
+          navigationLabel: titleFr,
+          seo: createEmptyCmsPageSeo(),
+          content: createEmptyPageBuilderContent()
+        },
+        en: {
+          title: titleEn,
+          navigationLabel: titleEn,
+          seo: createEmptyCmsPageSeo(),
+          content: createEmptyPageBuilderContent()
+        }
+      }
+    }
+
+    if (existing) {
+      const payload = pageRowToPayload(existing as unknown as CmsPage)
+      if (
+        payload.path === path
+        && payload.slug === slug
+        && payload.pageType === 'APPLICATION'
+        && payload.rendererKey === rendererKey
+      ) {
+        return existing.id
+      }
+    }
+
+    const created = await saveCmsPage(existing?.id ?? null, applicationPayload)
+    return created?.id ?? null
+  }
+
   const existing = await withCmsTableFallback(
     () => prisma.cmsPage.findFirst({
       where: {
@@ -1383,6 +1514,42 @@ async function ensureCmsStandardPage(options: {
   content: PageBuilderContent
   specialRole?: CmsPageSpecialRole | null
 }) {
+  if (isRuntimeD1Active()) {
+    const existing = await findRuntimeCmsStandardCandidate(options.path, options.specialRole ?? null)
+    if (existing) {
+      const payload = pageRowToPayload(existing as unknown as CmsPage)
+      if (payload.path === options.path && payload.specialRole === (options.specialRole ?? null)) {
+        return existing.id
+      }
+    }
+
+    const created = await saveCmsPage(existing?.id ?? null, {
+      ...createDefaultCmsPagePayload(options.path, options.titleFr),
+      path: options.path,
+      slug: options.slug,
+      pageType: 'CMS',
+      status: 'PUBLISHED',
+      specialRole: options.specialRole ?? null,
+      title: options.titleFr,
+      translations: {
+        fr: {
+          title: options.titleFr,
+          navigationLabel: options.titleFr,
+          seo: options.seoFr,
+          content: options.content
+        },
+        en: {
+          title: options.titleEn,
+          navigationLabel: options.titleEn,
+          seo: options.seoEn,
+          content: options.content
+        }
+      }
+    })
+
+    return created?.id ?? null
+  }
+
   const existing = await withCmsTableFallback(
     () => prisma.cmsPage.findFirst({
       where: {
@@ -1594,6 +1761,23 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
     translationsJson: JSON.stringify(translations)
   }
 
+  if (isRuntimeD1Active()) {
+    if (payload.specialRole) {
+      await clearRuntimeCmsSpecialRoleConflicts(id, payload.specialRole)
+    }
+
+    const saved = await saveRuntimeCmsPage(id, {
+      ...data,
+      rendererKey: data.rendererKey || null
+    })
+    return saved
+      ? {
+          id: saved.id,
+          ...(saved as unknown as CmsPage)
+        }
+      : null
+  }
+
   if (payload.specialRole) {
     await withCmsTableFallback(() => prisma.cmsPage.updateMany({
       where: {
@@ -1641,6 +1825,11 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
 }
 
 export async function deleteCmsPage(id: number) {
+  if (isRuntimeD1Active()) {
+    await deleteRuntimeCmsPage(id)
+    return
+  }
+
   await withCmsTableFallback(async () => {
     await prisma.cmsNavigationItem.updateMany({
       where: { pageId: id },
@@ -1689,6 +1878,26 @@ export async function duplicateCmsPage(id: number) {
 }
 
 export async function listCmsNavigationItems(menu?: CmsNavigationMenu) {
+  if (isRuntimeD1Active()) {
+    const rows = await listRuntimeCmsNavigationItems(menu)
+    if (!rows.length) {
+      return mergeMissingDefaultNavigationItems(
+        createDefaultCmsNavigationItems()
+          .filter((item) => !menu || item.menu === menu)
+          .map((item) => ({
+            id: null,
+            ...item
+          })),
+        menu
+      )
+    }
+
+    return rows.map((row) => ({
+      id: row.id,
+      ...navigationRowToPayload(row as unknown as CmsNavigationItem)
+    })).sort((a, b) => a.position - b.position)
+  }
+
   const rows = await withCmsTableFallback(() => prisma.cmsNavigationItem.findMany({
     where: menu ? { menu } : undefined,
     orderBy: [
@@ -1717,6 +1926,60 @@ export async function listCmsNavigationItems(menu?: CmsNavigationMenu) {
 }
 
 export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPayload & { id?: number | null }>) {
+  if (isRuntimeD1Active()) {
+    const currentRows = await listRuntimeCmsNavigationItems()
+    const existingById = new Map(currentRows.map((row) => [row.id, row]))
+    const existingByNavigationKey = new Map<string, number>()
+    for (const row of currentRows) {
+      const labels = safeParseNavigationLabels(row.labelsJson)
+      const navigationItemKey = typeof labels?.navigationItemKey === 'string' ? labels.navigationItemKey.trim() : ''
+      if (navigationItemKey) {
+        existingByNavigationKey.set(navigationItemKey, row.id)
+      }
+    }
+
+    const existingIds = new Set<number>()
+    for (const [index, item] of items.entries()) {
+      const matchingId = item.id && existingById.has(item.id)
+        ? item.id
+        : (item.navigationItemKey && existingByNavigationKey.has(item.navigationItemKey)
+            ? existingByNavigationKey.get(item.navigationItemKey)!
+            : null)
+
+      if (matchingId) {
+        existingIds.add(matchingId)
+      }
+
+      await saveRuntimeCmsNavigationItem(matchingId, {
+        menu: item.menu,
+        itemType: item.itemType,
+        title: item.title,
+        labelsJson: JSON.stringify({
+          ...item.labels,
+          navigationItemKey: item.navigationItemKey,
+          parentItemKey: item.parentItemKey
+        }),
+        href: item.href,
+        pageId: item.pageId,
+        newTab: item.newTab,
+        visible: item.visible,
+        position: item.position ?? index
+      })
+
+      if (!matchingId) {
+        const refreshed = await listRuntimeCmsNavigationItems()
+        const newest = refreshed.at(-1)
+        if (newest?.id) {
+          existingIds.add(newest.id)
+        }
+      }
+    }
+
+    const staleIds = currentRows.map((row) => row.id).filter((rowId) => !existingIds.has(rowId))
+    await deleteRuntimeCmsNavigationItems(staleIds)
+    return
+  }
+
   const cmsTablesAvailable = await withCmsTableFallback(
     async () => {
       await prisma.cmsNavigationItem.findFirst({ select: { id: true } })
@@ -1802,6 +2065,28 @@ function safeParseNavigationLabels(value: string | null | undefined) {
 }
 
 async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string, featureFlags: FeatureFlags) {
+  if (isRuntimeD1Active()) {
+    const rows = await getRuntimeCmsNavigationItemsVisible(menu)
+    const filteredRows = filterNavigationItemsByFeatureFlags(
+      rows.map((row) => ({ id: row.id, ...navigationRowToPayload(row as unknown as CmsNavigationItem) })),
+      featureFlags
+    )
+
+    if (!filteredRows.length) {
+      return buildResolvedNavigationTree(mergeMissingDefaultNavigationItems(
+        createDefaultCmsNavigationItems()
+          .filter((item) => item.menu === menu && item.visible)
+          .map((item) => ({ id: null, ...item }))
+          .filter((item) => isFeatureEnabledForHref(item.href, featureFlags)),
+        menu
+      ).map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale)))
+    }
+
+    return buildResolvedNavigationTree(filteredRows
+      .sort((a, b) => a.position - b.position)
+      .map((row, index) => navigationPayloadToResolved(row.id ?? -(index + 1), row, locale)))
+  }
+
   const rows = await withCmsTableFallback(() => prisma.cmsNavigationItem.findMany({
     where: {
       menu,
@@ -1869,17 +2154,20 @@ function isRendererEnabled(rendererKey: string, featureFlags: FeatureFlags) {
 export async function resolvePublicCmsPage(path: string, locale: string, includeDraft = false, featureFlags: FeatureFlags): Promise<ResolvedCmsPage | null> {
   await ensureCmsSystemPages()
   const normalizedPath = normalizePath(path)
-  const where = includeDraft
-    ? { path: normalizedPath }
-    : { path: normalizedPath, status: 'PUBLISHED' as const }
-
-  const row = await withCmsTableFallback(
-    () => prisma.cmsPage.findFirst({ where }),
-    async () => null
-  )
+  const row = isRuntimeD1Active()
+    ? await getRuntimeCmsPageByPath(normalizedPath)
+    : await withCmsTableFallback(
+        () => prisma.cmsPage.findFirst(includeDraft
+          ? { where: { path: normalizedPath } }
+          : { where: { path: normalizedPath, status: 'PUBLISHED' as const } }),
+        async () => null
+      )
 
   if (row) {
-    const payload = pageRowToPayload(row)
+    if (!includeDraft && row.status !== 'PUBLISHED') {
+      return null
+    }
+    const payload = pageRowToPayload(row as unknown as CmsPage)
     if (!isRendererEnabled(payload.rendererKey, featureFlags)) {
       return null
     }

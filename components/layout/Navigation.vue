@@ -192,7 +192,6 @@ import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
 import { useAuthStore } from '#modula/stores/auth'
 
 interface PreviewSiteConfig {
-  facebookFluxDeactivated?: boolean
   inDevelopment?: boolean
   registerEnabled?: boolean
   cms?: PublicSiteShell

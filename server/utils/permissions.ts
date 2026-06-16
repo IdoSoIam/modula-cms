@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { prisma } from '#modula/prisma/client'
+import { isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 import {
   ADMIN_PERMISSION_MODULES,
   ADMIN_SPECIAL_PERMISSIONS,
@@ -59,6 +60,10 @@ async function getUserWithRole(userId: number) {
 }
 
 export async function ensureDefaultRoles() {
+  if (isRuntimeD1Active()) {
+    return
+  }
+
   if (hasEnsuredDefaultRoles) {
     return
   }

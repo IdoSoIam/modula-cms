@@ -5,6 +5,11 @@ import defaultCmsProjectConfig from './cms.project.config'
 import { parseCmsProjectConfigJson, resolveCmsPlatformConfig } from './shared/platform'
 
 const layerRoot = fileURLToPath(new URL('.', import.meta.url))
+const prismaClientPath = path.resolve(layerRoot, 'prisma/client.ts')
+const prismaClientPathWithoutExtension = path.resolve(layerRoot, 'prisma/client')
+const prismaClientCloudflareStubPath = path.resolve(layerRoot, 'prisma/client-cloudflare.ts')
+const prismaPackageCloudflareStubPath = path.resolve(layerRoot, 'prisma/prisma-client-package-cloudflare-stub.ts')
+const prismaAdapterCloudflareStubPath = path.resolve(layerRoot, 'prisma/prisma-adapter-cloudflare-stub.ts')
 
 const cmsProjectConfig = parseCmsProjectConfigJson(process.env.CMS_PROJECT_CONFIG_JSON) || defaultCmsProjectConfig
 const platformConfig = resolveCmsPlatformConfig(process.env, cmsProjectConfig)
@@ -33,7 +38,14 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   debug: false,
   alias: {
-    '#modula': layerRoot
+    '#modula': layerRoot,
+    ...(isCloudflareRuntime
+      ? {
+          '#modula/prisma/client': prismaClientCloudflareStubPath,
+          '@prisma/client': prismaPackageCloudflareStubPath,
+          '@prisma/adapter-better-sqlite3': prismaAdapterCloudflareStubPath
+        }
+      : {})
   },
   experimental: {
     appManifest: false
@@ -55,6 +67,15 @@ export default defineNuxtConfig({
       '~/cms.project.config': path.resolve(layerRoot, 'cms.project.config'),
       '../shared/': path.resolve(layerRoot, 'shared') + '/',
       '../shared/platform.ts': path.resolve(layerRoot, 'shared/platform.ts'),
+      ...(isCloudflareRuntime
+        ? {
+            '#modula/prisma/client': prismaClientCloudflareStubPath,
+            [prismaClientPath]: prismaClientCloudflareStubPath,
+            [prismaClientPathWithoutExtension]: prismaClientCloudflareStubPath,
+            '@prisma/client': prismaPackageCloudflareStubPath,
+            '@prisma/adapter-better-sqlite3': prismaAdapterCloudflareStubPath
+          }
+        : {})
     },
     ...(isCloudflareRuntime
       ? {
@@ -64,9 +85,7 @@ export default defineNuxtConfig({
         }
       }
       : {}),
-    rollupConfig: {
-      external: ['facebook-node-sdk', 'fb']
-    }
+    rollupConfig: {}
   },
 
   devtools: {
@@ -91,6 +110,17 @@ export default defineNuxtConfig({
     ...(isCloudflareRuntime ? ['nitro-cloudflare-dev'] : [])
   ],
   vite: {
+    resolve: {
+      alias: isCloudflareRuntime
+        ? {
+            '#modula/prisma/client': prismaClientCloudflareStubPath,
+            [prismaClientPath]: prismaClientCloudflareStubPath,
+            [prismaClientPathWithoutExtension]: prismaClientCloudflareStubPath,
+            '@prisma/client': prismaPackageCloudflareStubPath,
+            '@prisma/adapter-better-sqlite3': prismaAdapterCloudflareStubPath
+          }
+        : {}
+    },
     plugins: [
       tailwindcss(),
       {
@@ -211,8 +241,7 @@ export default defineNuxtConfig({
       imageDeliveryMode,
       imageCloudflareBaseURL,
       imageSourceBaseURL,
-      facebookAppId: process.env.FACEBOOK_APP_ID,
-      facebookPageId: process.env.FACEBOOK_PAGE_ID
+      stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY?.trim() || ''
     }
   }
 

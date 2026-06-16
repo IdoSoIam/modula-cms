@@ -69,6 +69,8 @@
 </template>
 
 <script setup lang="ts">
+import { MDI_ICON_CATALOG } from '#modula/shared/mdiIconCatalog'
+
 const props = withDefaults(defineProps<{
   modelValue?: string
   label?: string
@@ -82,52 +84,10 @@ const emit = defineEmits<{
 }>()
 
 const isOpen = ref(false)
-const isLoading = ref(false)
 const search = ref('')
 const visibleCount = ref(120)
-const allIcons = ref<string[]>([])
-
-const extractIconNames = (moduleValue: unknown): string[] => {
-  if (!moduleValue || typeof moduleValue !== 'object') {
-    return []
-  }
-
-  const record = moduleValue as Record<string, unknown>
-  const directIcons = record.icons
-
-  if (directIcons && typeof directIcons === 'object') {
-    const directRecord = directIcons as Record<string, unknown>
-
-    if (directRecord.icons && typeof directRecord.icons === 'object') {
-      return Object.keys(directRecord.icons as Record<string, unknown>)
-    }
-
-    return Object.keys(directRecord)
-  }
-
-  if (record.default && typeof record.default === 'object') {
-    return extractIconNames(record.default)
-  }
-
-  return []
-}
-
-const ensureIconsLoaded = async () => {
-  if (allIcons.value.length || isLoading.value) {
-    return
-  }
-
-  isLoading.value = true
-
-  try {
-    const mdiIconSet = await import('@iconify-json/mdi')
-    allIcons.value = extractIconNames(mdiIconSet)
-      .map(name => `mdi:${name}`)
-      .sort((a, b) => a.localeCompare(b))
-  } finally {
-    isLoading.value = false
-  }
-}
+const isLoading = ref(false)
+const allIcons = ref([...MDI_ICON_CATALOG].sort((a, b) => a.localeCompare(b)))
 
 const filteredIcons = computed(() =>
   allIcons.value.filter(icon => icon.toLowerCase().includes(search.value.toLowerCase().trim()))
@@ -158,8 +118,6 @@ watch([search, isOpen], () => {
 })
 
 watch(isOpen, (open) => {
-  if (open) {
-    void ensureIconsLoaded()
-  }
+  if (open) return
 })
 </script>

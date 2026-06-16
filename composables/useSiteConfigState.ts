@@ -10,7 +10,6 @@ interface PublicSiteConfigState {
   installRequired?: boolean
   runtimeCompatible?: boolean
   runtimeIssue?: string | null
-  facebookFluxDeactivated: boolean
   inDevelopment: boolean
   siteName: string
   registerEnabled: boolean

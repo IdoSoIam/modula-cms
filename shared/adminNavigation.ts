@@ -20,7 +20,6 @@ export interface AdminNavigationSection {
 }
 
 export interface AdminNavigationOptions {
-  facebookSyncEnabled?: boolean
   featureFlags?: {
     shop: {
       enabled: boolean
@@ -330,17 +329,6 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
       })
     }))
     .filter((section) => section.items.length > 0)
-
-  if (options.facebookSyncEnabled) {
-    filteredSections[filteredSections.length - 1]?.items.push({
-      id: 'shop-facebook-sync',
-      labelKey: 'admin.navigation.items.facebookSync',
-      path: '/facebook-sync',
-      icon: 'mdi:facebook',
-      activePaths: ['/facebook-sync']
-    })
-  }
-
   return filteredSections
 }
 

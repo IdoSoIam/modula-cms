@@ -1,4 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import { countRuntimeReservationsByBasketId, deleteRuntimeBasket, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { prisma } from '../../../../prisma/client'
 
@@ -7,14 +8,20 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
 
-  const reservations = await prisma.reservation.count({ where: { basketId: id } })
+  const reservations = isRuntimeD1Active()
+    ? await countRuntimeReservationsByBasketId(id)
+    : await prisma.reservation.count({ where: { basketId: id } })
   if (reservations > 0) {
     throw createError({
       statusCode: 400,
       statusMessage: `Ce panier a ${reservations} réservation(s). Désactivez-le plutôt que de le supprimer.`
     })
   }
-  await prisma.basket.delete({ where: { id } })
+  if (isRuntimeD1Active()) {
+    await deleteRuntimeBasket(id)
+  } else {
+    await prisma.basket.delete({ where: { id } })
+  }
   await syncImageUsageTable()
   return { ok: true }
 })

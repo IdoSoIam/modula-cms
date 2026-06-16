@@ -104,7 +104,7 @@
                 >
                   <div class="mb-3 overflow-hidden rounded-2xl border border-base-300 bg-base-200">
                     <img
-                      :src="siteTemplate.previewImage || '/site-templates/preview-modula.svg'"
+                      :src="siteTemplate.previewImage || '/brand/modula-mark.svg'"
                       :alt="localized(siteTemplate.label)"
                       class="h-36 w-full object-cover"
                     >
@@ -233,7 +233,7 @@
             <p class="mt-1 text-sm text-base-content/65">{{ selectedTemplate ? localized(selectedTemplate.description) : t('install.templateSectionHelp') }}</p>
             <div class="mt-4 overflow-hidden rounded-2xl border border-base-300 bg-base-200">
               <img
-                :src="selectedTemplate?.previewImage || '/site-templates/preview-modula.svg'"
+                :src="selectedTemplate?.previewImage || '/brand/modula-mark.svg'"
                 :alt="selectedTemplate ? localized(selectedTemplate.label) : t('install.templateSection')"
                 class="h-44 w-full object-cover"
               >
@@ -335,7 +335,7 @@ const configuredRuntimeLabel = computed(() => installState?.configuredRuntimeTar
   : t('install.runtime.server'))
 const currentStorageLabel = computed(() => installState?.currentStorageDriver === 'r2' ? 'R2' : 'Filesystem')
 const availableTemplates = computed(() => installState?.siteTemplates || [])
-const selectedTemplate = computed(() => availableTemplates.value.find(item => item.key === form.siteTemplate) || availableTemplates.value[0] || null)
+const selectedTemplate = computed(() => availableTemplates.value.find((item: any) => item.key === form.siteTemplate) || availableTemplates.value[0] || null)
 const environmentHelpText = computed(() => {
   if (installState?.detectedRuntimeTarget === 'cloudflare') {
     return t('install.detectedRuntimeCloudflareHelp')
@@ -373,6 +373,13 @@ function selectDataStack(nextStack: 'server' | 'cloudflare') {
     form.storageDriver = 'fs'
   }
 }
+
+watch(availableTemplates, (templates: any) => {
+  if (!templates.length) return
+  if (!templates.some((template: any) => template.key === form.siteTemplate)) {
+    form.siteTemplate = templates[0]!.key
+  }
+}, { immediate: true })
 
 async function submit() {
   errorMessage.value = ''

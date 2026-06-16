@@ -1,31 +1,45 @@
 import { prisma } from '../../prisma/client'
 import { getNextDateForDayOfWeek } from '#modula/server/utils/orderFulfillment'
 import { getFarmPickupConfig } from '#modula/server/utils/settings'
+import { isRuntimeD1Active, listRuntimeDeliveryTours, listRuntimePickupPoints } from '#modula/server/platform/runtimeDb'
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800')
 
   const now = new Date()
   const [pickupPoints, tours, farmPickup] = await Promise.all([
-    prisma.pickupPoint.findMany({
-      where: { active: true },
-      orderBy: [{ position: 'asc' }, { name: 'asc' }],
-      select: {
-        id: true,
-        name: true,
-        address: true,
-        details: true,
-        deliveryDay: true,
-        pickupStartTime: true,
-        openingHours: true,
-        websiteUrl: true
-      }
-    }),
-    prisma.deliveryTour.findMany({
-      where: { active: true },
-      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
-      include: { cities: true }
-    }),
+    isRuntimeD1Active()
+      ? listRuntimePickupPoints({ activeOnly: true }).then((items) => items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          address: item.address,
+          details: item.details,
+          deliveryDay: item.deliveryDay,
+          pickupStartTime: item.pickupStartTime,
+          openingHours: item.openingHours,
+          websiteUrl: item.websiteUrl
+        })))
+      : prisma.pickupPoint.findMany({
+          where: { active: true },
+          orderBy: [{ position: 'asc' }, { name: 'asc' }],
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            details: true,
+            deliveryDay: true,
+            pickupStartTime: true,
+            openingHours: true,
+            websiteUrl: true
+          }
+        }),
+    isRuntimeD1Active()
+      ? listRuntimeDeliveryTours({ activeOnly: true })
+      : prisma.deliveryTour.findMany({
+          where: { active: true },
+          orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+          include: { cities: true }
+        }),
     getFarmPickupConfig()
   ])
 

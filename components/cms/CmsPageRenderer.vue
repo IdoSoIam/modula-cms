@@ -67,8 +67,6 @@ defineEmits<{
 const siteConfig = await useSiteConfig()
 const cmsSettings = computed(() => siteConfig.value?.cms?.settings)
 const featureFlags = computed(() => siteConfig.value?.featureFlags)
-const newsShowArticles = siteConfig.value?.facebookFluxDeactivated === true
-
 const isRendererEnabled = (rendererKey: string) => {
   const flags = featureFlags.value
   if (!flags) return true
@@ -85,7 +83,7 @@ const basketsPageProps = computed(() => ({
 
 const newsPageProps = computed(() => ({
   settings: cmsSettings.value?.newsPage ?? null,
-  showArticles: newsShowArticles
+  showArticles: true
 }))
 
 const eventsPageProps = computed(() => ({

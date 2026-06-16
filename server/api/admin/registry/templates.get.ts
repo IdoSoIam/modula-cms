@@ -1,14 +1,21 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { canManageSystemRegistryTemplates, isCmsRegistryConfigured, listManagedRegistryTemplates, listMergedSiteTemplates } from '#modula/server/utils/cmsRegistry'
+import {
+  canManageSystemRegistryTemplates,
+  isCmsRegistryConfigured,
+  isCmsSystemTemplatesRegistryConfigured,
+  listManagedRegistryTemplates,
+  listMergedSiteTemplates
+} from '#modula/server/utils/cmsRegistry'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  if (!isCmsRegistryConfigured()) {
+  if (!isCmsRegistryConfigured() && !isCmsSystemTemplatesRegistryConfigured()) {
     return {
       configured: false,
       canManageSystemTemplates: canManageSystemRegistryTemplates(),
-      templates: []
+      templates: [],
+      availableSiteTemplates: await listMergedSiteTemplates()
     }
   }
 

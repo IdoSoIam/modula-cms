@@ -52,6 +52,7 @@ function text(fr: string, en: string): CmsLocalizedText {
 
 function resolveTemplateAssetRoot() {
   const candidates = [
+    path.resolve(process.cwd(), 'system-assets', 'site-templates'),
     path.resolve(process.cwd(), 'public', 'site-templates'),
     path.resolve(process.cwd(), '.output', 'public', 'site-templates')
   ]
@@ -151,6 +152,65 @@ async function ensureTemplateAssets(templateKey: CmsSiteTemplateKey) {
 function getTemplateAssetUrl(templateKey: CmsSiteTemplateKey, sourceName: string) {
   const asset = (TEMPLATE_IMAGE_ASSETS[templateKey] || []).find(item => item.source === sourceName)
   return asset ? getUploadUrl(asset.filename) : `/site-templates/${sourceName}`
+}
+
+function getTemplateBrandAssets(templateKey: CmsSiteTemplateKey, current: CmsSiteSettings) {
+  const fallback = createDefaultCmsSiteSettings()
+
+  if (templateKey === 'farm') {
+    return {
+      logo: {
+        src: getTemplateAssetUrl(templateKey, 'preview-farm.svg'),
+        alt: {
+          fr: current.siteName.fr || 'Logo du site',
+          en: current.siteName.en || 'Site logo'
+        }
+      },
+      favicon: {
+        src: getTemplateAssetUrl(templateKey, 'preview-farm.svg'),
+        alt: {
+          fr: current.siteName.fr || 'Icône du site',
+          en: current.siteName.en || 'Site icon'
+        }
+      }
+    }
+  }
+
+  if (templateKey === 'association') {
+    return {
+      logo: {
+        src: getTemplateAssetUrl(templateKey, 'preview-association.svg'),
+        alt: {
+          fr: current.siteName.fr || 'Logo du site',
+          en: current.siteName.en || 'Site logo'
+        }
+      },
+      favicon: {
+        src: getTemplateAssetUrl(templateKey, 'preview-association.svg'),
+        alt: {
+          fr: current.siteName.fr || 'Icône du site',
+          en: current.siteName.en || 'Site icon'
+        }
+      }
+    }
+  }
+
+  return {
+    logo: {
+      src: getTemplateAssetUrl(templateKey, 'modula-mark.svg'),
+      alt: {
+        fr: current.siteName.fr || fallback.logo.alt.fr,
+        en: current.siteName.en || fallback.logo.alt.en
+      }
+    },
+    favicon: {
+      src: getTemplateAssetUrl(templateKey, 'modula-mark.svg'),
+      alt: {
+        fr: current.siteName.fr || fallback.favicon.alt.fr,
+        en: current.siteName.en || fallback.favicon.alt.en
+      }
+    }
+  }
 }
 
 function createHeroButtons(primaryHref: string, primaryLabelFr: string, primaryLabelEn: string, secondaryHref: string, secondaryLabelFr: string, secondaryLabelEn: string) {
@@ -664,12 +724,15 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
   const base = createDefaultCmsSiteSettings()
   const siteName = current.siteName
   const siteTagline = current.siteTagline
+  const brandAssets = getTemplateBrandAssets(key, current)
 
   if (key === 'farm') {
     return {
       ...base,
       siteName,
       siteTagline,
+      logo: brandAssets.logo,
+      favicon: brandAssets.favicon,
       header: {
         ...base.header,
         showSiteTagline: true
@@ -719,6 +782,8 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
       ...base,
       siteName,
       siteTagline,
+      logo: brandAssets.logo,
+      favicon: brandAssets.favicon,
       footer: {
         ...base.footer,
         backgroundColor: createThemeColorSelection('accent'),
@@ -758,6 +823,8 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
     ...base,
     siteName,
     siteTagline,
+    logo: brandAssets.logo,
+    favicon: brandAssets.favicon,
     socialLinks: current.socialLinks,
     footer: {
       ...base.footer,
@@ -1040,7 +1107,12 @@ export async function buildBundledSystemTemplateSnapshot(templateKey: BundledSys
   }
 }
 
-export async function applyBundledSiteTemplate(templateKey: BundledSystemSiteTemplateKey) {
+export async function applyBundledSiteTemplate(
+  templateKey: BundledSystemSiteTemplateKey,
+  options: {
+    replaceBrandAssets?: boolean
+  } = {}
+) {
   await ensureCmsRootPage()
   await ensureCmsSystemPages()
   await ensureTemplateAssets(templateKey)
@@ -1050,6 +1122,8 @@ export async function applyBundledSiteTemplate(templateKey: BundledSystemSiteTem
   await saveCmsSiteSettings({
     ...currentSettings,
     ...nextSettings,
+    logo: options.replaceBrandAssets ? nextSettings.logo : currentSettings.logo,
+    favicon: options.replaceBrandAssets ? nextSettings.favicon : currentSettings.favicon,
     cookieBanner: currentSettings.cookieBanner as CmsCookieBannerSettings
   })
 
@@ -1069,16 +1143,32 @@ export async function applyBundledSiteTemplate(templateKey: BundledSystemSiteTem
     setSetting(SETTING_KEYS.SHOP_VEGETABLES_ENABLED, templateFeatureFlags.shop.vegetablesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, templateFeatureFlags.associationRolesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.EVENTS_ENABLED, templateFeatureFlags.eventsEnabled ? 'true' : 'false'),
-    setSetting(SETTING_KEYS.NEWS_ENABLED, templateFeatureFlags.newsEnabled ? 'true' : 'false'),
-    setSetting(SETTING_KEYS.FACEBOOK_FLUX_DEACTIVATED, 'true')
+    setSetting(SETTING_KEYS.NEWS_ENABLED, templateFeatureFlags.newsEnabled ? 'true' : 'false')
   ])
 }
 
-export async function applySiteTemplate(templateKey: CmsSiteTemplateKey) {
+export async function applySiteTemplate(
+  templateKey: CmsSiteTemplateKey,
+  options: {
+    replaceBrandAssets?: boolean
+  } = {}
+) {
   if (templateKey !== FALLBACK_SITE_TEMPLATE_KEY) {
-    await applyRegistryTemplate(templateKey)
+    await applyRegistryTemplate(templateKey, options)
     await setSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY, templateKey)
     return
   }
-  await applyBundledSiteTemplate(templateKey)
+
+  try {
+    await applyRegistryTemplate(templateKey, options)
+    await setSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY, templateKey)
+    return
+  } catch (error: any) {
+    const statusCode = error?.statusCode || error?.status
+    if (statusCode && ![404, 503].includes(statusCode)) {
+      throw error
+    }
+  }
+
+  await applyBundledSiteTemplate(templateKey, options)
 }

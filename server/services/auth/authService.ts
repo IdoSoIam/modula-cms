@@ -5,6 +5,14 @@ import { getSessionConfig } from '../../utils/session'
 import { prisma } from '../../../prisma/client'
 import { buildUserAccessPayload, ensureDefaultRoles } from '#modula/server/utils/permissions'
 import type { UserAccessPayload, UserMemberRolePayload } from '#modula/shared/access'
+import {
+  getRuntimeRoleById,
+  getRuntimeRolePermissions,
+  getRuntimeUserByEmail,
+  getRuntimeUserById,
+  getRuntimeUserMemberRoles,
+  isRuntimeD1Active
+} from '#modula/server/platform/runtimeDb'
 
 export interface AuthenticatedUser {
   id: number
@@ -114,6 +122,61 @@ function mapUser(user: {
       postalCode: user.postalCode,
       country: user.country
     } : undefined
+  }
+}
+
+async function getRuntimeSessionUser(userId: number) {
+  const user = await getRuntimeUserById(userId)
+  if (!user) return null
+
+  return await getRuntimeAuthenticatedUser(user)
+}
+
+async function getRuntimeAuthenticatedUser(user: {
+  id: number
+  email: string
+  firstName: string | null
+  lastName: string | null
+  role: string
+  roleId: number | null
+  isActive: number | boolean
+  street: string | null
+  city: string | null
+  postalCode: string | null
+  country: string | null
+}) {
+
+  const [managedRole, memberRoles] = await Promise.all([
+    user.roleId ? getRuntimeRoleById(user.roleId) : Promise.resolve(null),
+    getRuntimeUserMemberRoles(user.id)
+  ])
+
+  const permissions = managedRole
+    ? await getRuntimeRolePermissions(managedRole.id)
+    : []
+
+  return {
+    ...user,
+    isActive: Boolean(user.isActive),
+    managedRole: managedRole ? {
+      slug: managedRole.slug,
+      specialPermissionsJson: managedRole.specialPermissionsJson || '[]',
+      permissions: permissions.map((permission) => ({
+        module: permission.module,
+        canRead: Boolean(permission.canRead),
+        canCreate: Boolean(permission.canCreate),
+        canUpdate: Boolean(permission.canUpdate),
+        canDelete: Boolean(permission.canDelete)
+      }))
+    } : null,
+    memberRoles: memberRoles.map((entry) => ({
+      memberRole: {
+        id: entry.id,
+        slug: entry.slug,
+        name: entry.name,
+        color: entry.color
+      }
+    }))
   }
 }
 
@@ -296,6 +359,20 @@ export class AuthService {
     try {
       await ensureDefaultRoles()
       const normalizedEmail = email.trim().toLowerCase()
+      if (isRuntimeD1Active()) {
+        const runtimeUser = await getRuntimeUserByEmail(normalizedEmail)
+        if (!runtimeUser?.password) {
+          return null
+        }
+
+        const isValid = await bcrypt.compare(password, runtimeUser.password)
+        if (!isValid || !runtimeUser.isActive) {
+          return null
+        }
+
+        return mapUser(await getRuntimeAuthenticatedUser(runtimeUser) as any)
+      }
+
       const user = await prisma.user.findUnique({
         where: { email: normalizedEmail },
         select: userSelect
@@ -329,6 +406,15 @@ export class AuthService {
 
     try {
       await ensureDefaultRoles()
+      if (isRuntimeD1Active()) {
+        const runtimeUser = await getRuntimeSessionUser(userId)
+        if (!runtimeUser || !runtimeUser.isActive) {
+          return null
+        }
+
+        return mapUser(runtimeUser as any)
+      }
+
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: userSelect

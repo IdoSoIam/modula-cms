@@ -515,7 +515,6 @@ interface OrdersWindow {
 }
 
 interface SiteConfig {
-  facebookFluxDeactivated: boolean
   ordersWindow: OrdersWindow
   subscriptionsEnabled: boolean
   cms?: {

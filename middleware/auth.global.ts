@@ -6,7 +6,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const localePath = useLocalePath()
   const normalizedPath = to.path.replace(/^\/en(?=\/|$)/, '') || '/'
   const installAllowedRoutes = ['/install', '/password-setup']
-  const adminRoutes = ['/admin', '/facebook-test']
+  const adminRoutes = ['/admin']
   const protectedRoutes = ['/profile', '/commandes']
   const authAwareRoutes = ['/login', '/construction', '/install']
   const needsAuthState = hasAuthSessionCookie()

@@ -13,6 +13,7 @@ import { applySiteTemplate } from '#modula/server/utils/siteTemplates'
 import type { CmsSiteTemplateKey } from '#modula/shared/siteTemplates'
 import { getCmsSiteSettings, saveCmsSiteSettings } from '#modula/server/utils/cms'
 import { isCloudflareRuntime } from '#modula/server/platform/runtime'
+import { countRuntimeUsers, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 
 export interface CmsInstallStatus {
   installed: boolean
@@ -314,7 +315,9 @@ export async function getCmsInstallStatus(event?: H3Event): Promise<CmsInstallSt
     if (currentPlatform.dbDriver === 'sqlite') {
       await applySqliteMigrationsIfNeeded(event)
     }
-    userCount = await prisma.user.count()
+    userCount = isRuntimeD1Active()
+      ? await countRuntimeUsers()
+      : await prisma.user.count()
   } catch (error) {
     const detectedRuntimeIssue = getPrismaRuntimeIssue(error)
     if (detectedRuntimeIssue) {
@@ -426,7 +429,9 @@ export async function bootstrapCmsInstallation(event: H3Event, payload: CmsInsta
   let templateApplied = true
   let templateApplyError: string | null = null
   try {
-    await applySiteTemplate(payload.siteTemplate)
+    await applySiteTemplate(payload.siteTemplate, {
+      replaceBrandAssets: true
+    })
   } catch (error: any) {
     templateApplied = false
     templateApplyError = error?.message || 'Erreur inconnue lors de l’application du template.'

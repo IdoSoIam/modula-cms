@@ -70,7 +70,7 @@
           >
             <div class="flex items-start gap-3">
               <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-base-300 bg-base-200">
-                <img :src="siteTemplate.previewImage || '/site-templates/preview-modula.svg'" :alt="localized(siteTemplate.label)" class="h-full w-full object-cover">
+                <img :src="siteTemplate.previewImage || '/brand/modula-mark.svg'" :alt="localized(siteTemplate.label)" class="h-full w-full object-cover">
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
@@ -189,6 +189,13 @@
 
             <div class="rounded-[1.25rem] border border-base-300 p-4">
               <h3 class="text-lg font-semibold">{{ t('admin.settingsSiteTemplatePage.quickActions') }}</h3>
+              <label class="mt-4 flex items-start gap-3 rounded-xl bg-base-200 px-4 py-3 text-sm">
+                <input v-model="replaceBrandAssetsOnApply" type="checkbox" class="checkbox checkbox-sm mt-0.5">
+                <span>
+                  <span class="font-medium">{{ t('admin.settingsSiteTemplatePage.replaceBrandAssets') }}</span>
+                  <span class="mt-1 block opacity-70">{{ t('admin.settingsSiteTemplatePage.replaceBrandAssetsHelp') }}</span>
+                </span>
+              </label>
               <div class="mt-4 flex flex-wrap gap-3">
                 <button
                   class="btn btn-primary"
@@ -295,6 +302,7 @@ const publishingTemplate = ref(false)
 const discardingDraftTemplate = ref(false)
 const deletingTemplate = ref(false)
 const autoRegisterAttempted = ref(false)
+const replaceBrandAssetsOnApply = ref(false)
 
 async function apiFetch<T>(url: string, options: Parameters<typeof $fetch<T>>[1] = {}) {
   if (process.server) {
@@ -312,6 +320,7 @@ async function apiFetch<T>(url: string, options: Parameters<typeof $fetch<T>>[1]
 }
 
 const { data, refresh: refreshSiteShell } = await useFetch<SiteTemplatePageModel>('/api/admin/cms/site-shell', {
+  key: 'admin-site-template-site-shell',
   headers: authHeaders,
   transform: (value: any) => ({
     currentTemplateKey: value?.currentTemplateKey ?? null,
@@ -357,7 +366,7 @@ const selectedPreviewImage = computed(() =>
   templateForm.previewImage
   || selectedRemoteTemplate.value?.previewImage
   || selectedTemplateDefinition.value?.previewImage
-  || '/site-templates/preview-modula.svg'
+  || '/brand/modula-mark.svg'
 )
 const selectedIconName = computed(() =>
   templateForm.icon
@@ -485,17 +494,28 @@ function buildTemplatePayload() {
 
 async function applySelectedTemplate() {
   if (!selectedTemplateKey.value || selectedTemplateKey.value === currentTemplateKey.value) return
-  const confirmed = window.confirm(`${t('admin.settingsSiteTemplatePage.confirmApplyTitle')}\n\n${t('admin.settingsSiteTemplatePage.warning')}`)
+  const replaceBrandAssetsWarning = replaceBrandAssetsOnApply.value
+    ? `\n\n${t('admin.settingsSiteTemplatePage.replaceBrandAssetsConfirm')}`
+    : ''
+  const confirmed = window.confirm(`${t('admin.settingsSiteTemplatePage.confirmApplyTitle')}\n\n${t('admin.settingsSiteTemplatePage.warning')}${replaceBrandAssetsWarning}`)
   if (!confirmed) return
 
   applyingTemplate.value = true
   try {
     if (selectedRemoteTemplate.value) {
-      await apiFetch(`/api/admin/registry/templates/${encodeURIComponent(selectedRemoteTemplate.value.slug)}/apply`, { method: 'POST' })
+      await apiFetch(`/api/admin/registry/templates/${encodeURIComponent(selectedRemoteTemplate.value.slug)}/apply`, {
+        method: 'POST',
+        body: {
+          replaceBrandAssets: replaceBrandAssetsOnApply.value
+        }
+      })
     } else {
       const response = await apiFetch<SiteTemplatePageModel>('/api/admin/cms/site-template', {
         method: 'POST',
-        body: { templateKey: selectedTemplateKey.value }
+        body: {
+          templateKey: selectedTemplateKey.value,
+          replaceBrandAssets: replaceBrandAssetsOnApply.value
+        }
       })
       data.value = response
     }

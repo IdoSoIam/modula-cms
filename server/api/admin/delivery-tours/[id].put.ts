@@ -1,4 +1,9 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
+import {
+  isRuntimeD1Active,
+  replaceRuntimeDeliveryTourCities,
+  updateRuntimeDeliveryTour
+} from '#modula/server/platform/runtimeDb'
 import { prisma } from '../../../../prisma/client'
 
 interface CityInput {
@@ -33,13 +38,24 @@ export default defineEventHandler(async (event) => {
 
   // If cities provided, delete existing and recreate
   if (body.cities !== undefined) {
-    await prisma.tourCity.deleteMany({ where: { tourId: id } })
-    data.cities = {
-      create: body.cities.filter(c => c.city.trim()).map(c => ({
+    if (isRuntimeD1Active()) {
+      await replaceRuntimeDeliveryTourCities(id, body.cities.filter(c => c.city.trim()).map(c => ({
         city: c.city.trim(),
         postalCodes: c.postalCodes?.trim() || null
-      }))
+      })))
+    } else {
+      await prisma.tourCity.deleteMany({ where: { tourId: id } })
+      data.cities = {
+        create: body.cities.filter(c => c.city.trim()).map(c => ({
+          city: c.city.trim(),
+          postalCodes: c.postalCodes?.trim() || null
+        }))
+      }
     }
+  }
+
+  if (isRuntimeD1Active()) {
+    return await updateRuntimeDeliveryTour(id, data)
   }
 
   return prisma.deliveryTour.update({ where: { id }, data, include: { cities: true } })
