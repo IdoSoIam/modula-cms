@@ -36,7 +36,7 @@ worker-configuration.d.ts
 backups
 
 # Local SQLite/D1 dev database
-/server/generated
+/server/generated/*
 
 
 
