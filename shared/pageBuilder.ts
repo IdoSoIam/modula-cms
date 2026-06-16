@@ -281,6 +281,7 @@ export type PageBuilderColumnItem =
   | PageBuilderFormItem
 
 export type PageBuilderSectionItem =
+  | PageBuilderBadgeItem
   | PageBuilderTitleItem
   | PageBuilderTextItem
 

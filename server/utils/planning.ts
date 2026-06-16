@@ -170,7 +170,7 @@ export async function syncEventOccurrencesForEvent(eventRow: Event) {
     where: { eventId: eventRow.id },
     select: { id: true, occurrenceDate: true, isOverride: true, status: true }
   })
-  const existingByDay = new Map(existing.map((entry) => [formatIsoDate(entry.occurrenceDate), entry]))
+  const existingByDay = new Map(existing.map((entry: any) => [formatIsoDate(entry.occurrenceDate), entry]))
   const desiredDates: Date[] = []
   for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor = addDays(cursor, 1)) {
     if (weekdays.includes(cursor.getDay() as EventWeekdayValue)) {

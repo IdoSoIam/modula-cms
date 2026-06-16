@@ -188,7 +188,7 @@ function resolveBundledAssetPath(url: string) {
     }
   }
 
-  return candidates[0]
+  return candidates[0]!
 }
 
 export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTemplateSnapshot, 'assetManifest'>) {
@@ -201,8 +201,9 @@ export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTempl
         const key = url.replace(/^\/uploads\//, '')
         const object = await getUploadObject(key)
         if (!object?.body) continue
-        const bytes = object.body instanceof Uint8Array ? object.body : new Uint8Array(await object.body.arrayBuffer())
-        const asset = await registryUploadAsset(key, object.contentType || 'application/octet-stream', bytes, url)
+        const body = object.body
+        const bytes = body instanceof Uint8Array ? body : body instanceof ArrayBuffer ? new Uint8Array(body) : new Uint8Array(await new Response(body as any).arrayBuffer())
+        const asset = await registryUploadAsset(key, object.httpMetadata?.contentType || 'application/octet-stream', bytes, url)
         manifest.push(asset)
         continue
       }
@@ -228,7 +229,7 @@ export async function exportCurrentTemplateSnapshot(): Promise<CmsRegistryTempla
     getFeatureFlags()
   ])
 
-  const pagesPayload = pages.map((page) => ({
+  const pagesPayload = pages.map((page: any) => ({
     path: page.path,
     slug: page.slug,
     pageType: page.pageType,
@@ -403,7 +404,9 @@ async function registerTemplateManagedLocalAsset(sourceUrl: string) {
     id: '',
     filename: asset.filename,
     contentType: asset.contentType,
+    size: asset.bytes.length,
     checksum: '',
+    storageKey: '',
     downloadUrl: '',
     publicUrl: '',
     sourceUrl

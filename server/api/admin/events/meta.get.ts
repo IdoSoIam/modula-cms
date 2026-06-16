@@ -41,13 +41,13 @@ export default defineEventHandler(async (event) => {
 
   return {
     memberRoles,
-    users: users.map(user => ({
+    users: users.map((user: any) => ({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      memberRoleIds: associationRolesEnabled ? user.memberRoles.map(entry => entry.memberRoleId) : [],
-      memberRoles: associationRolesEnabled ? user.memberRoles.map(entry => ({
+      memberRoleIds: associationRolesEnabled ? user.memberRoles.map((entry: any) => entry.memberRoleId) : [],
+      memberRoles: associationRolesEnabled ? user.memberRoles.map((entry: any) => ({
         id: entry.memberRole.id,
         slug: entry.memberRole.slug,
         name: entry.memberRole.name,

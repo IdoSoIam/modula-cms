@@ -16,15 +16,15 @@ export default defineEventHandler(async (event) => {
     include: { items: { include: { vegetable: true } } }
   })
 
-  const ids = baskets.map(b => b.id)
+  const ids = baskets.map((b: any) => b.id)
   const counts = await db.reservation.groupBy({
     by: ['basketId'],
     where: { basketId: { in: ids }, status: { in: ['PENDING', 'CONFIRMED'] } },
     _count: { _all: true }
   })
 
-  return baskets.map(b => {
-    const used = counts.find(c => c.basketId === b.id)?._count._all ?? 0
+  return baskets.map((b: any) => {
+    const used = counts.find((c: any) => c.basketId === b.id)?._count._all ?? 0
     const remaining = Math.max(0, b.available - used)
     const s = serializeBasket(b)
     return {
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
       finalPrice: s.finalPrice,
       remaining,
       available: b.available,
-      items: s.items?.map(it => ({
+      items: s.items?.map((it: any) => ({
         quantity: it.quantity,
         vegetable: { name: it.vegetable.name, unit: it.vegetable.unit, imageUrl: it.vegetable.imageUrl ?? null }
       }))

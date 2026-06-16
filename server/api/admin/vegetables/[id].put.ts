@@ -36,7 +36,7 @@ async function recomputeBasketsForVegetable(vegetableId: number) {
     include: { items: { include: { vegetable: true } } }
   })
   for (const b of baskets) {
-    const computed = b.items.reduce((sum, it) => sum + Number(it.vegetable.price) * Number(it.quantity), 0)
+    const computed = b.items.reduce((sum: any, it: any) => sum + Number(it.vegetable.price) * Number(it.quantity), 0)
     await db.basket.update({ where: { id: b.id }, data: { computedPrice: computed } })
   }
 }

@@ -46,7 +46,7 @@ export async function ensureReservationOccurrences(
   })
 
   const byDate = new Map(
-    existing.map((occurrence) => [
+    existing.map((occurrence: any) => [
       (occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate).toISOString().slice(0, 10),
       occurrence
     ])
@@ -55,7 +55,7 @@ export async function ensureReservationOccurrences(
 
   for (const desiredDate of desiredDates) {
     const key = desiredDate.toISOString().slice(0, 10)
-    const existingOccurrence = byDate.get(key)
+    const existingOccurrence: any = byDate.get(key)
     if (existingOccurrence) {
       if (
         existingOccurrence.status === 'CANCELLED' &&

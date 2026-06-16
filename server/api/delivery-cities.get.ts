@@ -9,10 +9,10 @@ export default defineEventHandler(async (event) => {
   })
 
   // Dédoublonner et trier
-  const uniqueCities = Array.from(new Map(cities.map(c => [c.city.toLowerCase(), c])).values())
-    .sort((a, b) => a.city.localeCompare(b.city))
+  const uniqueCities = Array.from(new Map(cities.map((c: any) => [c.city.toLowerCase(), c])).values())
+    .sort((a: any, b: any) => a.city.localeCompare(b.city))
 
-  return uniqueCities.map(c => ({
+  return uniqueCities.map((c: any) => ({
     city: c.city,
     postalCodes: c.postalCodes
   }))

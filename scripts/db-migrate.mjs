@@ -2,7 +2,17 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import { spawnSync } from 'node:child_process'
+
+const wranglerBin = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'node_modules',
+  'wrangler',
+  'bin',
+  'wrangler.js'
+)
 import {
   getMigrationSql,
   getSqliteMigrationStatus,
@@ -220,10 +230,10 @@ function renderMigrationMarks(migrations, source, schemaHash) {
 
 function runWranglerJson(databaseName, location, projectRoot, command) {
   try {
-    const raw = execSync(
-      buildCommand([
-        'npx',
-        'wrangler',
+    const result = spawnSync(
+      process.execPath,
+      [
+        wranglerBin,
         'd1',
         'execute',
         databaseName,
@@ -232,13 +242,24 @@ function runWranglerJson(databaseName, location, projectRoot, command) {
         command,
         '--json',
         ...getLocationFlags(location)
-      ]),
+      ],
       {
         cwd: projectRoot,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'inherit']
       }
     )
+
+    if (result.status !== 0) {
+      const stderr = (result.stderr || '').trim()
+      if (/no such table/i.test(stderr)) {
+        return []
+      }
+      throw new Error(stderr || `wrangler exited with code ${result.status}`)
+    }
+
+    const raw = (result.stdout || '').trim()
+    if (!raw) return []
 
     const parsed = JSON.parse(raw)
     const rows = parsed?.[0]?.results
@@ -253,10 +274,10 @@ function runWranglerJson(databaseName, location, projectRoot, command) {
 }
 
 function runWranglerExecuteCommand(databaseName, location, projectRoot, command) {
-  execSync(
-    buildCommand([
-      'npx',
-      'wrangler',
+  const result = spawnSync(
+    process.execPath,
+    [
+      wranglerBin,
       'd1',
       'execute',
       databaseName,
@@ -264,19 +285,23 @@ function runWranglerExecuteCommand(databaseName, location, projectRoot, command)
       '--command',
       command,
       ...getLocationFlags(location)
-    ]),
+    ],
     {
       cwd: projectRoot,
       stdio: 'inherit'
     }
   )
+
+  if (result.status !== 0) {
+    throw new Error(`wrangler exited with code ${result.status}`)
+  }
 }
 
 function runWranglerExecuteFile(databaseName, location, projectRoot, filePath) {
-  execSync(
-    buildCommand([
-      'npx',
-      'wrangler',
+  const result = spawnSync(
+    process.execPath,
+    [
+      wranglerBin,
       'd1',
       'execute',
       databaseName,
@@ -285,30 +310,22 @@ function runWranglerExecuteFile(databaseName, location, projectRoot, filePath) {
       filePath,
       '--yes',
       ...getLocationFlags(location)
-    ]),
+    ],
     {
       cwd: projectRoot,
       stdio: 'inherit'
     }
   )
+
+  if (result.status !== 0) {
+    throw new Error(`wrangler exited with code ${result.status}`)
+  }
 }
 
 function getLocationFlags(location) {
   return location === 'local'
     ? ['--persist-to', '.wrangler/state']
     : []
-}
-
-function buildCommand(parts) {
-  return parts
-    .map((part) => {
-      if (/^[a-zA-Z0-9_./:=-]+$/.test(part)) {
-        return part
-      }
-
-      return `"${String(part).replaceAll('"', '\\"')}"`
-    })
-    .join(' ')
 }
 
 function escapeSqlLiteral(value) {

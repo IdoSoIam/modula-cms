@@ -76,7 +76,7 @@ function isMissingCmsTableError(error: unknown) {
   )
 }
 
-async function withCmsTableFallback<T>(action: () => Promise<T>, fallback: () => T | Promise<T>): Promise<T> {
+async function withCmsTableFallback(action: () => Promise<any>, fallback: () => Promise<any>): Promise<any> {
   try {
     return await action()
   } catch (error) {
@@ -1210,9 +1210,9 @@ export async function listCmsPages() {
     orderBy: [
       { path: 'asc' }
     ]
-  }), async () => [])
+  }), async () => [] as any[])
 
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     id: row.id,
     ...pageRowToPayload(row)
   }))
@@ -1661,8 +1661,8 @@ export async function duplicateCmsPage(id: number) {
   if (!existing) return null
 
   const allPages = await listCmsPages()
-  const existingPaths = new Set(allPages.map(page => page.path))
-  const existingSlugs = new Set(allPages.map(page => page.slug))
+  const existingPaths = new Set(allPages.map((page: any) => page.path))
+  const existingSlugs = new Set(allPages.map((page: any) => page.slug))
 
   let path = `${existing.path}-copie`.replace(/\/+/g, '/')
   if (path === '//') path = '/copie'
@@ -1710,10 +1710,10 @@ export async function listCmsNavigationItems(menu?: CmsNavigationMenu) {
     )
   }
 
-  return rows.map((row) => ({
+  return rows.map((row: any) => ({
     id: row.id,
     ...navigationRowToPayload(row)
-  })).sort((a, b) => a.position - b.position)
+  })).sort((a: any, b: any) => a.position - b.position)
 }
 
 export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPayload & { id?: number | null }>) {
@@ -1735,7 +1735,7 @@ export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPaylo
       labelsJson: true
     }
   })
-  const existingById = new Map(currentRows.map((row) => [row.id, row]))
+  const existingById = new Map(currentRows.map((row: any) => [row.id, row]))
   const existingByNavigationKey = new Map<string, number>()
   for (const row of currentRows) {
     const labels = safeParseNavigationLabels(row.labelsJson)
@@ -1784,7 +1784,7 @@ export async function saveCmsNavigationItems(items: Array<CmsNavigationItemPaylo
   const allRows = await db.cmsNavigationItem.findMany({
     select: { id: true }
   })
-  const staleIds = allRows.map((row) => row.id).filter((id) => !existingIds.has(id))
+  const staleIds = allRows.map((row: any) => row.id).filter((id: any) => !existingIds.has(id))
   if (staleIds.length) {
     await db.cmsNavigationItem.deleteMany({
       where: { id: { in: staleIds } }
@@ -1814,7 +1814,7 @@ async function getResolvedNavigation(menu: CmsNavigationMenu, locale: string, fe
   }), async () => [])
 
   const filteredRows = filterNavigationItemsByFeatureFlags(
-    rows.map((row) => ({ id: row.id, ...navigationRowToPayload(row) })),
+    rows.map((row: any) => ({ id: row.id, ...navigationRowToPayload(row) })),
     featureFlags
   )
 
@@ -1877,7 +1877,8 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
   )
 
   if (row) {
-    if (!includeDraft && row.status !== 'PUBLISHED') {
+    const rowAny = row as any
+    if (!includeDraft && rowAny.status !== 'PUBLISHED') {
       return null
     }
     const payload = pageRowToPayload(row as unknown as CmsPage)
@@ -1887,7 +1888,7 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
     const localized = pickTranslation(locale, payload.translations)
 
     return {
-      id: row.id,
+      id: rowAny.id,
       path: payload.path,
       slug: payload.slug,
       pageType: payload.pageType,

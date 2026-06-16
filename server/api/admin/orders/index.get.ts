@@ -175,13 +175,13 @@ export default defineEventHandler(async (event) => {
   if (subscriptionsEnabled) {
     await Promise.all(
       reservations
-        .filter((reservation) => reservation.status === 'CONFIRMED' && reservation.fulfillmentDate)
-        .map((reservation) => ensureReservationOccurrences(reservation, subscriptionsEnabled))
+        .filter((reservation: any) => reservation.status === 'CONFIRMED' && reservation.fulfillmentDate)
+        .map((reservation: any) => ensureReservationOccurrences(reservation, subscriptionsEnabled))
     )
   }
 
   const hydratedReservations = await db.reservation.findMany({
-    where: { id: { in: reservations.map((reservation) => reservation.id) } },
+    where: { id: { in: reservations.map((reservation: any) => reservation.id) } },
     include
   })
 
@@ -198,7 +198,7 @@ export default defineEventHandler(async (event) => {
     gridEnd.setDate(gridEnd.getDate() + (endDay === 0 ? 0 : 7 - endDay))
     gridEnd.setHours(23, 59, 59, 999)
 
-    const calendarItems = hydratedReservations.flatMap((reservation) => {
+    const calendarItems = hydratedReservations.flatMap((reservation: any) => {
       const occurrencesInRange = subscriptionsEnabled ? (reservation.occurrences ?? [])
         .filter((occurrence: any) => {
           const date = new Date(occurrence.occurrenceDate)
@@ -243,7 +243,7 @@ export default defineEventHandler(async (event) => {
     for (let cursor = new Date(gridStart); cursor <= gridEnd; cursor.setDate(cursor.getDate() + 1)) {
       const date = new Date(cursor)
       const iso = date.toISOString().slice(0, 10)
-      const dayItems = calendarItems.filter((item) => sameDay(new Date(item.date), date))
+      const dayItems = calendarItems.filter((item: any) => sameDay(new Date(item.date), date))
       const totalPages = Math.max(1, Math.ceil(dayItems.length / perPage))
       const page = Math.min(Math.max(Number(dayPages[iso] ?? 1), 1), totalPages)
 
@@ -264,9 +264,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const filtered = hydratedReservations
-    .filter((reservation) => getReservationDisplayDate(reservation, today, subscriptionsEnabled) >= today)
-    .sort((a, b) => getReservationDisplayDate(a, today, subscriptionsEnabled).getTime() - getReservationDisplayDate(b, today, subscriptionsEnabled).getTime())
-    .map((reservation) => serializeReservation(reservation, today, subscriptionsEnabled))
+    .filter((reservation: any) => getReservationDisplayDate(reservation, today, subscriptionsEnabled) >= today)
+    .sort((a: any, b: any) => getReservationDisplayDate(a, today, subscriptionsEnabled).getTime() - getReservationDisplayDate(b, today, subscriptionsEnabled).getTime())
+    .map((reservation: any) => serializeReservation(reservation, today, subscriptionsEnabled))
 
   const page = toPositiveInt(query.page, 1)
   const perPage = toPositiveInt(query.limit, 10, 50)

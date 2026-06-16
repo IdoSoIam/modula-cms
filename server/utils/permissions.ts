@@ -96,9 +96,9 @@ export async function ensureDefaultRoles() {
         }
       })
 
-      const roleBySlug = new Map(roles.map(role => [role.slug, role]))
+      const roleBySlug = new Map(roles.map((role: any) => [role.slug, role]))
       for (const permission of roleSeedToPermissionRows()) {
-        const role = roleBySlug.get(permission.roleSlug)
+        const role: any = roleBySlug.get(permission.roleSlug)
         if (!role) continue
         await db.rolePermission.upsert({
           where: {
@@ -124,7 +124,7 @@ export async function ensureDefaultRoles() {
         })
       }
 
-      const defaultRole = roleBySlug.get('utilisateur_public') ?? roleBySlug.get('redacteur') ?? roleBySlug.get('admin')
+      const defaultRole: any = roleBySlug.get('utilisateur_public') ?? roleBySlug.get('redacteur') ?? roleBySlug.get('admin')
       if (defaultRole) {
         await db.user.updateMany({
           where: { roleId: null },

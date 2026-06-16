@@ -12,10 +12,8 @@ import { getSessionConfig } from '#modula/server/utils/session'
 import { applySiteTemplate } from '#modula/server/utils/siteTemplates'
 import type { CmsSiteTemplateKey } from '#modula/shared/siteTemplates'
 import { getCmsSiteSettings, saveCmsSiteSettings } from '#modula/server/utils/cms'
-import { getCloudflareRuntimeEnv, isCloudflareRuntime } from '#modula/server/platform/runtime'
-
-import { applySqliteMigrations, loadResolvedMigrations, renderMigrationStateTableSql } from '#modula/db/migration-system'
-import { d1BootstrapSql, schemaSnapshotHash, sqliteBootstrapSql } from '#modula/server/generated/bootstrap.generated'
+import { applySqliteMigrations } from '#modula/db/migration-system'
+import { schemaSnapshotHash, sqliteBootstrapSql } from '#modula/server/generated/bootstrap.generated'
 
 export interface CmsInstallStatus {
   installed: boolean
@@ -30,8 +28,7 @@ export interface CmsInstallStatus {
   currentDbDriver: CmsDbDriver
   currentStorageDriver: CmsStorageDriver
   canBootstrapCurrentRuntime: boolean
-  cloudflareConfigDetected: boolean
-  canSelectCloudflareDrivers: boolean
+  canBootstrap: boolean
 }
 
 export interface CmsInstallBootstrapPayload {
@@ -75,19 +72,11 @@ function getMigrationsDir(event?: H3Event): string {
   return path.resolve(process.cwd(), 'migrations')
 }
 
-function hasWranglerConfig() {
-  return fs.existsSync(path.resolve(process.cwd(), 'wrangler.jsonc'))
-}
-
 function detectInstallRuntimeTarget(): CmsRuntimeTarget {
-  return isCloudflareRuntime() ? 'cloudflare' : 'server'
+  return 'server'
 }
 
 function canCurrentRuntimeServeDrivers(runtimeTarget: CmsRuntimeTarget, dbDriver: CmsDbDriver, storageDriver: CmsStorageDriver) {
-  if (runtimeTarget === 'cloudflare') {
-    return dbDriver === 'd1' && storageDriver === 'r2'
-  }
-
   return dbDriver === 'sqlite' && storageDriver === 'fs'
 }
 
@@ -103,12 +92,9 @@ function isPrismaMissingTableError(error: unknown) {
   return /no such table|table .* does not exist|SQLITE_ERROR/i.test(message)
 }
 
-function getPrismaRuntimeIssue(error: unknown): string | null {
+function getDriverIssue(error: unknown): string | null {
   if (!error || typeof error !== 'object') return null
   const message = 'message' in error ? String((error as { message?: unknown }).message || '') : ''
-  if (/CMS_DB_DRIVER=d1 requires the Cloudflare DB binding/i.test(message)) {
-    return 'missing_cloudflare_db_binding'
-  }
   if (/Database driver ".*" is not implemented yet in this runtime/i.test(message)) {
     return 'unsupported_runtime_driver'
   }
@@ -117,31 +103,12 @@ function getPrismaRuntimeIssue(error: unknown): string | null {
 
 function ensureSupportedWizardCombination(
   detectedRuntimeTarget: CmsRuntimeTarget,
-  cloudflareConfigDetected: boolean,
   dbDriver: CmsDbDriver,
   storageDriver: CmsStorageDriver
 ) {
-  if (dbDriver === 'sqlite' || storageDriver === 'fs') {
-    if (dbDriver !== 'sqlite' || storageDriver !== 'fs') {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid installation configuration', message: 'Le mode SQLite utilise le stockage fichiers local pour le moment.' })
-    }
-    if (detectedRuntimeTarget === 'cloudflare') {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid installation configuration', message: 'Cette instance tourne déjà dans un runtime Cloudflare. Utilisez D1 + R2 pour cette installation.' })
-    }
-    return
+  if (dbDriver !== 'sqlite' || storageDriver !== 'fs') {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid installation configuration', message: 'Le mode SQLite utilise le stockage fichiers local pour le moment.' })
   }
-
-  if (dbDriver === 'd1' || storageDriver === 'r2') {
-    if (dbDriver !== 'd1' || storageDriver !== 'r2') {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid installation configuration', message: 'Le mode D1 utilise R2 pour le moment.' })
-    }
-    if (!cloudflareConfigDetected) {
-      throw createError({ statusCode: 400, statusMessage: 'Invalid installation configuration', message: 'Aucune configuration Cloudflare n’a été détectée à la racine du projet.' })
-    }
-    return
-  }
-
-  throw createError({ statusCode: 400, statusMessage: 'Invalid installation configuration', message: 'Combinaison de stockage ou base non supportée pour le moment.' })
 }
 
 function slugifyProjectKey(value: string) {
@@ -187,52 +154,9 @@ export async function applySqliteMigrationsIfNeeded(event?: H3Event) {
   })
 }
 
-async function applyRuntimeD1MigrationsIfNeeded(event?: H3Event) {
-  const db = getCloudflareRuntimeEnv()?.DB
-  if (!db) return
-
-  const migrations = loadResolvedMigrations(getMigrationsDir(event))
-  await db.exec(renderMigrationStateTableSql())
-
-  const tablesResult = await db.prepare(`
-    SELECT name
-    FROM sqlite_master
-    WHERE type = 'table'
-      AND name NOT LIKE 'sqlite_%'
-    ORDER BY name ASC
-  `).all<{ name: string }>()
-  const tableRows = Array.isArray(tablesResult.results) ? tablesResult.results : []
-  const tableNames = tableRows.map(row => row.name)
-
-  const appliedResult = await db.prepare(`SELECT id FROM "_cms_migrations" ORDER BY id ASC`).all<{ id: string }>()
-  const appliedRows = Array.isArray(appliedResult.results) ? appliedResult.results : []
-  if (appliedRows.length > 0) {
-    return
-  }
-
-  const userTables = tableNames.filter(name => !['d1_migrations', '_cms_migrations'].includes(name))
-  if (userTables.length === 0) {
-    await db.exec(d1BootstrapSql)
-    await db.exec(renderMigrationStateTableSql())
-  }
-
-  for (const migration of migrations) {
-    await db.prepare(`
-      INSERT OR IGNORE INTO "_cms_migrations" ("id", "name", "source", "schemaHash")
-      VALUES (?, ?, ?, ?)
-    `).bind(
-      migration.id,
-      migration.name,
-      userTables.length === 0 ? 'bootstrap' : 'legacy-baseline',
-      schemaSnapshotHash
-    ).run()
-  }
-}
-
 export async function getCmsInstallStatus(event?: H3Event): Promise<CmsInstallStatus> {
   const currentPlatform = resolveCmsPlatformConfig(process.env, cmsProjectConfig)
   const detectedRuntimeTarget = detectInstallRuntimeTarget()
-  const cloudflareConfigDetected = hasWranglerConfig()
   let userCount = 0
   let databaseReady = true
   let runtimeCompatible = true
@@ -244,7 +168,7 @@ export async function getCmsInstallStatus(event?: H3Event): Promise<CmsInstallSt
     }
     userCount = await db.user.count()
   } catch (error) {
-    const detectedRuntimeIssue = getPrismaRuntimeIssue(error)
+    const detectedRuntimeIssue = getDriverIssue(error)
     if (detectedRuntimeIssue) {
       databaseReady = false
       runtimeCompatible = false
@@ -271,18 +195,16 @@ export async function getCmsInstallStatus(event?: H3Event): Promise<CmsInstallSt
     currentDbDriver: currentPlatform.dbDriver,
     currentStorageDriver: currentPlatform.storageDriver,
     canBootstrapCurrentRuntime: runtimeCompatible && canCurrentRuntimeServeDrivers(detectedRuntimeTarget, currentPlatform.dbDriver, currentPlatform.storageDriver),
-    cloudflareConfigDetected,
-    canSelectCloudflareDrivers: detectedRuntimeTarget === 'cloudflare' || cloudflareConfigDetected
+    canBootstrap: runtimeCompatible
   }
 }
 
 export async function bootstrapCmsInstallation(event: H3Event, payload: CmsInstallBootstrapPayload) {
   const currentPlatform = resolveCmsPlatformConfig(process.env, cmsProjectConfig)
   const detectedRuntimeTarget = detectInstallRuntimeTarget()
-  const cloudflareConfigDetected = hasWranglerConfig()
   const nextRuntimeTarget = inferCmsRuntimeTargetFromDrivers(payload.dbDriver)
 
-  ensureSupportedWizardCombination(detectedRuntimeTarget, cloudflareConfigDetected, payload.dbDriver, payload.storageDriver)
+  ensureSupportedWizardCombination(detectedRuntimeTarget, payload.dbDriver, payload.storageDriver)
   const sameRuntime = nextRuntimeTarget === currentPlatform.runtimeTarget
   const sameDatabase = payload.dbDriver === currentPlatform.dbDriver
   const sameStorage = payload.storageDriver === currentPlatform.storageDriver
@@ -296,15 +218,11 @@ export async function bootstrapCmsInstallation(event: H3Event, payload: CmsInsta
       installed: false,
       configurationSaved: true,
       restartRequired: true,
-      message: nextRuntimeTarget === 'cloudflare'
-        ? 'La configuration a été enregistrée. Relancez maintenant le projet dans le runtime Cloudflare prévu par ce socle, puis revenez terminer l’installation.'
-        : 'La configuration a été enregistrée. Redémarrez maintenant cette instance serveur avec la configuration générée, puis revenez terminer l’installation.'
+      message: 'La configuration a été enregistrée. Redémarrez maintenant cette instance serveur avec la configuration générée, puis revenez terminer l\'installation.'
     }
   }
 
-  if (payload.dbDriver === 'sqlite') {
-    await applySqliteMigrationsIfNeeded(event)
-  }
+  await applySqliteMigrationsIfNeeded(event)
 
   let existingUserCount = 0
   try {
@@ -359,7 +277,7 @@ export async function bootstrapCmsInstallation(event: H3Event, payload: CmsInsta
     })
   } catch (error: any) {
     templateApplied = false
-    templateApplyError = error?.message || 'Erreur inconnue lors de l’application du template.'
+    templateApplyError = error?.message || 'Erreur inconnue lors de l\'application du template.'
   }
 
   const session = await useSession(event, getSessionConfig(event))

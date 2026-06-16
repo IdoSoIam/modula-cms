@@ -143,7 +143,7 @@ export async function deleteImageVariants(imageId: number) {
     select: { id: true, storageKey: true }
   })
 
-  await Promise.all(variants.map(async (variant) => {
+  await Promise.all(variants.map(async (variant: any) => {
     await deleteUploadObject(variant.storageKey)
   }))
 

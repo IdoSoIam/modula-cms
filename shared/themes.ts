@@ -190,7 +190,12 @@ export function createDefaultDaisyUiThemeConfig(): DaisyUiThemeConfig {
         tokens: {
           radiusBox: '1.1rem',
           radiusField: '0.5rem',
-          radiusSelector: '0.5rem'
+          radiusSelector: '0.5rem',
+          sizeSelector: '0.25rem',
+          sizeField: '0.25rem',
+          border: '1px',
+          depth: '0',
+          noise: 'noise'
         }
       })
     ]

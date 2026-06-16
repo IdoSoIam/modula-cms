@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  return await Promise.all(images.map(async (item) => {
+  return await Promise.all(images.map(async (item: any) => {
     const usages = await listImageUsageAssociations(item.id)
     const references = await countImageReferences(item.url)
 

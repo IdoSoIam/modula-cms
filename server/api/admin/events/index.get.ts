@@ -24,9 +24,9 @@ export default defineEventHandler(async (event) => {
     ]
   })
 
-  return items.map(item => ({
+  return items.map((item: any) => ({
     ...eventToListItem(item, locale as CmsLocale),
-    audienceMemberRoles: item.audienceMemberRoles.map(entry => ({
+    audienceMemberRoles: item.audienceMemberRoles.map((entry: any) => ({
       id: entry.memberRole.id,
       slug: entry.memberRole.slug,
       name: entry.memberRole.name

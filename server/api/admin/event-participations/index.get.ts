@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
       { createdAt: 'desc' }
     ]
   })
-  return rows.map(row => ({
+  return rows.map((row: any) => ({
     ...row,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

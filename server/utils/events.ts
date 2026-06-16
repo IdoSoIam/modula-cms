@@ -606,11 +606,11 @@ export async function sendParticipationCall(options: {
     await db.eventInternalParticipation.findMany({
       where: { eventId: options.eventRow.id },
       select: { userId: true }
-    }).then(rows => rows.map(row => row.userId))
+    }).then((rows: any[]) => rows.map((row: any) => row.userId))
   )
 
   const recipients = [
-    ...eligibleUsers.map(user => ({
+    ...eligibleUsers.map((user: any) => ({
       email: user.email,
       name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
       alreadyParticipating: alreadyParticipantIds.has(user.id)

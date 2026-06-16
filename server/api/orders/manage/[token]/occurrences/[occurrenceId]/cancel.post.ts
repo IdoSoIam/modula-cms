@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   })
   if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
 
-  const occurrence = reservation.occurrences.find((item) => item.id === occurrenceId)
+  const occurrence = reservation.occurrences.find((item: any) => item.id === occurrenceId)
   if (!occurrence) throw createError({ statusCode: 404, statusMessage: 'Occurrence introuvable' })
   if (occurrence.status === 'CANCELLED') return { ok: true, alreadyCancelled: true }
 

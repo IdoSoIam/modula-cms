@@ -42,6 +42,7 @@ export interface GeneratedRelationSchema {
   target: string
   foreignKey: string
   references: string
+  onDelete?: string
 }
 
 export interface GeneratedIndexSchema {

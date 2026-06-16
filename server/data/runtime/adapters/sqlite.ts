@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { DatabaseAdapter } from '#modula/server/data/runtime/types'
+import type { DatabaseAdapter } from '#modula/server/data/runtime/types'
 
 const globalForSqliteAdapter = globalThis as typeof globalThis & {
   __modulaGeneratedSqliteDb?: any

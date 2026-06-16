@@ -111,7 +111,7 @@ export default defineEventHandler(async (event) => {
         })
     if (!t || !t.active) throw createError({ statusCode: 400, statusMessage: 'Tournée invalide' })
     const cityLower = body.deliveryCity.trim().toLowerCase()
-    const cityAllowed = t.cities.some((city) => city.city.trim().toLowerCase() === cityLower)
+    const cityAllowed = t.cities.some((city: any) => city.city.trim().toLowerCase() === cityLower)
     if (!cityAllowed) {
       throw createError({ statusCode: 400, statusMessage: 'Cette ville n\'est pas desservie par la tournée sélectionnée' })
     }

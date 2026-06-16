@@ -3,7 +3,6 @@
   "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
     "allowImportingTsExtensions": true,
-    "baseUrl": ".",
     "paths": {
       "#modula": ["."],
       "#modula/*": ["./*"]
@@ -12,6 +11,8 @@
   },
   "exclude": [
     "backups",
-    "backups/**"
+    "backups/**",
+    "templates",
+    "templates/**"
   ]
 }

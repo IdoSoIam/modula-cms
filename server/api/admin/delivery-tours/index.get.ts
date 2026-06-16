@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
     include: { cities: true }
   })
-  return tours.map(t => ({
+  return tours.map((t: any) => ({
     ...t,
     monthlyPrice: t.monthlyPrice !== null ? Number(t.monthlyPrice) : null
   }))

@@ -15,14 +15,14 @@ export default defineEventHandler(async (event) => {
     ]
   })
 
-  return roles.map(role => ({
+  return roles.map((role: any) => ({
     id: role.id,
     slug: role.slug,
     name: role.name,
     description: role.description || '',
     isSystem: role.isSystem,
     isDefault: role.isDefault,
-    permissions: role.permissions.map(permission => ({
+    permissions: role.permissions.map((permission: any) => ({
       module: permission.module,
       canRead: permission.canRead,
       canCreate: permission.canCreate,

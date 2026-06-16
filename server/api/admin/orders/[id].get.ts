@@ -91,7 +91,7 @@ export default defineEventHandler(async (event) => {
     subscriptionCancelledAt: reservation.subscriptionCancelledAt,
     scheduleProposalPendingBy: reservation.scheduleProposalPendingBy,
     scheduleProposalAcceptedAt: reservation.scheduleProposalAcceptedAt,
-    scheduleProposals: reservation.scheduleProposals.map((proposal) => ({
+    scheduleProposals: reservation.scheduleProposals.map((proposal: any) => ({
       id: proposal.id,
       proposedBy: proposal.proposedBy,
       proposalDate: proposal.proposalDate,
@@ -102,7 +102,7 @@ export default defineEventHandler(async (event) => {
     })),
     googleCalendarEventId: reservation.googleCalendarEventId,
     googleCalendarSyncedAt: reservation.googleCalendarSyncedAt,
-    occurrences: occurrences.map((o) => ({
+    occurrences: occurrences.map((o: any) => ({
       id: o.id,
       occurrenceDate: o.occurrenceDate,
       originalOccurrenceDate: o.originalOccurrenceDate,
@@ -119,7 +119,7 @@ export default defineEventHandler(async (event) => {
       total: occurrenceTotal,
       totalPages: Math.max(1, Math.ceil(occurrenceTotal / occurrenceLimit))
     },
-    notifications: notifications.map((n) => ({
+    notifications: notifications.map((n: any) => ({
       id: n.id,
       kind: n.kind,
       recipientEmail: n.recipientEmail,
@@ -142,7 +142,7 @@ export default defineEventHandler(async (event) => {
       startTime: reservation.deliveryTour.startTime,
       endTime: reservation.deliveryTour.endTime,
       monthlyPrice: reservation.deliveryTour.monthlyPrice ? Number(reservation.deliveryTour.monthlyPrice) : null,
-      cities: reservation.deliveryTour.cities.map((c) => c.city)
+      cities: reservation.deliveryTour.cities.map((c: any) => c.city)
     } : null,
     subscriptionsEnabled
   }

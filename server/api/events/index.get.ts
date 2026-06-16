@@ -186,7 +186,7 @@ export default defineEventHandler(async (event) => {
     ])
 
     const response: PublicEventsListResponse = {
-      items: rows.map((item) => eventToListItem(item, locale)),
+      items: rows.map((item: any) => eventToListItem(item, locale)),
       page,
       pageSize,
       total,
@@ -251,11 +251,11 @@ export default defineEventHandler(async (event) => {
     ])
     const accessible = [
       ...rows
-        .filter((item) => canAccessEvent(item, accessOptions))
-        .map((item) => eventToListItem(item, locale)),
+        .filter((item: any) => canAccessEvent(item, accessOptions))
+        .map((item: any) => eventToListItem(item, locale)),
       ...occurrences
-        .filter((item) => item.event.status === 'PUBLISHED' && canAccessEvent(item.event as any, accessOptions))
-        .map((item) => eventOccurrenceToListItem(item.event as any, item, locale))
+        .filter((item: any) => item.event.status === 'PUBLISHED' && canAccessEvent(item.event as any, accessOptions))
+        .map((item: any) => eventOccurrenceToListItem(item.event as any, item, locale))
     ]
 
     const byDay = new Map<string, EventListItem[]>()
@@ -346,11 +346,11 @@ export default defineEventHandler(async (event) => {
 
   const accessible = [
     ...rows
-      .filter((item) => canAccessEvent(item, accessOptions))
-      .map((item) => eventToListItem(item, locale)),
+      .filter((item: any) => canAccessEvent(item, accessOptions))
+      .map((item: any) => eventToListItem(item, locale)),
     ...occurrences
-      .filter((item) => item.event.status === 'PUBLISHED' && canAccessEvent(item.event as any, accessOptions))
-      .map((item) => eventOccurrenceToListItem(item.event as any, item, locale))
+      .filter((item: any) => item.event.status === 'PUBLISHED' && canAccessEvent(item.event as any, accessOptions))
+      .map((item: any) => eventOccurrenceToListItem(item.event as any, item, locale))
   ]
 
   const byDay = new Map<string, EventListItem[]>()

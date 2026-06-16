@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     ]
   })
 
-  return users.map(user => ({
+  return users.map((user: any) => ({
     id: user.id,
     email: user.email,
     firstName: user.firstName || '',
@@ -29,8 +29,8 @@ export default defineEventHandler(async (event) => {
     roleId: user.roleId,
     roleSlug: user.managedRole?.slug || user.role,
     roleName: user.managedRole?.name || user.role,
-    memberRoleIds: associationRolesEnabled ? user.memberRoles.map(entry => entry.memberRoleId) : [],
-    memberRoles: associationRolesEnabled ? user.memberRoles.map(entry => ({
+    memberRoleIds: associationRolesEnabled ? user.memberRoles.map((entry: any) => entry.memberRoleId) : [],
+    memberRoles: associationRolesEnabled ? user.memberRoles.map((entry: any) => ({
       id: entry.memberRole.id,
       slug: entry.memberRole.slug,
       name: entry.memberRole.name,

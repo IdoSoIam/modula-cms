@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
       ? await db.vegetable.findMany({ where: { id: { in: body.items.map(i => i.vegetableId) } } })
       : []
     const computed = body.items.reduce((sum, it) => {
-      const v = veggies.find(x => x.id === it.vegetableId)
+      const v = veggies.find((x: any) => x.id === it.vegetableId)
       return v ? sum + Number(v.price) * it.quantity : sum
     }, 0)
     data.computedPrice = computed

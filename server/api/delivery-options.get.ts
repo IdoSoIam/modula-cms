@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     getFarmPickupConfig()
   ])
 
-  const formattedTours = tours.map(t => {
+  const formattedTours = tours.map((t: any) => {
     const nextDate = getNextDateForDayOfWeek(t.dayOfWeek, now)
     return {
       id: t.id,
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
       endTime: t.endTime,
       monthlyPrice: t.monthlyPrice !== null ? Number(t.monthlyPrice) : null,
       notes: t.notes,
-      cities: t.cities.map(c => ({
+      cities: t.cities.map((c: any) => ({
         id: c.id,
         city: c.city,
         postalCodes: c.postalCodes
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
   })
 
   // Get unique list of all served cities for client-side filtering
-  const allServedCities = [...new Set(tours.flatMap(t => t.cities.map(c => c.city.toLowerCase())))]
+  const allServedCities = [...new Set(tours.flatMap((t: any) => t.cities.map((c: any) => c.city.toLowerCase())))]
 
   return {
     farmPickup: {

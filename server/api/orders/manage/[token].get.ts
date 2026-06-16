@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
     fulfillmentLocation: reservation.fulfillmentLocation,
     scheduleProposalPendingBy: reservation.scheduleProposalPendingBy,
     scheduleProposalAcceptedAt: reservation.scheduleProposalAcceptedAt,
-    scheduleProposals: reservation.scheduleProposals.map((proposal) => ({
+    scheduleProposals: reservation.scheduleProposals.map((proposal: any) => ({
       id: proposal.id,
       proposedBy: proposal.proposedBy,
       proposalDate: proposal.proposalDate,
@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
       acceptedAt: proposal.acceptedAt,
       createdAt: proposal.createdAt
     })),
-    occurrences: (reservation.occurrences ?? []).map((occurrence) => ({
+    occurrences: (reservation.occurrences ?? []).map((occurrence: any) => ({
       id: occurrence.id,
       occurrenceDate: occurrence.occurrenceDate,
       occurrenceTime: occurrence.occurrenceTime,

@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     description: role.description || '',
     isSystem: role.isSystem,
     isDefault: role.isDefault,
-    permissions: role.permissions.map(permission => ({
+    permissions: role.permissions.map((permission: any) => ({
       module: permission.module,
       canRead: permission.canRead,
       canCreate: permission.canCreate,

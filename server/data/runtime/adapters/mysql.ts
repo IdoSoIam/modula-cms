@@ -13,7 +13,7 @@ export class Mysql2Adapter implements DatabaseAdapter {
     this.throwUnsupported()
   }
 
-  async execute(_sql: string, _bindings: unknown[] = []) {
+  async execute(_sql: string, _bindings: unknown[] = []): Promise<{ rowsAffected?: number; lastInsertId?: number | string | null }> {
     this.throwUnsupported()
   }
 }

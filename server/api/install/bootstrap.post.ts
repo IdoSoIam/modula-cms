@@ -27,8 +27,8 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<InstallBody>(event)
   const siteName = body.siteName?.trim() || ''
   const defaultLocale = body.defaultLocale === 'en' ? 'en' : 'fr'
-  const dbDriver = body.dbDriver === 'd1' ? 'd1' : 'sqlite'
-  const storageDriver = body.storageDriver === 'r2' ? 'r2' : 'fs'
+  const dbDriver = 'sqlite'
+  const storageDriver = 'fs'
   const siteTemplate = isCmsSiteTemplateKey(body.siteTemplate) ? body.siteTemplate : FALLBACK_SITE_TEMPLATE_KEY
   const adminEmail = body.adminEmail?.trim().toLowerCase() || ''
   const adminPassword = body.adminPassword?.trim() || ''

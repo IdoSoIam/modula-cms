@@ -12,6 +12,7 @@ import type {
   CmsSiteSettings,
   CmsSiteSettingsTemplatePayload
 } from '#modula/shared/cms'
+import type { CmsSiteTemplateDefinition } from '#modula/shared/siteTemplates'
 import {
   createDefaultCmsNavigationItems,
   createDefaultCmsPagePayload,
@@ -63,7 +64,7 @@ function resolveTemplateAssetRoot() {
     }
   }
 
-  return candidates[0]
+  return candidates[0]!
 }
 
 const templateAssetRoot = resolveTemplateAssetRoot()

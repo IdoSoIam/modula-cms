@@ -1,5 +1,6 @@
 import { createError } from 'h3'
 import { getGeneratedDatabaseRuntime } from '#modula/server/data/runtime/factory'
+import type { GeneratedModelSchema } from '#modula/server/data/runtime/types'
 
 type WhereInput = Record<string, any>
 type QueryArgs = {
@@ -113,9 +114,9 @@ function getRuntime() {
   return getGeneratedDatabaseRuntime()
 }
 
-function normalizeCompoundWhere(where?: WhereInput | null) {
+function normalizeCompoundWhere(where?: WhereInput | null): Record<string, any> {
   if (!where || typeof where !== 'object' || Array.isArray(where)) {
-    return where
+    return {}
   }
 
   const normalized: Record<string, any> = {}
@@ -187,7 +188,7 @@ function comparePrimitive(value: any, condition: any) {
   if ('equals' in condition && !comparePrimitive(value, condition.equals)) return false
   if ('in' in condition) {
     const values = Array.isArray(condition.in) ? condition.in : []
-    if (!values.some((entry) => comparePrimitive(value, entry))) return false
+    if (!values.some((entry: any) => comparePrimitive(value, entry))) return false
   }
   if ('not' in condition && comparePrimitive(value, condition.not)) return false
   if ('gt' in condition && !(value > condition.gt)) return false
@@ -231,7 +232,8 @@ async function applyDeferredFilters(model: ModelName, rows: any[], deferredWhere
 
 async function loadBelongsTo(model: ModelName, row: Record<string, any>, relationName: string, relationOptions: any) {
   const runtime = getRuntime()
-  const relation = runtime.schema.models[model]?.relations?.[relationName]
+  const modelSchema = runtime.schema.models[model] as GeneratedModelSchema | undefined
+  const relation = modelSchema?.relations?.[relationName]
   if (!relation) return null
   const foreignId = row[relation.foreignKey]
   if (foreignId == null) return null
@@ -266,7 +268,8 @@ async function enrichRecord(model: ModelName, record: Record<string, any>, inclu
       continue
     }
 
-    const belongsTo = getRuntime().schema.models[model]?.relations?.[relationName]
+    const modelSchema = getRuntime().schema.models[model] as GeneratedModelSchema | undefined
+    const belongsTo = modelSchema?.relations?.[relationName]
     if (belongsTo) {
       row[relationName] = await loadBelongsTo(model, row, relationName, relationOptions)
     }
@@ -275,7 +278,8 @@ async function enrichRecord(model: ModelName, record: Record<string, any>, inclu
 }
 
 async function queryRows(model: ModelName, args: QueryArgs = {}) {
-  const { client } = getRuntime()
+  const runtime = getRuntime()
+  const { client } = runtime
   const { simple, deferred } = splitSimpleWhere(args.where)
   let rows = await client.model<any, string>(model).findMany({
     where: simple,

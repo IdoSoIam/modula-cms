@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Accès refusé' })
   }
 
-  if (eventRow.audienceMemberRoles.length && !eventRow.audienceMemberRoles.some((entry) => user.memberRoleIds.includes(entry.memberRoleId))) {
+  if (eventRow.audienceMemberRoles.length && !eventRow.audienceMemberRoles.some((entry: any) => user.memberRoleIds.includes(entry.memberRoleId))) {
     throw createError({ statusCode: 403, statusMessage: 'Rôle associatif non autorisé pour cette participation' })
   }
 
