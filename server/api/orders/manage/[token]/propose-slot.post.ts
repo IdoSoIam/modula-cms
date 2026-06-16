@@ -1,4 +1,4 @@
-import { prisma } from '../../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { formatDateLabel } from '#modula/server/utils/dateFormat'
 import { sendGmail } from '#modula/server/utils/gmail'
 import { buildGenericEmail, getAdminReservationUrl } from '#modula/server/utils/orderEmails'
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Date et heure requises pour proposer un autre créneau' })
   }
 
-  const reservation = await prisma.reservation.findUnique({
+  const reservation = await db.reservation.findUnique({
     where: { publicActionToken: token },
     include: {
       basket: true
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     proposalLocation: reservation.fulfillmentLocation
   })
 
-  const updated = await prisma.reservation.update({
+  const updated = await db.reservation.update({
     where: { id: reservation.id },
     data: {
       status: 'PENDING',

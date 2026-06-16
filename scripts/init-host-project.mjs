@@ -2,7 +2,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execSync } from 'node:child_process'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const packageRoot = path.resolve(scriptDir, '..')
@@ -96,21 +95,6 @@ function ensureGitignoreEntries() {
   }
 }
 
-function runPrismaGenerate() {
-  const schemaPath = path.join(targetDir, 'node_modules', 'modula-cms', 'prisma', 'schema.prisma')
-  const fallbackSchemaPath = path.join(packageRoot, 'prisma', 'schema.prisma')
-  const resolvedSchemaPath = fs.existsSync(schemaPath) ? schemaPath : fallbackSchemaPath
-  if (!fs.existsSync(resolvedSchemaPath)) {
-    console.warn('! schema.prisma introuvable, generation Prisma ignoree')
-    return
-  }
-  try {
-    execSync(`npx prisma generate --schema="${resolvedSchemaPath}"`, { cwd: targetDir, stdio: 'inherit' })
-  } catch (e) {
-    console.warn('! generation Prisma ignoree (prisma non disponible)')
-  }
-}
-
 function ensureSiteTemplateAssets() {
   const sourceDir = path.join(packageRoot, 'public', 'site-templates')
   const targetDirPublic = path.join(targetDir, 'public', 'site-templates')
@@ -132,7 +116,6 @@ const copied = templateFiles.map(([from, to]) => ({ to, created: writeFileIfMiss
 ensurePackageJson()
 ensureGitignoreEntries()
 ensureSiteTemplateAssets()
-runPrismaGenerate()
 
 console.log(`Projet hôte initialisé dans ${targetDir}`)
 for (const entry of copied) {

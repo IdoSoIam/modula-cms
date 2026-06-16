@@ -1,5 +1,5 @@
-import { prisma } from '#modula/prisma/client'
-import type { Event } from '../../node_modules/.prisma/client'
+import { db } from '#modula/server/data/client'
+import type { Event } from '#modula/server/data/types'
 import type { AdminPlanningCalendarResponse, EventKind, EventListItem, EventPayload, EventWeekdayValue } from '#modula/shared/events'
 import { createDefaultEventPayload } from '#modula/shared/events'
 import type { PageBuilderContent } from '#modula/shared/pageBuilder'
@@ -157,7 +157,7 @@ export function createPlanningDraftPayload(kind: EventKind): EventPayload {
 
 export async function syncEventOccurrencesForEvent(eventRow: Event) {
   if (eventRow.kind !== 'PERMANENCE' || eventRow.recurrenceType !== 'WEEKLY') {
-    await prisma.eventOccurrence.deleteMany({ where: { eventId: eventRow.id } })
+    await db.eventOccurrence.deleteMany({ where: { eventId: eventRow.id } })
     return
   }
 
@@ -166,11 +166,11 @@ export async function syncEventOccurrencesForEvent(eventRow: Event) {
 
   const rangeStart = startOfDay(eventRow.recurrenceStartDate ?? eventRow.startsAt)
   const rangeEnd = startOfDay(eventRow.recurrenceEndDate ?? addDays(new Date(), 180))
-  const existing = await prisma.eventOccurrence.findMany({
+  const existing = await db.eventOccurrence.findMany({
     where: { eventId: eventRow.id },
     select: { id: true, occurrenceDate: true, isOverride: true, status: true }
   })
-  const existingByDay = new Map(existing.map((entry) => [formatIsoDate(entry.occurrenceDate), entry]))
+  const existingByDay = new Map(existing.map((entry: any) => [formatIsoDate(entry.occurrenceDate), entry]))
   const desiredDates: Date[] = []
   for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor = addDays(cursor, 1)) {
     if (weekdays.includes(cursor.getDay() as EventWeekdayValue)) {
@@ -181,7 +181,7 @@ export async function syncEventOccurrencesForEvent(eventRow: Event) {
   const desiredKeys = new Set(desiredDates.map((entry) => formatIsoDate(entry)))
   const toCreate = desiredDates.filter((date) => !existingByDay.has(formatIsoDate(date)))
   if (toCreate.length) {
-    await prisma.eventOccurrence.createMany({
+    await db.eventOccurrence.createMany({
       data: toCreate.map((date) => ({
         eventId: eventRow.id,
         occurrenceDate: startOfDay(date),
@@ -195,11 +195,11 @@ export async function syncEventOccurrencesForEvent(eventRow: Event) {
   for (const entry of existing) {
     const key = formatIsoDate(entry.occurrenceDate)
     if (!desiredKeys.has(key)) {
-      await prisma.eventOccurrence.delete({ where: { id: entry.id } })
+      await db.eventOccurrence.delete({ where: { id: entry.id } })
       continue
     }
     if (entry.isOverride) continue
-    await prisma.eventOccurrence.update({
+    await db.eventOccurrence.update({
       where: { id: entry.id },
       data: {
         startsAt: combineDateAndTime(entry.occurrenceDate, eventRow.recurrenceStartTime),
@@ -223,7 +223,7 @@ export async function listAdminPlanningCalendar(options: {
   const perDayLimit = Math.max(1, Math.min(12, options.perDayLimit || 3))
   const dayPages = parseDayPages(options.dayPages)
 
-  const recurring = await prisma.event.findMany({
+  const recurring = await db.event.findMany({
     where: {
       kind: 'PERMANENCE',
       recurrenceType: 'WEEKLY'
@@ -234,7 +234,7 @@ export async function listAdminPlanningCalendar(options: {
   }
 
   const [events, occurrences] = await Promise.all([
-    prisma.event.findMany({
+    db.event.findMany({
       where: {
         kind: 'EVENT',
         startsAt: { gte: firstGridDay, lte: lastGridDay }
@@ -246,7 +246,7 @@ export async function listAdminPlanningCalendar(options: {
       },
       orderBy: [{ startsAt: 'asc' }]
     }) as Promise<EventWithAudience[]>,
-    prisma.eventOccurrence.findMany({
+    db.eventOccurrence.findMany({
       where: {
         occurrenceDate: { gte: firstGridDay, lte: lastGridDay }
       },

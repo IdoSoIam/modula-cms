@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import fs from 'node:fs'
 import cmsProjectConfig from '#modula/cms.project.config'
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import type {
   CmsCookieBannerSettings,
   CmsLocale,
@@ -12,6 +12,7 @@ import type {
   CmsSiteSettings,
   CmsSiteSettingsTemplatePayload
 } from '#modula/shared/cms'
+import type { CmsSiteTemplateDefinition } from '#modula/shared/siteTemplates'
 import {
   createDefaultCmsNavigationItems,
   createDefaultCmsPagePayload,
@@ -63,7 +64,7 @@ function resolveTemplateAssetRoot() {
     }
   }
 
-  return candidates[0]
+  return candidates[0]!
 }
 
 const templateAssetRoot = resolveTemplateAssetRoot()
@@ -105,7 +106,7 @@ function getUploadUrl(filename: string) {
 }
 
 async function ensureTemplateImageAsset(asset: TemplateImageAsset) {
-  const existing = await prisma.image.findFirst({
+  const existing = await db.image.findFirst({
     where: { filename: asset.filename }
   })
 
@@ -127,7 +128,7 @@ async function ensureTemplateImageAsset(asset: TemplateImageAsset) {
     await putUploadObject(asset.filename, new Uint8Array(buffer), asset.mimeType)
   }
 
-  return await prisma.image.create({
+  return await db.image.create({
     data: {
       filename: asset.filename,
       // Fallback: if the source file is not available on host FS,

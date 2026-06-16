@@ -36,8 +36,9 @@ worker-configuration.d.ts
 backups
 
 # Local SQLite/D1 dev database
-prisma/local.db
-prisma/d1-local-studio.db
+/server/generated
+
+
 
 # Legacy local uploads folder no longer used as source of truth
 public/uploads

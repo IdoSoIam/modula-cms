@@ -95,7 +95,7 @@ try {
 function syncSqliteToD1Local() {
   runWrangler(['d1', 'migrations', 'apply', databaseName, '--local'])
 
-  const sqlitePath = path.join(projectRoot, 'prisma', 'local.db')
+  const sqlitePath = path.join(projectRoot, '.data', 'sqlite', 'local.db')
   if (!fs.existsSync(sqlitePath)) {
     throw new Error(`SQLite source not found: ${sqlitePath}`)
   }
@@ -108,7 +108,7 @@ function syncSqliteToD1Local() {
   fs.writeFileSync(importSqlPath, `${buildResetSql(syncPlan)}\n${fs.readFileSync(dataSqlPath, 'utf8')}`, 'utf8')
 
   runWrangler(['d1', 'execute', databaseName, '--local', '--file', importSqlPath, '--yes'])
-  console.log('Imported prisma/local.db into local D1.')
+  console.log('Imported .data/sqlite/local.db into local D1.')
 }
 
 function syncSqlFileToD1Local(inputPathArg) {

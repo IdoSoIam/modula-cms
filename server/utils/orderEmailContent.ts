@@ -1,4 +1,4 @@
-import type { Reservation } from '@prisma/client'
+import type { Reservation } from '#modula/server/data/types'
 import { formatDateLabel } from './dateFormat'
 import { formatFulfillmentDate } from './orderFulfillment'
 import { SETTING_KEYS } from './settings'

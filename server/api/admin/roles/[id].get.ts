@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { parseJsonSafe } from '#modula/server/utils/roles'
 
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant de rôle invalide' })
   }
 
-  const role = await prisma.role.findUnique({
+  const role = await db.role.findUnique({
     where: { id },
     include: {
       permissions: true
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     description: role.description || '',
     isSystem: role.isSystem,
     isDefault: role.isDefault,
-    permissions: role.permissions.map(permission => ({
+    permissions: role.permissions.map((permission: any) => ({
       module: permission.module,
       canRead: permission.canRead,
       canCreate: permission.canCreate,

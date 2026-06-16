@@ -1,13 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import {
-  getRuntimeVegetablesByIds,
-  isRuntimeD1Active,
-  replaceRuntimeBasketItems,
-  updateRuntimeBasket
-} from '#modula/server/platform/runtimeDb'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { serializeBasket } from '#modula/server/utils/baskets'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 interface Body {
   name?: string
@@ -36,36 +30,24 @@ export default defineEventHandler(async (event) => {
 
   if (body.items) {
     const veggies = body.items.length
-      ? isRuntimeD1Active()
-        ? await getRuntimeVegetablesByIds(body.items.map(i => i.vegetableId))
-        : await prisma.vegetable.findMany({ where: { id: { in: body.items.map(i => i.vegetableId) } } })
+      ? await db.vegetable.findMany({ where: { id: { in: body.items.map(i => i.vegetableId) } } })
       : []
     const computed = body.items.reduce((sum, it) => {
-      const v = veggies.find(x => x.id === it.vegetableId)
+      const v = veggies.find((x: any) => x.id === it.vegetableId)
       return v ? sum + Number(v.price) * it.quantity : sum
     }, 0)
     data.computedPrice = computed
     if (body.finalPrice === undefined) data.finalPrice = computed
 
-    if (isRuntimeD1Active()) {
-      await replaceRuntimeBasketItems(id, body.items)
-    } else {
-      await prisma.basketItem.deleteMany({ where: { basketId: id } })
-      await prisma.basketItem.createMany({
-        data: body.items.map(it => ({ basketId: id, vegetableId: it.vegetableId, quantity: it.quantity }))
-      })
-    }
+    await db.basketItem.deleteMany({ where: { basketId: id } })
+    await db.basketItem.createMany({
+      data: body.items.map(it => ({ basketId: id, vegetableId: it.vegetableId, quantity: it.quantity }))
+    })
   }
 
   if (body.finalPrice !== undefined) data.finalPrice = body.finalPrice
 
-  if (isRuntimeD1Active()) {
-    const basket = await updateRuntimeBasket(id, data)
-    await syncImageUsageTable()
-    return basket
-  }
-
-  const basket = await prisma.basket.update({
+  const basket = await db.basket.update({
     where: { id },
     data,
     include: { items: { include: { vegetable: true } } }

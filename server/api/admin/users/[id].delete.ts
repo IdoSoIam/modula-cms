@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Vous ne pouvez pas supprimer votre propre compte' })
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await db.user.findUnique({
     where: { id },
     select: {
       id: true,
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   const isTargetAdmin = user.role === 'admin' || user.managedRole?.slug === 'admin' || user.managedRole?.slug === 'super_admin'
 
   if (isTargetAdmin) {
-    const remainingAdmins = await prisma.user.count({
+    const remainingAdmins = await db.user.count({
       where: {
         id: { not: id },
         OR: [
@@ -49,13 +49,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const [confirmedReservationsCount, publishedArticlesCount] = await Promise.all([
-    prisma.reservation.count({
+    db.reservation.count({
       where: {
         userId: id,
         status: 'CONFIRMED'
       }
     }),
-    prisma.article.count({
+    db.article.count({
       where: {
         authorId: id,
         published: true
@@ -78,7 +78,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await prisma.user.delete({ where: { id } })
+  await db.user.delete({ where: { id } })
 
   return { ok: true }
 })

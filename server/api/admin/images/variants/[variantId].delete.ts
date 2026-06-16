@@ -1,4 +1,4 @@
-import { prisma } from '../../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { deleteUploadObject } from '#modula/server/utils/uploadStorage'
 
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID de variante invalide' })
   }
 
-  const variant = await prisma.imageVariant.findUnique({
+  const variant = await db.imageVariant.findUnique({
     where: { id: variantId }
   })
 
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await deleteUploadObject(variant.storageKey)
-  await prisma.imageVariant.delete({
+  await db.imageVariant.delete({
     where: { id: variantId }
   })
 

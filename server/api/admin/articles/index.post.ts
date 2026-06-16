@@ -1,7 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { slugify } from '#modula/server/utils/slug'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 interface Body {
   title: string
@@ -22,12 +22,12 @@ export default defineEventHandler(async (event) => {
   const baseSlug = slugify(body.slug || body.title)
   let slug = baseSlug
   let i = 1
-  while (await prisma.article.findUnique({ where: { slug } })) {
+  while (await db.article.findUnique({ where: { slug } })) {
     slug = `${baseSlug}-${++i}`
   }
 
   const published = !!body.published
-  const article = await prisma.article.create({
+  const article = await db.article.create({
     data: {
       title: body.title.trim(),
       slug,

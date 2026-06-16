@@ -1,5 +1,5 @@
-import type { Reservation, ReservationOccurrence } from '@prisma/client'
-import { prisma } from '../../prisma/client'
+import type { Reservation, ReservationOccurrence } from '#modula/server/data/types'
+import { db } from '#modula/server/data/client'
 
 const DEFAULT_WEEKS_AHEAD = 52
 const REACTIVATABLE_CANCELLATION_REASONS = new Set([
@@ -40,13 +40,13 @@ export async function ensureReservationOccurrences(
       })()
     : [new Date(reservation.fulfillmentDate)]
 
-  const existing = await prisma.reservationOccurrence.findMany({
+  const existing = await db.reservationOccurrence.findMany({
     where: { reservationId: reservation.id },
     orderBy: { occurrenceDate: 'asc' }
   })
 
   const byDate = new Map(
-    existing.map((occurrence) => [
+    existing.map((occurrence: any) => [
       (occurrence.originalOccurrenceDate ?? occurrence.occurrenceDate).toISOString().slice(0, 10),
       occurrence
     ])
@@ -55,13 +55,13 @@ export async function ensureReservationOccurrences(
 
   for (const desiredDate of desiredDates) {
     const key = desiredDate.toISOString().slice(0, 10)
-    const existingOccurrence = byDate.get(key)
+    const existingOccurrence: any = byDate.get(key)
     if (existingOccurrence) {
       if (
         existingOccurrence.status === 'CANCELLED' &&
         REACTIVATABLE_CANCELLATION_REASONS.has(existingOccurrence.cancellationReason ?? '')
       ) {
-        await prisma.reservationOccurrence.update({
+        await db.reservationOccurrence.update({
           where: { id: existingOccurrence.id },
           data: {
             status: 'SCHEDULED',
@@ -75,7 +75,7 @@ export async function ensureReservationOccurrences(
       continue
     }
 
-    const occurrence = await prisma.reservationOccurrence.create({
+    const occurrence = await db.reservationOccurrence.create({
       data: {
         reservationId: reservation.id,
         occurrenceDate: desiredDate,
@@ -88,7 +88,7 @@ export async function ensureReservationOccurrences(
   }
 
   if (!subscriptionsEnabled || !reservation.monthlySubscription || !reservation.subscriptionActive) {
-    await prisma.reservationOccurrence.updateMany({
+    await db.reservationOccurrence.updateMany({
       where: {
         reservationId: reservation.id,
         occurrenceDate: { gt: new Date(reservation.fulfillmentDate) },
@@ -110,7 +110,7 @@ export async function updateFutureOccurrencesFromReservation(
 ) {
   if (!reservation.fulfillmentDate) return
 
-  await prisma.reservationOccurrence.updateMany({
+  await db.reservationOccurrence.updateMany({
     where: {
       reservationId: reservation.id,
       status: 'SCHEDULED',

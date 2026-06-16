@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { normalizeRolePayload } from '#modula/server/utils/roles'
 
@@ -9,14 +9,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant de rôle invalide' })
   }
 
-  const existing = await prisma.role.findUnique({ where: { id } })
+  const existing = await db.role.findUnique({ where: { id } })
   if (!existing) {
     throw createError({ statusCode: 404, statusMessage: 'Rôle introuvable' })
   }
 
   const body = normalizeRolePayload(await readBody(event), existing.isSystem)
 
-  await prisma.role.update({
+  await db.role.update({
     where: { id },
     data: {
       slug: existing.isSystem ? existing.slug : body.slug,
@@ -27,9 +27,9 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  await prisma.rolePermission.deleteMany({ where: { roleId: id } })
+  await db.rolePermission.deleteMany({ where: { roleId: id } })
   if (body.permissions.length) {
-    await prisma.rolePermission.createMany({
+    await db.rolePermission.createMany({
       data: body.permissions.map(permission => ({
         roleId: id,
         module: permission.module,

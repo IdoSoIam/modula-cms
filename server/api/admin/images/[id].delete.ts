@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { countImageReferences, removeImageReferences, syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { deleteUploadObject } from '#modula/server/utils/uploadStorage'
 import { deleteImageVariants } from '#modula/server/utils/imageVariants'
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const force = getQuery(event).force === '1'
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
-  const img = await prisma.image.findUnique({ where: { id } })
+  const img = await db.image.findUnique({ where: { id } })
   if (!img) throw createError({ statusCode: 404, statusMessage: 'Image introuvable' })
   await syncImageUsageTable()
   const references = await countImageReferences(img.url)
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
 
   await deleteImageVariants(img.id)
   await deleteUploadObject(img.filename)
-  await prisma.image.delete({ where: { id } })
+  await db.image.delete({ where: { id } })
   await syncImageUsageTable()
   return { ok: true }
 })

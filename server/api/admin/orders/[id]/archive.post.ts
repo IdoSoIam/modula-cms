@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { prisma } from '../../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
 
-  const reservation = await prisma.reservation.findUnique({
+  const reservation = await db.reservation.findUnique({
     where: { id },
     select: { id: true, status: true, archivedAt: true }
   })
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     return { ok: true, alreadyArchived: true }
   }
 
-  await prisma.reservation.update({
+  await db.reservation.update({
     where: { id },
     data: { archivedAt: new Date() }
   })

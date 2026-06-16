@@ -1,4 +1,4 @@
-import type { DeliveryTour, PickupPoint, Reservation, Basket } from '@prisma/client'
+import type { DeliveryTour, PickupPoint, Reservation, Basket } from '#modula/server/data/types'
 
 type ReservationWithRelations = Reservation & {
   basket: Basket

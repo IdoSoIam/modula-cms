@@ -1,7 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
-import { prisma } from '../../../prisma/client'
-import { countRuntimeStats, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
+import { db } from '#modula/server/data/client'
 
 function startOfDay(date: Date) {
   const copy = new Date(date)
@@ -23,18 +22,6 @@ export default defineEventHandler(async (event) => {
   const next7Days = endOfDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 6))
   const monthEnd = endOfDay(new Date(today.getFullYear(), today.getMonth() + 1, 0))
 
-  if (isRuntimeD1Active()) {
-    return {
-      ...(await countRuntimeStats({
-        subscriptionsEnabled,
-        todayIso: today.toISOString(),
-        next7DaysIso: next7Days.toISOString(),
-        monthEndIso: monthEnd.toISOString()
-      })),
-      subscriptionsEnabled
-    }
-  }
-
   const [
     vegetables,
     activeBaskets,
@@ -48,10 +35,10 @@ export default defineEventHandler(async (event) => {
     archivedReservations,
     rejectedReservations
   ] = await Promise.all([
-    prisma.vegetable.count(),
-    prisma.basket.count({ where: { active: true } }),
-    prisma.reservation.count({ where: { status: 'PENDING', archivedAt: null } }),
-    prisma.reservation.count({
+    db.vegetable.count(),
+    db.basket.count({ where: { active: true } }),
+    db.reservation.count({ where: { status: 'PENDING', archivedAt: null } }),
+    db.reservation.count({
       where: {
         archivedAt: null,
         OR: [
@@ -61,7 +48,7 @@ export default defineEventHandler(async (event) => {
       }
     }),
     subscriptionsEnabled
-      ? prisma.reservation.count({
+      ? db.reservation.count({
           where: {
             status: 'CONFIRMED',
             monthlySubscription: true,
@@ -71,13 +58,13 @@ export default defineEventHandler(async (event) => {
         })
       : Promise.resolve(0),
     subscriptionsEnabled
-      ? prisma.reservationOccurrence.count({
+      ? db.reservationOccurrence.count({
           where: {
             status: 'SCHEDULED',
             occurrenceDate: { gte: today, lte: next7Days }
           }
         })
-      : prisma.reservation.count({
+      : db.reservation.count({
           where: {
             status: 'CONFIRMED',
             archivedAt: null,
@@ -85,13 +72,13 @@ export default defineEventHandler(async (event) => {
           }
         }),
     subscriptionsEnabled
-      ? prisma.reservationOccurrence.count({
+      ? db.reservationOccurrence.count({
           where: {
             status: 'SCHEDULED',
             occurrenceDate: { gte: today, lte: monthEnd }
           }
         })
-      : prisma.reservation.count({
+      : db.reservation.count({
           where: {
             status: 'CONFIRMED',
             archivedAt: null,
@@ -99,33 +86,33 @@ export default defineEventHandler(async (event) => {
           }
         }),
     subscriptionsEnabled
-      ? prisma.reservationOccurrence.count({
+      ? db.reservationOccurrence.count({
           where: {
             occurrenceDate: { lt: today }
           }
         })
-      : prisma.reservation.count({
+      : db.reservation.count({
           where: {
             archivedAt: null,
             fulfillmentDate: { lt: today }
           }
         }),
     subscriptionsEnabled
-      ? prisma.reservationOccurrence.count({
+      ? db.reservationOccurrence.count({
           where: {
             status: 'CANCELLED',
             occurrenceDate: { gte: today }
           }
         })
-      : prisma.reservation.count({
+      : db.reservation.count({
           where: {
             status: 'CANCELLED',
             archivedAt: null,
             fulfillmentDate: { gte: today }
           }
         }),
-    prisma.reservation.count({ where: { archivedAt: { not: null } } }),
-    prisma.reservation.count({ where: { status: 'REJECTED', archivedAt: null } })
+    db.reservation.count({ where: { archivedAt: { not: null } } }),
+    db.reservation.count({ where: { status: 'REJECTED', archivedAt: null } })
   ])
 
   return {

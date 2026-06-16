@@ -10,7 +10,6 @@ function buildLayerNitroAliases(): Record<string, string> {
   return {
     '~/server': path.resolve(layerRoot, 'server'),
     '~/shared': path.resolve(layerRoot, 'shared'),
-    '~/prisma': path.resolve(layerRoot, 'prisma'),
     '~/types': path.resolve(layerRoot, 'types'),
     '~/cms': path.resolve(layerRoot, 'cms'),
     '~/cms.project.config': path.resolve(layerRoot, 'cms.project.config'),

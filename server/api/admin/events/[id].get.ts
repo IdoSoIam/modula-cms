@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { eventToPayload } from '#modula/server/utils/events'
 import { requirePermission } from '#modula/server/utils/permissions'
 
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant événement invalide' })
   }
 
-  const item = await prisma.event.findUnique({
+  const item = await db.event.findUnique({
     where: { id },
     include: {
       audienceMemberRoles: {

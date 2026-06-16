@@ -1,4 +1,4 @@
-import { prisma } from '../../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { sendGmail } from '#modula/server/utils/gmail'
 import { removeReservationFromGoogleCalendar, syncReservationToGoogleCalendar } from '#modula/server/utils/googleCalendarSync'
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Email vide' })
   }
 
-  const reservation = await prisma.reservation.findUnique({
+  const reservation = await db.reservation.findUnique({
     where: { id },
     include: {
       basket: true,
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
       proposalLocation: requestedLocation
     })
 
-    const updated = await prisma.reservation.update({
+    const updated = await db.reservation.update({
       where: { id },
       data: {
         status: 'PENDING',
@@ -112,7 +112,7 @@ export default defineEventHandler(async (event) => {
     return { ok: true, status: updated.status, proposalPending: true }
   }
 
-  const updated = await prisma.reservation.update({
+  const updated = await db.reservation.update({
     where: { id },
     data: {
       status: body.decision,
@@ -170,7 +170,7 @@ export default defineEventHandler(async (event) => {
       console.error('Erreur sync Google Calendar:', e)
     }
   } else {
-    await prisma.reservationOccurrence.updateMany({
+    await db.reservationOccurrence.updateMany({
       where: {
         reservationId: reservation.id,
         status: 'SCHEDULED'

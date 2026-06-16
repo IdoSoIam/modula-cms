@@ -1,13 +1,7 @@
-import { prisma } from '../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { getPageBuilderContent, savePageBuilderContent } from '#modula/server/utils/pageBuilder'
 import type { PageBuilderColumnItem, PageBuilderSection } from '#modula/shared/pageBuilder'
-import {
-  getRuntimeCmsPageById,
-  getRuntimeImageByFilename,
-  isRuntimeD1Active,
-  listRuntimeCmsPages,
-  listRuntimeImageUsages
-} from '#modula/server/platform/runtimeDb'
+
 
 interface RootPageImageReferenceItem {
   kind: 'section-background-image' | 'section-background-carousel' | 'column-image' | 'column-carousel'
@@ -324,24 +318,20 @@ function cmsUsageToReferenceItem(
 }
 
 export async function syncImageUsageTable() {
-  if (isRuntimeD1Active()) {
-    return
-  }
-
   const [images, vegetables, baskets, articles, cmsPages] = await Promise.all([
-    prisma.image.findMany({
+    db.image.findMany({
       select: { id: true, url: true }
     }),
-    prisma.vegetable.findMany({
+    db.vegetable.findMany({
       select: { id: true, name: true, imageUrl: true }
     }),
-    prisma.basket.findMany({
+    db.basket.findMany({
       select: { id: true, name: true, imageUrl: true }
     }),
-    prisma.article.findMany({
+    db.article.findMany({
       select: { id: true, title: true, slug: true, coverUrl: true, content: true }
     }),
-    prisma.cmsPage.findMany({
+    db.cmsPage.findMany({
       select: {
         id: true,
         path: true,
@@ -351,14 +341,14 @@ export async function syncImageUsageTable() {
     }).catch(() => [])
   ])
 
-  const imageIdByUrl = new Map(images.map((image) => [image.url, image.id]))
+  const imageIdByUrl: Map<string, number> = new Map(images.map((image: any) => [String(image.url), Number(image.id)]))
   const usages: ImageUsageSeed[] = []
   const now = new Date()
   const { getCmsSiteSettings } = await import('./cms')
   const cmsSiteSettings = await getCmsSiteSettings().catch(() => null)
 
   for (const vegetable of vegetables) {
-    const imageId = vegetable.imageUrl ? imageIdByUrl.get(vegetable.imageUrl) : undefined
+    const imageId = vegetable.imageUrl ? imageIdByUrl.get(vegetable.imageUrl) as number | undefined : undefined
     if (!imageId) continue
     usages.push({
       imageId,
@@ -372,7 +362,7 @@ export async function syncImageUsageTable() {
   }
 
   for (const basket of baskets) {
-    const imageId = basket.imageUrl ? imageIdByUrl.get(basket.imageUrl) : undefined
+    const imageId = basket.imageUrl ? imageIdByUrl.get(basket.imageUrl) as number | undefined : undefined
     if (!imageId) continue
     usages.push({
       imageId,
@@ -529,21 +519,17 @@ export async function syncImageUsageTable() {
 
   const dedupedUsages = dedupeImageUsages(usages)
 
-  await prisma.imageUsage.deleteMany()
+  await db.imageUsage.deleteMany()
 
   if (dedupedUsages.length) {
-    await prisma.imageUsage.createMany({
+    await db.imageUsage.createMany({
       data: dedupedUsages
     })
   }
 }
 
 export async function listImageUsageAssociations(imageId: number) {
-  if (isRuntimeD1Active()) {
-    return await listRuntimeImageUsages(imageId)
-  }
-
-  return await prisma.imageUsage.findMany({
+  return await db.imageUsage.findMany({
     where: { imageId },
     orderBy: [
       { scopeType: 'asc' },
@@ -553,19 +539,19 @@ export async function listImageUsageAssociations(imageId: number) {
 }
 
 export async function updateImageReferences(oldUrl: string, newUrl: string) {
-  await prisma.vegetable.updateMany({
+  await db.vegetable.updateMany({
     where: { imageUrl: oldUrl },
     data: { imageUrl: newUrl }
   })
-  await prisma.basket.updateMany({
+  await db.basket.updateMany({
     where: { imageUrl: oldUrl },
     data: { imageUrl: newUrl }
   })
-  await prisma.article.updateMany({
+  await db.article.updateMany({
     where: { coverUrl: oldUrl },
     data: { coverUrl: newUrl }
   })
-  await prisma.$executeRawUnsafe(
+  await db.$executeRawUnsafe(
     'UPDATE "Article" SET "content" = REPLACE("content", ?, ?) WHERE "content" LIKE ?',
     oldUrl,
     newUrl,
@@ -581,22 +567,22 @@ export async function updateImageReferences(oldUrl: string, newUrl: string) {
 }
 
 export async function removeImageReferences(url: string) {
-  await prisma.vegetable.updateMany({
+  await db.vegetable.updateMany({
     where: { imageUrl: url },
     data: { imageUrl: null }
   })
 
-  await prisma.basket.updateMany({
+  await db.basket.updateMany({
     where: { imageUrl: url },
     data: { imageUrl: null }
   })
 
-  await prisma.article.updateMany({
+  await db.article.updateMany({
     where: { coverUrl: url },
     data: { coverUrl: null }
   })
 
-  await prisma.$executeRawUnsafe(
+  await db.$executeRawUnsafe(
     'UPDATE "Article" SET "content" = REPLACE("content", ?, ?) WHERE "content" LIKE ?',
     url,
     '',
@@ -612,70 +598,7 @@ export async function removeImageReferences(url: string) {
 }
 
 export async function countImageReferences(url: string) {
-  if (isRuntimeD1Active()) {
-    const filename = url.startsWith('/uploads/') ? url.replace(/^\/uploads\//, '') : ''
-    const image = filename ? await getRuntimeImageByFilename(filename) : null
-
-    if (!image) {
-      return {
-        vegetables: 0,
-        baskets: 0,
-        articles: 0,
-        articleContent: 0,
-        cmsSiteSettings: {
-          count: 0,
-          items: [] as CmsSiteSettingsImageReferenceItem[]
-        },
-        cmsPages: {
-          count: 0,
-          items: [] as CmsPageImageReferenceItem[]
-        },
-        rootPage: {
-          count: 0,
-          items: [] as RootPageImageReferenceItem[]
-        }
-      }
-    }
-
-    const usages = await listRuntimeImageUsages(image.id)
-    const cmsPages = await listRuntimeCmsPages()
-    const cmsPageById = new Map(cmsPages.map((page) => [page.id, { path: page.path, title: page.title }]))
-    const rootItems = usages
-      .filter((usage) => usage.scopeType === 'root-page')
-      .map(rootUsageToReferenceItem)
-      .filter((item): item is RootPageImageReferenceItem => Boolean(item))
-    const cmsPageItems = usages
-      .filter((usage) => usage.scopeType === 'cms-page')
-      .map((usage) => cmsUsageToReferenceItem(usage, cmsPageById))
-      .filter((item): item is CmsPageImageReferenceItem => Boolean(item))
-    const cmsSiteSettingsItems = usages
-      .filter((usage) => usage.scopeType === 'cms-site-settings' && (usage.fieldKey === 'logo' || usage.fieldKey === 'favicon'))
-      .map((usage) => ({
-        fieldKey: usage.fieldKey as 'logo' | 'favicon',
-        label: usage.label
-      }))
-
-    return {
-      vegetables: usages.filter((usage) => usage.scopeType === 'vegetable').length,
-      baskets: usages.filter((usage) => usage.scopeType === 'basket').length,
-      articles: usages.filter((usage) => usage.scopeType === 'article').length,
-      articleContent: usages.filter((usage) => usage.scopeType === 'article-content').length,
-      cmsSiteSettings: {
-        count: cmsSiteSettingsItems.length,
-        items: cmsSiteSettingsItems
-      },
-      cmsPages: {
-        count: cmsPageItems.length,
-        items: cmsPageItems
-      },
-      rootPage: {
-        count: rootItems.length,
-        items: rootItems
-      }
-    }
-  }
-
-  const image = await prisma.image.findFirst({
+  const image = await db.image.findFirst({
     where: { url },
     select: { id: true }
   })
@@ -702,34 +625,34 @@ export async function countImageReferences(url: string) {
   }
 
   const usages = await listImageUsageAssociations(image.id)
-  const cmsPages = await prisma.cmsPage.findMany({
+  const cmsPages = await db.cmsPage.findMany({
     select: {
       id: true,
       path: true,
       title: true
     }
   }).catch(() => [])
-  const cmsPageById = new Map(cmsPages.map((page) => [page.id, { path: page.path, title: page.title }]))
+  const cmsPageById: Map<number, { path: string; title: string }> = new Map(cmsPages.map((page: any) => [Number(page.id), { path: String(page.path), title: String(page.title) }]))
   const rootItems = usages
-    .filter((usage) => usage.scopeType === 'root-page')
+    .filter((usage: any) => usage.scopeType === 'root-page')
     .map(rootUsageToReferenceItem)
-    .filter((item): item is RootPageImageReferenceItem => Boolean(item))
+    .filter((item: any): item is RootPageImageReferenceItem => Boolean(item))
   const cmsPageItems = usages
-    .filter((usage) => usage.scopeType === 'cms-page')
-    .map((usage) => cmsUsageToReferenceItem(usage, cmsPageById))
-    .filter((item): item is CmsPageImageReferenceItem => Boolean(item))
+    .filter((usage: any) => usage.scopeType === 'cms-page')
+    .map((usage: any) => cmsUsageToReferenceItem(usage, cmsPageById))
+    .filter((item: any): item is CmsPageImageReferenceItem => Boolean(item))
   const cmsSiteSettingsItems = usages
-    .filter((usage) => usage.scopeType === 'cms-site-settings' && (usage.fieldKey === 'logo' || usage.fieldKey === 'favicon'))
-    .map((usage) => ({
+    .filter((usage: any) => usage.scopeType === 'cms-site-settings' && (usage.fieldKey === 'logo' || usage.fieldKey === 'favicon'))
+    .map((usage: any) => ({
       fieldKey: usage.fieldKey as 'logo' | 'favicon',
       label: usage.label
     }))
 
   return {
-    vegetables: usages.filter((usage) => usage.scopeType === 'vegetable').length,
-    baskets: usages.filter((usage) => usage.scopeType === 'basket').length,
-    articles: usages.filter((usage) => usage.scopeType === 'article').length,
-    articleContent: usages.filter((usage) => usage.scopeType === 'article-content').length,
+    vegetables: usages.filter((usage: any) => usage.scopeType === 'vegetable').length,
+    baskets: usages.filter((usage: any) => usage.scopeType === 'basket').length,
+    articles: usages.filter((usage: any) => usage.scopeType === 'article').length,
+    articleContent: usages.filter((usage: any) => usage.scopeType === 'article-content').length,
     cmsSiteSettings: {
       count: cmsSiteSettingsItems.length,
       items: cmsSiteSettingsItems

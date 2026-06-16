@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await applySiteTemplate(slug, {
-    replaceBrandAssets: body?.replaceBrandAssets === true
+    replaceBrandAssets: (body as any)?.replaceBrandAssets === true
   })
   return { ok: true, currentTemplateKey: slug }
 })

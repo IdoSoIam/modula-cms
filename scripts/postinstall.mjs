@@ -20,8 +20,8 @@ if (initCwd && initCwd !== currentCwd) {
 const { spawnSync } = await import('node:child_process')
 
 for (const command of [
-  ['npx', ['nuxt', 'prepare']],
-  ['npx', ['prisma', 'generate']]
+  ['node', ['--experimental-strip-types', './generator/generate-db-artifacts.ts']],
+  ['npx', ['nuxt', 'prepare']]
 ]) {
   const [bin, args] = command
   const result = spawnSync(bin, args, {

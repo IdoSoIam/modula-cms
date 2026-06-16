@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { applyOccurrenceOverridesToEventPayload, canAccessEvent, eventToPayload } from '#modula/server/utils/events'
 import { AuthService } from '#modula/server/services/auth/authService'
 import { getFeatureFlags } from '#modula/server/utils/settings'
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
 
   const user = await authService.getUserFromSession(event)
 
-  const item = await prisma.event.findUnique({
+  const item = await db.event.findUnique({
     where: { slug },
     include: {
       audienceMemberRoles: {
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
 
   const payload = eventToPayload(item)
   if (Number.isInteger(occurrenceId) && occurrenceId > 0) {
-    const occurrence = await prisma.eventOccurrence.findFirst({
+    const occurrence = await db.eventOccurrence.findFirst({
       where: {
         id: occurrenceId,
         eventId: item.id

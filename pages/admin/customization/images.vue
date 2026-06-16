@@ -79,7 +79,7 @@
                 </li>
               </ul>
             </div>
-            <div v-if="editing.references.cmsPages.items.length" class="mt-3">
+            <div v-if="editing?.references?.cmsPages?.items?.length" class="mt-3">
               <div class="font-medium">Utilisations sur les pages CMS</div>
               <ul class="mt-2 space-y-1 text-xs opacity-80">
                 <li v-for="item in editing.references.cmsPages.items" :key="`cms-${item.pageId}-${item.kind}-${item.sectionId}-${item.columnIndex ?? 0}-${item.itemId ?? ''}-${item.label}`">
@@ -99,11 +99,11 @@
 
           <div class="rounded-box bg-base-200 p-3 text-sm">
             <div class="font-medium">Variantes generees</div>
-            <div v-if="!editing.variants.length" class="mt-2 opacity-60">
+            <div v-if="!editing?.variants?.length" class="mt-2 opacity-60">
               Aucune variante persistée pour le moment.
             </div>
             <ul v-else class="mt-2 space-y-2 text-xs opacity-80">
-              <li v-for="variant in editing.variants" :key="variant.id" class="rounded-lg border border-base-300 bg-base-100 px-3 py-2">
+              <li v-for="variant in editing?.variants" :key="variant.id" class="rounded-lg border border-base-300 bg-base-100 px-3 py-2">
                 <div class="flex items-start justify-between gap-3">
                   <div class="font-medium break-all">{{ variant.storageKey }}</div>
                   <button

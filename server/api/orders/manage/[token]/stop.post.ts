@@ -4,7 +4,7 @@ import { applyTemplateVars, getReservationEmailHtmlLang, resolveTemplateFromSett
 import { removeReservationFromGoogleCalendar } from '#modula/server/utils/googleCalendarSync'
 import { getReservationNotificationEmail, isSubscriptionsEnabled } from '#modula/server/utils/settings'
 import { logReservationNotification } from '#modula/server/utils/orderNotifications'
-import { prisma } from '../../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   const subscriptionsEnabled = await isSubscriptionsEnabled()
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const token = String(getRouterParam(event, 'token') ?? '')
   if (!token) throw createError({ statusCode: 400, statusMessage: 'Lien invalide' })
 
-  const reservation = await prisma.reservation.findUnique({
+  const reservation = await db.reservation.findUnique({
     where: { publicActionToken: token },
     include: {
       basket: true,
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
     return { ok: true, alreadyStopped: true }
   }
 
-  const updated = await prisma.reservation.update({
+  const updated = await db.reservation.update({
     where: { id: reservation.id },
     data: {
       status: 'CANCELLED',
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
     await removeReservationFromGoogleCalendar(updated)
   }
 
-  await prisma.reservationOccurrence.updateMany({
+  await db.reservationOccurrence.updateMany({
     where: { reservationId: reservation.id, status: 'SCHEDULED' },
     data: {
       status: 'CANCELLED',

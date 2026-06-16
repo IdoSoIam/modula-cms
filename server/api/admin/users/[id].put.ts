@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { isAssociationRolesEnabled } from '#modula/server/utils/settings'
 
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Rôles associatifs désactivés' })
   }
 
-  await prisma.user.update({
+  await db.user.update({
     where: { id },
     data: {
       firstName: typeof body.firstName === 'string' ? body.firstName.trim() : undefined,
@@ -37,12 +37,12 @@ export default defineEventHandler(async (event) => {
   })
 
   if (associationRolesEnabled) {
-    await prisma.userMemberRole.deleteMany({
+    await db.userMemberRole.deleteMany({
       where: { userId: id }
     })
 
     if (memberRoleIds.length) {
-      await prisma.userMemberRole.createMany({
+      await db.userMemberRole.createMany({
         data: memberRoleIds.map(memberRoleId => ({
           userId: id,
           memberRoleId

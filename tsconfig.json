@@ -2,7 +2,7 @@
   // https://nuxt.com/docs/guide/concepts/typescript
   "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
+    "allowImportingTsExtensions": true,
     "paths": {
       "#modula": ["."],
       "#modula/*": ["./*"]
@@ -11,6 +11,8 @@
   },
   "exclude": [
     "backups",
-    "backups/**"
+    "backups/**",
+    "templates",
+    "templates/**"
   ]
 }

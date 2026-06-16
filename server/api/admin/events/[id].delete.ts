@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -7,6 +7,6 @@ export default defineEventHandler(async (event) => {
   if (!Number.isInteger(id) || id <= 0) {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant événement invalide' })
   }
-  await prisma.event.delete({ where: { id } })
+  await db.event.delete({ where: { id } })
   return { ok: true }
 })

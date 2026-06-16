@@ -3,13 +3,11 @@ import { triggerUpdateAgentDeployment } from '#modula/server/utils/cmsRegistry'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
-  const runtimeConfig = useRuntimeConfig(event)
-  const runtimeTarget = String(runtimeConfig.public?.cmsRuntimeTarget || runtimeConfig.cmsRuntimeTarget || 'server')
-  if (process.env.NODE_ENV !== 'production' || runtimeTarget === 'cloudflare') {
+  if (process.env.NODE_ENV !== 'production') {
     throw createError({
       statusCode: 409,
-      statusMessage: 'Updates disabled for this runtime',
-      message: 'Les mises à jour intégrées sont désactivées en développement et en runtime Cloudflare. Mettez le code à jour manuellement puis appliquez les migrations.'
+      statusMessage: 'Updates disabled for development',
+      message: 'Les mises à jour intégrées sont désactivées en développement.'
     })
   }
   const body = await readBody<{ version?: string }>(event)

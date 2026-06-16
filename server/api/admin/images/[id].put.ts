@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { syncImageUsageTable, updateImageReferences } from '#modula/server/utils/imageReferences'
 import { slugify } from '#modula/server/utils/slug'
 import { extname } from 'node:path'
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
 
-  const image = await prisma.image.findUnique({ where: { id } })
+  const image = await db.image.findUnique({ where: { id } })
   if (!image) throw createError({ statusCode: 404, statusMessage: 'Image introuvable' })
 
   const parts = await readMultipartFormData(event)
@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
     await updateImageReferences(image.url, nextUrl)
   }
 
-  const updated = await prisma.image.update({
+  const updated = await db.image.update({
     where: { id },
     data: {
       filename: nextFilename,

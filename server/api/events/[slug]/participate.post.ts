@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { canAccessEvent, submitInternalParticipation } from '#modula/server/utils/events'
 import { AuthService } from '#modula/server/services/auth/authService'
 
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Slug requis' })
   }
 
-  const eventRow = await prisma.event.findUnique({
+  const eventRow = await db.event.findUnique({
     where: { slug },
     include: {
       audienceMemberRoles: {
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Accès refusé' })
   }
 
-  if (eventRow.audienceMemberRoles.length && !eventRow.audienceMemberRoles.some((entry) => user.memberRoleIds.includes(entry.memberRoleId))) {
+  if (eventRow.audienceMemberRoles.length && !eventRow.audienceMemberRoles.some((entry: any) => user.memberRoleIds.includes(entry.memberRoleId))) {
     throw createError({ statusCode: 403, statusMessage: 'Rôle associatif non autorisé pour cette participation' })
   }
 

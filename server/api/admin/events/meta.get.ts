@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { isAssociationRolesEnabled } from '#modula/server/utils/settings'
 
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const associationRolesEnabled = await isAssociationRolesEnabled()
 
   const [memberRoles, users] = await Promise.all([
-    associationRolesEnabled ? prisma.memberRole.findMany({
+    associationRolesEnabled ? db.memberRole.findMany({
       orderBy: [
         { isSystem: 'desc' },
         { name: 'asc' }
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
         name: true
       }
     }) : Promise.resolve([]),
-    prisma.user.findMany({
+    db.user.findMany({
       where: { isActive: true },
       orderBy: [
         { firstName: 'asc' },
@@ -41,13 +41,13 @@ export default defineEventHandler(async (event) => {
 
   return {
     memberRoles,
-    users: users.map(user => ({
+    users: users.map((user: any) => ({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      memberRoleIds: associationRolesEnabled ? user.memberRoles.map(entry => entry.memberRoleId) : [],
-      memberRoles: associationRolesEnabled ? user.memberRoles.map(entry => ({
+      memberRoleIds: associationRolesEnabled ? user.memberRoles.map((entry: any) => entry.memberRoleId) : [],
+      memberRoles: associationRolesEnabled ? user.memberRoles.map((entry: any) => ({
         id: entry.memberRole.id,
         slug: entry.memberRole.slug,
         name: entry.memberRole.name,

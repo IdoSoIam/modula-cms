@@ -6,7 +6,7 @@ import Database from 'better-sqlite3'
 
 const projectRoot = process.cwd()
 const databaseName = 'ferme-du-campeyrigoux'
-const studioDbPath = path.join(projectRoot, 'prisma', 'd1-local-studio.db')
+const studioDbPath = path.join(projectRoot, '.data', 'sqlite', 'd1-local-studio.db')
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ferme-d1-studio-'))
 const exportSqlPath = path.join(tempDir, 'd1-local-export.sql')
 
@@ -39,20 +39,7 @@ try {
     db.close()
   }
 
-  execSync(buildCommand([
-    'npx',
-    '-p',
-    'better-sqlite3',
-    '-p',
-    'prisma',
-    'prisma',
-    'studio',
-    '--url',
-    'file:./prisma/d1-local-studio.db'
-  ]), {
-    cwd: projectRoot,
-    stdio: 'inherit'
-  })
+  console.log(`[modula-cms] miroir D1 local exporté vers ${studioDbPath}`)
 } finally {
   fs.rmSync(tempDir, { recursive: true, force: true })
 }

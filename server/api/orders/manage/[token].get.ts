@@ -1,4 +1,4 @@
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
 
 function toPositiveInt(value: unknown, fallback: number, max = 50) {
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const occurrenceLimit = toPositiveInt(query.occurrenceLimit, 5)
   const subscriptionsEnabled = await isSubscriptionsEnabled()
 
-  const reservation = await prisma.reservation.findUnique({
+  const reservation = await db.reservation.findUnique({
     where: { publicActionToken: token },
     include: {
       basket: { select: { id: true, name: true, finalPrice: true } },
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const occurrenceTotal = subscriptionsEnabled
-    ? await prisma.reservationOccurrence.count({
+    ? await db.reservationOccurrence.count({
         where: { reservationId: reservation.id, status: 'SCHEDULED' }
       })
     : 0
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
     fulfillmentLocation: reservation.fulfillmentLocation,
     scheduleProposalPendingBy: reservation.scheduleProposalPendingBy,
     scheduleProposalAcceptedAt: reservation.scheduleProposalAcceptedAt,
-    scheduleProposals: reservation.scheduleProposals.map((proposal) => ({
+    scheduleProposals: reservation.scheduleProposals.map((proposal: any) => ({
       id: proposal.id,
       proposedBy: proposal.proposedBy,
       proposalDate: proposal.proposalDate,
@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
       acceptedAt: proposal.acceptedAt,
       createdAt: proposal.createdAt
     })),
-    occurrences: (reservation.occurrences ?? []).map((occurrence) => ({
+    occurrences: (reservation.occurrences ?? []).map((occurrence: any) => ({
       id: occurrence.id,
       occurrenceDate: occurrence.occurrenceDate,
       occurrenceTime: occurrence.occurrenceTime,

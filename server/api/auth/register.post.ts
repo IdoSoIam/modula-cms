@@ -1,7 +1,7 @@
 import { AuthService } from '../../services/auth/authService'
 import { H3Event } from 'h3'
 import { getSessionConfig } from '../../utils/session'
-import { prisma } from '../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { isRegisterEnabled } from '#modula/server/utils/settings'
 
 const authService = new AuthService()
@@ -9,7 +9,7 @@ const authService = new AuthService()
 export default defineEventHandler(async (event: H3Event) => {
   try {
     setResponseHeader(event, 'Cache-Control', 'no-store')
-    const userCount = await prisma.user.count()
+    const userCount = await db.user.count()
     const registerEnabled = await isRegisterEnabled()
     if (!registerEnabled && userCount > 0) {
       throw createError({

@@ -1,4 +1,4 @@
-import type { Basket, DeliveryTour, PickupPoint, Reservation } from '@prisma/client'
+import type { Basket, DeliveryTour, PickupPoint, Reservation } from '#modula/server/data/types'
 import { buildReservationIcs } from './calendarInvite'
 import { formatDateLabel } from './dateFormat'
 import { buildEmailHtml } from './emailTemplates'

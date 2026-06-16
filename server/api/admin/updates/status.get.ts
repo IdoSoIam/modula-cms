@@ -52,10 +52,6 @@ async function getSystemInfo(runtimeTarget: string) {
     freeMemoryMb: null as number | null
   }
 
-  if (runtimeTarget === 'cloudflare') {
-    return info
-  }
-
   try {
     const os = await import('node:os')
     info.platform = `${os.platform()} ${os.release()}`
@@ -72,12 +68,10 @@ export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const runtimeConfig = useRuntimeConfig(event)
   const runtimeTarget = String(runtimeConfig.public?.cmsRuntimeTarget || runtimeConfig.cmsRuntimeTarget || 'server')
-  const updatesEnabled = process.env.NODE_ENV === 'production' && runtimeTarget !== 'cloudflare'
+  const updatesEnabled = process.env.NODE_ENV === 'production'
   const updatesDisabledReason = process.env.NODE_ENV !== 'production'
     ? 'development'
-    : runtimeTarget === 'cloudflare'
-      ? 'cloudflare'
-      : null
+    : null
   const systemInfo = await getSystemInfo(runtimeTarget)
 
   if (!isCmsRegistryConfigured()) {

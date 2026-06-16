@@ -1,8 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { ensureReservationOccurrences } from '#modula/server/utils/orderOccurrences'
 import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
-import { getRuntimeReservationById, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 function toPositiveInt(value: unknown, fallback: number, max = 100) {
   const parsed = Number(value)
@@ -24,103 +23,7 @@ export default defineEventHandler(async (event) => {
   const notificationLimit = toPositiveInt(query.notificationLimit, 5, 50)
   const subscriptionsEnabled = await isSubscriptionsEnabled()
 
-  if (isRuntimeD1Active()) {
-    const reservation: any = await getRuntimeReservationById(id)
-    if (!reservation) throw createError({ statusCode: 404, statusMessage: 'Reservation introuvable' })
-
-    const occurrences = subscriptionsEnabled
-      ? (reservation.occurrences ?? []).filter((occurrence: any) => new Date(occurrence.occurrenceDate) >= today)
-      : []
-    const notifications = reservation.notifications ?? []
-    const occurrenceTotal = occurrences.length
-    const notificationTotal = notifications.length
-
-    return {
-      id: reservation.id,
-      customerName: reservation.customerName,
-      email: reservation.email,
-      language: reservation.language,
-      phone: reservation.phone,
-      message: reservation.message,
-      status: reservation.status,
-      adminNote: reservation.adminNote,
-      createdAt: reservation.createdAt,
-      confirmedAt: reservation.confirmedAt,
-      basket: { id: reservation.basket.id, name: reservation.basket.name, finalPrice: Number(reservation.basket.finalPrice) },
-      deliveryType: reservation.deliveryType,
-      deliveryAddress: reservation.deliveryAddress,
-      deliveryCity: reservation.deliveryCity,
-      deliveryPostalCode: reservation.deliveryPostalCode,
-      fulfillmentDate: reservation.fulfillmentDate,
-      fulfillmentTime: reservation.fulfillmentTime,
-      fulfillmentLocation: reservation.fulfillmentLocation,
-      monthlySubscription: subscriptionsEnabled ? reservation.monthlySubscription : false,
-      subscriptionActive: subscriptionsEnabled ? reservation.subscriptionActive : false,
-      subscriptionCancelledAt: reservation.subscriptionCancelledAt,
-      scheduleProposalPendingBy: reservation.scheduleProposalPendingBy,
-      scheduleProposalAcceptedAt: reservation.scheduleProposalAcceptedAt,
-      scheduleProposals: (reservation.scheduleProposals ?? []).map((proposal: any) => ({
-        id: proposal.id,
-        proposedBy: proposal.proposedBy,
-        proposalDate: proposal.proposalDate,
-        proposalTime: proposal.proposalTime,
-        proposalLocation: proposal.proposalLocation,
-        acceptedAt: proposal.acceptedAt,
-        createdAt: proposal.createdAt
-      })),
-      googleCalendarEventId: reservation.googleCalendarEventId,
-      googleCalendarSyncedAt: reservation.googleCalendarSyncedAt,
-      occurrences: occurrences
-        .slice((occurrencePage - 1) * occurrenceLimit, occurrencePage * occurrenceLimit)
-        .map((occurrence: any) => ({
-          id: occurrence.id,
-          occurrenceDate: occurrence.occurrenceDate,
-          originalOccurrenceDate: occurrence.originalOccurrenceDate,
-          occurrenceTime: occurrence.occurrenceTime,
-          occurrenceLocation: occurrence.occurrenceLocation,
-          status: occurrence.status,
-          customSchedule: occurrence.customSchedule,
-          cancelledAt: occurrence.cancelledAt,
-          cancellationReason: occurrence.cancellationReason
-        })),
-      occurrencePagination: {
-        page: occurrencePage,
-        perPage: occurrenceLimit,
-        total: occurrenceTotal,
-        totalPages: Math.max(1, Math.ceil(occurrenceTotal / occurrenceLimit))
-      },
-      notifications: notifications
-        .slice((notificationPage - 1) * notificationLimit, notificationPage * notificationLimit)
-        .map((notification: any) => ({
-          id: notification.id,
-          kind: notification.kind,
-          recipientEmail: notification.recipientEmail,
-          subject: notification.subject,
-          summary: notification.summary,
-          createdAt: notification.createdAt,
-          occurrenceId: notification.occurrenceId
-        })),
-      notificationPagination: {
-        page: notificationPage,
-        perPage: notificationLimit,
-        total: notificationTotal,
-        totalPages: Math.max(1, Math.ceil(notificationTotal / notificationLimit))
-      },
-      pickupPoint: reservation.pickupPoint ? { id: reservation.pickupPoint.id, name: reservation.pickupPoint.name, address: reservation.pickupPoint.address } : null,
-      deliveryTour: reservation.deliveryTour ? {
-        id: reservation.deliveryTour.id,
-        name: reservation.deliveryTour.name,
-        dayOfWeek: reservation.deliveryTour.dayOfWeek,
-        startTime: reservation.deliveryTour.startTime,
-        endTime: reservation.deliveryTour.endTime,
-        monthlyPrice: reservation.deliveryTour.monthlyPrice ? Number(reservation.deliveryTour.monthlyPrice) : null,
-        cities: (reservation.deliveryTour.cities ?? []).map((city: any) => city.city)
-      } : null,
-      subscriptionsEnabled
-    }
-  }
-
-  const reservation = await prisma.reservation.findUnique({
+  const reservation = await db.reservation.findUnique({
     where: { id },
     include: {
       basket: true,
@@ -137,7 +40,7 @@ export default defineEventHandler(async (event) => {
 
   const [occurrenceTotal, occurrences, notificationTotal, notifications] = await Promise.all([
     subscriptionsEnabled
-      ? prisma.reservationOccurrence.count({
+      ? db.reservationOccurrence.count({
           where: {
             reservationId: id,
             occurrenceDate: { gte: today }
@@ -145,7 +48,7 @@ export default defineEventHandler(async (event) => {
         })
       : Promise.resolve(0),
     subscriptionsEnabled
-      ? prisma.reservationOccurrence.findMany({
+      ? db.reservationOccurrence.findMany({
           where: {
             reservationId: id,
             occurrenceDate: { gte: today }
@@ -155,8 +58,8 @@ export default defineEventHandler(async (event) => {
           take: occurrenceLimit
         })
       : Promise.resolve([]),
-    prisma.reservationNotification.count({ where: { reservationId: id } }),
-    prisma.reservationNotification.findMany({
+    db.reservationNotification.count({ where: { reservationId: id } }),
+    db.reservationNotification.findMany({
       where: { reservationId: id },
       orderBy: { createdAt: 'desc' },
       skip: (notificationPage - 1) * notificationLimit,
@@ -188,7 +91,7 @@ export default defineEventHandler(async (event) => {
     subscriptionCancelledAt: reservation.subscriptionCancelledAt,
     scheduleProposalPendingBy: reservation.scheduleProposalPendingBy,
     scheduleProposalAcceptedAt: reservation.scheduleProposalAcceptedAt,
-    scheduleProposals: reservation.scheduleProposals.map((proposal) => ({
+    scheduleProposals: reservation.scheduleProposals.map((proposal: any) => ({
       id: proposal.id,
       proposedBy: proposal.proposedBy,
       proposalDate: proposal.proposalDate,
@@ -199,7 +102,7 @@ export default defineEventHandler(async (event) => {
     })),
     googleCalendarEventId: reservation.googleCalendarEventId,
     googleCalendarSyncedAt: reservation.googleCalendarSyncedAt,
-    occurrences: occurrences.map((o) => ({
+    occurrences: occurrences.map((o: any) => ({
       id: o.id,
       occurrenceDate: o.occurrenceDate,
       originalOccurrenceDate: o.originalOccurrenceDate,
@@ -216,7 +119,7 @@ export default defineEventHandler(async (event) => {
       total: occurrenceTotal,
       totalPages: Math.max(1, Math.ceil(occurrenceTotal / occurrenceLimit))
     },
-    notifications: notifications.map((n) => ({
+    notifications: notifications.map((n: any) => ({
       id: n.id,
       kind: n.kind,
       recipientEmail: n.recipientEmail,
@@ -239,7 +142,7 @@ export default defineEventHandler(async (event) => {
       startTime: reservation.deliveryTour.startTime,
       endTime: reservation.deliveryTour.endTime,
       monthlyPrice: reservation.deliveryTour.monthlyPrice ? Number(reservation.deliveryTour.monthlyPrice) : null,
-      cities: reservation.deliveryTour.cities.map((c) => c.city)
+      cities: reservation.deliveryTour.cities.map((c: any) => c.city)
     } : null,
     subscriptionsEnabled
   }

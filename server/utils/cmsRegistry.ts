@@ -188,7 +188,7 @@ function resolveBundledAssetPath(url: string) {
     }
   }
 
-  return candidates[0]
+  return candidates[0]!
 }
 
 export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTemplateSnapshot, 'assetManifest'>) {
@@ -201,8 +201,9 @@ export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTempl
         const key = url.replace(/^\/uploads\//, '')
         const object = await getUploadObject(key)
         if (!object?.body) continue
-        const bytes = object.body instanceof Uint8Array ? object.body : new Uint8Array(await object.body.arrayBuffer())
-        const asset = await registryUploadAsset(key, object.contentType || 'application/octet-stream', bytes, url)
+        const body = object.body
+        const bytes = body instanceof Uint8Array ? body : body instanceof ArrayBuffer ? new Uint8Array(body) : new Uint8Array(await new Response(body as any).arrayBuffer())
+        const asset = await registryUploadAsset(key, object.httpMetadata?.contentType || 'application/octet-stream', bytes, url)
         manifest.push(asset)
         continue
       }
@@ -228,7 +229,7 @@ export async function exportCurrentTemplateSnapshot(): Promise<CmsRegistryTempla
     getFeatureFlags()
   ])
 
-  const pagesPayload = pages.map((page) => ({
+  const pagesPayload = pages.map((page: any) => ({
     path: page.path,
     slug: page.slug,
     pageType: page.pageType,
@@ -326,14 +327,9 @@ async function registerImportedTemplateImage(filename: string, contentType: stri
     return
   }
 
-  const { isRuntimeD1Active } = await import('#modula/server/platform/runtimeDb')
-  if (isRuntimeD1Active()) {
-    return
-  }
-
-  const { prisma } = await import('#modula/prisma/client')
+  const { db } = await import('#modula/server/data/client')
   const url = `/uploads/${filename}`
-  const existing = await prisma.image.findFirst({
+  const existing = await db.image.findFirst({
     where: {
       OR: [
         { filename },
@@ -343,7 +339,7 @@ async function registerImportedTemplateImage(filename: string, contentType: stri
   })
 
   if (existing) {
-    await prisma.image.update({
+    await db.image.update({
       where: { id: existing.id },
       data: {
         filename,
@@ -355,7 +351,7 @@ async function registerImportedTemplateImage(filename: string, contentType: stri
     return
   }
 
-  await prisma.image.create({
+  await db.image.create({
     data: {
       filename,
       url,
@@ -374,11 +370,6 @@ async function findRegistryAssetBySourceUrl(sourceUrl: string, scope: RegistrySc
 }
 
 async function syncImportedTemplateImageUsages() {
-  const { isRuntimeD1Active } = await import('#modula/server/platform/runtimeDb')
-  if (isRuntimeD1Active()) {
-    return
-  }
-
   const { syncImageUsageTable } = await import('#modula/server/utils/imageReferences')
   await syncImageUsageTable()
 }
@@ -413,7 +404,9 @@ async function registerTemplateManagedLocalAsset(sourceUrl: string) {
     id: '',
     filename: asset.filename,
     contentType: asset.contentType,
+    size: asset.bytes.length,
     checksum: '',
+    storageKey: '',
     downloadUrl: '',
     publicUrl: '',
     sourceUrl
@@ -497,19 +490,14 @@ async function materializeBundledTemplateAssetUrls<T>(
 }
 
 async function cleanupUnusedTemplateManagedImages(preservedFilenames: Set<string> = new Set()) {
-  const { isRuntimeD1Active } = await import('#modula/server/platform/runtimeDb')
-  if (isRuntimeD1Active()) {
-    return
-  }
-
-  const [{ prisma }, { listImageUsageAssociations }, { deleteImageVariants }, { deleteUploadObject }] = await Promise.all([
-    import('#modula/prisma/client'),
+  const [{ db }, { listImageUsageAssociations }, { deleteImageVariants }, { deleteUploadObject }] = await Promise.all([
+    import('#modula/server/data/client'),
     import('#modula/server/utils/imageReferences'),
     import('#modula/server/utils/imageVariants'),
     import('#modula/server/utils/uploadStorage')
   ])
 
-  const managedImages = await prisma.image.findMany({
+  const managedImages = await db.image.findMany({
     where: {
       uploadedById: null
     },
@@ -531,7 +519,7 @@ async function cleanupUnusedTemplateManagedImages(preservedFilenames: Set<string
     if (image.url.startsWith('/uploads/')) {
       await deleteUploadObject(image.filename)
     }
-    await prisma.image.delete({ where: { id: image.id } })
+    await db.image.delete({ where: { id: image.id } })
   }
 }
 

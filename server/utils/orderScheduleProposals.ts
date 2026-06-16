@@ -1,6 +1,6 @@
-import type { ReservationScheduleProposalSource } from '@prisma/client'
-import { createRuntimeReservationScheduleProposal, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../prisma/client'
+import type { ReservationScheduleProposalSource } from '#modula/server/data/types'
+
+import { db } from '#modula/server/data/client'
 
 export function normalizeProposalTime(value: string | null | undefined) {
   if (!value) return null
@@ -36,24 +36,7 @@ export async function createReservationScheduleProposal(input: {
   const proposalDate = normalizeProposalDate(input.proposalDate)
 
   try {
-    if (isRuntimeD1Active()) {
-      await createRuntimeReservationScheduleProposal({
-        reservationId: input.reservationId,
-        proposedBy: input.proposedBy,
-        proposalDate,
-        proposalTime,
-        proposalLocation: input.proposalLocation?.trim() || null
-      })
-      return {
-        reservationId: input.reservationId,
-        proposedBy: input.proposedBy,
-        proposalDate,
-        proposalTime,
-        proposalLocation: input.proposalLocation?.trim() || null
-      }
-    }
-
-    return await prisma.reservationScheduleProposal.create({
+    return await db.reservationScheduleProposal.create({
       data: {
         reservationId: input.reservationId,
         proposedBy: input.proposedBy,
@@ -78,7 +61,7 @@ export async function markReservationProposalAccepted(input: {
   proposalDate: Date
   proposalTime: string
 }) {
-  await prisma.reservationScheduleProposal.updateMany({
+  await db.reservationScheduleProposal.updateMany({
     where: {
       reservationId: input.reservationId,
       proposalDate: input.proposalDate,

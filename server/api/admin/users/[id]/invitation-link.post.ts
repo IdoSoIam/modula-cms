@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { AuthService } from '#modula/server/services/auth/authService'
 import { resolveAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
 import { getSiteOrigin, sendGmail } from '#modula/server/utils/gmail'
@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
   // Mode normal : génération d'un nouveau token
   const sendEmail = body?.sendEmail === true
 
-  const user = await prisma.user.findUnique({
+  const user = await db.user.findUnique({
     where: { id },
     select: {
       id: true,

@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { requireAssociationRolesEnabled } from '#modula/server/utils/settings'
 
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Slug invalide' })
   }
 
-  const created = await prisma.memberRole.create({
+  const created = await db.memberRole.create({
     data: {
       slug,
       name,

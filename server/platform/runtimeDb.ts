@@ -591,6 +591,131 @@ export async function getRuntimeUserByEmail(email: string) {
   return await d1First<RuntimeUserRow>('SELECT * FROM "User" WHERE "email" = ? LIMIT 1', [email])
 }
 
+export async function getRuntimeArticleById(id: number) {
+  return await d1First<RuntimeArticleRow>(
+    `SELECT a.*, u."firstName" as "authorFirstName", u."lastName" as "authorLastName", u."email" as "authorEmail"
+     FROM "Article" a
+     LEFT JOIN "User" u ON u."id" = a."authorId"
+     WHERE a."id" = ?
+     LIMIT 1`,
+    [id]
+  )
+}
+
+export async function getRuntimeArticleBySlug(slug: string) {
+  return await d1First<RuntimeArticleRow>(
+    `SELECT a.*, u."firstName" as "authorFirstName", u."lastName" as "authorLastName", u."email" as "authorEmail"
+     FROM "Article" a
+     LEFT JOIN "User" u ON u."id" = a."authorId"
+     WHERE a."slug" = ?
+     LIMIT 1`,
+    [slug]
+  )
+}
+
+export async function findRuntimeArticleBySlug(slug: string, excludeId?: number) {
+  if (excludeId != null) {
+    return await d1First<RuntimeArticleRow>(
+      'SELECT * FROM "Article" WHERE "slug" = ? AND "id" != ? LIMIT 1',
+      [slug, excludeId]
+    )
+  }
+
+  return await d1First<RuntimeArticleRow>(
+    'SELECT * FROM "Article" WHERE "slug" = ? LIMIT 1',
+    [slug]
+  )
+}
+
+export async function createRuntimeArticle(data: {
+  title: string
+  slug: string
+  excerpt: string | null
+  content: string
+  coverUrl: string | null
+  published: boolean
+  publishedAt: string | null
+  authorId: number | null
+}) {
+  await d1Run(
+    `INSERT INTO "Article" ("title", "slug", "excerpt", "content", "coverUrl", "published", "publishedAt", "authorId", "createdAt", "updatedAt")
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    [
+      data.title,
+      data.slug,
+      data.excerpt,
+      data.content,
+      data.coverUrl,
+      data.published ? 1 : 0,
+      data.publishedAt,
+      data.authorId
+    ]
+  )
+
+  return await getRuntimeArticleBySlug(data.slug)
+}
+
+export async function updateRuntimeArticle(id: number, data: Partial<{
+  title: string
+  slug: string
+  excerpt: string | null
+  content: string
+  coverUrl: string | null
+  published: boolean
+  publishedAt: string | null
+  authorId: number | null
+}>) {
+  const sets: string[] = []
+  const bindings: unknown[] = []
+
+  if (data.title !== undefined) {
+    sets.push('"title" = ?')
+    bindings.push(data.title)
+  }
+  if (data.slug !== undefined) {
+    sets.push('"slug" = ?')
+    bindings.push(data.slug)
+  }
+  if (data.excerpt !== undefined) {
+    sets.push('"excerpt" = ?')
+    bindings.push(data.excerpt)
+  }
+  if (data.content !== undefined) {
+    sets.push('"content" = ?')
+    bindings.push(data.content)
+  }
+  if (data.coverUrl !== undefined) {
+    sets.push('"coverUrl" = ?')
+    bindings.push(data.coverUrl)
+  }
+  if (data.published !== undefined) {
+    sets.push('"published" = ?')
+    bindings.push(data.published ? 1 : 0)
+  }
+  if (data.publishedAt !== undefined) {
+    sets.push('"publishedAt" = ?')
+    bindings.push(data.publishedAt)
+  }
+  if (data.authorId !== undefined) {
+    sets.push('"authorId" = ?')
+    bindings.push(data.authorId)
+  }
+
+  if (sets.length) {
+    bindings.push(id)
+    await d1Run(`UPDATE "Article" SET ${sets.join(', ')}, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = ?`, bindings)
+  }
+
+  return await getRuntimeArticleById(id)
+}
+
+export async function deleteRuntimeArticle(id: number) {
+  const existing = await getRuntimeArticleById(id)
+  if (!existing) return null
+  await d1Run('DELETE FROM "Article" WHERE "id" = ?', [id])
+  return existing
+}
+
 export async function listRuntimeArticles() {
   return await d1All<RuntimeArticleRow>(
     `SELECT a.*, u."firstName" as "authorFirstName", u."lastName" as "authorLastName", u."email" as "authorEmail"

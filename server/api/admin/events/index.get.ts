@@ -1,4 +1,4 @@
-import { prisma } from '#modula/prisma/client'
+import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
 import { eventToListItem } from '#modula/server/utils/events'
 import type { CmsLocale } from '#modula/shared/cms'
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const locale = query.locale === 'en' ? 'en' : 'fr'
   const status = typeof query.status === 'string' ? query.status : ''
 
-  const items = await prisma.event.findMany({
+  const items = await db.event.findMany({
     where: status ? { status: status as any } : undefined,
     include: {
       audienceMemberRoles: {
@@ -24,9 +24,9 @@ export default defineEventHandler(async (event) => {
     ]
   })
 
-  return items.map(item => ({
+  return items.map((item: any) => ({
     ...eventToListItem(item, locale as CmsLocale),
-    audienceMemberRoles: item.audienceMemberRoles.map(entry => ({
+    audienceMemberRoles: item.audienceMemberRoles.map((entry: any) => ({
       id: entry.memberRole.id,
       slug: entry.memberRole.slug,
       name: entry.memberRole.name

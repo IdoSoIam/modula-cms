@@ -1,17 +1,13 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { isRuntimeD1Active, listRuntimeDeliveryTours } from '#modula/server/platform/runtimeDb'
-import { prisma } from '../../../../prisma/client'
+import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
-  if (isRuntimeD1Active()) {
-    return await listRuntimeDeliveryTours()
-  }
-  const tours = await prisma.deliveryTour.findMany({
+  const tours = await db.deliveryTour.findMany({
     orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
     include: { cities: true }
   })
-  return tours.map(t => ({
+  return tours.map((t: any) => ({
     ...t,
     monthlyPrice: t.monthlyPrice !== null ? Number(t.monthlyPrice) : null
   }))

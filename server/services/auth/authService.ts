@@ -2,17 +2,10 @@ import { H3Event } from 'h3'
 import bcrypt from 'bcryptjs'
 import { createHash, randomBytes } from 'node:crypto'
 import { getSessionConfig } from '../../utils/session'
-import { prisma } from '../../../prisma/client'
+import { db } from '#modula/server/data/client'
 import { buildUserAccessPayload, ensureDefaultRoles } from '#modula/server/utils/permissions'
 import type { UserAccessPayload, UserMemberRolePayload } from '#modula/shared/access'
-import {
-  getRuntimeRoleById,
-  getRuntimeRolePermissions,
-  getRuntimeUserByEmail,
-  getRuntimeUserById,
-  getRuntimeUserMemberRoles,
-  isRuntimeD1Active
-} from '#modula/server/platform/runtimeDb'
+
 
 export interface AuthenticatedUser {
   id: number
@@ -98,7 +91,7 @@ function mapUser(user: {
     }
   }>
 }): AuthenticatedUser {
-  const memberRoles = user.memberRoles.map((entry) => ({
+  const memberRoles = user.memberRoles?.map((entry) => ({
     id: entry.memberRole.id,
     slug: entry.memberRole.slug,
     name: entry.memberRole.name,
@@ -115,68 +108,13 @@ function mapUser(user: {
     isActive: user.isActive,
     access: buildUserAccessPayload(user as any),
     memberRoles,
-    memberRoleIds: memberRoles.map((entry) => entry.id),
+    memberRoleIds: memberRoles?.map((entry) => entry.id),
     shippingAddress: user.street && user.city && user.postalCode && user.country ? {
       street: user.street,
       city: user.city,
       postalCode: user.postalCode,
       country: user.country
     } : undefined
-  }
-}
-
-async function getRuntimeSessionUser(userId: number) {
-  const user = await getRuntimeUserById(userId)
-  if (!user) return null
-
-  return await getRuntimeAuthenticatedUser(user)
-}
-
-async function getRuntimeAuthenticatedUser(user: {
-  id: number
-  email: string
-  firstName: string | null
-  lastName: string | null
-  role: string
-  roleId: number | null
-  isActive: number | boolean
-  street: string | null
-  city: string | null
-  postalCode: string | null
-  country: string | null
-}) {
-
-  const [managedRole, memberRoles] = await Promise.all([
-    user.roleId ? getRuntimeRoleById(user.roleId) : Promise.resolve(null),
-    getRuntimeUserMemberRoles(user.id)
-  ])
-
-  const permissions = managedRole
-    ? await getRuntimeRolePermissions(managedRole.id)
-    : []
-
-  return {
-    ...user,
-    isActive: Boolean(user.isActive),
-    managedRole: managedRole ? {
-      slug: managedRole.slug,
-      specialPermissionsJson: managedRole.specialPermissionsJson || '[]',
-      permissions: permissions.map((permission) => ({
-        module: permission.module,
-        canRead: Boolean(permission.canRead),
-        canCreate: Boolean(permission.canCreate),
-        canUpdate: Boolean(permission.canUpdate),
-        canDelete: Boolean(permission.canDelete)
-      }))
-    } : null,
-    memberRoles: memberRoles.map((entry) => ({
-      memberRole: {
-        id: entry.id,
-        slug: entry.slug,
-        name: entry.name,
-        color: entry.color
-      }
-    }))
   }
 }
 
@@ -204,7 +142,7 @@ export class AuthService {
       await ensureDefaultRoles()
       const normalizedEmail = email.trim().toLowerCase()
       const hashedPassword = await bcrypt.hash(password, AuthService.SALT_ROUNDS)
-      const roleRow = await prisma.role.findFirst({
+      const roleRow = await db.role.findFirst({
         where: {
           OR: [
             { slug: role },
@@ -212,7 +150,7 @@ export class AuthService {
           ]
         }
       })
-      const user = await prisma.user.create({
+      const user = await db.user.create({
         data: {
           email: normalizedEmail,
           password: hashedPassword,
@@ -242,7 +180,7 @@ export class AuthService {
       await ensureDefaultRoles()
       const normalizedEmail = email.trim().toLowerCase()
       const hashedPassword = await bcrypt.hash(this.generateOpaquePassword(), AuthService.SALT_ROUNDS)
-      const roleRow = await prisma.role.findFirst({
+      const roleRow = await db.role.findFirst({
         where: {
           OR: [
             { slug: role },
@@ -250,7 +188,7 @@ export class AuthService {
           ]
         }
       })
-      const user = await prisma.user.create({
+      const user = await db.user.create({
         data: {
           email: normalizedEmail,
           password: hashedPassword,
@@ -275,12 +213,12 @@ export class AuthService {
     const token = randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + (ttlMs ?? AuthService.PASSWORD_SETUP_TOKEN_TTL_MS))
 
-    await prisma.$transaction([
-      prisma.passwordSetupToken.updateMany({
+    await db.$transaction([
+      db.passwordSetupToken.updateMany({
         where: { userId, usedAt: null },
         data: { usedAt: new Date() }
       }),
-      prisma.passwordSetupToken.create({
+      db.passwordSetupToken.create({
         data: {
           userId,
           token: this.hashPasswordSetupToken(token),
@@ -293,7 +231,7 @@ export class AuthService {
   }
 
   async validatePasswordSetupToken(token: string): Promise<PasswordSetupTokenValidation | null> {
-    const row = await prisma.passwordSetupToken.findUnique({
+    const row = await db.passwordSetupToken.findUnique({
       where: { token: this.hashPasswordSetupToken(token) },
       include: { user: true }
     })
@@ -316,7 +254,7 @@ export class AuthService {
       throw createError({ statusCode: 400, statusMessage: 'Le mot de passe doit contenir au moins 8 caractères' })
     }
 
-    const row = await prisma.passwordSetupToken.findUnique({
+    const row = await db.passwordSetupToken.findUnique({
       where: { token: this.hashPasswordSetupToken(token) },
       include: { user: true }
     })
@@ -326,7 +264,7 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(normalizedPassword, AuthService.SALT_ROUNDS)
-    const consumed = await prisma.passwordSetupToken.updateMany({
+    const consumed = await db.passwordSetupToken.updateMany({
       where: {
         id: row.id,
         usedAt: null,
@@ -339,7 +277,7 @@ export class AuthService {
       throw createError({ statusCode: 404, statusMessage: 'Lien de configuration invalide ou expiré' })
     }
 
-    await prisma.user.update({
+    await db.user.update({
       where: { id: row.userId },
       data: {
         password: hashedPassword,
@@ -347,7 +285,7 @@ export class AuthService {
       }
     })
 
-    const user = await prisma.user.findUniqueOrThrow({
+    const user = await db.user.findUniqueOrThrow({
       where: { id: row.userId },
       select: userSelect
     })
@@ -359,21 +297,7 @@ export class AuthService {
     try {
       await ensureDefaultRoles()
       const normalizedEmail = email.trim().toLowerCase()
-      if (isRuntimeD1Active()) {
-        const runtimeUser = await getRuntimeUserByEmail(normalizedEmail)
-        if (!runtimeUser?.password) {
-          return null
-        }
-
-        const isValid = await bcrypt.compare(password, runtimeUser.password)
-        if (!isValid || !runtimeUser.isActive) {
-          return null
-        }
-
-        return mapUser(await getRuntimeAuthenticatedUser(runtimeUser) as any)
-      }
-
-      const user = await prisma.user.findUnique({
+      const user = await db.user.findUnique({
         where: { email: normalizedEmail },
         select: userSelect
       })
@@ -406,16 +330,7 @@ export class AuthService {
 
     try {
       await ensureDefaultRoles()
-      if (isRuntimeD1Active()) {
-        const runtimeUser = await getRuntimeSessionUser(userId)
-        if (!runtimeUser || !runtimeUser.isActive) {
-          return null
-        }
-
-        return mapUser(runtimeUser as any)
-      }
-
-      const user = await prisma.user.findUnique({
+      const user = await db.user.findUnique({
         where: { id: userId },
         select: userSelect
       })
@@ -448,7 +363,7 @@ export class AuthService {
   }): Promise<AuthenticatedUser> {
     try {
       const normalizedEmail = data.email.trim().toLowerCase()
-      const user = await prisma.user.update({
+      const user = await db.user.update({
         where: { id: userId },
         data: {
           firstName: data.firstName,
@@ -477,7 +392,7 @@ export class AuthService {
         ? `${data.addressLine1}, ${data.addressLine2}`
         : data.addressLine1
 
-      const user = await prisma.user.update({
+      const user = await db.user.update({
         where: { id: userId },
         data: {
           street,
@@ -497,7 +412,7 @@ export class AuthService {
 
   async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
     try {
-      const user = await prisma.user.findUnique({
+      const user = await db.user.findUnique({
         where: { id: userId },
         select: { password: true }
       })
@@ -518,7 +433,7 @@ export class AuthService {
       }
 
       const hashedNewPassword = await bcrypt.hash(newPassword, AuthService.SALT_ROUNDS)
-      await prisma.user.update({
+      await db.user.update({
         where: { id: userId },
         data: { password: hashedNewPassword }
       })
@@ -530,7 +445,7 @@ export class AuthService {
 
   async deleteAccount(userId: number, password: string): Promise<void> {
     try {
-      const user = await prisma.user.findUnique({
+      const user = await db.user.findUnique({
         where: { id: userId },
         select: { password: true }
       })
@@ -555,7 +470,7 @@ export class AuthService {
       // 2. Archive user data instead of deleting
       // 3. Send confirmation email
 
-      await prisma.user.delete({
+      await db.user.delete({
         where: { id: userId }
       })
     } catch (error) {
