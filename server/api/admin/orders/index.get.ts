@@ -2,7 +2,6 @@ import type { DbTypes } from '#modula/server/data/types'
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { ensureReservationOccurrences } from '#modula/server/utils/orderOccurrences'
 import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
-import { isRuntimeD1Active, listRuntimeReservations } from '#modula/server/platform/runtimeDb'
 import { db } from '#modula/server/data/client'
 
 function toPositiveInt(value: unknown, fallback: number, max = 100) {
@@ -154,107 +153,6 @@ export default defineEventHandler(async (event) => {
       orderBy: { occurrenceDate: 'asc' as const }
     }
   } satisfies DbTypes.ReservationInclude
-
-  if (isRuntimeD1Active()) {
-    const reservations = await listRuntimeReservations({
-      includeArchived,
-      statuses: baseStatuses
-    })
-
-    if (mode === 'calendar') {
-      const month = typeof query.month === 'string' && /^\d{4}-\d{2}$/.test(query.month)
-        ? query.month
-        : new Date().toISOString().slice(0, 7)
-      const [year = new Date().getFullYear(), monthIndex = new Date().getMonth() + 1] = month.split('-').map(Number)
-      const monthStart = startOfMonth(new Date(year, monthIndex - 1, 1))
-      const gridStart = startOfWeek(monthStart)
-      const monthEnd = endOfMonth(monthStart)
-      const gridEnd = new Date(monthEnd)
-      const endDay = gridEnd.getDay()
-      gridEnd.setDate(gridEnd.getDate() + (endDay === 0 ? 0 : 7 - endDay))
-      gridEnd.setHours(23, 59, 59, 999)
-
-      const calendarItems = reservations.flatMap((reservation: any) => {
-        const occurrencesInRange = subscriptionsEnabled ? (reservation.occurrences ?? [])
-          .filter((occurrence: any) => {
-            const date = new Date(occurrence.occurrenceDate)
-            return date >= gridStart && date <= gridEnd
-          })
-          .map((occurrence: any) => ({
-            id: `occurrence-${occurrence.id}`,
-            reservationId: reservation.id,
-            occurrenceId: occurrence.id,
-            customerName: reservation.customerName,
-            status: occurrence.status === 'CANCELLED' ? 'CANCELLED' : reservation.status,
-            basket: { id: reservation.basket.id, name: reservation.basket.name, finalPrice: Number(reservation.basket.finalPrice) },
-            date: occurrence.occurrenceDate,
-            time: occurrence.occurrenceTime ?? reservation.fulfillmentTime,
-            location: occurrence.occurrenceLocation ?? reservation.fulfillmentLocation
-          }))
-          : []
-
-        if (occurrencesInRange.length) return occurrencesInRange
-
-        const source = reservation.fulfillmentDate ?? reservation.createdAt
-        const sourceDate = new Date(source)
-        if (sourceDate < gridStart || sourceDate > gridEnd) return []
-
-        return [{
-          id: `reservation-${reservation.id}`,
-          reservationId: reservation.id,
-          occurrenceId: null,
-          customerName: reservation.customerName,
-          status: reservation.status,
-          basket: { id: reservation.basket.id, name: reservation.basket.name, finalPrice: Number(reservation.basket.finalPrice) },
-          date: source,
-          time: reservation.fulfillmentTime,
-          location: reservation.fulfillmentLocation
-        }]
-      })
-
-      const perPage = toPositiveInt(query.perDayLimit, 4, 30)
-      const dayPages = parseDayPages(query.dayPages)
-      const days = []
-
-      for (let cursor = new Date(gridStart); cursor <= gridEnd; cursor.setDate(cursor.getDate() + 1)) {
-        const date = new Date(cursor)
-        const iso = date.toISOString().slice(0, 10)
-        const dayItems = calendarItems.filter((item) => sameDay(new Date(item.date), date))
-        const totalPages = Math.max(1, Math.ceil(dayItems.length / perPage))
-        const page = Math.min(Math.max(Number(dayPages[iso] ?? 1), 1), totalPages)
-
-        days.push({
-          iso,
-          dayNumber: date.getDate(),
-          inCurrentMonth: date.getMonth() === monthStart.getMonth(),
-          isToday: sameDay(date, new Date()),
-          page,
-          perPage,
-          total: dayItems.length,
-          totalPages,
-          items: dayItems.slice((page - 1) * perPage, page * perPage)
-        })
-      }
-
-      return { mode, days }
-    }
-
-    const filtered = reservations
-      .filter((reservation: any) => getReservationDisplayDate(reservation, today, subscriptionsEnabled) >= today)
-      .sort((a: any, b: any) => getReservationDisplayDate(a, today, subscriptionsEnabled).getTime() - getReservationDisplayDate(b, today, subscriptionsEnabled).getTime())
-      .map((reservation: any) => serializeReservation(reservation, today, subscriptionsEnabled))
-
-    const page = toPositiveInt(query.page, 1)
-    const perPage = toPositiveInt(query.limit, 10, 50)
-    const total = filtered.length
-    const totalPages = Math.max(1, Math.ceil(total / perPage))
-
-    return {
-      mode,
-      items: filtered.slice((page - 1) * perPage, page * perPage),
-      pagination: { page, perPage, total, totalPages }
-    }
-  }
 
   const reservations = await db.reservation.findMany({
     where: includeArchived && baseStatuses.length

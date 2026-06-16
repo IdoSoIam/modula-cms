@@ -1,13 +1,7 @@
 import { db } from '#modula/server/data/client'
 import { getPageBuilderContent, savePageBuilderContent } from '#modula/server/utils/pageBuilder'
 import type { PageBuilderColumnItem, PageBuilderSection } from '#modula/shared/pageBuilder'
-import {
-  getRuntimeCmsPageById,
-  getRuntimeImageByFilename,
-  isRuntimeD1Active,
-  listRuntimeCmsPages,
-  listRuntimeImageUsages
-} from '#modula/server/platform/runtimeDb'
+
 
 interface RootPageImageReferenceItem {
   kind: 'section-background-image' | 'section-background-carousel' | 'column-image' | 'column-carousel'
@@ -324,10 +318,6 @@ function cmsUsageToReferenceItem(
 }
 
 export async function syncImageUsageTable() {
-  if (isRuntimeD1Active()) {
-    return
-  }
-
   const [images, vegetables, baskets, articles, cmsPages] = await Promise.all([
     db.image.findMany({
       select: { id: true, url: true }
@@ -539,10 +529,6 @@ export async function syncImageUsageTable() {
 }
 
 export async function listImageUsageAssociations(imageId: number) {
-  if (isRuntimeD1Active()) {
-    return await listRuntimeImageUsages(imageId)
-  }
-
   return await db.imageUsage.findMany({
     where: { imageId },
     orderBy: [
@@ -612,69 +598,6 @@ export async function removeImageReferences(url: string) {
 }
 
 export async function countImageReferences(url: string) {
-  if (isRuntimeD1Active()) {
-    const filename = url.startsWith('/uploads/') ? url.replace(/^\/uploads\//, '') : ''
-    const image = filename ? await getRuntimeImageByFilename(filename) : null
-
-    if (!image) {
-      return {
-        vegetables: 0,
-        baskets: 0,
-        articles: 0,
-        articleContent: 0,
-        cmsSiteSettings: {
-          count: 0,
-          items: [] as CmsSiteSettingsImageReferenceItem[]
-        },
-        cmsPages: {
-          count: 0,
-          items: [] as CmsPageImageReferenceItem[]
-        },
-        rootPage: {
-          count: 0,
-          items: [] as RootPageImageReferenceItem[]
-        }
-      }
-    }
-
-    const usages = await listRuntimeImageUsages(image.id)
-    const cmsPages = await listRuntimeCmsPages()
-    const cmsPageById = new Map(cmsPages.map((page) => [page.id, { path: page.path, title: page.title }]))
-    const rootItems = usages
-      .filter((usage) => usage.scopeType === 'root-page')
-      .map(rootUsageToReferenceItem)
-      .filter((item): item is RootPageImageReferenceItem => Boolean(item))
-    const cmsPageItems = usages
-      .filter((usage) => usage.scopeType === 'cms-page')
-      .map((usage) => cmsUsageToReferenceItem(usage, cmsPageById))
-      .filter((item): item is CmsPageImageReferenceItem => Boolean(item))
-    const cmsSiteSettingsItems = usages
-      .filter((usage) => usage.scopeType === 'cms-site-settings' && (usage.fieldKey === 'logo' || usage.fieldKey === 'favicon'))
-      .map((usage) => ({
-        fieldKey: usage.fieldKey as 'logo' | 'favicon',
-        label: usage.label
-      }))
-
-    return {
-      vegetables: usages.filter((usage) => usage.scopeType === 'vegetable').length,
-      baskets: usages.filter((usage) => usage.scopeType === 'basket').length,
-      articles: usages.filter((usage) => usage.scopeType === 'article').length,
-      articleContent: usages.filter((usage) => usage.scopeType === 'article-content').length,
-      cmsSiteSettings: {
-        count: cmsSiteSettingsItems.length,
-        items: cmsSiteSettingsItems
-      },
-      cmsPages: {
-        count: cmsPageItems.length,
-        items: cmsPageItems
-      },
-      rootPage: {
-        count: rootItems.length,
-        items: rootItems
-      }
-    }
-  }
-
   const image = await db.image.findFirst({
     where: { url },
     select: { id: true }

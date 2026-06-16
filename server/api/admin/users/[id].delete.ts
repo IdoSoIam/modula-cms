@@ -1,5 +1,4 @@
 import { db } from '#modula/server/data/client'
-import { db } from '#modula/server/generated/db'
 import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {

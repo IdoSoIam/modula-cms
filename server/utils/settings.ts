@@ -1,5 +1,5 @@
 import cmsProjectConfig from '#modula/cms.project.config'
-import { db } from '#modula/server/generated/db'
+import { db } from '#modula/server/data/client'
 
 export const SETTING_KEYS = {
   ADMIN_EMAIL: 'admin_email',

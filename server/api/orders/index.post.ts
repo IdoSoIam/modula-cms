@@ -5,14 +5,6 @@ import { appendReservationManageLink, buildGenericEmail, getAdminReservationUrl 
 import { getReservationEmailHtmlLang, normalizeReservationLocale, resolveTemplateFromSettings, applyTemplateVars } from '#modula/server/utils/orderEmailContent'
 import { getReservationFulfillment, getDeliveryMethodLabel } from '#modula/server/utils/orderFulfillment'
 import { createReservationScheduleProposal, normalizeProposalDate, normalizeProposalTime } from '#modula/server/utils/orderScheduleProposals'
-import {
-  createRuntimeReservation,
-  getRuntimeBasketById,
-  getRuntimeDeliveryTourById,
-  getRuntimePickupPointById,
-  getRuntimeReservationUsageCountsByBasketIds,
-  isRuntimeD1Active
-} from '#modula/server/platform/runtimeDb'
 import { db } from '#modula/server/data/client'
 import { AuthService } from '../../services/auth/authService'
 import { randomBytes } from 'node:crypto'
@@ -53,18 +45,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Email invalide' })
   }
 
-  const basket = isRuntimeD1Active()
-    ? await getRuntimeBasketById(body.basketId)
-    : await db.basket.findUnique({ where: { id: body.basketId } })
+  const basket = await db.basket.findUnique({ where: { id: body.basketId } })
   if (!basket || !basket.active) {
     throw createError({ statusCode: 404, statusMessage: 'Panier introuvable' })
   }
 
-  const used = isRuntimeD1Active()
-    ? (await getRuntimeReservationUsageCountsByBasketIds([basket.id])).get(basket.id) ?? 0
-    : await db.reservation.count({
-        where: { basketId: basket.id, status: { in: ['PENDING', 'CONFIRMED'] } }
-      })
+  const used = await db.reservation.count({
+    where: { basketId: basket.id, status: { in: ['PENDING', 'CONFIRMED'] } }
+  })
   if (used >= basket.available) {
     throw createError({ statusCode: 409, statusMessage: 'Plus aucun panier disponible' })
   }
@@ -86,9 +74,7 @@ export default defineEventHandler(async (event) => {
     }
   } else if (body.deliveryType === 'PICKUP') {
     if (!body.pickupPointId) throw createError({ statusCode: 400, statusMessage: 'Point relais requis' })
-    const p = isRuntimeD1Active()
-      ? await getRuntimePickupPointById(body.pickupPointId)
-      : await db.pickupPoint.findUnique({
+    const p = await db.pickupPoint.findUnique({
           where: { id: body.pickupPointId },
           select: {
             id: true,
@@ -107,9 +93,7 @@ export default defineEventHandler(async (event) => {
     if (!body.deliveryTourId) throw createError({ statusCode: 400, statusMessage: 'Tournée requise' })
     if (!body.deliveryCity?.trim()) throw createError({ statusCode: 400, statusMessage: 'Ville requise pour la tournée' })
     if (!body.deliveryAddress?.trim()) throw createError({ statusCode: 400, statusMessage: 'Adresse requise pour la tournée' })
-    const t = isRuntimeD1Active()
-      ? await getRuntimeDeliveryTourById(body.deliveryTourId)
-      : await db.deliveryTour.findUnique({
+    const t = await db.deliveryTour.findUnique({
           where: { id: body.deliveryTourId },
           select: {
             id: true,
@@ -158,55 +142,31 @@ export default defineEventHandler(async (event) => {
     : null
 
   const publicActionToken = randomBytes(24).toString('hex')
-  const reservation = isRuntimeD1Active()
-    ? await createRuntimeReservation({
-        basketId: basket.id,
-        userId: sessionUser?.id ?? null,
-        customerName: body.customerName.trim(),
-        email: body.email.trim().toLowerCase(),
-        language: reservationLanguage,
-        phone: body.phone?.trim() || null,
-        message: body.message?.trim() || null,
-        status: 'PENDING',
-        deliveryType,
-        pickupPointId,
-        deliveryTourId,
-        deliveryAddress,
-        deliveryCity,
-        deliveryPostalCode,
-        fulfillmentDate: deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate,
-        fulfillmentTime: deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime,
-        fulfillmentLocation: fulfillment.fulfillmentLocation,
-        monthlySubscription: subscriptionsEnabled ? (body.monthlySubscription ?? false) : false,
-        publicActionToken,
-        scheduleProposalPendingBy: deliveryType === 'FARM' ? 'ADMIN' : null,
-        lastScheduleProposalAt: deliveryType === 'FARM' ? new Date() : null
-      })
-    : await db.reservation.create({
-        data: {
-          basketId: basket.id,
-          userId: sessionUser?.id ?? null,
-          customerName: body.customerName.trim(),
-          email: body.email.trim().toLowerCase(),
-          language: reservationLanguage,
-          phone: body.phone?.trim() || null,
-          message: body.message?.trim() || null,
-          status: 'PENDING',
-          deliveryType,
-          pickupPointId,
-          deliveryTourId,
-          deliveryAddress,
-          deliveryCity,
-          deliveryPostalCode,
-          fulfillmentDate: deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate,
-          fulfillmentTime: deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime,
-          fulfillmentLocation: fulfillment.fulfillmentLocation,
-          monthlySubscription: subscriptionsEnabled ? (body.monthlySubscription ?? false) : false,
-          publicActionToken,
-          scheduleProposalPendingBy: deliveryType === 'FARM' ? 'ADMIN' : null,
-          lastScheduleProposalAt: deliveryType === 'FARM' ? new Date() : null
-        }
-      })
+  const reservation = await db.reservation.create({
+    data: {
+      basketId: basket.id,
+      userId: sessionUser?.id ?? null,
+      customerName: body.customerName.trim(),
+      email: body.email.trim().toLowerCase(),
+      language: reservationLanguage,
+      phone: body.phone?.trim() || null,
+      message: body.message?.trim() || null,
+      status: 'PENDING',
+      deliveryType,
+      pickupPointId,
+      deliveryTourId,
+      deliveryAddress,
+      deliveryCity,
+      deliveryPostalCode,
+      fulfillmentDate: deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate,
+      fulfillmentTime: deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime,
+      fulfillmentLocation: fulfillment.fulfillmentLocation,
+      monthlySubscription: subscriptionsEnabled ? (body.monthlySubscription ?? false) : false,
+      publicActionToken,
+      scheduleProposalPendingBy: deliveryType === 'FARM' ? 'ADMIN' : null,
+      lastScheduleProposalAt: deliveryType === 'FARM' ? new Date() : null
+    }
+  })
 
   if (!reservation) {
     throw createError({ statusCode: 500, statusMessage: 'Creation de reservation impossible' })

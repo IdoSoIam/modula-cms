@@ -326,11 +326,6 @@ async function registerImportedTemplateImage(filename: string, contentType: stri
     return
   }
 
-  const { isRuntimeD1Active } = await import('#modula/server/platform/runtimeDb')
-  if (isRuntimeD1Active()) {
-    return
-  }
-
   const { db } = await import('#modula/server/data/client')
   const url = `/uploads/${filename}`
   const existing = await db.image.findFirst({
@@ -374,11 +369,6 @@ async function findRegistryAssetBySourceUrl(sourceUrl: string, scope: RegistrySc
 }
 
 async function syncImportedTemplateImageUsages() {
-  const { isRuntimeD1Active } = await import('#modula/server/platform/runtimeDb')
-  if (isRuntimeD1Active()) {
-    return
-  }
-
   const { syncImageUsageTable } = await import('#modula/server/utils/imageReferences')
   await syncImageUsageTable()
 }
@@ -497,11 +487,6 @@ async function materializeBundledTemplateAssetUrls<T>(
 }
 
 async function cleanupUnusedTemplateManagedImages(preservedFilenames: Set<string> = new Set()) {
-  const { isRuntimeD1Active } = await import('#modula/server/platform/runtimeDb')
-  if (isRuntimeD1Active()) {
-    return
-  }
-
   const [{ db }, { listImageUsageAssociations }, { deleteImageVariants }, { deleteUploadObject }] = await Promise.all([
     import('#modula/server/data/client'),
     import('#modula/server/utils/imageReferences'),

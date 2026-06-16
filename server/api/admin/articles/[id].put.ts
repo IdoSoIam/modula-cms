@@ -1,7 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { slugify } from '#modula/server/utils/slug'
-import { db } from '#modula/server/generated/db'
+import { db } from '#modula/server/data/client'
 
 interface Body {
   title?: string

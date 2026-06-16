@@ -1,4 +1,4 @@
-import { db } from '#modula/server/generated/db'
+import { db } from '#modula/server/data/client'
 import { getFeatureFlags } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async () => {

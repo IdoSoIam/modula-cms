@@ -13,7 +13,7 @@ import { applySiteTemplate } from '#modula/server/utils/siteTemplates'
 import type { CmsSiteTemplateKey } from '#modula/shared/siteTemplates'
 import { getCmsSiteSettings, saveCmsSiteSettings } from '#modula/server/utils/cms'
 import { getCloudflareRuntimeEnv, isCloudflareRuntime } from '#modula/server/platform/runtime'
-import { countRuntimeUsers, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
+
 import { applySqliteMigrations, loadResolvedMigrations, renderMigrationStateTableSql } from '#modula/db/migration-system'
 import { d1BootstrapSql, schemaSnapshotHash, sqliteBootstrapSql } from '#modula/server/generated/bootstrap.generated'
 
@@ -241,12 +241,8 @@ export async function getCmsInstallStatus(event?: H3Event): Promise<CmsInstallSt
   try {
     if (currentPlatform.dbDriver === 'sqlite') {
       await applySqliteMigrationsIfNeeded(event)
-    } else if (currentPlatform.dbDriver === 'd1' && isRuntimeD1Active()) {
-      await applyRuntimeD1MigrationsIfNeeded(event)
     }
-    userCount = isRuntimeD1Active()
-      ? await countRuntimeUsers()
-      : await db.user.count()
+    userCount = await db.user.count()
   } catch (error) {
     const detectedRuntimeIssue = getPrismaRuntimeIssue(error)
     if (detectedRuntimeIssue) {
@@ -308,8 +304,6 @@ export async function bootstrapCmsInstallation(event: H3Event, payload: CmsInsta
 
   if (payload.dbDriver === 'sqlite') {
     await applySqliteMigrationsIfNeeded(event)
-  } else if (payload.dbDriver === 'd1' && isRuntimeD1Active()) {
-    await applyRuntimeD1MigrationsIfNeeded(event)
   }
 
   let existingUserCount = 0

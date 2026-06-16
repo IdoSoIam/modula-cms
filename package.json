@@ -2,7 +2,7 @@
   "name": "modula-cms",
   "version": "0.1.0",
   "private": false,
-  "description": "CMS modulaire Nuxt avec pages éditoriales, admin, planning et installation guidée.",
+  "description": "CMS modulaire Nuxt avec pages éditoriales, admin et installation guidée.",
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
@@ -13,8 +13,8 @@
     "release:build": "node ./scripts/build-runtime-release.mjs",
     "release:publish": "node ./scripts/publish-runtime-release.mjs",
     "release:publish:git": "node ./scripts/publish-runtime-release-with-git.mjs",
-
     "registry:seed:bundled": "node ./scripts/seed-bundled-registry-templates.mjs",
+
     "db:generate:internal": "node --experimental-strip-types ./generator/generate-db-artifacts.ts",
     "db:migrate:status": "node --experimental-strip-types ./scripts/db-migrate.mjs sqlite --status",
     "db:migrate:scaffold": "node --experimental-strip-types ./scripts/db-migration-scaffold.mjs",
@@ -60,6 +60,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.9.3",
     "nitro-cloudflare-dev": "^0.2.2",
+    "typescript": "^6.0.3",
     "wrangler": "^4.100.0"
   }
 }

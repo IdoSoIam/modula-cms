@@ -1,7 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { isSubscriptionsEnabled } from '#modula/server/utils/settings'
 import { db } from '#modula/server/data/client'
-import { countRuntimeStats, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 
 function startOfDay(date: Date) {
   const copy = new Date(date)
@@ -22,18 +21,6 @@ export default defineEventHandler(async (event) => {
   const today = startOfDay(new Date())
   const next7Days = endOfDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 6))
   const monthEnd = endOfDay(new Date(today.getFullYear(), today.getMonth() + 1, 0))
-
-  if (isRuntimeD1Active()) {
-    return {
-      ...(await countRuntimeStats({
-        subscriptionsEnabled,
-        todayIso: today.toISOString(),
-        next7DaysIso: next7Days.toISOString(),
-        monthEndIso: monthEnd.toISOString()
-      })),
-      subscriptionsEnabled
-    }
-  }
 
   const [
     vegetables,

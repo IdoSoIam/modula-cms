@@ -1,5 +1,4 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { createRuntimePickupPoint, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
@@ -17,21 +16,6 @@ export default defineEventHandler(async (event) => {
     position?: number
   }>(event)
   if (!body.name?.trim()) throw createError({ statusCode: 400, statusMessage: 'Nom requis' })
-  if (isRuntimeD1Active()) {
-    const point = await createRuntimePickupPoint({
-      name: body.name.trim(),
-      address: body.address?.trim() || null,
-      details: body.details?.trim() || null,
-      delayDays: typeof body.delayDays === 'number' ? body.delayDays : 0,
-      deliveryDay: body.deliveryDay ?? null,
-      pickupStartTime: body.pickupStartTime?.trim() || null,
-      openingHours: body.openingHours?.trim() || null,
-      websiteUrl: body.websiteUrl?.trim() || null,
-      active: body.active ?? true,
-      position: body.position ?? 0
-    })
-    return point ? { ...point, active: point.active === true || point.active === 1 } : null
-  }
   return db.pickupPoint.create({
     data: {
       name: body.name.trim(),

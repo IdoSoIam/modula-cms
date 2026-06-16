@@ -1,5 +1,4 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { isRuntimeD1Active, updateRuntimePickupPoint } from '#modula/server/platform/runtimeDb'
 import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
@@ -29,9 +28,5 @@ export default defineEventHandler(async (event) => {
   if (body.websiteUrl !== undefined) data.websiteUrl = body.websiteUrl?.trim() || null
   if (body.active !== undefined) data.active = body.active
   if (body.position !== undefined) data.position = body.position
-  if (isRuntimeD1Active()) {
-    const point = await updateRuntimePickupPoint(id, data)
-    return point ? { ...point, active: point.active === true || point.active === 1 } : null
-  }
   return db.pickupPoint.update({ where: { id }, data })
 })

@@ -1,5 +1,5 @@
 import type { ReservationScheduleProposalSource } from '#modula/server/data/types'
-import { createRuntimeReservationScheduleProposal, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
+
 import { db } from '#modula/server/data/client'
 
 export function normalizeProposalTime(value: string | null | undefined) {
@@ -36,23 +36,6 @@ export async function createReservationScheduleProposal(input: {
   const proposalDate = normalizeProposalDate(input.proposalDate)
 
   try {
-    if (isRuntimeD1Active()) {
-      await createRuntimeReservationScheduleProposal({
-        reservationId: input.reservationId,
-        proposedBy: input.proposedBy,
-        proposalDate,
-        proposalTime,
-        proposalLocation: input.proposalLocation?.trim() || null
-      })
-      return {
-        reservationId: input.reservationId,
-        proposedBy: input.proposedBy,
-        proposalDate,
-        proposalTime,
-        proposalLocation: input.proposalLocation?.trim() || null
-      }
-    }
-
     return await db.reservationScheduleProposal.create({
       data: {
         reservationId: input.reservationId,

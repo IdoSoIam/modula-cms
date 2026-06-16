@@ -1,5 +1,4 @@
 import { serializeBasket } from '#modula/server/utils/baskets'
-import { getRuntimeReservationUsageCountsByBasketIds, isRuntimeD1Active, listRuntimeBaskets } from '#modula/server/platform/runtimeDb'
 import { getFeatureFlags } from '#modula/server/utils/settings'
 import { db } from '#modula/server/data/client'
 
@@ -9,33 +8,6 @@ export default defineEventHandler(async (event) => {
   const featureFlags = await getFeatureFlags()
   if (!featureFlags.shop.enabled || !featureFlags.shop.basketsEnabled) {
     throw createError({ statusCode: 404, statusMessage: 'Paniers introuvables' })
-  }
-
-  if (isRuntimeD1Active()) {
-    const baskets = await listRuntimeBaskets({ activeOnly: true })
-    const counts = await getRuntimeReservationUsageCountsByBasketIds(baskets.map((basket) => basket.id))
-
-    return baskets.map((basket) => {
-      const used = counts.get(basket.id) ?? 0
-      const remaining = Math.max(0, basket.available - used)
-      return {
-        id: basket.id,
-        name: basket.name,
-        description: basket.description,
-        imageUrl: basket.imageUrl,
-        finalPrice: Number(basket.finalPrice),
-        remaining,
-        available: basket.available,
-        items: basket.items?.map((item: any) => ({
-          quantity: Number(item.quantity),
-          vegetable: {
-            name: item.vegetable.name,
-            unit: item.vegetable.unit,
-            imageUrl: item.vegetable.imageUrl ?? null
-          }
-        }))
-      }
-    })
   }
 
   const baskets = await db.basket.findMany({

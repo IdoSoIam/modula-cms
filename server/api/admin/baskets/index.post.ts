@@ -1,5 +1,4 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { createRuntimeBasket, getRuntimeVegetablesByIds, isRuntimeD1Active } from '#modula/server/platform/runtimeDb'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { serializeBasket } from '#modula/server/utils/baskets'
 import { db } from '#modula/server/data/client'
@@ -25,30 +24,12 @@ export default defineEventHandler(async (event) => {
 
   const items = body.items ?? []
   const veggies = items.length
-    ? isRuntimeD1Active()
-      ? await getRuntimeVegetablesByIds(items.map(i => i.vegetableId))
-      : await db.vegetable.findMany({ where: { id: { in: items.map(i => i.vegetableId) } } })
+    ? await db.vegetable.findMany({ where: { id: { in: items.map(i => i.vegetableId) } } })
     : []
   const computed = items.reduce((sum, it) => {
     const v = veggies.find(x => x.id === it.vegetableId)
     return v ? sum + Number(v.price) * it.quantity : sum
   }, 0)
-
-  if (isRuntimeD1Active()) {
-    const basket = await createRuntimeBasket({
-      name: body.name.trim(),
-      description: body.description ?? null,
-      imageUrl: body.imageUrl ?? null,
-      available: body.available ?? 0,
-      active: body.active ?? true,
-      position: body.position ?? 0,
-      computedPrice: computed,
-      finalPrice: body.finalPrice ?? computed,
-      items
-    })
-    await syncImageUsageTable()
-    return basket
-  }
 
   const basket = await db.basket.create({
     data: {
