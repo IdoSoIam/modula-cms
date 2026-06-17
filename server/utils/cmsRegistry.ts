@@ -953,6 +953,20 @@ export async function listManagedRegistryTemplates(): Promise<CmsRegistryTemplat
   return [...merged.values()].filter(template => !template.deletedAt)
 }
 
+async function resolvePreferredRegistryScope(): Promise<RegistryScope | null> {
+  const customConfig = await resolveRegistryConfig('custom')
+  if (customConfig.url) {
+    return 'custom'
+  }
+
+  const systemConfig = await resolveRegistryConfig('system')
+  if (systemConfig.url) {
+    return 'system'
+  }
+
+  return null
+}
+
 export async function listMergedSiteTemplates(): Promise<CmsSiteTemplateDefinition[]> {
   const fallback = [FALLBACK_SITE_TEMPLATE]
   const customConfig = await resolveRegistryConfig('custom')
@@ -1151,21 +1165,43 @@ export async function listRegistryReleases() {
 }
 
 export async function listRegistryReleasesPage(limit = 10, offset = 0) {
+  const scope = await resolvePreferredRegistryScope()
+  if (!scope) {
+    return {
+      items: [],
+      total: 0,
+      limit,
+      offset,
+      hasMore: false
+    } satisfies CmsRegistryPaginatedResult<CmsRegistryReleaseRecord>
+  }
+
   const query = new URLSearchParams({
     limit: String(limit),
     offset: String(offset)
   })
-  return await registryFetch<CmsRegistryPaginatedResult<CmsRegistryReleaseRecord>>(`/v1/releases?${query.toString()}`)
+  return await registryFetch<CmsRegistryPaginatedResult<CmsRegistryReleaseRecord>>(`/v1/releases?${query.toString()}`, {}, scope)
 }
 
 export async function listRegistryDeployments(limit = 20, offset = 0) {
-  const config = getRuntimeRegistryConfig()
+  const scope = await resolvePreferredRegistryScope()
+  if (!scope) {
+    return {
+      items: [],
+      total: 0,
+      limit,
+      offset,
+      hasMore: false
+    } satisfies CmsRegistryPaginatedResult<CmsRegistryDeploymentJob>
+  }
+
+  const config = await resolveRegistryConfig(scope)
   const query = new URLSearchParams({
     instanceSlug: config.instanceSlug,
     limit: String(limit),
     offset: String(offset)
   })
-  return await registryFetch<CmsRegistryPaginatedResult<CmsRegistryDeploymentJob>>(`/v1/deployments?${query.toString()}`)
+  return await registryFetch<CmsRegistryPaginatedResult<CmsRegistryDeploymentJob>>(`/v1/deployments?${query.toString()}`, {}, scope)
 }
 
 export async function registerRegistryInstance() {

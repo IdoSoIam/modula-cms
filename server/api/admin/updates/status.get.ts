@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { getUpdateAgentStatus, isCmsRegistryConfigured, listRegistryReleasesPage } from '#modula/server/utils/cmsRegistry'
+import { getUpdateAgentStatus, isCmsRegistryConfigured, isCmsSystemTemplatesRegistryConfigured, listRegistryReleasesPage } from '#modula/server/utils/cmsRegistry'
 
 async function readJsonFile(filePath: string) {
   const { readFile } = await import('node:fs/promises')
@@ -74,7 +74,13 @@ export default defineEventHandler(async (event) => {
     : null
   const systemInfo = await getSystemInfo(runtimeTarget)
 
-  if (!isCmsRegistryConfigured()) {
+  const [customRegistryConfigured, systemRegistryConfigured] = await Promise.all([
+    isCmsRegistryConfigured(),
+    isCmsSystemTemplatesRegistryConfigured()
+  ])
+  const registryConfigured = customRegistryConfigured || systemRegistryConfigured
+
+  if (!registryConfigured) {
     return {
       configured: false,
       updatesEnabled,
@@ -137,7 +143,7 @@ export default defineEventHandler(async (event) => {
           }
         }
     return {
-      configured: true,
+      configured: registryConfigured,
       updatesEnabled,
       updatesDisabledReason,
       systemInfo,
@@ -148,7 +154,7 @@ export default defineEventHandler(async (event) => {
     }
   } catch {
     return {
-      configured: true,
+      configured: registryConfigured,
       updatesEnabled,
       updatesDisabledReason,
       systemInfo,
