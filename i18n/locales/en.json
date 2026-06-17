@@ -831,7 +831,7 @@
       "localTemplatesHelp": "This list comes from the configured registry. The simple local fallback appears only as a last resort when no remote template is available.",
       "remoteTemplates": "Registry templates",
       "remoteTemplatesHelp": "Remote templates are versioned and shareable across instances.",
-      "registryUnavailableHelp": "Add `CMS_REGISTRY_URL`, `CMS_REGISTRY_API_KEY`, and `CMS_INSTANCE_SLUG` in the host to enable the registry.",
+      "registryUnavailableHelp": "The system registry is built in by default. Add a custom URL to use your own registry, and only add a key if you need system or custom mutations.",
       "editMetadata": "Template metadata",
       "cannotEditSystem": "This system template is read-only on this instance. Only authorized instances can update it.",
       "slug": "Slug",
