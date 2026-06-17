@@ -24,10 +24,10 @@
       <article class="rounded-box border border-base-300 bg-base-100 p-5">
         <div class="text-sm font-medium opacity-70">{{ t('admin.settingsSiteTemplatePage.registryStatus') }}</div>
         <div class="mt-2 text-lg font-semibold">
-          {{ registryConfigured ? t('admin.settingsSiteTemplatePage.registryConfigured') : t('admin.settingsSiteTemplatePage.registryNotConfigured') }}
+          {{ systemRegistryState.reachable || customRegistryState.reachable ? t('admin.settingsSiteTemplatePage.registryConfigured') : t('admin.settingsSiteTemplatePage.registryNotConfigured') }}
         </div>
         <p class="mt-3 text-sm opacity-70">
-          {{ registryConfigured ? t('admin.settingsSiteTemplatePage.registryAuto') : t('admin.settingsSiteTemplatePage.registryUnavailableHelp') }}
+          {{ systemRegistryState.reachable || customRegistryState.reachable ? t('admin.settingsSiteTemplatePage.registryAuto') : t('admin.settingsSiteTemplatePage.registryUnavailableHelp') }}
         </p>
       </article>
 
@@ -46,6 +46,53 @@
           <span v-else-if="selectedTemplateDefinition?.sourceType" class="badge badge-outline">
             {{ selectedTemplateDefinition.sourceType }}
           </span>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+      <article class="rounded-[1.5rem] border border-base-300 bg-base-100 p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-semibold">Registre custom d’instance</h2>
+            <p class="mt-2 text-sm opacity-70">Le registre système reste toujours listé. Ce bloc sert à ajouter un registre custom et sa clé de mutation.</p>
+          </div>
+          <button class="btn btn-primary" :disabled="savingRegistrySettings" @click="saveRegistrySettings">
+            <span v-if="savingRegistrySettings" class="loading loading-spinner loading-xs" />
+            Enregistrer
+          </button>
+        </div>
+
+        <div class="mt-4 grid gap-3 md:grid-cols-2">
+          <label class="form-control md:col-span-2 flex flex-col">
+            <span class="label-text">{{ t('admin.settingsSiteTemplatePage.registryUrlLabel') }}</span>
+            <input v-model.trim="registryForm.registryUrl" class="input input-bordered" type="text" placeholder="https://registry.example.workers.dev">
+          </label>
+          <label class="form-control md:col-span-2 flex flex-col">
+            <span class="label-text">{{ t('admin.settingsSiteTemplatePage.registryApiKeyLabel') }}</span>
+            <input v-model.trim="registryForm.registryApiKey" class="input input-bordered" type="password" :placeholder="t('admin.settingsSiteTemplatePage.registryApiKeyPlaceholder')">
+          </label>
+        </div>
+      </article>
+
+      <article class="rounded-[1.5rem] border border-base-300 bg-base-100 p-5">
+        <h2 class="text-xl font-semibold">Capacités détectées</h2>
+        <div class="mt-4 space-y-3 text-sm">
+          <div class="rounded-xl bg-base-200 px-4 py-3">
+            <div class="font-medium">Registre système</div>
+            <div class="mt-1 opacity-70">{{ systemRegistryState.url || 'Non configuré' }}</div>
+            <div class="mt-2 opacity-70">{{ systemRegistryState.reachable ? 'Joignable' : (systemRegistryState.error || 'Indisponible') }}</div>
+          </div>
+          <div class="rounded-xl bg-base-200 px-4 py-3">
+            <div class="font-medium">Registre custom</div>
+            <div class="mt-1 opacity-70">{{ customRegistryState.url || 'Non configuré' }}</div>
+            <div class="mt-2 opacity-70">{{ customRegistryState.configured ? (customRegistryState.reachable ? 'Joignable' : (customRegistryState.error || 'Indisponible')) : 'Aucune URL custom enregistrée' }}</div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="badge badge-outline">Lecture système</span>
+            <span class="badge" :class="capabilities.canManageSystemTemplates ? 'badge-primary' : 'badge-outline'">Mutation système {{ capabilities.canManageSystemTemplates ? 'autorisée' : 'indisponible' }}</span>
+            <span class="badge" :class="capabilities.canManageCustomTemplates ? 'badge-primary' : 'badge-outline'">Mutation custom {{ capabilities.canManageCustomTemplates ? 'autorisée' : 'indisponible' }}</span>
+          </div>
         </div>
       </article>
     </section>
@@ -151,7 +198,7 @@
               <h3 class="text-lg font-semibold">{{ t('admin.settingsSiteTemplatePage.editMetadata') }}</h3>
               <p class="mt-2 text-sm opacity-70">
                 <span v-if="!registryConfigured">{{ t('admin.settingsSiteTemplatePage.registryUnavailableHelp') }}</span>
-                <span v-else-if="selectedIsSystemTemplate && !canManageSystemTemplates">{{ t('admin.settingsSiteTemplatePage.cannotEditSystem') }}</span>
+                <span v-else-if="selectedIsSystemTemplate && !capabilities.canManageSystemTemplates">{{ t('admin.settingsSiteTemplatePage.cannotEditSystem') }}</span>
                 <span v-else>{{ t('admin.settingsSiteTemplatePage.remoteTemplatesHelp') }}</span>
               </p>
 
@@ -209,7 +256,7 @@
                 <button
                   class="btn btn-secondary"
                   :disabled="creatingTemplate || !canCreateSelectedTemplate"
-                  @click="createSelectedTemplate"
+                  @click="openCreateTemplateModal"
                 >
                   <span v-if="creatingTemplate" class="loading loading-spinner loading-xs" />
                   {{ t('admin.settingsSiteTemplatePage.createFromCurrentSite') }}
@@ -257,13 +304,74 @@
         </div>
       </article>
     </section>
+
+    <dialog ref="createTemplateDialogRef" class="modal">
+      <div class="modal-box space-y-4">
+        <h3 class="text-xl font-semibold">Créer un nouveau template</h3>
+        <p class="text-sm opacity-70">Le slug est optionnel. S’il est vide, il sera généré automatiquement à partir du libellé.</p>
+
+        <div class="grid gap-3 md:grid-cols-2">
+          <label class="form-control md:col-span-2 flex flex-col">
+            <span class="label-text">{{ t('admin.settingsSiteTemplatePage.destination') }}</span>
+            <select v-model="createTemplateForm.scope" class="select select-bordered">
+              <option v-if="capabilities.canManageCustomTemplates" value="custom">{{ t('admin.settingsSiteTemplatePage.custom') }}</option>
+              <option v-if="capabilities.canManageSystemTemplates" value="system">{{ t('admin.settingsSiteTemplatePage.system') }}</option>
+            </select>
+          </label>
+          <label class="form-control md:col-span-2 flex flex-col">
+            <span class="label-text">{{ t('admin.settingsSiteTemplatePage.slug') }}</span>
+            <input v-model.trim="createTemplateForm.slug" class="input input-bordered" type="text" placeholder="Laisser vide pour générer automatiquement">
+          </label>
+          <label class="form-control flex flex-col">
+            <span class="label-text">{{ t('admin.settingsSiteTemplatePage.labelFr') }}</span>
+            <input v-model.trim="createTemplateForm.label.fr" class="input input-bordered" type="text">
+          </label>
+          <label class="form-control flex flex-col">
+            <span class="label-text">{{ t('admin.settingsSiteTemplatePage.labelEn') }}</span>
+            <input v-model.trim="createTemplateForm.label.en" class="input input-bordered" type="text">
+          </label>
+          <label class="form-control flex flex-col">
+            <span class="label-text">{{ t('admin.settingsSiteTemplatePage.icon') }}</span>
+            <input v-model.trim="createTemplateForm.icon" class="input input-bordered" type="text">
+          </label>
+          <label class="form-control flex flex-col">
+            <span class="label-text">{{ t('admin.settingsSiteTemplatePage.previewImage') }}</span>
+            <input v-model.trim="createTemplateForm.previewImage" class="input input-bordered" type="text">
+          </label>
+          <label class="form-control md:col-span-2 flex flex-col">
+            <span class="label-text">{{ t('admin.settingsSiteTemplatePage.descriptionFr') }}</span>
+            <textarea v-model="createTemplateForm.description.fr" class="textarea textarea-bordered" rows="3" />
+          </label>
+          <label class="form-control md:col-span-2 flex flex-col">
+            <span class="label-text">{{ t('admin.settingsSiteTemplatePage.descriptionEn') }}</span>
+            <textarea v-model="createTemplateForm.description.en" class="textarea textarea-bordered" rows="3" />
+          </label>
+        </div>
+
+        <div class="modal-action">
+          <button class="btn btn-ghost" @click="closeCreateTemplateModal">Annuler</button>
+          <button class="btn btn-primary" :disabled="creatingTemplate" @click="createSelectedTemplate">
+            <span v-if="creatingTemplate" class="loading loading-spinner loading-xs" />
+            Créer
+          </button>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+      </form>
+    </dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import type { CmsLocalizedText } from '#modula/shared/cms'
-import type { CmsRegistryTemplateRecord, CmsRegistryTemplateVersionSummary } from '#modula/shared/registry'
+import type {
+  CmsRegistryCapabilities,
+  CmsRegistryEndpointState,
+  CmsRegistryTemplateRecord,
+  CmsRegistryTemplateVersionSummary
+} from '#modula/shared/registry'
 import {
   BUNDLED_SYSTEM_SITE_TEMPLATE_KEYS,
   FALLBACK_SITE_TEMPLATE_KEY,
@@ -292,6 +400,20 @@ interface TemplateFormState {
   description: CmsLocalizedText
 }
 
+interface RegistrySettingsFormState {
+  registryUrl: string
+  registryApiKey: string
+}
+
+interface RegistryTemplateListResponse {
+  configured: boolean
+  templates: CmsRegistryTemplateRecord[]
+  availableSiteTemplates?: CmsSiteTemplateDefinition[]
+  customRegistry: CmsRegistryEndpointState
+  systemRegistry: CmsRegistryEndpointState
+  capabilities: CmsRegistryCapabilities
+}
+
 const { t, locale } = useI18n()
 const { $toast } = useNuxtApp() as any
 const authHeaders = process.server ? useRequestHeaders(['cookie']) : undefined
@@ -302,8 +424,10 @@ const updatingTemplate = ref(false)
 const publishingTemplate = ref(false)
 const discardingDraftTemplate = ref(false)
 const deletingTemplate = ref(false)
+const savingRegistrySettings = ref(false)
 const autoRegisterAttempted = ref(false)
 const replaceBrandAssetsOnApply = ref(true)
+const createTemplateDialogRef = ref<HTMLDialogElement | null>(null)
 
 async function apiFetch<T>(url: string, options: Parameters<typeof $fetch<T>>[1] = {}) {
   if (process.server) {
@@ -333,13 +457,52 @@ if (!data.value) {
   throw createError({ statusCode: 500, statusMessage: t('admin.settingsSiteTemplatePage.loadError') })
 }
 
+const { data: registrySettingsData, refresh: refreshRegistrySettings } = await useFetch<{
+  settings: RegistrySettingsFormState
+  customRegistry: CmsRegistryEndpointState
+  systemRegistry: CmsRegistryEndpointState
+  capabilities: CmsRegistryCapabilities
+}>('/api/admin/settings/registry', {
+  key: 'admin-site-template-registry-settings',
+  headers: authHeaders
+})
+
 const currentTemplateKey = ref<CmsSiteTemplateKey | null>(data.value.currentTemplateKey)
 const selectedTemplateKey = ref<CmsSiteTemplateKey | null>(data.value.currentTemplateKey ?? data.value.siteTemplates[0]?.key ?? null)
 const remoteTemplates = ref<CmsRegistryTemplateRecord[]>([])
-const registryConfigured = ref(false)
-const canManageSystemTemplates = ref(false)
+const capabilities = reactive<CmsRegistryCapabilities>({
+  authenticated: false,
+  canManageSystemTemplates: false,
+  canManageCustomTemplates: false,
+  tokenLabel: null,
+  registryScope: null
+})
+const customRegistryState = reactive<CmsRegistryEndpointState>({
+  url: '',
+  configured: false,
+  reachable: false,
+  error: null
+})
+const systemRegistryState = reactive<CmsRegistryEndpointState>({
+  url: '',
+  configured: false,
+  reachable: false,
+  error: null
+})
+const registryForm = reactive<RegistrySettingsFormState>({
+  registryUrl: '',
+  registryApiKey: ''
+})
 const templateForm = reactive<TemplateFormState>({
   slug: '',
+  icon: 'mdi:view-dashboard-edit-outline',
+  previewImage: '',
+  label: { fr: '', en: '' },
+  description: { fr: '', en: '' }
+})
+const createTemplateForm = reactive({
+  slug: '',
+  scope: 'custom' as 'custom' | 'system',
   icon: 'mdi:view-dashboard-edit-outline',
   previewImage: '',
   label: { fr: '', en: '' },
@@ -359,10 +522,24 @@ const selectedRemoteTemplate = computed(() =>
   remoteTemplates.value.find(template => template.slug === selectedTemplateKey.value) || null
 )
 const selectedIsSystemTemplate = computed(() =>
-  selectedRemoteTemplate.value?.sourceType === 'system'
-  || BUNDLED_SYSTEM_SITE_TEMPLATE_KEYS.includes((selectedTemplateKey.value || '') as any)
+  selectedRemoteTemplate.value
+    ? selectedRemoteTemplate.value.sourceType === 'system'
+    : BUNDLED_SYSTEM_SITE_TEMPLATE_KEYS.includes((selectedTemplateKey.value || '') as any)
 )
-const metadataLocked = computed(() => !registryConfigured.value || (selectedIsSystemTemplate.value && !canManageSystemTemplates.value))
+const selectedScope = computed<'custom' | 'system'>(() =>
+  selectedRemoteTemplate.value?.sourceType === 'system' ? 'system' : 'custom'
+)
+const registryConfigured = computed(() =>
+  systemRegistryState.reachable || customRegistryState.reachable
+)
+const metadataLocked = computed(() =>
+  !selectedRemoteTemplate.value
+  || (
+    selectedRemoteTemplate.value.sourceType === 'system'
+      ? !capabilities.canManageSystemTemplates
+      : !capabilities.canManageCustomTemplates
+  )
+)
 const selectedPreviewImage = computed(() =>
   templateForm.previewImage
   || selectedRemoteTemplate.value?.previewImage
@@ -386,12 +563,8 @@ const effectiveSlug = computed(() =>
   || selectedTemplateDefinition.value?.key
   || ''
 )
-const selectedScope = computed<'custom' | 'system'>(() =>
-  selectedIsSystemTemplate.value && canManageSystemTemplates.value ? 'system' : 'custom'
-)
 const canCreateSelectedTemplate = computed(() =>
-  registryConfigured.value
-  && canManageSystemTemplates.value
+  capabilities.canManageCustomTemplates || capabilities.canManageSystemTemplates
 )
 const canApplySelectedTemplate = computed(() =>
   Boolean(selectedTemplateKey.value)
@@ -404,14 +577,22 @@ const shouldApplyFromRegistry = computed(() =>
   Boolean(selectedTemplateKey.value && selectedTemplateKey.value !== FALLBACK_SITE_TEMPLATE_KEY)
 )
 const canUpdateSelectedTemplate = computed(() =>
-  registryConfigured.value
+  Boolean(selectedRemoteTemplate.value)
   && Boolean(selectedRemoteTemplate.value)
-  && (selectedRemoteTemplate.value?.sourceType === 'custom' || canManageSystemTemplates.value)
+  && (
+    selectedRemoteTemplate.value?.sourceType === 'system'
+      ? capabilities.canManageSystemTemplates
+      : capabilities.canManageCustomTemplates
+  )
 )
 const canDeleteSelectedTemplate = computed(() =>
-  registryConfigured.value
+  Boolean(selectedRemoteTemplate.value)
   && Boolean(selectedRemoteTemplate.value)
-  && (selectedRemoteTemplate.value?.sourceType === 'custom' || canManageSystemTemplates.value)
+  && (
+    selectedRemoteTemplate.value?.sourceType === 'system'
+      ? capabilities.canManageSystemTemplates
+      : capabilities.canManageCustomTemplates
+  )
 )
 const publishableVersion = computed<CmsRegistryTemplateVersionSummary | null>(() => {
   if (!selectedRemoteTemplate.value?.versions?.length) return null
@@ -454,8 +635,13 @@ watch([selectedTemplateKey, selectedRemoteTemplate], () => {
   replaceBrandAssetsOnApply.value = Boolean(selectedRemoteTemplate.value)
 }, { immediate: true })
 
+watchEffect(() => {
+  if (!registrySettingsData.value) return
+  Object.assign(registryForm, registrySettingsData.value.settings)
+})
+
 async function ensureRegistryRegistration() {
-  if (!registryConfigured.value || autoRegisterAttempted.value) return
+  if (!customRegistryState.configured || autoRegisterAttempted.value) return
   autoRegisterAttempted.value = true
   try {
     await apiFetch('/api/admin/registry/register', { method: 'POST' })
@@ -465,16 +651,12 @@ async function ensureRegistryRegistration() {
 }
 
 async function loadRemoteTemplates() {
-  const response = await apiFetch<{
-    configured: boolean
-    canManageSystemTemplates?: boolean
-    templates: CmsRegistryTemplateRecord[]
-    availableSiteTemplates?: CmsSiteTemplateDefinition[]
-  }>('/api/admin/registry/templates')
+  const response = await apiFetch<RegistryTemplateListResponse>('/api/admin/registry/templates')
 
-  registryConfigured.value = response.configured
-  canManageSystemTemplates.value = Boolean(response.canManageSystemTemplates)
   remoteTemplates.value = response.templates || []
+  Object.assign(capabilities, response.capabilities || {})
+  Object.assign(customRegistryState, response.customRegistry || {})
+  Object.assign(systemRegistryState, response.systemRegistry || {})
 
   if (response.availableSiteTemplates?.length && data.value) {
     data.value = {
@@ -493,7 +675,7 @@ async function loadRemoteTemplates() {
 await loadRemoteTemplates()
 
 async function refreshAll() {
-  await Promise.all([refreshSiteShell(), loadRemoteTemplates()])
+  await Promise.all([refreshSiteShell(), refreshRegistrySettings(), loadRemoteTemplates()])
   currentTemplateKey.value = data.value?.currentTemplateKey ?? null
 }
 
@@ -510,6 +692,105 @@ function buildTemplatePayload() {
       fr: templateForm.description.fr.trim(),
       en: templateForm.description.en.trim()
     }
+  }
+}
+
+function slugifyTemplateValue(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function buildUniqueTemplateSlug(baseValue: string) {
+  const normalizedBase = slugifyTemplateValue(baseValue) || 'site-template'
+  const existingSlugs = new Set(
+    remoteTemplates.value
+      .map(template => template.slug.trim().toLowerCase())
+      .filter(Boolean)
+  )
+
+  if (!existingSlugs.has(normalizedBase)) {
+    return normalizedBase
+  }
+
+  let attempt = 2
+  while (existingSlugs.has(`${normalizedBase}-${attempt}`)) {
+    attempt += 1
+  }
+
+  return `${normalizedBase}-${attempt}`
+}
+
+function buildCreateTemplatePayload() {
+  const requestedSlug = createTemplateForm.slug.trim()
+  const generatedSlug = buildUniqueTemplateSlug(
+    createTemplateForm.label.fr.trim()
+    || createTemplateForm.label.en.trim()
+    || templateForm.label.fr.trim()
+    || templateForm.label.en.trim()
+    || selectedTemplateDefinition.value?.key
+    || 'site-template'
+  )
+  const explicitSlug = requestedSlug ? slugifyTemplateValue(requestedSlug) : ''
+  const finalSlug = explicitSlug || generatedSlug || `site-template-${Date.now()}`
+
+  return {
+    slug: finalSlug,
+    icon: createTemplateForm.icon.trim() || 'mdi:view-dashboard-edit-outline',
+    previewImage: createTemplateForm.previewImage.trim(),
+    label: {
+      fr: createTemplateForm.label.fr.trim() || finalSlug,
+      en: createTemplateForm.label.en.trim() || finalSlug
+    },
+    description: {
+      fr: createTemplateForm.description.fr.trim(),
+      en: createTemplateForm.description.en.trim()
+    },
+    scope: createTemplateForm.scope
+  }
+}
+
+function openCreateTemplateModal() {
+  createTemplateForm.slug = ''
+  createTemplateForm.icon = templateForm.icon.trim() || 'mdi:view-dashboard-edit-outline'
+  createTemplateForm.previewImage = templateForm.previewImage.trim()
+  createTemplateForm.label.fr = templateForm.label.fr.trim() || selectedTemplateDefinition.value?.label.fr || ''
+  createTemplateForm.label.en = templateForm.label.en.trim() || selectedTemplateDefinition.value?.label.en || ''
+  createTemplateForm.description.fr = templateForm.description.fr.trim()
+  createTemplateForm.description.en = templateForm.description.en.trim()
+  createTemplateForm.scope = capabilities.canManageCustomTemplates ? 'custom' : 'system'
+  createTemplateDialogRef.value?.showModal()
+}
+
+function closeCreateTemplateModal() {
+  createTemplateDialogRef.value?.close()
+}
+
+async function saveRegistrySettings() {
+  savingRegistrySettings.value = true
+  try {
+    const response = await apiFetch<{
+      settings: RegistrySettingsFormState
+      customRegistry: CmsRegistryEndpointState
+      systemRegistry: CmsRegistryEndpointState
+      capabilities: CmsRegistryCapabilities
+    }>('/api/admin/settings/registry', {
+      method: 'PUT',
+      body: registryForm
+    })
+    Object.assign(registryForm, response.settings)
+    Object.assign(customRegistryState, response.customRegistry || {})
+    Object.assign(systemRegistryState, response.systemRegistry || {})
+    Object.assign(capabilities, response.capabilities || {})
+    await loadRemoteTemplates()
+    $toast?.success('Configuration registre enregistrée.')
+  } catch (error: any) {
+    $toast?.error(error?.data?.message || error?.statusMessage || 'Impossible d’enregistrer la configuration du registre.')
+  } finally {
+    savingRegistrySettings.value = false
   }
 }
 
@@ -559,15 +840,17 @@ async function createSelectedTemplate() {
   if (!canCreateSelectedTemplate.value) return
   creatingTemplate.value = true
   try {
+    const payload = buildCreateTemplatePayload()
+    if (remoteTemplates.value.some(template => template.slug === payload.slug)) {
+      throw new Error(`Le slug "${payload.slug}" est déjà utilisé dans le registre.`)
+    }
     await apiFetch('/api/admin/registry/templates', {
       method: 'POST',
-      body: {
-        ...buildTemplatePayload(),
-        scope: selectedScope.value
-      }
+      body: payload
     })
     await loadRemoteTemplates()
-    selectedTemplateKey.value = effectiveSlug.value
+    selectedTemplateKey.value = payload.slug
+    closeCreateTemplateModal()
     $toast?.success(t('admin.settingsSiteTemplatePage.remoteTemplateCreated'))
   } catch (error: any) {
     $toast?.error(error?.data?.message || t('admin.settingsSiteTemplatePage.remoteTemplateError'))

@@ -7,7 +7,7 @@ import type { CmsDbDriver, CmsProjectConfig, CmsRuntimeTarget, CmsStorageDriver 
 import { inferCmsRuntimeTargetFromDrivers, resolveCmsPlatformConfig } from '#modula/shared/platform'
 import { AuthService } from '#modula/server/services/auth/authService'
 import { ensureDefaultRoles } from '#modula/server/utils/permissions'
-import { setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { saveCmsRegistryInstanceSettings, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { getSessionConfig } from '#modula/server/utils/session'
 import { applySiteTemplate } from '#modula/server/utils/siteTemplates'
 import type { CmsSiteTemplateKey } from '#modula/shared/siteTemplates'
@@ -43,6 +43,8 @@ export interface CmsInstallBootstrapPayload {
   adminFirstName?: string
   adminLastName?: string
   siteTemplate: CmsSiteTemplateKey
+  registryUrl?: string
+  registryApiKey?: string
 }
 
 interface WritableProjectConfigOptions {
@@ -257,6 +259,10 @@ export async function bootstrapCmsInstallation(event: H3Event, payload: CmsInsta
   await setSetting(SETTING_KEYS.CONTACT_EMAIL, payload.adminEmail.trim().toLowerCase())
   await setSetting(SETTING_KEYS.REGISTER_ENABLED, 'false')
   await setSetting(SETTING_KEYS.IN_DEVELOPMENT, 'false')
+  await saveCmsRegistryInstanceSettings({
+    registryUrl: payload.registryUrl?.trim() || '',
+    registryApiKey: payload.registryApiKey?.trim() || ''
+  })
   const siteSettings = await getCmsSiteSettings()
   await saveCmsSiteSettings({
     ...siteSettings,

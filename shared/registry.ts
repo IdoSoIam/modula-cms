@@ -60,6 +60,21 @@ export interface CmsRegistryTemplateRecord {
   versions?: CmsRegistryTemplateVersionSummary[]
 }
 
+export interface CmsRegistryCapabilities {
+  authenticated: boolean
+  canManageSystemTemplates: boolean
+  canManageCustomTemplates: boolean
+  tokenLabel?: string | null
+  registryScope?: 'system' | 'custom' | 'shared' | null
+}
+
+export interface CmsRegistryEndpointState {
+  url: string
+  configured: boolean
+  reachable: boolean
+  error: string | null
+}
+
 export interface CmsRegistryReleaseRecord {
   id: string
   version: string

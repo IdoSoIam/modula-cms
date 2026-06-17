@@ -43,13 +43,15 @@ export function buildEmailHtml(options: {
   body: string
   accent?: string
   logoUrl?: string | null
+  brandName?: string
   footer?: string
   lang?: string
   statusLabel?: string
   statusColor?: string
 }) {
   const accent = options.accent ?? '#5d7c2f'
-  const footer = options.footer ?? 'Ferme du Campeyrigoux'
+  const brandName = options.brandName?.trim() || 'Modula CMS'
+  const footer = options.footer ?? brandName
   const preheader = options.preheader ?? options.title
   const lang = options.lang ?? 'fr'
   const statusPill = options.statusLabel
@@ -69,8 +71,8 @@ export function buildEmailHtml(options: {
       <tr>
         <td style="padding:0;">
           <div style="background:linear-gradient(135deg, ${accent}, #1f2937);border-radius:24px 24px 0 0;padding:28px 32px;color:#fff;">
-            ${options.logoUrl ? `<img src="${escapeHtml(options.logoUrl)}" alt="Ferme du Campeyrigoux" style="display:block;height:56px;max-width:160px;object-fit:contain;margin-bottom:18px;" />` : ''}
-            <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;opacity:0.8;">Ferme du Campeyrigoux</div>
+            ${options.logoUrl ? `<img src="${escapeHtml(options.logoUrl)}" alt="${escapeHtml(brandName)}" style="display:block;height:56px;max-width:160px;object-fit:contain;margin-bottom:18px;" />` : ''}
+            <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;opacity:0.8;">${escapeHtml(brandName)}</div>
             <h1 style="margin:10px 0 0 0;font-size:28px;line-height:1.2;font-weight:700;">${escapeHtml(options.title)}</h1>
           </div>
           <div style="background:#ffffff;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 24px 24px;padding:32px;">

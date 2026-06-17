@@ -52,6 +52,30 @@
             <section class="space-y-4">
               <div class="flex items-center gap-3">
                 <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Icon name="mdi:shape-outline" size="20" />
+                </div>
+                <div>
+                  <h2 class="text-xl font-bold">Registre des modèles</h2>
+                  <p class="text-sm text-base-content/60">Optionnel. Les modèles système restent proposés sans clé. Renseignez une URL et une clé pour lister et modifier aussi un registre custom.</p>
+                </div>
+              </div>
+
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="form-control md:col-span-2">
+                  <span class="label-text mb-1 font-medium">URL du registre custom</span>
+                  <input v-model.trim="form.registryUrl" class="input input-bordered w-full" placeholder="https://registry.example.workers.dev" />
+                </label>
+
+                <label class="form-control md:col-span-2">
+                  <span class="label-text mb-1 font-medium">Clé API du registre</span>
+                  <input v-model.trim="form.registryApiKey" class="input input-bordered w-full" type="password" placeholder="Laisser vide pour lecture seule" />
+                </label>
+              </div>
+            </section>
+
+            <section class="space-y-4">
+              <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <Icon name="mdi:translate" size="20" />
                 </div>
                 <div>
@@ -317,6 +341,8 @@ const form = reactive({
   dbDriver: (installState?.currentDbDriver === 'd1' ? 'd1' : 'sqlite') as 'd1' | 'sqlite',
   storageDriver: (installState?.currentStorageDriver === 'r2' ? 'r2' : 'fs') as 'r2' | 'fs',
   siteTemplate: (installState?.siteTemplates?.[0]?.key || 'modula-presentation') as string,
+  registryUrl: '',
+  registryApiKey: '',
   adminFirstName: '',
   adminLastName: '',
   adminEmail: '',

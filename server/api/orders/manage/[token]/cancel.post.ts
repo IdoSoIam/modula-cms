@@ -115,7 +115,7 @@ export default defineEventHandler(async (event) => {
       to: reservationNotificationEmail,
       subject: adminDraft.subject,
       body: adminDraft.body,
-      htmlBody: buildGenericEmail({
+      htmlBody: await buildGenericEmail({
         title: adminDraft.subject,
         body: adminDraft.body,
         accent: '#d97706',

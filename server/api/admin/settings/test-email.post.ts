@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
     to: reservationNotificationEmail,
     subject: '[Test email] Configuration de la ferme',
     body,
-    htmlBody: buildGenericEmail({
+    htmlBody: await buildGenericEmail({
       title: 'Test email',
       body,
       accent: '#2563eb',

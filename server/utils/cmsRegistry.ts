@@ -4,11 +4,13 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { getCmsPageByPath, getCmsSiteSettings, listCmsNavigationItems, listCmsPages, saveCmsNavigationItems, saveCmsPage, saveCmsSiteSettings } from '#modula/server/utils/cms'
-import { getFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { getCmsRegistryInstanceSettings, getFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { getDaisyUiThemeConfig, saveDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import { getUploadObject, putUploadObject } from '#modula/server/utils/uploadStorage'
 import type {
   CmsRegistryAssetReference,
+  CmsRegistryCapabilities,
+  CmsRegistryEndpointState,
   CmsRegistryDeploymentJob,
   CmsRegistryInstanceRecord,
   CmsRegistryPaginatedResult,
@@ -24,6 +26,7 @@ type RegistryFetchOptions = {
   method?: string
   body?: any
   headers?: Record<string, string>
+  allowAnonymous?: boolean
 }
 
 type RegistryScope = 'custom' | 'system'
@@ -33,11 +36,20 @@ type TemplateAssetMaterializationContext = {
   preservedFilenames: Set<string>
 }
 
-function getRegistryConfig(scope: RegistryScope = 'custom') {
+const SYSTEM_CMS_REGISTRY_URL = 'https://modula-cms-registery.shiny-meadow-56d0.workers.dev'
+
+type ResolvedRegistryConfig = {
+  url: string
+  apiKey: string
+  instanceSlug: string
+  releaseChannel: string
+}
+
+function getRuntimeRegistryConfig(scope: RegistryScope = 'custom') {
   const customUrl = process.env.CMS_REGISTRY_URL?.trim() || ''
   const customApiKey = process.env.CMS_REGISTRY_API_KEY?.trim() || ''
   const customInstanceSlug = process.env.CMS_INSTANCE_SLUG?.trim() || ''
-  const systemUrl = process.env.CMS_SYSTEM_TEMPLATES_REGISTRY_URL?.trim() || customUrl
+  const systemUrl = process.env.CMS_SYSTEM_TEMPLATES_REGISTRY_URL?.trim() || SYSTEM_CMS_REGISTRY_URL
   const systemApiKey = process.env.CMS_SYSTEM_TEMPLATES_REGISTRY_API_KEY?.trim() || customApiKey
   const systemInstanceSlug = process.env.CMS_SYSTEM_TEMPLATES_INSTANCE_SLUG?.trim() || customInstanceSlug
 
@@ -51,22 +63,56 @@ function getRegistryConfig(scope: RegistryScope = 'custom') {
   }
 }
 
-export function isCmsRegistryConfigured() {
-  const config = getRegistryConfig('custom')
-  return Boolean(config.url && config.apiKey && config.instanceSlug)
+function normalizeRegistryUrl(value: string | null | undefined) {
+  return (value || '').trim().replace(/\/$/, '')
 }
 
-export function isCmsSystemTemplatesRegistryConfigured() {
-  const config = getRegistryConfig('system')
-  return Boolean(config.url && config.apiKey)
+async function resolveRegistryConfig(scope: RegistryScope = 'custom'): Promise<ResolvedRegistryConfig> {
+  const runtimeConfig = getRuntimeRegistryConfig(scope)
+  const stored = await getCmsRegistryInstanceSettings()
+  const configuredCustomUrl = normalizeRegistryUrl(stored.registryUrl || process.env.CMS_REGISTRY_URL)
+  const configuredCustomApiKey = (stored.registryApiKey || process.env.CMS_REGISTRY_API_KEY || '').trim()
+  const systemUrl = normalizeRegistryUrl(process.env.CMS_SYSTEM_TEMPLATES_REGISTRY_URL || SYSTEM_CMS_REGISTRY_URL)
+  const customMatchesSystem = Boolean(configuredCustomUrl && configuredCustomUrl === systemUrl)
+
+  if (scope === 'system') {
+    return {
+      url: systemUrl,
+      apiKey: customMatchesSystem
+        ? configuredCustomApiKey
+        : (process.env.CMS_SYSTEM_TEMPLATES_REGISTRY_API_KEY?.trim() || configuredCustomApiKey),
+      instanceSlug: process.env.CMS_SYSTEM_TEMPLATES_INSTANCE_SLUG?.trim() || runtimeConfig.instanceSlug,
+      releaseChannel: runtimeConfig.releaseChannel
+    }
+  }
+
+  return {
+    url: configuredCustomUrl,
+    apiKey: configuredCustomApiKey,
+    instanceSlug: runtimeConfig.instanceSlug,
+    releaseChannel: runtimeConfig.releaseChannel
+  }
+}
+
+export async function isCmsRegistryConfigured() {
+  const config = await resolveRegistryConfig('custom')
+  return Boolean(config.url)
+}
+
+export async function isCmsSystemTemplatesRegistryConfigured() {
+  const config = await resolveRegistryConfig('system')
+  return Boolean(config.url)
 }
 
 export function canManageSystemRegistryTemplates() {
-  return process.env.CMS_CAN_MANAGE_SYSTEM_TEMPLATES === 'true'
+  return Boolean(
+    process.env.CMS_SYSTEM_TEMPLATES_REGISTRY_API_KEY?.trim()
+    || process.env.CMS_REGISTRY_API_KEY?.trim()
+  )
 }
 
 export function getCmsUpdateAgentConfig() {
-  const registry = getRegistryConfig()
+  const registry = getRuntimeRegistryConfig()
   return {
     url: 'http://127.0.0.1:4401',
     token: registry.apiKey || registry.instanceSlug || 'modula-cms-local'
@@ -74,12 +120,12 @@ export function getCmsUpdateAgentConfig() {
 }
 
 export function isCmsUpdateAgentConfigured() {
-  return isCmsRegistryConfigured()
+  return Boolean(getRuntimeRegistryConfig().url)
 }
 
 async function registryFetch<T>(path: string, options: RegistryFetchOptions = {}, scope: RegistryScope = 'custom'): Promise<T> {
-  const config = getRegistryConfig(scope)
-  if (!config.url || !config.apiKey) {
+  const config = await resolveRegistryConfig(scope)
+  if (!config.url || (!config.apiKey && !options.allowAnonymous)) {
     throw createError({
       statusCode: 503,
       statusMessage: 'CMS registry unavailable',
@@ -87,14 +133,18 @@ async function registryFetch<T>(path: string, options: RegistryFetchOptions = {}
     })
   }
 
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    'x-instance-slug': config.instanceSlug,
+    ...options.headers
+  }
+  if (config.apiKey) {
+    headers.authorization = `Bearer ${config.apiKey}`
+  }
+
   const response = await fetch(`${config.url.replace(/\/$/, '')}${path}`, {
     method: options.method || 'GET',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${config.apiKey}`,
-      'x-instance-slug': config.instanceSlug,
-      ...options.headers
-    },
+    headers,
     body: options.body == null ? undefined : JSON.stringify(options.body)
   })
 
@@ -130,6 +180,87 @@ async function registryUploadAsset(filename: string, contentType: string, bytes:
       sourceUrl
     }
   })
+}
+
+export async function introspectRegistry(scope: RegistryScope): Promise<CmsRegistryCapabilities> {
+  const config = await resolveRegistryConfig(scope)
+  if (!config.url) {
+    return {
+      authenticated: false,
+      canManageSystemTemplates: false,
+      canManageCustomTemplates: false,
+      tokenLabel: null,
+      registryScope: null
+    }
+  }
+
+  try {
+    return await registryFetch<CmsRegistryCapabilities>('/v1/auth/introspect', {
+      allowAnonymous: true
+    }, scope)
+  } catch (error: any) {
+    if (error?.statusCode === 404) {
+      try {
+        await registryFetch('/health', { allowAnonymous: true }, scope)
+        return {
+          authenticated: false,
+          canManageSystemTemplates: false,
+          canManageCustomTemplates: false,
+          tokenLabel: null,
+          registryScope: null
+        }
+      } catch {}
+    }
+    return {
+      authenticated: false,
+      canManageSystemTemplates: false,
+      canManageCustomTemplates: false,
+      tokenLabel: null,
+      registryScope: null
+    }
+  }
+}
+
+export async function getRegistryEndpointState(scope: RegistryScope): Promise<CmsRegistryEndpointState> {
+  const config = await resolveRegistryConfig(scope)
+  if (!config.url) {
+    return {
+      url: '',
+      configured: false,
+      reachable: false,
+      error: null
+    }
+  }
+
+  try {
+    await registryFetch<CmsRegistryCapabilities>('/v1/auth/introspect', {
+      allowAnonymous: true
+    }, scope)
+    return {
+      url: config.url,
+      configured: true,
+      reachable: true,
+      error: null
+    }
+  } catch (error: any) {
+    if (error?.statusCode === 404) {
+      try {
+        await registryFetch('/health', { allowAnonymous: true }, scope)
+        return {
+          url: config.url,
+          configured: true,
+          reachable: true,
+          error: 'Worker registre joignable, mais endpoint d’introspection absent. Redéployez modula-cms-registery.'
+        }
+      } catch {}
+    }
+    return {
+      url: config.url,
+      configured: true,
+      reachable: false,
+      error: error?.data?.message || error?.message || 'Registry unavailable'
+    }
+  }
 }
 
 function collectStringUrls(value: unknown, collected = new Set<string>()) {
@@ -303,12 +434,13 @@ function rewriteSnapshotAssetUrls<T>(value: T, assets: CmsRegistryAssetReference
 }
 
 async function importRegistryAsset(asset: CmsRegistryAssetReference) {
-  const config = getRegistryConfig()
-  const response = await fetch(asset.downloadUrl, {
-    headers: {
-      authorization: `Bearer ${config.apiKey}`
-    }
-  })
+  const preferredUrl = asset.publicUrl?.trim() || asset.downloadUrl
+  const config = await resolveRegistryConfig('custom')
+  const headers: Record<string, string> = {}
+  if (!asset.publicUrl?.trim() && config.apiKey) {
+    headers.authorization = `Bearer ${config.apiKey}`
+  }
+  const response = await fetch(preferredUrl, { headers })
   if (!response.ok) {
     throw createError({
       statusCode: 502,
@@ -703,7 +835,7 @@ export async function importTemplateSnapshot(
 }
 
 function toRegistryPublicTemplateAssetUrl(assetId: string, scope: RegistryScope = 'custom') {
-  const config = getRegistryConfig(scope)
+  const config = getRuntimeRegistryConfig(scope)
   if (!config.url) return ''
   return `${config.url.replace(/\/$/, '')}/public/template-assets/${encodeURIComponent(assetId)}`
 }
@@ -778,23 +910,27 @@ function normalizeRegistryTemplateRecord(
 }
 
 export async function listRegistryTemplates() {
-  const records = await registryFetch<CmsRegistryTemplateRecord[]>('/v1/templates')
+  const records = await registryFetch<CmsRegistryTemplateRecord[]>('/v1/templates', {
+    allowAnonymous: true
+  })
   const sharedAssetUrls = buildRegistryAssetPublicUrlMap(records, 'custom')
   return records.map(record => normalizeRegistryTemplateRecord(record, 'custom', sharedAssetUrls))
 }
 
 export async function listSystemRegistryTemplates() {
-  const records = await registryFetch<CmsRegistryTemplateRecord[]>('/v1/templates', {}, 'system')
+  const records = await registryFetch<CmsRegistryTemplateRecord[]>('/v1/templates', {
+    allowAnonymous: true
+  }, 'system')
   const sharedAssetUrls = buildRegistryAssetPublicUrlMap(records, 'system')
   return records.map(record => normalizeRegistryTemplateRecord(record, 'system', sharedAssetUrls))
 }
 
 export async function listManagedRegistryTemplates(): Promise<CmsRegistryTemplateRecord[]> {
-  const customConfig = getRegistryConfig('custom')
-  const systemConfig = getRegistryConfig('system')
+  const customConfig = await resolveRegistryConfig('custom')
+  const systemConfig = await resolveRegistryConfig('system')
 
   if (!customConfig.url) {
-    return isCmsSystemTemplatesRegistryConfigured() ? await listSystemRegistryTemplates() : []
+    return systemConfig.url ? await listSystemRegistryTemplates() : []
   }
 
   if (
@@ -807,8 +943,8 @@ export async function listManagedRegistryTemplates(): Promise<CmsRegistryTemplat
   }
 
   const [systemTemplates, customTemplates] = await Promise.all([
-    isCmsSystemTemplatesRegistryConfigured() ? listSystemRegistryTemplates().catch(() => []) : Promise.resolve([]),
-    isCmsRegistryConfigured() ? listRegistryTemplates().catch(() => []) : Promise.resolve([])
+    systemConfig.url ? listSystemRegistryTemplates().catch(() => []) : Promise.resolve([]),
+    customConfig.url ? listRegistryTemplates().catch(() => []) : Promise.resolve([])
   ])
 
   const merged = new Map<string, CmsRegistryTemplateRecord>()
@@ -819,17 +955,16 @@ export async function listManagedRegistryTemplates(): Promise<CmsRegistryTemplat
 
 export async function listMergedSiteTemplates(): Promise<CmsSiteTemplateDefinition[]> {
   const fallback = [FALLBACK_SITE_TEMPLATE]
-  const customConfigured = isCmsRegistryConfigured()
-  const systemConfigured = isCmsSystemTemplatesRegistryConfigured()
+  const customConfig = await resolveRegistryConfig('custom')
+  const systemConfig = await resolveRegistryConfig('system')
+  const customConfigured = Boolean(customConfig.url)
+  const systemConfigured = Boolean(systemConfig.url)
 
   if (!customConfigured && !systemConfigured) {
     return fallback
   }
 
   try {
-    const customConfig = getRegistryConfig('custom')
-    const systemConfig = getRegistryConfig('system')
-
     let records: CmsRegistryTemplateRecord[] = []
     if (
       customConfig.url
@@ -864,12 +999,14 @@ export async function listMergedSiteTemplates(): Promise<CmsSiteTemplateDefiniti
 
     return publishedTemplates
   } catch {
-    return []
+    return fallback
   }
 }
 
 export async function getRegistryTemplate(slug: string, scope: RegistryScope = 'custom') {
-  const record = await registryFetch<CmsRegistryTemplateRecord>(`/v1/templates/${encodeURIComponent(slug)}`, {}, scope)
+  const record = await registryFetch<CmsRegistryTemplateRecord>(`/v1/templates/${encodeURIComponent(slug)}`, {
+    allowAnonymous: true
+  }, scope)
   return normalizeRegistryTemplateRecord(record, scope)
 }
 
@@ -966,9 +1103,13 @@ export async function applyRegistryTemplate(
     template = null
   }
 
-  if (!template && isCmsSystemTemplatesRegistryConfigured()) {
-    template = await getRegistryTemplate(slug, 'system')
-    resolvedScope = 'system'
+  if (!template) {
+    try {
+      template = await getRegistryTemplate(slug, 'system')
+      resolvedScope = 'system'
+    } catch {
+      template = null
+    }
   }
 
   if (!template) {
@@ -1018,7 +1159,7 @@ export async function listRegistryReleasesPage(limit = 10, offset = 0) {
 }
 
 export async function listRegistryDeployments(limit = 20, offset = 0) {
-  const config = getRegistryConfig()
+  const config = getRuntimeRegistryConfig()
   const query = new URLSearchParams({
     instanceSlug: config.instanceSlug,
     limit: String(limit),
@@ -1028,7 +1169,7 @@ export async function listRegistryDeployments(limit = 20, offset = 0) {
 }
 
 export async function registerRegistryInstance() {
-  const config = getRegistryConfig()
+  const config = await resolveRegistryConfig('custom')
   const settings = await getCmsSiteSettings()
   return await registryFetch<CmsRegistryInstanceRecord>('/v1/instances/register', {
     method: 'POST',

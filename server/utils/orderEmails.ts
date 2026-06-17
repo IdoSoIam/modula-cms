@@ -1,6 +1,7 @@
 import type { Basket, DeliveryTour, PickupPoint, Reservation } from '#modula/server/data/types'
 import { buildReservationIcs } from './calendarInvite'
 import { formatDateLabel } from './dateFormat'
+import { getEmailBrandingConfig } from './emailBranding'
 import { buildEmailHtml } from './emailTemplates'
 import {
   getReservationActionLinkLabel,
@@ -16,10 +17,6 @@ type ReservationWithRelations = Reservation & {
 }
 
 type CustomerManageLinkMode = 'cancel' | 'manage' | 'respond' | 'none'
-
-function getLogoUrl() {
-  return `${getSiteOrigin()}/brand/modula-mark.svg`
-}
 
 export function getManageReservationUrl(token: string | null | undefined, locale?: string | null) {
   if (!token) return null
@@ -80,17 +77,20 @@ Ouvrir la gestion admin :
 ${getAdminReservationUrl(options.reservationId)}`
 }
 
-export function buildGenericEmail(options: {
+export async function buildGenericEmail(options: {
   title: string
   body: string
   accent?: string
   lang?: string
 }) {
+  const branding = await getEmailBrandingConfig()
   return buildEmailHtml({
     title: options.title,
     body: options.body,
-    accent: options.accent,
-    logoUrl: getLogoUrl(),
+    accent: options.accent || branding.accentColor,
+    logoUrl: branding.logoUrl,
+    brandName: branding.brandName,
+    footer: branding.footerText,
     lang: options.lang
   })
 }
@@ -104,6 +104,7 @@ export async function buildReservationDecisionEmail(options: {
   manageLinkMode?: CustomerManageLinkMode
 }) {
   const organizerEmail = await getPreferredSenderEmail()
+  const branding = await getEmailBrandingConfig()
   const textBody = appendReservationManageLink({
     body: options.body,
     reservation: options.reservation,
@@ -113,10 +114,12 @@ export async function buildReservationDecisionEmail(options: {
   const htmlBody = buildEmailHtml({
     title: options.subject,
     body: textBody,
-    accent: '#4b56d2',
+    accent: branding.accentColor || '#4b56d2',
     statusLabel: options.action === 'CONFIRMED' ? 'Confirmée' : options.action === 'CANCELLED' ? 'Annulée' : 'Refusée',
     statusColor: options.action === 'CONFIRMED' ? '#bbf7d0' : options.action === 'CANCELLED' ? '#fde68a' : '#fecaca',
-    logoUrl: getLogoUrl(),
+    logoUrl: branding.logoUrl,
+    brandName: branding.brandName,
+    footer: branding.footerText,
     lang: getReservationEmailHtmlLang(options.reservation.language)
   })
 
@@ -128,7 +131,7 @@ export async function buildReservationDecisionEmail(options: {
       reservation: options.reservation,
       method: options.action === 'CONFIRMED' ? 'REQUEST' : 'CANCEL',
       organizerEmail,
-      organizerName: 'Ferme du Campeyrigoux',
+      organizerName: branding.brandName,
       manageUrl,
       singleOccurrence: false,
       subscriptionsEnabled: options.subscriptionsEnabled
@@ -175,6 +178,7 @@ export async function buildReservationOccurrenceEmail(options: {
   manageLinkMode?: CustomerManageLinkMode
 }) {
   const organizerEmail = await getPreferredSenderEmail()
+  const branding = await getEmailBrandingConfig()
   const textBody = appendReservationManageLink({
     body: options.body,
     reservation: options.reservation,
@@ -184,10 +188,12 @@ export async function buildReservationOccurrenceEmail(options: {
   const htmlBody = buildEmailHtml({
     title: options.subject,
     body: textBody,
-    accent: '#4b56d2',
+    accent: branding.accentColor || '#4b56d2',
     statusLabel: options.action === 'CONFIRMED' ? 'Mise à jour' : 'Occurrence annulée',
     statusColor: options.action === 'CONFIRMED' ? '#bfdbfe' : '#fde68a',
-    logoUrl: getLogoUrl(),
+    logoUrl: branding.logoUrl,
+    brandName: branding.brandName,
+    footer: branding.footerText,
     lang: getReservationEmailHtmlLang(options.reservation.language)
   })
 
@@ -198,7 +204,7 @@ export async function buildReservationOccurrenceEmail(options: {
       reservation: options.reservation,
       method: options.action === 'CONFIRMED' ? 'REQUEST' : 'CANCEL',
       organizerEmail,
-      organizerName: 'Ferme du Campeyrigoux',
+      organizerName: branding.brandName,
       recurrenceId: options.recurrenceId ?? options.occurrence.originalOccurrenceDate ?? options.occurrence.occurrenceDate,
       recurrenceIdTime: options.reservation.fulfillmentTime,
       occurrenceDate: options.occurrence.occurrenceDate,

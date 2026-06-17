@@ -57,8 +57,8 @@
       <section class="rounded-box border border-base-300 p-5" :style="previewShellStyle">
         <div class="mx-auto max-w-[560px] rounded-3xl border p-6 shadow-sm" :style="previewCardStyle">
           <div class="rounded-2xl px-5 py-4 text-white" :style="{ background: `linear-gradient(135deg, ${form.accentColor}, #1f2937)` }">
-            <img v-if="form.logoUrl" :src="form.logoUrl" alt="logo" class="mb-3 h-10 w-auto object-contain" />
-            <div class="text-xs uppercase opacity-80 tracking-[0.16em]">{{ form.brandName }}</div>
+            <img v-if="previewLogoUrl" :src="previewLogoUrl" alt="logo" class="mb-3 h-10 w-auto object-contain" />
+            <div class="text-xs uppercase opacity-80 tracking-[0.16em]">{{ previewBrandName }}</div>
             <div class="mt-2 text-2xl font-semibold">Nouveau message</div>
           </div>
           <div class="pt-5 text-sm leading-relaxed" :style="{ color: form.textColor }">
@@ -66,7 +66,7 @@
             <p>Ce template applique un rendu lisible, mobile-first, avec hiérarchie claire et CTA explicite.</p>
             <button class="btn btn-sm mt-2 text-white border-0" :style="{ backgroundColor: form.accentColor, borderRadius: `${form.buttonRadiusPx}px` }">Voir le détail</button>
             <div class="mt-5 border-t pt-4 text-xs opacity-70">
-              {{ form.footerText }}
+              {{ previewFooterText }}
             </div>
           </div>
         </div>
@@ -113,13 +113,33 @@ const form = reactive<EmailVisualTemplateConfig>({
   buttonRadiusPx: 10
 })
 
+function normalizePreviewAssetUrl(value: string | null | undefined) {
+  const src = (value || '').trim()
+  if (!src) return ''
+  if (src.startsWith('/') || /^[a-z]+:\/\//i.test(src) || src.startsWith('data:')) return src
+  return `/images/${src.replace(/^\.?\//, '')}`
+}
+
 watchEffect(() => {
   if (!data.value?.config) return
   Object.assign(form, data.value.config)
-  if (!form.logoUrl && siteConfig.value?.siteShell?.settings?.logo?.src) {
-    form.logoUrl = siteConfig.value.siteShell.settings.logo.src
-  }
 })
+
+const previewBrandName = computed(() =>
+  form.brandName.trim()
+  || siteConfig.value?.siteName
+  || 'Modula CMS'
+)
+
+const previewLogoUrl = computed(() =>
+  normalizePreviewAssetUrl(form.logoUrl)
+  || normalizePreviewAssetUrl(siteConfig.value?.cms?.settings?.logo?.src)
+)
+
+const previewFooterText = computed(() =>
+  form.footerText.trim()
+  || previewBrandName.value
+)
 
 const previewShellStyle = computed(() => ({
   backgroundColor: form.backgroundColor

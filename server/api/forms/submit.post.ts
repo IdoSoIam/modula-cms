@@ -252,7 +252,7 @@ export default defineEventHandler(async (event) => {
       bcc: parseEmailList(form.action.bcc),
       replyTo: replyToEmail || undefined,
       body: compiled.body,
-      htmlBody: buildGenericEmail({
+      htmlBody: await buildGenericEmail({
         title: compiled.subject,
         body: compiled.body,
         accent: '#2563eb',

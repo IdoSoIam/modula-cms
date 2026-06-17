@@ -38,7 +38,7 @@ async function sendInvitationEmail(options: {
     to: options.email,
     subject,
     body,
-    htmlBody: buildGenericEmail({
+    htmlBody: await buildGenericEmail({
       title: subject,
       body,
       accent: '#4f8a34',

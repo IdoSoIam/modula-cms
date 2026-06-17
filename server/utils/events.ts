@@ -369,7 +369,7 @@ async function sendTemplatedEventEmail(options: {
     replyTo: options.replyTo,
     subject,
     body,
-    htmlBody: buildGenericEmail({
+    htmlBody: await buildGenericEmail({
       title: subject,
       body,
       accent: '#4f8a34',
@@ -649,7 +649,7 @@ export async function sendParticipationCall(options: {
       to: recipient.email,
       subject,
       body,
-      htmlBody: buildGenericEmail({
+      htmlBody: await buildGenericEmail({
         title: subject,
         body,
         accent: recipient.alreadyParticipating ? '#d97706' : '#4f8a34',

@@ -14,6 +14,8 @@ interface InstallBody {
   adminFirstName?: string
   adminLastName?: string
   siteTemplate?: CmsSiteTemplateKey
+  registryUrl?: string
+  registryApiKey?: string
 }
 
 export default defineEventHandler(async (event) => {
@@ -55,7 +57,9 @@ export default defineEventHandler(async (event) => {
       adminPassword,
       adminFirstName: body.adminFirstName?.trim(),
       adminLastName: body.adminLastName?.trim(),
-      siteTemplate
+      siteTemplate,
+      registryUrl: body.registryUrl?.trim(),
+      registryApiKey: body.registryApiKey?.trim()
     })
   } catch (error: any) {
     if (error?.statusCode) {

@@ -1,6 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import {
-  canManageSystemRegistryTemplates,
+  getRegistryEndpointState,
+  introspectRegistry,
   isCmsRegistryConfigured,
   isCmsSystemTemplatesRegistryConfigured,
   listManagedRegistryTemplates,
@@ -10,19 +11,50 @@ import {
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  if (!isCmsRegistryConfigured() && !isCmsSystemTemplatesRegistryConfigured()) {
+  const [customConfigured, systemConfigured, customRegistry, systemRegistry, customCapabilities, systemCapabilities] = await Promise.all([
+    isCmsRegistryConfigured(),
+    isCmsSystemTemplatesRegistryConfigured(),
+    getRegistryEndpointState('custom'),
+    getRegistryEndpointState('system'),
+    introspectRegistry('custom'),
+    introspectRegistry('system')
+  ])
+
+  const capabilities = {
+    authenticated: customCapabilities.authenticated || systemCapabilities.authenticated,
+    canManageCustomTemplates: customCapabilities.canManageCustomTemplates,
+    canManageSystemTemplates: systemCapabilities.canManageSystemTemplates || customCapabilities.canManageSystemTemplates,
+    tokenLabel: customCapabilities.tokenLabel || systemCapabilities.tokenLabel || null,
+    registryScope: customCapabilities.registryScope || systemCapabilities.registryScope || null
+  }
+
+  let templates: Awaited<ReturnType<typeof listManagedRegistryTemplates>> = []
+  let availableSiteTemplates = await listMergedSiteTemplates().catch(() => [])
+
+  if (customConfigured || systemConfigured) {
+    templates = await listManagedRegistryTemplates().catch(() => [])
+    if (!availableSiteTemplates.length) {
+      availableSiteTemplates = []
+    }
+  }
+
+  if (!customConfigured && !systemConfigured) {
     return {
       configured: false,
-      canManageSystemTemplates: canManageSystemRegistryTemplates(),
+      customRegistry,
+      systemRegistry,
+      capabilities,
       templates: [],
-      availableSiteTemplates: await listMergedSiteTemplates()
+      availableSiteTemplates
     }
   }
 
   return {
     configured: true,
-    canManageSystemTemplates: canManageSystemRegistryTemplates(),
-    templates: await listManagedRegistryTemplates(),
-    availableSiteTemplates: await listMergedSiteTemplates()
+    customRegistry,
+    systemRegistry,
+    capabilities,
+    templates,
+    availableSiteTemplates
   }
 })

@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { canManageSystemRegistryTemplates, deleteRegistryTemplateVersion } from '#modula/server/utils/cmsRegistry'
+import { deleteRegistryTemplateVersion, introspectRegistry } from '#modula/server/utils/cmsRegistry'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -12,8 +12,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const scope = query.scope === 'system' ? 'system' : 'custom'
-  if (scope === 'system' && !canManageSystemRegistryTemplates()) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden', message: 'Cette instance ne peut pas modifier les modèles système.' })
+  const capabilities = await introspectRegistry(scope)
+  if (scope === 'system' && !capabilities.canManageSystemTemplates) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden', message: 'La clé configurée ne peut pas modifier les modèles système.' })
+  }
+  if (scope === 'custom' && !capabilities.canManageCustomTemplates) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden', message: 'La clé configurée ne peut pas modifier les modèles personnalisés.' })
   }
 
   return await deleteRegistryTemplateVersion(slug, versionId, scope)

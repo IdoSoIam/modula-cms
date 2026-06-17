@@ -47,6 +47,8 @@ export const SETTING_KEYS = {
   PAGE_BUILDER_CONTENT: 'home_page_content_v1',
   CMS_SITE_SETTINGS: 'cms_site_settings_v1',
   CMS_SITE_TEMPLATE_KEY: 'cms_site_template_key_v1',
+  CMS_REGISTRY_URL: 'cms_registry_url_v1',
+  CMS_REGISTRY_API_KEY: 'cms_registry_api_key_v1',
   DAISYUI_THEME_CONFIG: 'daisyui_theme_config_v1',
   EMAIL_VISUAL_TEMPLATE_CONFIG: 'email_visual_template_config_v1',
   IN_DEVELOPMENT: 'in_development',
@@ -386,6 +388,40 @@ export async function getEmailVisualTemplateConfig(): Promise<EmailVisualTemplat
 
 export async function saveEmailVisualTemplateConfig(config: EmailVisualTemplateConfig) {
   await setSetting(SETTING_KEYS.EMAIL_VISUAL_TEMPLATE_CONFIG, JSON.stringify(config))
+}
+
+export interface CmsRegistryInstanceSettings {
+  registryUrl: string
+  registryApiKey: string
+}
+
+export async function getCmsRegistryInstanceSettings(): Promise<CmsRegistryInstanceSettings> {
+  const settings = await getSettings([
+    SETTING_KEYS.CMS_REGISTRY_URL,
+    SETTING_KEYS.CMS_REGISTRY_API_KEY
+  ])
+
+  return {
+    registryUrl: settings[SETTING_KEYS.CMS_REGISTRY_URL]?.trim() || '',
+    registryApiKey: settings[SETTING_KEYS.CMS_REGISTRY_API_KEY]?.trim() || ''
+  }
+}
+
+export async function saveCmsRegistryInstanceSettings(settings: CmsRegistryInstanceSettings) {
+  const registryUrl = settings.registryUrl.trim()
+  const registryApiKey = settings.registryApiKey.trim()
+
+  if (registryUrl) {
+    await setSetting(SETTING_KEYS.CMS_REGISTRY_URL, registryUrl)
+  } else {
+    await deleteSetting(SETTING_KEYS.CMS_REGISTRY_URL)
+  }
+
+  if (registryApiKey) {
+    await setSetting(SETTING_KEYS.CMS_REGISTRY_API_KEY, registryApiKey)
+  } else {
+    await deleteSetting(SETTING_KEYS.CMS_REGISTRY_API_KEY)
+  }
 }
 
 export async function isAssociationRolesEnabled() {
