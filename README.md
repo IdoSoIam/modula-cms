@@ -1,235 +1,482 @@
-# Modula CMS, CMS multi-site modulaire
+# Modula CMS
 
-Modula CMS est un CMS multi-site construit avec Nuxt 4, Vue 3, TypeScript, un client de données interne multi-runtime, Cloudflare D1/R2 et DaisyUI. Le projet regroupe une interface publique, un back-office et une API Nitro dans une application Nuxt unique, avec SQLite pour le runtime serveur classique et D1 pour le runtime Cloudflare.
+Modula CMS est un CMS modulaire construit avec `Nuxt 4`, `Vue 3`, `TypeScript` et un client de données interne généré. Le projet regroupe :
 
-Historique : Modula CMS a d'abord été développé pour la Ferme du Campeyrigoux, puis a évolué vers un CMS multi-site modulaire.
+- un site public
+- une administration complète
+- un système d’installation
+- des modèles de site versionnés
+- un mécanisme de publication de releases et de mise à jour d’instance
+
+Le CMS peut tourner dans deux contextes principaux :
+
+- serveur Node classique avec `SQLite + filesystem`
+- Cloudflare avec `D1 + R2 + Workers`
+
+## Objectif du dépôt
+
+Ce dépôt contient le socle CMS. Il peut être utilisé :
+
+- en développement local
+- comme base de build pour publier des releases
+- comme source d’un projet hôte ou d’un clone d’instance
+- comme cœur fonctionnel d’une installation client
 
 ## Stack technique
 
-- Nuxt 4 avec Nitro, preset Cloudflare module.
-- Vue 3 et TypeScript.
-- Client de données interne généré, avec adaptateurs SQLite et Cloudflare D1.
-- Cloudflare Workers via Wrangler, avec D1 pour les données applicatives.
-- Cloudflare R2 pour le stockage des images quand le runtime Cloudflare est disponible.
-- Tailwind CSS 4 et DaisyUI 5 pour les composants et les thèmes.
-- `@nuxtjs/i18n` avec `vue-i18n` dans l'arbre de dépendances pour l'internationalisation.
-- Pinia et TanStack Vue Query côté interface.
-- Tiptap pour les contenus éditoriaux enrichis.
-- `bcryptjs` pour le hash des mots de passe.
-- Connecteurs email présents dans le code, dont Gmail et Resend. Vérifier la configuration et l'installation effective du paquet Resend avant de l'activer en production.
-- `nitro-cloudflare-dev` pour rapprocher le développement local du runtime Cloudflare.
+- `Nuxt 4`
+- `Nitro`
+- `Vue 3`
+- `TypeScript`
+- client de données interne généré
+- `better-sqlite3` pour SQLite
+- `Cloudflare D1` pour le mode Cloudflare
+- `Cloudflare R2` pour les fichiers et images en mode Cloudflare
+- `Tailwind CSS 4`
+- `DaisyUI 5`
+- `Pinia`
+- `TanStack Vue Query`
+- `Tiptap`
+- `bcryptjs`
+- `Wrangler`
 
-## Architecture
+## Architecture générale
 
-### Modes d'infrastructure
+Le dépôt contient principalement :
 
-Le CMS supporte maintenant deux axes de configuration explicites :
+- `pages/` : pages publiques, admin, installation
+- `components/` : composants UI, layout, CMS, page builder
+- `server/api/` : endpoints Nitro
+- `server/utils/` : logique serveur transversale
+- `server/services/` : services métier
+- `shared/` : types et contrats partagés
+- `schema/` : schéma source du client de données
+- `server/generated/` : artefacts générés commités
+- `migrations/` : migrations SQL canoniques
+- `scripts/` : build, publication, migration, sync, update runtime
 
-- `CMS_DB_DRIVER=d1|sqlite`
-- `CMS_STORAGE_DRIVER=r2|fs`
+## Drivers et runtimes
 
-Combinaisons v1 supportées :
+La configuration de plateforme repose principalement sur :
 
-- Cloudflare : `d1 + r2`
-- Serveur dédié classique : `sqlite + fs`
+- `CMS_DB_DRIVER=sqlite|d1`
+- `CMS_STORAGE_DRIVER=fs|r2`
+- `CMS_RUNTIME_TARGET=server|cloudflare`
 
-Les commandes lisibles par mode sont :
+Combinaisons supportées dans l’état actuel :
 
-- `npm run dev:cloudflare`
-- `npm run dev:server`
-- `npm run build:cloudflare`
-- `npm run build:server`
-- `npm run preview:cloudflare`
-- `npm run deploy:cloudflare`
-- `npm run start:server`
+- `server + sqlite + fs`
+- `cloudflare + d1 + r2`
 
-### Projet hôte
+## Développement local
 
-Le CMS peut maintenant servir de base à un projet hôte Nuxt qui l'étend comme layer.
+### Démarrage principal
 
-Principe :
-
-1. le projet hôte installe `modula-cms`
-2. il crée son propre `cms.project.config.ts`
-3. son `nuxt.config.ts` appelle `createModulaCmsHostConfig(...)`
-
-Exemple minimal :
-
-```ts
-// nuxt.config.ts du projet hôte
-import projectConfig from './cms.project.config'
-import { createModulaCmsHostConfig } from 'modula-cms/host'
-
-export default createModulaCmsHostConfig(projectConfig)
+```powershell
+npm install
+npm run dev
 ```
 
-Un exemple de base est fourni dans :
+Le script `dev` lance le flux local standard du CMS.
 
-- `templates/host/nuxt.config.ts`
-- `templates/host/cms.project.config.ts`
+### Réinitialisation locale
 
-Le dépôt est une application Nuxt monorepo :
+```powershell
+npm run dev:reset
+```
 
-- `pages/` contient les vues publiques, l'administration et les pages d'activation utilisateur.
-- `components/` contient les composants Vue, dont les blocs CMS et les composants d'interface.
-- `server/api/` expose les routes API Nitro pour le CMS, l'admin, l'authentification et les modules métier.
-- `server/services/` et `server/utils/` portent la logique serveur partagée.
-- `shared/` contient les contrats et helpers communs, par exemple le page builder, les routes admin, les thèmes et la résolution CMS.
-- `cms.project.config.ts` porte l'identité, les drivers et les seeds de base du projet hôte courant.
-- `schema/` et `server/generated/` portent le schéma source et les artefacts générés du client de données interne.
-- `migrations/` contient les migrations SQL canoniques réellement appliquées par SQLite locale et D1.
-- `db/archive/prisma-migrations/` conserve l'ancien historique Prisma à titre d'archive.
-- `wrangler.jsonc` déclare le Worker, le binding D1 `DB`, le bucket R2 `UPLOADS_BUCKET` et les variables Cloudflare.
+## Scripts disponibles
 
-Le runtime utilise en pratique trois états de base :
+### Développement et build
 
-- SQLite locale : `.data/sqlite/local.db`.
-- D1 locale Wrangler : utilisée par `npm run dev` et `npm run preview`.
-- D1 distante Cloudflare : utilisée après `npm run deploy`.
+- `npm run dev`
+- `npm run dev:reset`
+- `npm run postinstall`
+- `npm run release:build`
+- `npm run release:publish`
+- `npm run release:publish:git`
 
-Points importants :
+### Base de données interne
 
-- `npm run dev` ne lit pas `.data/sqlite/local.db` quand le runtime Cloudflare local est actif.
-- Avec `nitro-cloudflare-dev`, `npm run dev` utilise le binding Cloudflare local, donc la D1 locale Wrangler.
-- `npm run preview` utilise aussi la D1 locale Wrangler via `wrangler dev --local`.
-- Le stockage image utilise R2 quand le runtime Cloudflare est disponible, avec un fallback local en base pour certains usages de développement.
+- `npm run db:generate:internal`
+- `npm run db:migrate`
+- `npm run db:migrate:status`
+- `npm run db:migrate:scaffold`
 
-## Fonctionnalités vérifiées dans le code
+### Cloudflare
 
-- CMS multi-site basé sur la résolution de pages publiques et la configuration de site.
-- Page builder visuel autour du modèle `CmsPage` et des blocs déclarés dans `shared/pageBuilder.ts`.
-- Événements avec modèles `Event`, occurrences, réservations publiques et participations internes.
-- Actualités avec le modèle `Article`.
-- Rôles et permissions avec `Role`, `RolePermission` et les permissions par module.
-- Rôles associatifs cumulables avec `MemberRole` et `UserMemberRole`.
-- Thèmes DaisyUI configurables via `shared/themes.ts`, appliqués par `useTheme`.
-- i18n Nuxt avec locales `fr` et `en`, stratégie `prefix_except_default` et configuration `i18n.config.ts`.
-- Invitations utilisateur sans mot de passe via `PasswordSetupToken`, les routes `/password-setup/[token]` et le service d'authentification.
-- Feature flags dans `siteConfig.featureFlags`, utilisés pour piloter les modules exposés côté public et admin.
-- Gestion d'images via Nuxt Image, Cloudflare Images et R2 selon la configuration runtime.
+- `npm run cms:dev:cloudflare`
+- `npm run cms:build:cloudflare`
+- `npm run cms:deploy:cloudflare`
+- `npm run cms:db:d1:migrate:local`
+- `npm run cms:db:d1:migrate:remote`
+- `npm run cms:db:d1:migrate:status:local`
+- `npm run cms:db:d1:migrate:status:remote`
+- `npm run cms:db:d1:pull:prod`
+- `npm run cms:db:d1:push:prod`
+- `npm run cms:r2:pull:prod`
+- `npm run cms:r2:push:prod`
 
-## Page builder
+### Registre
 
-Le page builder stocke les pages CMS dans `CmsPage`. Les blocs, variantes et options de rendu sont typés dans `shared/pageBuilder.ts`, puis rendus côté public par les composants CMS. La résolution des pages passe par l'API CMS et les helpers partagés pour combiner contenu, configuration de site, menus, footer, thème et flags actifs.
+- `npm run registry:seed:bundled`
 
-## Événements et actualités
+## Migrations
 
-Le module événements s'appuie sur `Event`, `EventOccurrence`, `EventAudienceMemberRole`, `EventPublicReservation` et `EventInternalParticipation`. Il couvre les événements datés, les occurrences et les publics liés aux rôles associatifs quand la fonctionnalité est active.
+Le schéma source n’est pas la migration.
 
-Le module actualités repose sur `Article` et ses routes API. Il est exposé comme contenu éditorial publié, avec auteur et métadonnées stockés en base.
+Le flux attendu est :
 
-## Rôles et permissions
-
-Les droits d'administration sont modélisés avec `Role` et `RolePermission`. Les permissions sont stockées par module avec les capacités lecture, création, modification et suppression.
-
-Les rôles associatifs sont séparés des rôles d'administration. Ils peuvent être cumulés sur un utilisateur via `UserMemberRole` et sont utilisés par certains modules, notamment les événements.
-
-## Thèmes, i18n et feature flags
-
-Les thèmes DaisyUI sont centralisés dans `shared/themes.ts`. Le thème actif est appliqué via l'attribut `data-theme`, avec une liste de thèmes publics et un thème sombre par défaut si configuré.
-
-L'i18n est configurée dans `nuxt.config.ts` avec `@nuxtjs/i18n`, les locales `fr` et `en`, et le fichier `i18n.config.ts` pour `vue-i18n`.
-
-Les feature flags sont lus depuis `siteConfig.featureFlags`. Ils servent à masquer ou désactiver des modules dans les routes publiques, les menus admin et certaines API.
-
-## Invitations utilisateur
-
-Le flux d'invitation crée un utilisateur inactif sans mot de passe, génère un token stocké côté serveur, puis propose un lien public de configuration. Les routes `/api/auth/password-setup/[token]` valident et consomment ce token. La page `/password-setup/[token]` permet à l'utilisateur de créer son mot de passe.
-
-## Commandes
-
-### Développement
-
-- `npm run dev` : lance Nuxt en développement avec la D1 locale Wrangler.
-- `npm run dev:reset` : nettoie l'état Nuxt puis relance le serveur de développement.
-- `npm run build` : construit l'application Nuxt.
-- `npm run preview` : construit l'application puis lance un preview Cloudflare local avec `wrangler --cwd .output dev --local`.
-- `npm run generate` : lance la génération Nuxt.
-- `npm run cf-typegen` : génère les types Wrangler.
-
-### Base locale et données
-
-- `npm run db:migrate:sqlite` : applique les migrations SQL canoniques sur la SQLite locale.
-- `npm run db:reset:sqlite` : recrée `.data/sqlite/local.db` depuis les migrations SQL canoniques.
-- `npm run db:migrate:d1:local` : applique les migrations SQL canoniques sur la D1 locale.
-- `npm run db:migrate:d1:remote` : applique les migrations SQL canoniques sur la D1 distante.
-- `npm run db:local:migrate` : applique les migrations SQL sur la SQLite locale.
-- `npm run db:local:reset` : recrée `.data/sqlite/local.db` depuis les migrations.
-- `npm run db:d1:seed:cms-local` : injecte les données CMS locales prévues par le script de seed.
-
-### Migrations et requêtes D1
-
-Source de vérité migrations :
-
-1. modifier le schéma source TypeScript
+1. modifier le schéma TypeScript source
 2. regénérer les artefacts internes
-3. écrire la migration SQL dans `migrations/`
-4. appliquer cette migration sur SQLite ou D1
+3. créer une migration SQL explicite dans `migrations/`
+4. appliquer cette migration sur le moteur concerné
 
-`db/archive/prisma-migrations/` ne doit jamais être utilisé pour exécuter les migrations du projet.
+Source de vérité :
 
-- `npm run db:d1:migrate:local` : applique les migrations sur la D1 locale Wrangler.
-- `npm run db:d1:migrate:remote` : applique les migrations sur la D1 distante Cloudflare.
-- `npm run db:d1:query:local -- "SELECT * FROM User;"` : exécute une requête SQL sur la D1 locale.
-- `npm run db:d1:query:remote -- "SELECT * FROM User;"` : exécute une requête SQL sur la D1 distante.
+- le schéma source sert à générer les artefacts runtime
+- les migrations SQL servent à faire évoluer les bases existantes
 
-### Synchronisation des bases
+Pour une base vide, le projet peut appliquer un bootstrap SQL complet généré à partir du schéma source.
 
-- `npm run db:d1:import:sqlite-local` : copie les données de `.data/sqlite/local.db` vers la D1 locale.
-- `npm run db:d1:push:prod` : copie les données de la D1 locale vers la D1 distante.
-- `npm run db:d1:pull:prod` : copie les données de la D1 distante vers la D1 locale.
+## Modèles de site
 
-Notes sur ces commandes :
+Le CMS gère des modèles de site versionnés. Un modèle contient notamment :
 
-- Elles réappliquent les migrations sur la cible avant import.
-- Elles remplacent les données applicatives de la cible.
-- Elles ne fusionnent pas des environnements.
-- `db:d1:push:prod` est destructrice pour les données actuelles de production.
-- `db:d1:pull:prod` écrase les données actuelles de la D1 locale.
+- les réglages CMS
+- la navigation
+- les pages éditoriales
+- la configuration de thème
+- les feature flags
+- les assets référencés par ce snapshot
 
-### R2 et images
+### Sources possibles
 
-- `npm run r2:push:prod` : synchronise les fichiers locaux vers R2 distant.
-- `npm run r2:pull:prod` : synchronise R2 distant vers le stockage local.
-- `npm run images:optimize:r2:remote` : optimise les images R2 distantes.
-- `npm run images:optimize:r2:remote:dry` : simule l'optimisation des images R2 distantes.
-- `npm run images:optimize:r2:local` : optimise les images R2 locales.
-- `npm run images:optimize:r2:local:dry` : simule l'optimisation des images R2 locales.
+Le CMS peut lister :
 
-## Déploiement Cloudflare
+- les modèles système
+- les modèles custom d’un registre configuré sur l’instance
+- un fallback local minimal si aucun registre n’est joignable
 
-Le déploiement cible Cloudflare Workers avec Wrangler. La configuration actuelle déclare :
+### Règle produit importante
 
-- le Worker `modula-cms` ;
-- le binding D1 `DB` ;
-- le bucket R2 `UPLOADS_BUCKET` ;
-- le binding `IMAGE_RESIZER` pour Cloudflare Images ;
-- les variables runtime dans `wrangler.jsonc`.
+Le fallback local ne sert que de secours.
 
-Avant un déploiement réel :
+En fonctionnement normal :
 
-1. Créer ou vérifier la base D1 distante.
-2. Créer ou vérifier le bucket R2 déclaré dans `wrangler.jsonc`.
-3. Vérifier que `wrangler.jsonc` contient le bon `database_id`.
-4. Configurer les secrets et variables nécessaires hors dépôt.
-5. Lancer `npm run db:d1:migrate:remote`.
-6. Lancer `npm run deploy`.
+- les modèles système viennent du registre système
+- les modèles personnalisés viennent du registre custom de l’instance si configuré
 
-Pour déployer le code et le schéma :
+## Registre système et registre custom
 
-1. `npm run db:d1:migrate:remote`
-2. `npm run deploy`
+Le CMS distingue deux registres logiques.
 
-Pour déployer le code, le schéma et les données de la D1 locale vers la production :
+### Registre système
 
-1. `npm run db:d1:migrate:remote`
-2. `npm run db:d1:push:prod`
-3. `npm run deploy`
+Le registre système est l’URL embarquée dans le package. Il sert à distribuer :
 
-Attention : `npm run db:d1:push:prod` remplace les données applicatives actuelles de la base distante. Vérifier la cible Wrangler et le `database_id` avant de lancer cette commande.
+- les modèles système
+- les releases partagées
+- la logique de mise à jour centralisée
 
-Vérification utile après déploiement :
+Sans configuration custom, une instance peut :
 
-```sh
-npm run db:d1:query:remote -- "SELECT id, email, role FROM User;"
+- consulter les modèles système
+- appliquer un modèle système
+- voir les releases disponibles si l’instance utilise le système de mise à jour central
+
+Sans clé propriétaire adaptée, une instance ne peut pas :
+
+- créer un nouveau modèle système
+- mettre à jour un modèle système
+- supprimer un modèle système
+
+Le modèle d’accès système est volontairement simple :
+
+- lecture publique
+- mutation système uniquement avec la clé système
+
+### Registre custom
+
+Le registre custom est configuré par instance via l’installation ou l’admin avec :
+
+- une URL
+- une clé API
+
+Si vous voulez héberger et gérer votre propre registre custom, le dépôt associé est :
+
+- [IdoSoIam/modula-cms-registry](https://github.com/IdoSoIam/modula-cms-registry)
+
+Quand un registre custom est configuré, il est fusionné à la même interface que le registre système.
+
+L’instance peut alors, selon les capacités réelles renvoyées par le registre :
+
+- créer ses propres modèles
+- mettre à jour ses modèles
+- supprimer ses modèles
+- publier ses versions de modèles
+
+Si aucune URL custom n’est renseignée mais qu’une clé registre est fournie, le CMS tente cette clé contre le registre système embarqué. Cela permet à l’owner de gérer les modèles système depuis son instance sans rendre l’URL système modifiable.
+
+## Règles de gestion des modèles selon la configuration
+
+### Cas 1 : pas de registre custom
+
+Dans ce cas :
+
+- les modèles système restent visibles
+- le changement de modèle de site reste possible
+- la création de nouveaux modèles est indisponible
+- la mise à jour de modèles distants est indisponible
+- la suppression de modèles distants est indisponible
+- les mises à jour applicatives sont pilotées par le registre système
+
+### Cas 2 : registre custom configuré
+
+Dans ce cas :
+
+- les modèles système restent visibles
+- les modèles custom sont ajoutés à la même liste
+- les droits de mutation dépendent de l’introspection réelle du registre
+- vous gérez vos propres modèles
+- vous gérez aussi vos propres releases et votre propre cycle de mise à jour si votre registre le permet
+
+## Mises à jour applicatives
+
+Le CMS inclut une interface de consultation et de déclenchement de mises à jour d’instance.
+
+Le principe retenu est :
+
+- une release est buildée à partir du socle CMS
+- cette release est publiée dans un registre
+- une instance consomme une archive versionnée
+- la mise à jour runtime est exécutée localement par le moteur intégré
+
+### Si aucun registre custom n’est configuré
+
+- les releases viennent du registre système
+- la stratégie de mise à jour est pilotée par le registre système
+
+### Si un registre custom est configuré
+
+- vos releases peuvent venir de votre propre registre
+- vous gérez votre propre canal de mise à jour
+- vous gérez vos propres publications et déploiements
+
+## Publication de release
+
+Flux typique :
+
+1. build d’une release runtime
+2. création d’une archive versionnée
+3. publication au registre
+4. consommation par les instances
+
+### Build
+
+```powershell
+npm run release:build
 ```
+
+### Publication
+
+```powershell
+npm run release:publish -- 0.1.x
+```
+
+### Publication avec workflow git
+
+```powershell
+npm run release:publish:git -- 0.1.x
+```
+
+Le script `release:publish:git` est prévu pour publier une release avec le flux git associé, alors que `release:publish` reste utile pour les tests, le dev et les publications sans automatisation git.
+
+## Installation
+
+Le processus `/install` permet :
+
+- de créer l’admin initial
+- d’appliquer un modèle de site
+- d’enregistrer optionnellement un registre custom d’instance
+
+Les champs registre sont optionnels.
+
+Si aucun registre custom n’est fourni :
+
+- l’instance reste compatible avec le registre système
+- les modèles système restent applicables
+
+## Cloudflare
+
+Le mode Cloudflare repose sur :
+
+- `D1` pour les données
+- `R2` pour les assets et uploads
+- `Wrangler` pour le dev et le déploiement
+
+### Développement Cloudflare
+
+```powershell
+npm run cms:dev:cloudflare
+```
+
+### Build Cloudflare
+
+```powershell
+npm run cms:build:cloudflare
+```
+
+### Déploiement Cloudflare
+
+```powershell
+npm run cms:db:d1:migrate:remote
+npm run cms:deploy:cloudflare
+```
+
+### Synchronisation D1/R2
+
+```powershell
+npm run cms:db:d1:pull:prod
+npm run cms:db:d1:push:prod
+npm run cms:r2:pull:prod
+npm run cms:r2:push:prod
+```
+
+Attention :
+
+- `cms:db:d1:push:prod` remplace les données distantes
+- `cms:db:d1:pull:prod` écrase la copie locale D1
+- ces commandes ne fusionnent pas les environnements
+
+## Données et stockage
+
+Selon la plateforme :
+
+- `sqlite` stocke la base localement
+- `d1` stocke la base dans Cloudflare
+- `fs` stocke les fichiers localement
+- `r2` stocke les fichiers dans Cloudflare R2
+
+Les assets de modèles partagés ne sont pas censés rester dispersés dans chaque instance. Le registre sert de source centrale pour les assets système des modèles.
+
+## Email
+
+Le CMS expose une personnalisation email avec :
+
+- nom de marque
+- logo email
+- footer
+- couleurs
+
+Fallback branding utilisé dans les emails transactionnels :
+
+1. logo email dédié
+2. logo global du site
+3. fallback projet
+
+## Authentification et administration
+
+Le CMS inclut notamment :
+
+- authentification admin
+- invitations utilisateur
+- rôles et permissions
+- modules activables via feature flags
+
+## Modules fonctionnels présents
+
+Selon la configuration et les flags actifs, le socle peut couvrir :
+
+- pages éditoriales CMS
+- navigation
+- actualités
+- événements
+- rôles associatifs
+- boutique et paniers
+- réglages globaux
+- thèmes
+- médiathèque
+- modèles de site
+- mises à jour
+
+## Notes importantes
+
+- le code métier ne doit plus dépendre de Prisma
+- les artefacts générés du client de données sont commités
+- les migrations SQL restent explicites
+- le registre décide des vraies capacités de mutation via introspection
+- une instance sans registre custom reste capable de changer de modèle système, mais pas de publier ou muter de nouveaux modèles distants
+
+## Dépôts liés
+
+L’écosystème complet peut inclure d’autres briques séparées, par exemple :
+
+- un registre central Cloudflare
+- une ou plusieurs instances hôtes
+- un projet de présentation servant de cockpit ou de modèle de déploiement
+
+Dépôts associés :
+
+- registre : [IdoSoIam/modula-cms-registry](https://github.com/IdoSoIam/modula-cms-registry)
+- instance de présentation : [IdoSoIam/modula-cms-presentation](https://github.com/IdoSoIam/modula-cms-presentation)
+
+Ce dépôt reste le socle CMS principal.
+
+## Support de production Node
+
+Pour un hébergement Node classique en production, le dépôt de référence n’est pas ce socle seul mais l’instance hôte :
+
+- [IdoSoIam/modula-cms-presentation](https://github.com/IdoSoIam/modula-cms-presentation)
+
+`modula-cms-presentation` sert de support de production Node :
+
+- structure d’instance prête à déployer
+- conventions de runtime `current/`, `releases/`, `shared/`
+- intégration du moteur de mise à jour
+- configuration réaliste d’une instance cliente
+
+En pratique :
+
+- `modula-cms` = socle CMS, logique métier, admin, build de releases
+- `modula-cms-presentation` = exemple concret d’instance Node de production à cloner ou adapter
+
+## Contribution
+
+Le dépôt accepte les contributions, mais avec quelques règles simples pour garder une base cohérente.
+
+### Principes
+
+- ne pas réintroduire `Prisma` dans le runtime
+- ne pas ajouter de logique métier directement couplée à un moteur SQL particulier dans les endpoints
+- garder le schéma source, les artefacts générés et les migrations SQL cohérents entre eux
+- préserver la compatibilité `SQLite` et `D1`
+- éviter d’ajouter des dépendances lourdes sans justification claire, surtout pour les cibles Cloudflare
+
+### Workflow recommandé
+
+1. créer une branche de travail
+2. modifier le schéma source si nécessaire
+3. régénérer les artefacts internes
+4. ajouter ou ajuster la migration SQL explicite
+5. vérifier le fonctionnement local
+6. ouvrir une PR avec le contexte fonctionnel et technique
+
+### Si vous contribuez sur les templates et releases
+
+- sans registre custom, vous consommez surtout les modèles système
+- avec un registre custom, vous gérez vos propres modèles et vos propres releases
+- le registre système reste la source officielle des modèles partagés fournis par défaut
+
+## Licence
+
+Ce projet est distribué sous licence `GNU GPL v3.0`.
+
+Concrètement, cela implique notamment :
+
+- vous pouvez utiliser, étudier et modifier le code
+- vous pouvez redistribuer le projet ou une version modifiée
+- si vous redistribuez une version modifiée, vous devez conserver la même famille de licence GPL
+- le code source correspondant doit rester accessible aux destinataires de cette redistribution
+
+Le texte complet de la licence est fourni dans le fichier [LICENSE](D:/Works/modula-cms/LICENSE).

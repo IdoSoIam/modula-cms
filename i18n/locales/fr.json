@@ -844,7 +844,7 @@
       "localTemplatesHelp": "Cette liste provient du registre configuré. Le fallback local simple n'apparaît qu'en dernier recours si aucun modèle distant n'est disponible.",
       "remoteTemplates": "Modèles du registre",
       "remoteTemplatesHelp": "Les modèles distants sont versionnés et partageables entre instances.",
-      "registryUnavailableHelp": "Ajoutez `CMS_REGISTRY_URL`, `CMS_REGISTRY_API_KEY` et `CMS_INSTANCE_SLUG` dans l'hôte pour activer le registre.",
+      "registryUnavailableHelp": "Le registre système est intégré par défaut. Renseignez une URL custom pour ajouter votre propre registre, et une clé seulement si vous devez muter le système ou le custom.",
       "editMetadata": "Métadonnées du modèle",
       "cannotEditSystem": "Ce modèle système est en lecture seule sur cette instance. Seules les instances autorisées peuvent le mettre à jour.",
       "slug": "Slug",

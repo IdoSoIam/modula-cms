@@ -36,7 +36,7 @@ type TemplateAssetMaterializationContext = {
   preservedFilenames: Set<string>
 }
 
-const SYSTEM_CMS_REGISTRY_URL = 'https://modula-cms-registery.shiny-meadow-56d0.workers.dev'
+const SYSTEM_CMS_REGISTRY_URL = 'https://modula-cms-registry.shiny-meadow-56d0.workers.dev'
 
 type ResolvedRegistryConfig = {
   url: string
@@ -125,7 +125,7 @@ export function isCmsUpdateAgentConfigured() {
 
 async function registryFetch<T>(path: string, options: RegistryFetchOptions = {}, scope: RegistryScope = 'custom'): Promise<T> {
   const config = await resolveRegistryConfig(scope)
-  if (!config.url || (!config.apiKey && !options.allowAnonymous)) {
+  if (!config.url) {
     throw createError({
       statusCode: 503,
       statusMessage: 'CMS registry unavailable',
@@ -250,7 +250,7 @@ export async function getRegistryEndpointState(scope: RegistryScope): Promise<Cm
           url: config.url,
           configured: true,
           reachable: true,
-          error: 'Worker registre joignable, mais endpoint d’introspection absent. Redéployez modula-cms-registery.'
+          error: 'Worker registre joignable, mais endpoint d’introspection absent. Redéployez modula-cms-registry.'
         }
       } catch {}
     }

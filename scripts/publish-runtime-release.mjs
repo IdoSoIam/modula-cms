@@ -33,8 +33,8 @@ if (!env.CMS_REGISTRY_URL || !env.CMS_REGISTRY_API_KEY) {
 }
 
 const registryUrl = String(env.CMS_REGISTRY_URL).replace(/\/$/, '')
-const registryBucket = String(env.CMS_REGISTRY_R2_BUCKET || 'modula-cms-registery-assets')
-const registryProjectDir = path.resolve(cwd, '..', 'modula-cms-registery')
+const registryBucket = String(env.CMS_REGISTRY_R2_BUCKET || 'modula-cms-registry-assets')
+const registryProjectDir = path.resolve(cwd, '..', 'modula-cms-registry')
 const registryConfigPath = path.join(registryProjectDir, 'wrangler.jsonc')
 const registrySource = process.env.CMS_REGISTRY_URL
   ? 'process env'
