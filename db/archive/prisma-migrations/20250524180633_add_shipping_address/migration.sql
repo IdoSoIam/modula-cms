@@ -1,5 +1,0 @@
--- AlterTable
-ALTER TABLE `user` ADD COLUMN `city` VARCHAR(191) NULL,
-    ADD COLUMN `country` VARCHAR(191) NULL DEFAULT 'France',
-    ADD COLUMN `postalCode` VARCHAR(191) NULL,
-    ADD COLUMN `street` VARCHAR(191) NULL;
