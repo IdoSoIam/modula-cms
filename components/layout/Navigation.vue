@@ -274,11 +274,11 @@ const showMobileHeaderSiteTagline = computed(() => headerSettings.value.mobileHe
 const showMobileHeaderBrand = computed(() => showMobileHeaderSiteName.value || showMobileHeaderSiteTagline.value)
 
 const siteName = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings.siteName.en || 'Site name'
-  : cms.value?.settings.siteName.fr || 'Nom du site')
+  ? cms.value?.settings?.siteName?.en || 'Site name'
+  : cms.value?.settings?.siteName?.fr || 'Nom du site')
 const siteTagline = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings.siteTagline.en || ''
-  : cms.value?.settings.siteTagline.fr || '')
+  ? cms.value?.settings?.siteTagline?.en || ''
+  : cms.value?.settings?.siteTagline?.fr || '')
 
 const normalizeLogoSrc = (value?: string | null) => {
   const src = value?.trim()
@@ -289,10 +289,10 @@ const normalizeLogoSrc = (value?: string | null) => {
 
 const logoSrc = computed(() => normalizeLogoSrc(cms.value?.settings.logo.src))
 const logoAlt = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings.logo.alt.en || 'Logo'
-  : cms.value?.settings.logo.alt.fr || 'Logo')
+  ? cms.value?.settings?.logo?.alt?.en || 'Logo'
+  : cms.value?.settings?.logo?.alt?.fr || 'Logo')
 
-const menuItems = computed(() => cms.value?.navigation.primary ?? [])
+const menuItems = computed(() => cms.value?.navigation?.primary ?? [])
 
 const mixColor = (color: string, opacity: number) => {
   if (opacity >= 1) return color

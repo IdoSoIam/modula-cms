@@ -10,6 +10,45 @@
       </label>
     </div>
 
+    <section class="mb-6 rounded-box border border-base-300 bg-base-100 p-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="max-w-3xl">
+          <h2 class="text-xl font-semibold">{{ t('admin.imagesPage.variantSettingsTitle') }}</h2>
+          <p class="mt-2 text-sm opacity-70">{{ t('admin.imagesPage.variantSettingsDescription') }}</p>
+        </div>
+        <button
+          class="btn btn-primary btn-sm"
+          :disabled="savingImageSettings || !imageSettingsSupported"
+          @click="saveImageSettings"
+        >
+          <span v-if="savingImageSettings" class="loading loading-spinner loading-xs" />
+          {{ t('admin.common.save') }}
+        </button>
+      </div>
+
+      <div class="mt-4 rounded-xl bg-base-200/70 p-4">
+        <label class="flex items-start gap-3">
+          <input
+            v-model="imagePersistVariants"
+            type="checkbox"
+            class="checkbox checkbox-primary mt-1"
+            :disabled="!imageSettingsSupported || savingImageSettings"
+          />
+          <div>
+            <div class="font-medium">{{ t('admin.imagesPage.persistVariantsLabel') }}</div>
+            <div class="mt-1 text-sm opacity-70">{{ t('admin.imagesPage.persistVariantsHelp') }}</div>
+          </div>
+        </label>
+      </div>
+
+      <div v-if="!imageSettingsSupported" class="mt-4 rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm">
+        <div class="font-medium">{{ t('admin.imagesPage.persistVariantsUnavailableTitle') }}</div>
+        <p class="mt-1 opacity-80">
+          {{ t('admin.imagesPage.persistVariantsUnavailableCloudflare') }}
+        </p>
+      </div>
+    </section>
+
     <div v-if="pending" class="py-12 text-center">
       <span class="loading loading-spinner loading-lg" />
     </div>
@@ -267,20 +306,30 @@ interface ImageRow {
   references: ImageReferences
 }
 
+interface ImageSettingsResponse {
+  imagePersistVariants: boolean
+  imagePersistVariantsSupported: boolean
+  imageRuntimeTarget: 'server' | 'cloudflare'
+}
+
 const { t } = useI18n()
 const { data: images, pending, refresh } = await useFetch<ImageRow[]>('/api/admin/images')
+const { data: imageSettingsData, refresh: refreshImageSettings } = await useFetch<ImageSettingsResponse>('/api/admin/settings')
 const { $toast } = useNuxtApp() as any
 
 const uploading = ref(false)
 const saving = ref(false)
 const deleting = ref(false)
+const savingImageSettings = ref(false)
 const deletingVariantId = ref<number | null>(null)
 const editorDialog = ref<HTMLDialogElement>()
 const editing = ref<ImageRow | null>(null)
 const replacementFile = ref<File | null>(null)
 const replacementPreviewUrl = ref<string | null>(null)
 const editForm = reactive({ filename: '' })
+const imagePersistVariants = ref(true)
 const displayedImageUrl = computed(() => replacementPreviewUrl.value || editing.value?.url || '')
+const imageSettingsSupported = computed(() => Boolean(imageSettingsData.value?.imagePersistVariantsSupported))
 const formatImageSize = (size: number) => {
   if (!Number.isFinite(size) || size <= 0) return '0 o'
   if (size < 1024) return `${size} o`
@@ -296,6 +345,10 @@ const totalReferences = (references: ImageReferences) =>
   + references.cmsSiteSettings.count
   + references.cmsPages.count
   + references.rootPage.count
+
+watch(imageSettingsData, (value) => {
+  imagePersistVariants.value = value?.imagePersistVariants ?? true
+}, { immediate: true })
 
 const onFileChange = async (e: Event) => {
   const input = e.target as HTMLInputElement
@@ -409,6 +462,26 @@ const removeVariant = async (variantId: number) => {
     $toast?.error(err.statusMessage || t('common.error'))
   } finally {
     deletingVariantId.value = null
+  }
+}
+
+const saveImageSettings = async () => {
+  if (!imageSettingsSupported.value) return
+
+  savingImageSettings.value = true
+  try {
+    await $fetch('/api/admin/settings', {
+      method: 'PUT',
+      body: {
+        imagePersistVariants: imagePersistVariants.value
+      }
+    })
+    await refreshImageSettings()
+    $toast?.success(t('admin.imagesPage.variantSettingsSaved'))
+  } catch (err: any) {
+    $toast?.error(err.statusMessage || t('admin.imagesPage.variantSettingsSaveError'))
+  } finally {
+    savingImageSettings.value = false
   }
 }
 

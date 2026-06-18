@@ -124,7 +124,7 @@ export function buildReservationIcs(options: {
     : null
   const resolvedRecurrence = recurrenceReservation ? resolveStartEnd(recurrenceReservation) : null
 
-  const uid = `reservation-${options.reservation.id}@ferme-campeyrigoux`
+  const uid = `reservation-${options.reservation.id}@modula-cms`
   const sequence = getIcsSequence(options.updatedAt ?? options.reservation.updatedAt, options.sequence ?? 0)
   const summary = `${options.reservation.basket.name} - ${options.reservation.customerName}`
   const description = [

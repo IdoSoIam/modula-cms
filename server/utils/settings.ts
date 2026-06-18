@@ -1,5 +1,6 @@
 import cmsProjectConfig from '#modula/cms.project.config'
 import { db } from '#modula/server/data/client'
+import { resolveCmsPlatformConfig } from '#modula/shared/platform'
 
 export const SETTING_KEYS = {
   ADMIN_EMAIL: 'admin_email',
@@ -49,6 +50,7 @@ export const SETTING_KEYS = {
   CMS_SITE_TEMPLATE_KEY: 'cms_site_template_key_v1',
   CMS_REGISTRY_URL: 'cms_registry_url_v1',
   CMS_REGISTRY_API_KEY: 'cms_registry_api_key_v1',
+  IMAGE_PERSIST_VARIANTS: 'image_persist_variants_v1',
   DAISYUI_THEME_CONFIG: 'daisyui_theme_config_v1',
   EMAIL_VISUAL_TEMPLATE_CONFIG: 'email_visual_template_config_v1',
   IN_DEVELOPMENT: 'in_development',
@@ -422,6 +424,42 @@ export async function saveCmsRegistryInstanceSettings(settings: CmsRegistryInsta
   } else {
     await deleteSetting(SETTING_KEYS.CMS_REGISTRY_API_KEY)
   }
+}
+
+export interface ImageVariantSettings {
+  persistVariants: boolean
+  persistVariantsSupported: boolean
+  runtimeTarget: 'server' | 'cloudflare'
+}
+
+function getResolvedPlatformConfig() {
+  return resolveCmsPlatformConfig(process.env, cmsProjectConfig)
+}
+
+export function getCurrentCmsRuntimeTarget(): 'server' | 'cloudflare' {
+  return getResolvedPlatformConfig().runtimeTarget
+}
+
+export function supportsPersistentImageVariants() {
+  return getCurrentCmsRuntimeTarget() === 'server'
+}
+
+export async function getImageVariantSettings(): Promise<ImageVariantSettings> {
+  const persistVariantsSupported = supportsPersistentImageVariants()
+  const raw = await getSetting(SETTING_KEYS.IMAGE_PERSIST_VARIANTS)
+  const persistVariants = persistVariantsSupported
+    ? parseBooleanSetting(raw, true)
+    : true
+
+  return {
+    persistVariants,
+    persistVariantsSupported,
+    runtimeTarget: getCurrentCmsRuntimeTarget()
+  }
+}
+
+export async function arePersistentImageVariantsEnabled() {
+  return (await getImageVariantSettings()).persistVariants
 }
 
 export async function isAssociationRolesEnabled() {

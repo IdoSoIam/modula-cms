@@ -127,11 +127,12 @@
                   @click="form.siteTemplate = siteTemplate.key"
                 >
                   <div class="mb-3 overflow-hidden rounded-2xl border border-base-300 bg-base-200">
-                    <img
+                    <AppImage
                       :src="siteTemplate.previewImage || '/brand/modula-mark.svg'"
                       :alt="localized(siteTemplate.label)"
                       class="h-36 w-full object-cover"
-                    >
+                      sizes="(max-width: 1024px) 100vw, 640px"
+                    />
                   </div>
                   <div class="mb-2 flex items-center gap-2">
                     <Icon :name="siteTemplate.icon" size="18" />
@@ -256,11 +257,12 @@
             <h2 class="text-lg font-bold">{{ selectedTemplate ? localized(selectedTemplate.label) : t('install.templateSection') }}</h2>
             <p class="mt-1 text-sm text-base-content/65">{{ selectedTemplate ? localized(selectedTemplate.description) : t('install.templateSectionHelp') }}</p>
             <div class="mt-4 overflow-hidden rounded-2xl border border-base-300 bg-base-200">
-              <img
+              <AppImage
                 :src="selectedTemplate?.previewImage || '/brand/modula-mark.svg'"
                 :alt="selectedTemplate ? localized(selectedTemplate.label) : t('install.templateSection')"
                 class="h-44 w-full object-cover"
-              >
+                sizes="(max-width: 1024px) 100vw, 640px"
+              />
             </div>
             <ul v-if="selectedTemplate?.highlights?.length" class="mt-4 space-y-2 text-sm text-base-content/75">
               <li v-for="(item, idx) in selectedTemplate.highlights" :key="`tpl-highlight-${idx}`" class="rounded-xl bg-base-200 px-3 py-2">
@@ -340,7 +342,7 @@ const form = reactive({
   defaultLocale: siteConfig.value?.project?.defaultLocale || 'fr' as 'fr' | 'en',
   dbDriver: (installState?.currentDbDriver === 'd1' ? 'd1' : 'sqlite') as 'd1' | 'sqlite',
   storageDriver: (installState?.currentStorageDriver === 'r2' ? 'r2' : 'fs') as 'r2' | 'fs',
-  siteTemplate: (installState?.siteTemplates?.[0]?.key || 'modula-presentation') as string,
+  siteTemplate: (installState?.siteTemplates?.find((template: any) => template.key === 'modula-presentation')?.key || installState?.siteTemplates?.[0]?.key || 'modula-presentation') as string,
   registryUrl: '',
   registryApiKey: '',
   adminFirstName: '',
@@ -403,7 +405,7 @@ function selectDataStack(nextStack: 'server' | 'cloudflare') {
 watch(availableTemplates, (templates: any) => {
   if (!templates.length) return
   if (!templates.some((template: any) => template.key === form.siteTemplate)) {
-    form.siteTemplate = templates[0]!.key
+    form.siteTemplate = templates.find((template: any) => template.key === 'modula-presentation')?.key || templates[0]!.key
   }
 }, { immediate: true })
 
@@ -446,6 +448,10 @@ async function submit() {
           ...siteConfigState.value,
           installRequired: false
         }
+      }
+      if (import.meta.client) {
+        window.location.assign(localePath('/admin'))
+        return
       }
       await navigateTo(localePath('/admin'))
       return
