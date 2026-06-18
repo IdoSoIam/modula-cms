@@ -108,6 +108,7 @@
 import type { CmsFooterColumn, CmsLocalizedText, CmsLocale, CmsSocialLink, PublicSiteShell } from '#modula/shared/cms'
 import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
 import { useAuthStore } from '#modula/stores/auth'
+import { createDefaultCmsSiteSettings } from '#modula/shared/cms'
 
 interface SiteConfig {
   farmPickup: {
@@ -145,6 +146,8 @@ if (process.server && !siteConfigState.value) {
 const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
 const siteConfig = computed(() => (props.previewSiteConfig ?? siteConfigState.value) as SiteConfig | null)
 const cms = computed(() => siteConfig.value?.cms)
+const defaultSettings = createDefaultCmsSiteSettings()
+const footerSettings = computed(() => cms.value?.settings.footer ?? defaultSettings.footer)
 const shellLiveEditEnabled = computed(() =>
   liveEditHydrated.value
   &&
@@ -157,9 +160,9 @@ onMounted(() => {
   liveEditHydrated.value = true
 })
 const socialLinks = computed<CmsSocialLink[]>(() => cms.value?.settings.socialLinks || [])
-const footerColumns = computed<CmsFooterColumn[]>(() => cms.value?.settings.footer.columns || [])
+const footerColumns = computed<CmsFooterColumn[]>(() => footerSettings.value.columns || [])
 const footerContainerWidthClass = computed(() => {
-  const width = cms.value?.settings.footer.containerWidth || 'xwide'
+  const width = footerSettings.value.containerWidth || 'xwide'
   switch (width) {
     case 'narrow': return 'max-w-3xl'
     case 'medium': return 'max-w-4xl'
@@ -172,7 +175,7 @@ const footerContainerWidthClass = computed(() => {
   }
 })
 const footerContainerAlignClass = computed(() => {
-  switch (cms.value?.settings.footer.containerAlign || 'between') {
+  switch (footerSettings.value.containerAlign || 'between') {
     case 'start': return 'justify-start'
     case 'center': return 'justify-center'
     case 'between': return 'justify-between'
@@ -205,7 +208,7 @@ const logoSrc = computed(() => {
   return `/images/${src.replace(/^\.?\//, '')}`
 })
 const copyrightText = computed(() => {
-  const value = cms.value?.settings.footer.copyright
+  const value = footerSettings.value.copyright
   return effectiveLocale.value === 'en' ? value?.en || '' : value?.fr || ''
 })
 
@@ -235,8 +238,8 @@ const backgroundToCss = (selection?: ThemeColorSelection | null) => {
 }
 
 const footerStyle = computed(() => ({
-  ...(backgroundToCss(cms.value?.settings.footer.backgroundColor) || {}),
-  ...(colorToCss(cms.value?.settings.footer.textColor) || {})
+  ...(backgroundToCss(footerSettings.value.backgroundColor) || {}),
+  ...(colorToCss(footerSettings.value.textColor) || {})
 }))
 
 const footerBorderStyle = computed(() => ({

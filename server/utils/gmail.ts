@@ -150,7 +150,7 @@ function encodeHeader(value: string) {
 
 function buildMessageId(from: string) {
   const email = extractEmailAddress(from)
-  const domain = email?.includes('@') ? email.split('@')[1] : 'ferme-campeyrigoux.local'
+  const domain = email?.includes('@') ? email.split('@')[1] : 'modula-cms.local'
   return `<${Date.now()}.${Math.random().toString(36).slice(2)}@${domain}>`
 }
 

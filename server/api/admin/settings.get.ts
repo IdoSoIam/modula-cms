@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { getAdminPhone, getContactEmail, getGmailSenderEmail, getReservationNotificationEmail, getResendSenderEmail, getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig } from '#modula/server/utils/settings'
+import { getAdminPhone, getContactEmail, getGmailSenderEmail, getReservationNotificationEmail, getResendSenderEmail, getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig, getImageVariantSettings } from '#modula/server/utils/settings'
 import { listGoogleCalendars } from '#modula/server/utils/gmail'
 import { getAllAdminEmailTemplateDefinitions } from '#modula/server/utils/adminEmailTemplates'
 
@@ -39,14 +39,15 @@ export default defineEventHandler(async (event) => {
     SETTING_KEYS.FARM_PICKUP_TIME
   ]
   const s = await getSettings(allSettingKeys)
-  const [featureFlags, farmPickup, gmailSenderEmail, resendSenderEmail, reservationNotificationEmail, contactEmail, adminPhone] = await Promise.all([
+  const [featureFlags, farmPickup, gmailSenderEmail, resendSenderEmail, reservationNotificationEmail, contactEmail, adminPhone, imageVariantSettings] = await Promise.all([
     getFeatureFlags(),
     getFarmPickupConfig(),
     getGmailSenderEmail(),
     getResendSenderEmail(),
     getReservationNotificationEmail(),
     getContactEmail(),
-    getAdminPhone()
+    getAdminPhone(),
+    getImageVariantSettings()
   ])
 
   let googleCalendars: Array<{ id: string; summary: string; primary: boolean; accessRole: string }> = []
@@ -76,6 +77,9 @@ export default defineEventHandler(async (event) => {
     subscriptionsEnabled: featureFlags.subscriptionsEnabled,
     featureFlags,
     farmPickup,
+    imagePersistVariants: imageVariantSettings.persistVariants,
+    imagePersistVariantsSupported: imageVariantSettings.persistVariantsSupported,
+    imageRuntimeTarget: imageVariantSettings.runtimeTarget,
     ordersOpenFrom: s[SETTING_KEYS.ORDERS_OPEN_FROM] ?? '',
     ordersOpenTo: s[SETTING_KEYS.ORDERS_OPEN_TO] ?? '',
     ordersClosedMessage: s[SETTING_KEYS.ORDERS_CLOSED_MESSAGE] ?? '',

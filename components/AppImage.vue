@@ -93,6 +93,7 @@ const publicUploadsPath = computed(() => {
   const value = runtimeConfig.public?.cmsPublicUploadsPath
   return typeof value === 'string' && value.trim() ? value.trim().replace(/\/+$/, '') : '/uploads'
 })
+const uploadRouteBasePath = computed(() => '/media/uploads')
 
 const stripUrlSuffix = (value: string) => value.replace(/[?#].*$/, '')
 
@@ -177,6 +178,13 @@ const normalizeQueryParam = (value: number | string | undefined) => {
 const normalizedSrc = computed(() => normalizeSrc(props.src || ''))
 
 const usesUploadRoute = computed(() => normalizedSrc.value.startsWith(`${publicUploadsPath.value}/`))
+const uploadRouteSrc = computed(() => {
+  if (!usesUploadRoute.value) {
+    return normalizedSrc.value
+  }
+
+  return normalizedSrc.value.replace(publicUploadsPath.value, uploadRouteBasePath.value)
+})
 
 const usesNativeImage = computed(() =>
   !normalizedSrc.value
@@ -249,7 +257,7 @@ const buildUploadUrl = (density: number) => {
   }
 
   const queryString = query.toString()
-  return queryString ? `${normalizedSrc.value}?${queryString}` : normalizedSrc.value
+  return queryString ? `${uploadRouteSrc.value}?${queryString}` : uploadRouteSrc.value
 }
 
 const uploadSrc = computed(() => buildUploadUrl(1))

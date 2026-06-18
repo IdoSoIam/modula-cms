@@ -36,6 +36,7 @@ interface Body {
   ordersOpenFrom?: string
   ordersOpenTo?: string
   ordersClosedMessage?: string
+  imagePersistVariants?: boolean
   templates?: Record<string, { fr?: { subject: string; body: string }; en?: { subject: string; body: string } }>
 }
 
@@ -131,6 +132,9 @@ export default defineEventHandler(async (event) => {
   }
   if (typeof body.ordersClosedMessage === 'string') {
     await setSetting(SETTING_KEYS.ORDERS_CLOSED_MESSAGE, body.ordersClosedMessage.trim())
+  }
+  if (typeof body.imagePersistVariants === 'boolean') {
+    await setSetting(SETTING_KEYS.IMAGE_PERSIST_VARIANTS, body.imagePersistVariants ? 'true' : 'false')
   }
   if (body.templates) {
     for (const [action, locales] of Object.entries(body.templates)) {

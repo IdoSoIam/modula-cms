@@ -1011,7 +1011,11 @@ export async function listMergedSiteTemplates(): Promise<CmsSiteTemplateDefiniti
         sourceType: template.sourceType
       } satisfies CmsSiteTemplateDefinition))
 
-    return publishedTemplates
+    return publishedTemplates.sort((left, right) => {
+      if (left.key === FALLBACK_SITE_TEMPLATE.key) return -1
+      if (right.key === FALLBACK_SITE_TEMPLATE.key) return 1
+      return left.key.localeCompare(right.key)
+    })
   } catch {
     return fallback
   }

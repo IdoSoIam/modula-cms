@@ -232,11 +232,11 @@ const showAuthModal = ref(false)
 const isHydrated = ref(false)
 
 const siteName = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings.siteName.en || 'Site name'
-  : cms.value?.settings.siteName.fr || 'Nom du site')
+  ? cms.value?.settings?.siteName?.en || 'Site name'
+  : cms.value?.settings?.siteName?.fr || 'Nom du site')
 const siteTagline = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings.siteTagline.en || ''
-  : cms.value?.settings.siteTagline.fr || '')
+  ? cms.value?.settings?.siteTagline?.en || ''
+  : cms.value?.settings?.siteTagline?.fr || '')
 const normalizeLogoSrc = (value?: string | null) => {
   const src = value?.trim()
   if (!src) return '/brand/modula-mark.svg'
@@ -246,9 +246,9 @@ const normalizeLogoSrc = (value?: string | null) => {
 
 const logoSrc = computed(() => normalizeLogoSrc(cms.value?.settings.logo.src))
 const logoAlt = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings.logo.alt.en || 'Logo'
-  : cms.value?.settings.logo.alt.fr || 'Logo')
-const menuItems = computed(() => cms.value?.navigation.primary ?? [])
+  ? cms.value?.settings?.logo?.alt?.en || 'Logo'
+  : cms.value?.settings?.logo?.alt?.fr || 'Logo')
+const menuItems = computed(() => cms.value?.navigation?.primary ?? [])
 const showMobileMenuBrandText = computed(() =>
   headerSettings.value.mobileMenuShowSiteName || (headerSettings.value.mobileMenuShowSiteTagline && Boolean(siteTagline.value))
 )

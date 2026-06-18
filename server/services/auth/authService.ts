@@ -343,7 +343,11 @@ export class AuthService {
     } catch (error) {
       const code = (error as any)?.code
       const message = String((error as any)?.message || '')
-      const isPreInstallSchemaMissing = code === 'P2021' || code === 'P2022' || /table\s+main\.(Role|RolePermission|User)\s+does not exist/i.test(message)
+      const isPreInstallSchemaMissing =
+        code === 'P2021'
+        || code === 'P2022'
+        || /table\s+main\.(Role|RolePermission|User)\s+does not exist/i.test(message)
+        || /no such table:\s*(Role|RolePermission|User|MemberRole|UserMemberRole)/i.test(message)
       if (!isPreInstallSchemaMissing) {
         console.error('Error getting user from session:', error)
       }

@@ -90,7 +90,10 @@ const MANUAL_RELATIONS: Record<ModelName, Record<string, { type: 'hasMany'; targ
   },
   TourCity: {},
   Article: {},
-  Image: {},
+  Image: {
+    variants: { type: 'hasMany', target: 'ImageVariant', foreignKey: 'imageId' },
+    usages: { type: 'hasMany', target: 'ImageUsage', foreignKey: 'imageId' }
+  },
   ImageVariant: {},
   ImageUsage: {},
   Event: {
