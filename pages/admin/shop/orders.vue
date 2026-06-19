@@ -1,388 +1,157 @@
 <template>
-  <div>
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div class="space-y-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold">{{ t('admin.ordersPage.title') }}</h1>
-        <p class="text-sm opacity-70">
-          {{ t('admin.ordersPage.description') }}
-        </p>
+        <p class="mt-1 text-sm opacity-70">{{ t('admin.ordersPage.description') }}</p>
       </div>
-
-      <div class="tabs tabs-box">
-        <button class="tab" :class="{ 'tab-active': viewMode === 'list' }" @click="viewMode = 'list'">
-          <Icon name="mdi:format-list-bulleted" size="18" />
-          {{ t('admin.ordersPage.listView') }}
-        </button>
-        <button class="tab" :class="{ 'tab-active': viewMode === 'calendar' }" @click="viewMode = 'calendar'">
-          <Icon name="mdi:calendar-month" size="18" />
-          {{ t('admin.ordersPage.calendarView') }}
+      <div class="join">
+        <button
+          v-for="option in statusOptions"
+          :key="option.value"
+          class="btn join-item btn-sm"
+          :class="selectedStatus === option.value ? 'btn-primary' : 'btn-ghost'"
+          @click="selectedStatus = option.value"
+        >
+          {{ option.label }}
         </button>
       </div>
     </div>
 
-    <OrdersWindowSettings
-      v-model="ordersWindowForm"
-      class="mb-6"
-      :saving="savingOrdersWindow"
-      @save="saveOrdersWindow"
-    />
-  
     <div class="card bg-base-100 p-6">
-
-      <div v-if="viewMode === 'list'" class="mb-4 flex flex-wrap gap-2">
-        <button
-          v-for="filter in statusFilters"
-          :key="filter.value"
-          class="btn btn-sm"
-          :class="selectedStatuses.includes(filter.value) ? filter.activeClass : 'btn-ghost'"
-          @click="toggleStatusFilter(filter.value)"
-        >
-          {{ filter.label }}
-        </button>
-      </div>
-
       <div v-if="pending" class="loading loading-spinner" />
 
-      <template v-else>
-        <OrdersList
-          v-if="viewMode === 'list'"
-          :reservations="paginatedReservations"
-          :page="reservationPage"
-          :total-pages="reservationTotalPages"
-          :subscriptions-enabled="subscriptionsEnabled"
-          :status-label="statusLabel"
-          :badge-class="badgeClass"
-          :format-price="$formatPrice"
-          :format-date="$formatDate"
-          :format-date-only="formatDateOnlyLabel"
-          @confirm="openAction($event, 'confirmed')"
-          @reject="openAction($event, 'rejected')"
-          @cancel="openAction($event, 'cancelled')"
-          @archive="archiveReservation"
-          @select="openDetails"
-          @update:page="reservationPage = $event"
-        />
+      <div v-else class="overflow-x-auto rounded-box">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ t('admin.ordersPage.number') }}</th>
+              <th>{{ t('admin.ordersPage.customer') }}</th>
+              <th>{{ t('admin.ordersPage.total') }}</th>
+              <th>{{ t('admin.ordersPage.statusLabel') }}</th>
+              <th>{{ t('admin.ordersPage.paymentStatusLabel') }}</th>
+              <th>{{ t('admin.ordersPage.createdAtLabel') }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="order in orders" :key="order.id">
+              <td class="font-medium">{{ order.orderNumber }}</td>
+              <td>
+                <div>{{ order.customerName }}</div>
+                <div class="text-xs opacity-70">{{ order.email }}</div>
+              </td>
+              <td>{{ $formatPrice(order.total) }}</td>
+              <td>
+                <span class="badge" :class="statusBadgeClass(order.status)">
+                  {{ statusLabel(order.status) }}
+                </span>
+              </td>
+              <td>
+                <span class="badge badge-outline" :class="paymentBadgeClass(order.paymentStatus)">
+                  {{ paymentStatusLabel(order.paymentStatus) }}
+                </span>
+              </td>
+              <td>{{ $formatDate(order.createdAt) }}</td>
+              <td class="text-right">
+                <button class="btn btn-ghost btn-sm" @click="openDetails(order.id)">
+                  <Icon name="mdi:eye-outline" size="16" />
+                </button>
+              </td>
+            </tr>
+            <tr v-if="!orders.length">
+              <td colspan="7" class="py-8 text-center opacity-60">{{ t('admin.ordersPage.empty') }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-        <OrdersCalendar
-          v-else
-          :days="calendarDays"
-          :month-label="monthLabel"
-          :month-input="monthInput"
-          :show-month-picker="showMonthPicker"
-          :day-names="dayNames"
-          :item-class="calendarItemClass"
-          :item-title="calendarItemTitle"
-          :item-subtitle="calendarItemSubtitle"
-          :item-meta="calendarItemMeta"
-          @change-month="changeMonth"
-          @toggle-month-picker="toggleMonthPicker"
-          @apply-month-input="applyMonthInput"
-          @go-current-month="goToCurrentMonth"
-          @select-day="selectDay"
-          @select-item="openDetailsFromCalendar"
-          @change-day-page="setCalendarDayPage"
-          @update:month-input="updateMonthInput"
-        />
-      </template>
+      <div class="mt-4 flex items-center justify-between">
+        <button class="btn btn-sm btn-ghost" :disabled="page <= 1 || pending" @click="page -= 1">
+          {{ t('admin.common.previous') }}
+        </button>
+        <div class="text-sm opacity-70">{{ t('admin.ordersPage.pagination', { page, total: totalPages }) }}</div>
+        <button class="btn btn-sm btn-ghost" :disabled="page >= totalPages || pending" @click="page += 1">
+          {{ t('admin.common.next') }}
+        </button>
+      </div>
     </div>
 
-    <dialog ref="detailsDlg" class="modal">
-      <div class="modal-box max-w-5xl">
-        <div v-if="detailsReservation">
-          <div class="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <div class="flex items-center gap-2">
-                <h3 class="text-lg font-bold">{{ detailsReservation.customerName }}</h3>
-                <span class="badge" :class="badgeClass(detailsReservation.status)">
-                  {{ statusLabel(detailsReservation.status) }}
-                </span>
-                <span v-if="detailsReservation.archivedAt" class="badge badge-neutral">{{ t('admin.ordersPage.archived') }}</span>
-              </div>
-              <p class="text-sm opacity-70">
-                {{ detailsReservation.basket.name }} - {{ $formatPrice(detailsReservation.basket.finalPrice) }}
-              </p>
-            </div>
-
-            <div class="badge badge-outline h-auto">
-              {{ detailsReservation.googleCalendarEventId ? t('admin.ordersPage.googleSynced') : t('admin.ordersPage.googleNotSynced') }}
-            </div>
+    <dialog ref="detailsDialog" class="modal">
+      <div class="modal-box max-w-3xl">
+        <div class="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-bold">{{ details?.orderNumber || '-' }}</h3>
+            <p class="text-sm opacity-70">{{ details?.customerName }} - {{ details?.email }}</p>
           </div>
-
-          <div class="space-y-3 text-sm">
-            <div>
-              <a :href="`mailto:${detailsReservation.email}`" class="link">{{ detailsReservation.email }}</a>
-              <span v-if="detailsReservation.phone"> · <a :href="`tel:${detailsReservation.phone}`" class="link">{{ detailsReservation.phone }}</a></span>
-            </div>
-            <div class="text-xs opacity-70">
-              {{ t('admin.ordersPage.customerLanguage') }} : <strong>{{ reservationLanguageLabel(detailsReservation.language) }}</strong>
-            </div>
-            <div v-if="detailsReservation.message" class="rounded-xl bg-base-200 p-3 italic opacity-80">
-              "{{ detailsReservation.message }}"
-            </div>
-            <div class="rounded-xl bg-base-200 p-3">
-              <div><strong>{{ t('admin.ordersPage.date') }} :</strong> {{ formatDateOnlyLabel(detailsReservation.fulfillmentDate) }}</div>
-              <div v-if="detailsReservation.fulfillmentTime"><strong>{{ t('admin.ordersPage.time') }} :</strong> {{ detailsReservation.fulfillmentTime }}</div>
-              <div v-if="deliveryWindowLabel(detailsReservation)"><strong>{{ t('admin.ordersPage.deliveryWindow') }} :</strong> {{ deliveryWindowLabel(detailsReservation) }}</div>
-              <div v-if="detailsReservation.fulfillmentLocation"><strong>{{ t('admin.ordersPage.location') }} :</strong> {{ detailsReservation.fulfillmentLocation }}</div>
-            </div>
-
-            <div v-if="subscriptionsEnabled && detailsReservation.monthlySubscription" class="rounded-xl bg-base-200 p-3">
-              <div class="mb-3 font-semibold">{{ t('admin.ordersPage.upcomingOccurrences') }}</div>
-              <div v-if="detailsReservation.occurrences?.length" class="space-y-2">
-                <div
-                  v-for="occurrence in paginatedDetailsOccurrences"
-                  :key="occurrence.id"
-                  class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-base-100 p-3"
-                >
-                  <div>
-                    <div><strong>{{ formatDateOnlyLabel(occurrence.occurrenceDate) }}</strong></div>
-                    <div class="mt-1">
-                      <span class="badge badge-xs" :class="occurrenceStatusBadgeClass(occurrence.status)">
-                        {{ occurrenceStatusLabel(occurrence.status) }}
-                      </span>
-                    </div>
-                    <div class="mt-1 opacity-75">
-                      {{ occurrence.occurrenceTime || detailsReservation.fulfillmentTime || t('admin.ordersPage.timeToConfirm') }}
-                    </div>
-                    <div v-if="!occurrence.occurrenceTime && !detailsReservation.fulfillmentTime && deliveryWindowLabel(detailsReservation)" class="opacity-75">
-                      {{ t('admin.ordersPage.deliveryWindow') }} : {{ deliveryWindowLabel(detailsReservation) }}
-                    </div>
-                    <div class="opacity-75">
-                      {{ occurrence.occurrenceLocation || detailsReservation.fulfillmentLocation || t('admin.ordersPage.locationToConfirm') }}
-                    </div>
-                  </div>
-                  <div class="flex flex-wrap gap-2">
-                    <button class="btn btn-xs btn-outline" @click="openOccurrenceEditor(detailsReservation, occurrence)">
-                      {{ occurrence.status === 'CANCELLED' ? t('admin.ordersPage.reschedule') : t('admin.common.edit') }}
-                    </button>
-                    <button
-                      v-if="occurrence.status === 'SCHEDULED'"
-                      class="btn btn-xs btn-warning btn-outline"
-                      @click="cancelOccurrence(detailsReservation, occurrence)"
-                    >
-                      {{ t('admin.ordersPage.cancelThisWeek') }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="rounded-xl bg-base-100 p-3 text-sm opacity-70">
-                {{ t('admin.ordersPage.noUpcomingOccurrences') }}
-              </div>
-              <div v-if="detailsOccurrenceTotalPages > 1" class="join mt-3 flex justify-center">
-                <button class="btn join-item btn-xs" :disabled="detailsOccurrencePage === 1" @click="detailsOccurrencePage--">
-                  <Icon name="mdi:chevron-left" size="14" />
-                </button>
-                <button class="btn join-item btn-xs no-animation">
-                  {{ detailsOccurrencePage }} / {{ detailsOccurrenceTotalPages }}
-                </button>
-                <button class="btn join-item btn-xs" :disabled="detailsOccurrencePage === detailsOccurrenceTotalPages" @click="detailsOccurrencePage++">
-                  <Icon name="mdi:chevron-right" size="14" />
-                </button>
-              </div>
-            </div>
-
-            <div v-if="detailsReservation.notifications?.length" class="rounded-xl bg-base-200 p-3">
-              <div class="mb-3 font-semibold">{{ t('admin.ordersPage.notificationHistory') }}</div>
-              <div class="space-y-2">
-                <div
-                  v-for="notification in paginatedDetailsNotifications"
-                  :key="notification.id"
-                  class="rounded-xl bg-base-100 p-3"
-                >
-                  <div class="flex flex-wrap items-center justify-between gap-2">
-                    <div class="font-medium">{{ notification.subject }}</div>
-                    <div class="text-xs opacity-60">{{ $formatDate(notification.createdAt) }}</div>
-                  </div>
-                  <div class="text-xs uppercase opacity-60">{{ notificationKindLabel(notification.kind) }}</div>
-                  <div class="mt-1 text-sm opacity-80">{{ notification.summary }}</div>
-                </div>
-              </div>
-              <div v-if="detailsNotificationTotalPages > 1" class="join mt-3 flex justify-center">
-                <button class="btn join-item btn-xs" :disabled="detailsNotificationPage === 1" @click="detailsNotificationPage--">
-                  <Icon name="mdi:chevron-left" size="14" />
-                </button>
-                <button class="btn join-item btn-xs no-animation">
-                  {{ detailsNotificationPage }} / {{ detailsNotificationTotalPages }}
-                </button>
-                <button class="btn join-item btn-xs" :disabled="detailsNotificationPage === detailsNotificationTotalPages" @click="detailsNotificationPage++">
-                  <Icon name="mdi:chevron-right" size="14" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="modal-action justify-between">
-            <div class="flex flex-wrap gap-2">
-              <template v-if="detailsReservation.status === 'PENDING' || detailsReservation.status === 'REJECTED' || detailsReservation.status === 'CANCELLED'">
-                <button class="btn btn-sm btn-success" @click="openActionFromDetails('confirmed')">{{ t('admin.ordersPage.confirm') }}</button>
-                <button
-                  v-if="detailsReservation.status === 'PENDING' || detailsReservation.status === 'CANCELLED'"
-                  class="btn btn-sm btn-error btn-outline"
-                  @click="openActionFromDetails('rejected')"
-                >
-                  {{ t('admin.ordersPage.reject') }}
-                </button>
-              </template>
-              <button
-                v-if="detailsReservation.status === 'CONFIRMED'"
-                class="btn btn-sm btn-primary btn-outline"
-                @click="openActionFromDetails('confirmed')"
-              >
-                {{ t('admin.ordersPage.editAndResend') }}
-              </button>
-              <button
-                v-if="detailsReservation.status === 'CONFIRMED'"
-                class="btn btn-sm btn-warning"
-                @click="openActionFromDetails('cancelled')"
-              >
-                {{ t('admin.ordersPage.cancelOrder') }}
-              </button>
-              <button
-                v-if="detailsReservation.status === 'CONFIRMED'"
-                class="btn btn-sm btn-info btn-outline"
-                :disabled="syncingCalendar"
-                @click="syncReservationCalendar"
-              >
-                <span v-if="syncingCalendar" class="loading loading-spinner loading-xs" />
-                {{ t('admin.ordersPage.syncGoogleCalendar') }}
-              </button>
-              <button
-                v-if="detailsReservation.status === 'REJECTED' || detailsReservation.status === 'CANCELLED'"
-                class="btn btn-sm btn-neutral btn-outline"
-                @click="archiveReservation(detailsReservation)"
-              >
-                {{ t('admin.ordersPage.archive') }}
-              </button>
-            </div>
-
-            <button class="btn btn-sm" @click="closeDetails">{{ t('common.close') }}</button>
+          <div class="flex flex-wrap gap-2">
+            <span v-if="details" class="badge" :class="statusBadgeClass(details.status)">{{ statusLabel(details.status) }}</span>
+            <span v-if="details" class="badge badge-outline" :class="paymentBadgeClass(details.paymentStatus)">{{ paymentStatusLabel(details.paymentStatus) }}</span>
           </div>
         </div>
-      </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
-    </dialog>
 
-    <dialog ref="actionDlg" class="modal">
-      <div class="modal-box max-w-2xl">
-        <h3 class="mb-2 text-lg font-bold">{{ actionTitle }}</h3>
-        <p class="mb-4 text-sm opacity-70">
-          {{ t('admin.ordersPage.emailSentTo') }} <strong>{{ current?.email }}</strong> {{ t('admin.ordersPage.viaGoogle') }}.
-        </p>
-        <p v-if="current" class="mb-4 text-xs opacity-70">
-          {{ t('admin.ordersPage.draftLanguage') }} : <strong>{{ reservationLanguageLabel(current.language) }}</strong>
-        </p>
+        <div v-if="loadingDetails" class="loading loading-spinner" />
 
-        <div v-if="decisionAction === 'confirmed'" class="mb-4 grid gap-3 md:grid-cols-3">
-          <div v-if="current?.deliveryType === 'FARM'" class="form-control gap-3 flex md:col-span-3">
-            <label class="label"><span class="label-text">{{ t('admin.ordersPage.farmSlotAction') }}</span></label>
-            <select v-model="scheduleMode" class="select select-bordered w-full">
-              <option value="CONFIRM">{{ t('admin.ordersPage.confirmThisSlot') }}</option>
-              <option value="PROPOSE">{{ t('admin.ordersPage.sendCounterProposal') }}</option>
-            </select>
-          </div>
-          <div class="form-control gap-3 flex">
-            <label class="label"><span class="label-text">{{ t('admin.ordersPage.date') }}</span></label>
-            <input v-model="fulfillmentForm.date" type="date" class="input input-bordered" />
-          </div>
-          <div class="form-control gap-3 flex md:col-span-2">
-            <label class="label"><span class="label-text">{{ t('admin.ordersPage.exactTime') }}</span></label>
-            <input v-model="fulfillmentForm.time" type="time" step="300" class="input input-bordered" />
-          </div>
-          <div v-if="current?.deliveryType === 'TOUR' && current?.deliveryTour" class="form-control gap-3 flex md:col-span-3">
-            <label class="label"><span class="label-text">{{ t('admin.ordersPage.deliveryWindow') }}</span></label>
-            <div class="input input-bordered flex items-center bg-base-200/60">
-              {{ current.deliveryTour.startTime }}-{{ current.deliveryTour.endTime }}
+        <template v-else-if="details">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="rounded-xl bg-base-200 p-4">
+              <div class="font-medium">{{ t('admin.ordersPage.customerDetails') }}</div>
+              <div class="mt-2 text-sm">
+                <div>{{ details.customerName }}</div>
+                <div>{{ details.email }}</div>
+                <div v-if="details.phone">{{ details.phone }}</div>
+                <div v-if="details.message" class="mt-2 opacity-80">{{ details.message }}</div>
+              </div>
+            </div>
+            <div class="rounded-xl bg-base-200 p-4">
+              <div class="font-medium">{{ t('admin.ordersPage.checkoutDetails') }}</div>
+              <div class="mt-2 text-sm space-y-1">
+                <div>{{ t('admin.ordersPage.total') }}: <strong>{{ $formatPrice(details.total) }}</strong></div>
+                <div>{{ t('admin.ordersPage.providerLabel') }}: <strong>{{ details.paymentProvider }}</strong></div>
+                <div v-if="details.stripeCheckoutSessionId">Stripe: <code>{{ details.stripeCheckoutSessionId }}</code></div>
+              </div>
             </div>
           </div>
-          <div class="form-control gap-3 flex md:col-span-3">
-            <label class="label"><span class="label-text">{{ t('admin.ordersPage.location') }}</span></label>
-            <textarea v-model="fulfillmentForm.location" rows="2" class="textarea textarea-bordered w-full" />
-          </div>
-          <p class="md:col-span-3 text-xs opacity-70">
-            {{ current?.deliveryType === 'FARM' && scheduleMode === 'PROPOSE'
-              ? t('admin.ordersPage.counterProposalHelp')
-              : t('admin.ordersPage.calendarSyncHelp') }}
-          </p>
-        </div>
 
-        <div v-if="decisionAction !== 'confirmed'" class="form-control gap-3 flex mb-3">
-          <label class="label">
-            <span class="label-text">
-              {{ decisionAction === 'cancelled' ? t('admin.ordersPage.cancellationReasonLabel') : t('admin.ordersPage.emailReasonLabel') }}
-            </span>
-          </label>
-          <input v-model="adminNote" class="input input-bordered w-full" :placeholder="t('admin.ordersPage.reasonPlaceholder')" />
-        </div>
-
-        <div class="grid grid-cols-1 gap-4">
-          <div class="form-control gap-3 flex">
-            <label class="label">
-              <span class="label-text">{{ t('admin.emailConnectorsPage.subject') }}</span>
-              <button type="button" class="label-text-alt link" @click="reloadPreview">{{ t('admin.ordersPage.reloadTemplate') }}</button>
-            </label>
-            <input v-model="emailDraft.subject" class="input input-bordered w-full" />
+          <div class="mt-6">
+            <div class="mb-3 font-medium">{{ t('admin.ordersPage.linesTitle') }}</div>
+            <div class="overflow-x-auto rounded-xl border border-base-300">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>{{ t('admin.ordersPage.productLabel') }}</th>
+                    <th>{{ t('admin.ordersPage.quantityLabel') }}</th>
+                    <th>{{ t('admin.ordersPage.unitPriceLabel') }}</th>
+                    <th>{{ t('admin.ordersPage.total') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="line in details.lines" :key="line.id">
+                    <td>{{ line.title }}</td>
+                    <td>{{ line.quantity }}</td>
+                    <td>{{ $formatPrice(line.unitPrice) }}</td>
+                    <td>{{ $formatPrice(line.totalPrice) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div class="form-control gap-3 flex">
-            <label class="label"><span class="label-text">{{ t('admin.emailConnectorsPage.body') }}</span></label>
-            <textarea v-model="emailDraft.body" rows="14" class="textarea textarea-bordered w-full font-mono text-sm" />
+          <div class="mt-6 flex flex-wrap gap-2">
+            <button class="btn btn-success btn-sm" :disabled="actionPending || details.status === 'PAID'" @click="updateStatus('PAID', 'PAID')">
+              {{ t('admin.ordersPage.markPaid') }}
+            </button>
+            <button class="btn btn-warning btn-sm" :disabled="actionPending || details.status === 'PENDING'" @click="updateStatus('PENDING', details.paymentStatus)">
+              {{ t('admin.ordersPage.markPending') }}
+            </button>
+            <button class="btn btn-error btn-sm" :disabled="actionPending || details.status === 'CANCELLED'" @click="updateStatus('CANCELLED', details.paymentStatus === 'PAID' ? 'REFUNDED' : 'FAILED')">
+              {{ t('admin.ordersPage.cancelOrder') }}
+            </button>
           </div>
-        </div>
+        </template>
 
         <div class="modal-action">
-          <button class="btn" @click="closeAction">{{ t('admin.common.cancel') }}</button>
-          <button class="btn" :class="actionButtonClass" :disabled="sending" @click="submit">
-            <span v-if="sending" class="loading loading-spinner loading-sm" />
-            {{ actionButtonLabel }}
-          </button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
-    </dialog>
-
-    <dialog ref="occurrenceDlg" class="modal">
-      <div class="modal-box max-w-2xl">
-        <h3 class="mb-4 text-lg font-bold">{{ t('admin.ordersPage.editOccurrence') }}</h3>
-
-        <div v-if="currentOccurrence" class="mb-4 rounded-xl bg-base-200 p-3 text-sm">
-          <div class="font-medium">{{ t('admin.ordersPage.currentOccurrence') }}</div>
-          <div class="mt-1"><strong>{{ t('admin.ordersPage.date') }} :</strong> {{ formatDateOnlyLabel(currentOccurrence.occurrenceDate) }}</div>
-          <div><strong>{{ t('admin.ordersPage.time') }} :</strong> {{ currentOccurrence.occurrenceTime || detailsReservation?.fulfillmentTime || t('admin.ordersPage.timeToConfirm') }}</div>
-          <div><strong>{{ t('admin.ordersPage.location') }} :</strong> {{ currentOccurrence.occurrenceLocation || detailsReservation?.fulfillmentLocation || t('admin.ordersPage.locationToConfirm') }}</div>
-        </div>
-
-        <div class="grid gap-3 md:grid-cols-4">
-          <div class="form-control gap-3 flex md:col-span-2">
-            <label class="label"><span class="label-text">{{ t('admin.ordersPage.date') }}</span></label>
-            <input v-model="occurrenceForm.date" type="date" class="input input-bordered" />
-          </div>
-          <div class="form-control gap-3 flex md:col-span-2">
-            <label class="label"><span class="label-text">{{ t('admin.ordersPage.time') }}</span></label>
-            <input v-model="occurrenceForm.time" type="time" step="300" class="input input-bordered" />
-          </div>
-          <div class="form-control gap-3 flex md:col-span-4">
-            <label class="label"><span class="label-text">{{ t('admin.ordersPage.location') }}</span></label>
-            <input v-model="occurrenceForm.location" class="input input-bordered w-full" />
-          </div>
-        </div>
-
-        <div class="mt-4 grid gap-4">
-          <div class="form-control gap-3 flex">
-            <label class="label"><span class="label-text">{{ t('admin.emailConnectorsPage.subject') }}</span></label>
-            <input v-model="occurrenceEmailDraft.subject" class="input input-bordered w-full" />
-          </div>
-          <div class="form-control gap-3 flex">
-            <label class="label"><span class="label-text">{{ t('admin.emailConnectorsPage.body') }}</span></label>
-            <textarea v-model="occurrenceEmailDraft.body" rows="10" class="textarea textarea-bordered w-full font-mono text-sm" />
-          </div>
-        </div>
-
-        <div class="modal-action">
-          <button class="btn" @click="closeOccurrenceEditor">{{ t('admin.common.cancel') }}</button>
-          <button class="btn btn-primary" :disabled="savingOccurrence" @click="saveOccurrence">
-            <span v-if="savingOccurrence" class="loading loading-spinner loading-sm" />
-            {{ t('admin.ordersPage.saveAndSend') }}
-          </button>
+          <button class="btn" @click="closeDetails">{{ t('admin.common.close') }}</button>
         </div>
       </div>
       <form method="dialog" class="modal-backdrop"><button>close</button></form>
@@ -391,12 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineComponent, h } from 'vue'
-import type { PropType } from 'vue'
 import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
-import OrdersWindowSettings from '#modula/components/admin/OrdersWindowSettings.vue'
-import OrdersCalendar from '#modula/components/admin/OrdersCalendar.vue'
-import OrdersList from '#modula/components/admin/OrdersList.vue'
 
 definePageMeta({
   layout: 'admin',
@@ -405,810 +169,128 @@ definePageMeta({
     paths: ADMIN_I18N_PATHS.shopOrders
   }
 })
-const { t, locale } = useI18n()
-const route = useRoute()
-const savingOrdersWindow = ref(false)
-const { data: settingsData, refresh: refreshSettings } = await useFetch<{
-  ordersOpenFrom: string
-  ordersOpenTo: string
-  ordersClosedMessage: string
-}>('/api/admin/settings')
-const ordersWindowForm = ref({
-  ordersOpenFrom: '',
-  ordersOpenTo: '',
-  ordersClosedMessage: ''
-})
 
-watchEffect(() => {
-  if (!settingsData.value) return
-  ordersWindowForm.value = {
-    ordersOpenFrom: settingsData.value.ordersOpenFrom,
-    ordersOpenTo: settingsData.value.ordersOpenTo,
-    ordersClosedMessage: settingsData.value.ordersClosedMessage
-  }
-})
-
-interface Reservation {
+interface ShopOrderLine {
   id: number
+  title: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+}
+
+interface ShopOrder {
+  id: number
+  orderNumber: string
+  status: 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED'
+  paymentProvider: 'OFFLINE' | 'STRIPE'
+  paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
+  stripeCheckoutSessionId: string | null
   customerName: string
   email: string
-  language: 'fr' | 'en'
   phone: string | null
   message: string | null
-  status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
-  adminNote: string | null
+  total: number
   createdAt: string
-  confirmedAt: string | null
-  archivedAt?: string | null
-  basket: { id: number; name: string; finalPrice: number }
-  deliveryType: string | null
-  deliveryAddress: string | null
-  deliveryCity: string | null
-  deliveryPostalCode: string | null
-  fulfillmentDate: string | null
-  fulfillmentTime: string | null
-  fulfillmentLocation: string | null
-  monthlySubscription: boolean
-  subscriptionActive: boolean
-  subscriptionCancelledAt: string | null
-  googleCalendarEventId: string | null
-  googleCalendarSyncedAt: string | null
-  displayDate?: string | null
-  displayTime?: string | null
-  displayLocation?: string | null
-  nextOccurrence?: {
-    id: number
-    occurrenceDate: string
-    occurrenceTime: string | null
-    occurrenceLocation: string | null
-    status: 'SCHEDULED' | 'CANCELLED'
-  } | null
-  occurrences: Array<{
-    id: number
-    occurrenceDate: string
-    originalOccurrenceDate?: string | null
-    occurrenceTime: string | null
-    occurrenceLocation: string | null
-    status: 'SCHEDULED' | 'CANCELLED'
-    customSchedule: boolean
-    cancelledAt: string | null
-    cancellationReason: string | null
-  }>
-  notifications: Array<{
-    id: number
-    kind: string
-    recipientEmail: string
-    subject: string
-    summary: string | null
-    createdAt: string
-    occurrenceId: number | null
-  }>
-  pickupPoint: { id: number; name: string; address: string | null } | null
-  deliveryTour: { id: number; name: string; dayOfWeek: number; startTime: string; endTime: string; monthlyPrice: number | null; cities: string[] } | null
+  lines: ShopOrderLine[]
 }
 
-type DecisionAction = 'confirmed' | 'rejected' | 'cancelled'
-
-interface Pagination {
-  page: number
-  perPage: number
-  total: number
-  totalPages: number
-}
-
-interface CalendarDay {
-  iso: string
-  dayNumber: number
-  inCurrentMonth: boolean
-  isToday: boolean
-  page: number
-  perPage: number
-  total: number
-  totalPages: number
-  items: Array<{
-    id: string
-    reservationId: number
-    occurrenceId: number | null
-    customerName: string
-    status: string
-    basket: { id: number; name: string; finalPrice: number }
-    date: string
-    time: string | null
-    location: string | null
-  }>
-}
-
-type ReservationDetails = Reservation & {
-  occurrencePagination: Pagination
-  notificationPagination: Pagination
-}
-
-type ReservationListItem = {
-  id: string
-  reservationId: number
-  occurrenceId: number | null
-  customerName: string
-  status: string
-  basket: { id: number; name: string; finalPrice: number }
-  date: string
-  time: string | null
-  location: string | null
-}
-
+const { t } = useI18n()
 const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
-const siteConfig = await useSiteConfig()
-const subscriptionsEnabled = computed(() => siteConfig.value?.subscriptionsEnabled ?? false)
 
-const detailsDlg = ref<HTMLDialogElement>()
-const actionDlg = ref<HTMLDialogElement>()
-const current = ref<Reservation | null>(null)
-const detailsReservation = ref<ReservationDetails | null>(null)
-const occurrenceDlg = ref<HTMLDialogElement>()
-const currentOccurrence = ref<Reservation['occurrences'][number] | null>(null)
-const decisionAction = ref<DecisionAction>('confirmed')
-const adminNote = ref('')
-const emailDraft = reactive({ subject: '', body: '' })
-const fulfillmentForm = reactive({ date: '', time: '', location: '' })
-const sending = ref(false)
-const scheduleMode = ref<'CONFIRM' | 'PROPOSE'>('CONFIRM')
-const syncingCalendar = ref(false)
-const savingOccurrence = ref(false)
-const viewMode = ref<'list' | 'calendar'>('list')
-const dayNames = computed(() => [
-  t('admin.ordersPage.weekdaysShort.mon'),
-  t('admin.ordersPage.weekdaysShort.tue'),
-  t('admin.ordersPage.weekdaysShort.wed'),
-  t('admin.ordersPage.weekdaysShort.thu'),
-  t('admin.ordersPage.weekdaysShort.fri'),
-  t('admin.ordersPage.weekdaysShort.sat'),
-  t('admin.ordersPage.weekdaysShort.sun')
-])
-const showMonthPicker = ref(false)
-const occurrenceEmailDraft = reactive({ subject: '', body: '' })
-const occurrenceForm = reactive({ date: '', time: '', location: '' })
-const reservationPage = ref(1)
-const reservationsPerPage = 10
-const detailsOccurrencePage = ref(1)
-const detailsOccurrencesPerPage = 10
-const detailsNotificationPage = ref(1)
-const detailsNotificationsPerPage = 5
-const calendarDayPages = reactive<Record<string, number>>({})
-const calendarItemsPerPage = 3
-const calendarPageVersion = ref(0)
-const calendarMonth = ref(startOfMonth(new Date()))
-const selectedStatuses = ref(['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED'])
-const statusFilters = computed(() => [
-  { value: 'PENDING', label: t('admin.ordersPage.status.pending'), activeClass: 'btn-warning' },
-  { value: 'CONFIRMED', label: t('admin.ordersPage.status.confirmedPlural'), activeClass: 'btn-success' },
-  { value: 'CANCELLED', label: t('admin.ordersPage.status.cancelledPlural'), activeClass: 'btn-warning' },
-  { value: 'REJECTED', label: t('admin.ordersPage.status.rejectedPlural'), activeClass: 'btn-error' },
-  { value: 'ARCHIVED', label: t('admin.ordersPage.status.archivedPlural'), activeClass: 'btn-neutral' }
+const page = ref(1)
+const selectedStatus = ref('')
+const detailsDialog = ref<HTMLDialogElement>()
+const details = ref<ShopOrder | null>(null)
+const loadingDetails = ref(false)
+const actionPending = ref(false)
+
+const query = computed(() => ({
+  page: page.value,
+  limit: 20,
+  ...(selectedStatus.value ? { status: selectedStatus.value } : {})
+}))
+
+const { data, pending, refresh } = await useFetch<{ items: ShopOrder[], pagination: { totalPages: number } }>('/api/admin/orders', {
+  query,
+  watch: [query]
+})
+
+const orders = computed(() => data.value?.items || [])
+const totalPages = computed(() => data.value?.pagination?.totalPages || 1)
+
+watch(selectedStatus, () => {
+  page.value = 1
+})
+
+const statusOptions = computed(() => [
+  { value: '', label: t('admin.ordersPage.filterAll') },
+  { value: 'PENDING', label: t('admin.ordersPage.status.pending') },
+  { value: 'PAID', label: t('admin.ordersPage.status.confirmed') },
+  { value: 'CANCELLED', label: t('admin.ordersPage.status.cancelled') }
 ])
 
-const calendarMonthParam = computed(() => {
-  const year = calendarMonth.value.getFullYear()
-  const month = String(calendarMonth.value.getMonth() + 1).padStart(2, '0')
-  return `${year}-${month}`
-})
-
-const reservationsQuery = computed(() => {
-  if (viewMode.value === 'calendar') {
-    calendarPageVersion.value
-    return {
-      mode: 'calendar',
-      month: calendarMonthParam.value,
-      perDayLimit: calendarItemsPerPage,
-      dayPages: JSON.stringify(calendarDayPages)
-    }
-  }
-
-  return {
-    mode: 'list',
-    page: reservationPage.value,
-    limit: reservationsPerPage,
-    statuses: selectedStatuses.value.join(',')
-  }
-})
-
-const { data: reservationsResponse, pending, refresh } = await useFetch<{
-  mode: 'list' | 'calendar'
-  items?: Reservation[]
-  pagination?: Pagination
-  days?: CalendarDay[]
-}>('/api/admin/orders', {
-  query: reservationsQuery,
-  watch: [reservationsQuery]
-})
-
-const reservations = computed(() => reservationsResponse.value?.items ?? [])
-const calendarDays = computed(() => reservationsResponse.value?.days ?? [])
-const reservationTotalPages = computed(() => reservationsResponse.value?.pagination?.totalPages ?? 1)
-const paginatedReservations = computed(() => reservations.value)
-
-function startOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1)
-}
-
-function startOfWeek(date: Date) {
-  const copy = new Date(date)
-  const day = copy.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  copy.setDate(copy.getDate() + diff)
-  copy.setHours(0, 0, 0, 0)
-  return copy
-}
-
-function endOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0)
-}
-
-function sameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-}
-
-const statusLabel = (s: string) => ({
+const statusLabel = (status: ShopOrder['status']) => ({
+  DRAFT: t('admin.ordersPage.status.draft'),
   PENDING: t('admin.ordersPage.status.pending'),
-  CONFIRMED: t('admin.ordersPage.status.confirmed'),
-  REJECTED: t('admin.ordersPage.status.rejected'),
-  CANCELLED: t('admin.ordersPage.status.cancelled'),
-  ARCHIVED: t('admin.ordersPage.status.archived')
-} as Record<string, string>)[s] ?? s
+  PAID: t('admin.ordersPage.status.confirmed'),
+  CANCELLED: t('admin.ordersPage.status.cancelled')
+}[status] || status)
 
-const occurrenceStatusLabel = (s: string) => ({
-  SCHEDULED: t('admin.ordersPage.occurrenceStatus.scheduled'),
-  CANCELLED: t('admin.ordersPage.occurrenceStatus.cancelled')
-} as Record<string, string>)[s] ?? s
+const paymentStatusLabel = (status: ShopOrder['paymentStatus']) => ({
+  UNPAID: t('admin.ordersPage.paymentStatus.unpaid'),
+  PENDING: t('admin.ordersPage.paymentStatus.pending'),
+  PAID: t('admin.ordersPage.paymentStatus.paid'),
+  FAILED: t('admin.ordersPage.paymentStatus.failed'),
+  REFUNDED: t('admin.ordersPage.paymentStatus.refunded')
+}[status] || status)
 
-const notificationKindLabel = (kind: string) => ({
-  CONFIRMED: t('admin.ordersPage.notificationKind.confirmed'),
-  UPDATED: t('admin.ordersPage.notificationKind.updated'),
-  REJECTED: t('admin.ordersPage.notificationKind.rejected'),
-  CANCELLED: t('admin.ordersPage.notificationKind.cancelled'),
-  OCCURRENCE_UPDATED: t('admin.ordersPage.notificationKind.occurrenceUpdated'),
-  OCCURRENCE_CANCELLED: t('admin.ordersPage.notificationKind.occurrenceCancelled'),
-  CUSTOMER_CANCELLED: t('admin.ordersPage.notificationKind.customerCancelled'),
-  CUSTOMER_STOPPED_SUBSCRIPTION: t('admin.ordersPage.notificationKind.customerStoppedSubscription'),
-  CUSTOMER_CANCELLED_OCCURRENCE: t('admin.ordersPage.notificationKind.customerCancelledOccurrence'),
-  ADMIN_NOTIFIED_CUSTOMER_CANCEL: t('admin.ordersPage.notificationKind.adminNotified'),
-  ADMIN_NOTIFIED_CUSTOMER_STOP: t('admin.ordersPage.notificationKind.adminNotified')
-} as Record<string, string>)[kind] ?? kind.replace(/_/g, ' ').toLowerCase()
-
-const badgeClass = (s: string) => ({
+const statusBadgeClass = (status: ShopOrder['status']) => ({
+  DRAFT: 'badge-ghost',
   PENDING: 'badge-warning',
-  CONFIRMED: 'badge-success',
-  REJECTED: 'badge-error',
-  CANCELLED: 'badge-ghost',
-  ARCHIVED: 'badge-neutral'
-} as Record<string, string>)[s] ?? 'badge-ghost'
+  PAID: 'badge-success',
+  CANCELLED: 'badge-error'
+}[status] || 'badge-ghost')
 
-const occurrenceStatusBadgeClass = (s: string) => ({
-  SCHEDULED: 'badge-success',
-  CANCELLED: 'badge-warning'
-} as Record<string, string>)[s] ?? 'badge-ghost'
+const paymentBadgeClass = (status: ShopOrder['paymentStatus']) => ({
+  UNPAID: 'badge-ghost',
+  PENDING: 'badge-warning',
+  PAID: 'badge-success',
+  FAILED: 'badge-error',
+  REFUNDED: 'badge-info'
+}[status] || 'badge-ghost')
 
-const calendarEventClass = (s: string) => ({
-  PENDING: 'bg-warning text-warning-content',
-  CONFIRMED: 'bg-success text-success-content',
-  REJECTED: 'bg-error text-error-content',
-  CANCELLED: 'bg-neutral text-neutral-content'
-} as Record<string, string>)[s] ?? 'bg-neutral text-neutral-content'
-
-const calendarItemClass = (item: ReservationListItem) => calendarEventClass(item.status)
-const calendarItemTitle = (item: ReservationListItem) => item.customerName
-const calendarItemSubtitle = (item: ReservationListItem) => item.basket.name
-const calendarItemMeta = (item: ReservationListItem) => item.time || ''
-
-const formatDateInput = (value: string | null) => value ? value.slice(0, 10) : ''
-
-const normalizeTimeInput = (value: string | null) => {
-  if (!value) return ''
-  const normalized = value.trim().replace('h', ':')
-  return /^\d{2}:\d{2}$/.test(normalized) ? normalized : value
-}
-
-const formatDateLabel = (value: string | null) => value ? $formatDate(value) : ''
-
-const formatDateOnlyLabel = (value: string | null) => {
-  if (!value) return ''
-  return new Date(value).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
-}
-
-const detailsOccurrenceTotalPages = computed(() =>
-  (detailsReservation.value as ReservationDetails | null)?.occurrencePagination.totalPages ?? 1
-)
-
-const paginatedDetailsOccurrences = computed(() =>
-  detailsReservation.value?.occurrences ?? []
-)
-
-const detailsNotificationTotalPages = computed(() =>
-  (detailsReservation.value as ReservationDetails | null)?.notificationPagination.totalPages ?? 1
-)
-
-const paginatedDetailsNotifications = computed(() =>
-  detailsReservation.value?.notifications ?? []
-)
-
-const setCalendarDayPage = (day: { iso: string; totalPages?: number }, page: number) => {
-  const total = day.totalPages ?? 1
-  calendarDayPages[day.iso] = Math.min(Math.max(page, 1), total)
-  calendarPageVersion.value++
-}
-
-const reservationCalendarDate = (reservation: Reservation) => {
-  const source = reservation.fulfillmentDate ?? reservation.createdAt
-  return new Date(source)
-}
-
-const reservationDateLabel = (reservation: Reservation) => {
-  const source = reservation.fulfillmentDate ?? reservation.createdAt
-  return formatDateOnlyLabel(source)
-}
-
-const deliveryWindowLabel = (reservation: Pick<Reservation, 'deliveryType' | 'deliveryTour' | 'pickupPoint'>) => {
-  if (reservation.deliveryType === 'TOUR' && reservation.deliveryTour) {
-    return `${reservation.deliveryTour.startTime}-${reservation.deliveryTour.endTime}`
-  }
-
-  if (reservation.deliveryType === 'PICKUP' && reservation.pickupPoint) {
-    return ''
-  }
-
-  return ''
-}
-
-const monthLabel = computed(() =>
-  calendarMonth.value.toLocaleDateString(locale.value === 'en' ? 'en-US' : 'fr-FR', { month: 'long', year: 'numeric' })
-)
-
-const monthInput = computed({
-  get: () => {
-    const year = calendarMonth.value.getFullYear()
-    const month = String(calendarMonth.value.getMonth() + 1).padStart(2, '0')
-    return `${year}-${month}`
-  },
-  set: (value: string) => {
-    if (!value) return
-    const [year, month] = value.split('-').map(Number)
-    if (!year || !month) return
-    calendarMonth.value = new Date(year, month - 1, 1)
-  }
-})
-
-const reservationLanguageLabel = (language: Reservation['language'] | null | undefined) =>
-  language === 'en' ? t('admin.ordersPage.languageEnglish') : t('admin.ordersPage.languageFrench')
-
-const actionTitle = computed(() => ({
-  confirmed: current.value?.deliveryType === 'FARM' && scheduleMode.value === 'PROPOSE'
-    ? t('admin.ordersPage.sendCounterProposal')
-    : current.value?.status === 'CONFIRMED' ? t('admin.ordersPage.updateOrder') : t('admin.ordersPage.confirmOrder'),
-  rejected: t('admin.ordersPage.rejectOrder'),
-  cancelled: t('admin.ordersPage.cancelOrder')
-} as Record<DecisionAction, string>)[decisionAction.value])
-
-const actionButtonLabel = computed(() => ({
-  confirmed: current.value?.deliveryType === 'FARM' && scheduleMode.value === 'PROPOSE'
-    ? t('admin.ordersPage.sendProposal')
-    : current.value?.status === 'CONFIRMED' ? t('admin.ordersPage.updateAndSend') : t('admin.ordersPage.confirmAndSend'),
-  rejected: t('admin.ordersPage.rejectAndSend'),
-  cancelled: t('admin.ordersPage.cancelAndSend')
-} as Record<DecisionAction, string>)[decisionAction.value])
-
-const actionButtonClass = computed(() => ({
-  confirmed: 'btn-success',
-  rejected: 'btn-error',
-  cancelled: 'btn-warning'
-} as Record<DecisionAction, string>)[decisionAction.value])
-
-const loadPreview = async () => {
-  if (!current.value) return
-  const previewAction = decisionAction.value === 'confirmed' && current.value.deliveryType === 'FARM' && scheduleMode.value === 'PROPOSE'
-    ? 'proposed'
-    : decisionAction.value
-  const params = new URLSearchParams({ action: previewAction })
-  if (decisionAction.value === 'confirmed') {
-    if (fulfillmentForm.date) params.set('fulfillmentDate', fulfillmentForm.date)
-    if (fulfillmentForm.time) params.set('fulfillmentTime', fulfillmentForm.time)
-    if (fulfillmentForm.location) params.set('fulfillmentLocation', fulfillmentForm.location)
-  } else if (adminNote.value) {
-    params.set('adminNote', adminNote.value)
-  }
-  const preview = await $fetch<{ subject: string; body: string }>(
-    `/api/admin/orders/${current.value.id}/preview?${params.toString()}`
-  )
-  emailDraft.subject = preview.subject
-  emailDraft.body = preview.body
-}
-
-const loadOccurrencePreview = async (action: 'updated' | 'cancelled' = 'updated') => {
-  if (!currentOccurrence.value) return
-  const params = new URLSearchParams({ action })
-  if (action === 'updated') {
-    if (occurrenceForm.date) params.set('occurrenceDate', occurrenceForm.date)
-    if (occurrenceForm.time) params.set('occurrenceTime', occurrenceForm.time)
-    if (occurrenceForm.location) params.set('occurrenceLocation', occurrenceForm.location)
-  }
-  const preview = await $fetch<{ subject: string; body: string }>(
-    `/api/admin/order-occurrences/${currentOccurrence.value.id}/preview?${params.toString()}`
-  )
-  occurrenceEmailDraft.subject = preview.subject
-  occurrenceEmailDraft.body = preview.body
-}
-
-const openAction = async (reservation: Reservation, action: DecisionAction) => {
-  current.value = reservation
-  decisionAction.value = action
-  scheduleMode.value = 'CONFIRM'
-  adminNote.value = reservation.adminNote ?? ''
-  fulfillmentForm.date = formatDateInput(reservation.fulfillmentDate)
-  fulfillmentForm.time = normalizeTimeInput(reservation.fulfillmentTime)
-  fulfillmentForm.location = reservation.fulfillmentLocation ?? ''
-  await loadPreview()
-  actionDlg.value?.showModal()
-}
-
-const loadDetails = async (reservationId = detailsReservation.value?.id) => {
-  if (!reservationId) return
-  detailsReservation.value = await $fetch<ReservationDetails>(`/api/admin/orders/${reservationId}`, {
-    query: {
-      occurrencePage: detailsOccurrencePage.value,
-      occurrenceLimit: detailsOccurrencesPerPage,
-      notificationPage: detailsNotificationPage.value,
-      notificationLimit: detailsNotificationsPerPage
-    }
-  })
-}
-
-const openDetails = async (reservation: Reservation) => {
-  detailsOccurrencePage.value = 1
-  detailsNotificationPage.value = 1
-  await loadDetails(reservation.id)
-  detailsDlg.value?.showModal()
-}
-
-const openDetailsById = async (reservationId: number) => {
-  detailsOccurrencePage.value = 1
-  detailsNotificationPage.value = 1
-  await loadDetails(reservationId)
-  detailsDlg.value?.showModal()
-}
-
-const openOccurrenceEditor = async (reservation: Reservation, occurrence: Reservation['occurrences'][number]) => {
-  currentOccurrence.value = occurrence
-  occurrenceForm.date = formatDateInput(occurrence.occurrenceDate)
-  occurrenceForm.time = normalizeTimeInput(occurrence.occurrenceTime)
-  occurrenceForm.location = occurrence.occurrenceLocation ?? ''
-  await loadOccurrencePreview('updated')
-  occurrenceDlg.value?.showModal()
-}
-
-const closeOccurrenceEditor = () => occurrenceDlg.value?.close()
-
-const closeDetails = () => detailsDlg.value?.close()
-const closeAction = () => actionDlg.value?.close()
-const reloadPreview = () => loadPreview()
-
-const openActionFromDetails = async (action: DecisionAction) => {
-  if (!detailsReservation.value) return
-  closeDetails()
-  await openAction(detailsReservation.value, action)
-}
-
-const changeMonth = (offset: number) => {
-  showMonthPicker.value = false
-  calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() + offset, 1)
-}
-
-const goToCurrentMonth = () => {
-  showMonthPicker.value = false
-  calendarMonth.value = startOfMonth(new Date())
-}
-
-const toggleMonthPicker = () => {
-  showMonthPicker.value = !showMonthPicker.value
-}
-
-const applyMonthInput = () => {
-  showMonthPicker.value = false
-}
-
-const updateMonthInput = (value: string) => {
-  monthInput.value = value
-}
-
-const selectDay = (day: CalendarDay) => {
-  showMonthPicker.value = false
-  if (day.items[0]) {
-    openDetailsById(day.items[0].reservationId)
-  }
-}
-
-const openDetailsFromCalendar = (item: CalendarDay['items'][number]) => {
-  openDetailsById(item.reservationId)
-}
-
-const toggleStatusFilter = (status: string) => {
-  const next = selectedStatuses.value.includes(status)
-    ? selectedStatuses.value.filter((value) => value !== status)
-    : [...selectedStatuses.value, status]
-
-  selectedStatuses.value = next.length ? next : ['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED']
-  reservationPage.value = 1
-}
-
-watch(
-  () => [fulfillmentForm.date, fulfillmentForm.time, fulfillmentForm.location, decisionAction.value, scheduleMode.value] as const,
-  () => {
-    if (decisionAction.value === 'confirmed' && current.value) {
-      loadPreview()
-    }
-  }
-)
-
-watch(adminNote, () => {
-  if (decisionAction.value !== 'confirmed' && current.value) {
-    loadPreview()
-  }
-})
-
-watch(
-  () => [occurrenceForm.date, occurrenceForm.time, occurrenceForm.location] as const,
-  () => {
-    if (!detailsReservation.value || !currentOccurrence.value) return
-    loadOccurrencePreview('updated')
-  }
-)
-
-watch([detailsOccurrencePage, detailsNotificationPage], () => {
-  if (detailsReservation.value) {
-    loadDetails()
-  }
-})
-
-watch(
-  () => route.query.open,
-  async (value) => {
-    const reservationId = Number(value)
-    if (!reservationId || Number.isNaN(reservationId) || pending.value) return
-    await openDetailsById(reservationId)
-  },
-  { immediate: true }
-)
-
-const syncReservationCalendar = async () => {
-  if (!detailsReservation.value) return
-  syncingCalendar.value = true
+const openDetails = async (id: number) => {
+  loadingDetails.value = true
+  detailsDialog.value?.showModal()
   try {
-    await $fetch(`/api/admin/orders/${detailsReservation.value.id}/sync-calendar`, { method: 'POST' })
-    $toast.success(t('admin.ordersPage.toast.calendarSynced'))
-    await refresh()
-    await loadDetails()
-  } catch (e: any) {
-    $toast.error(e.statusMessage || t('admin.ordersPage.toast.calendarSyncError'))
+    details.value = await $fetch<ShopOrder>(`/api/admin/orders/${id}`)
+  } catch (error: any) {
+    $toast.error(error?.statusMessage || t('common.error'))
+    closeDetails()
   } finally {
-    syncingCalendar.value = false
+    loadingDetails.value = false
   }
 }
 
-const saveOrdersWindow = async () => {
-  savingOrdersWindow.value = true
-  try {
-    await $fetch('/api/admin/settings', {
-      method: 'PUT',
-      body: {
-        ordersOpenFrom: ordersWindowForm.value.ordersOpenFrom,
-        ordersOpenTo: ordersWindowForm.value.ordersOpenTo,
-        ordersClosedMessage: ordersWindowForm.value.ordersClosedMessage
-      }
-    })
-    $toast.success(t('admin.ordersPage.toast.ordersWindowSaved'))
-    await refreshSettings()
-  } catch (e: any) {
-    $toast.error(e.statusMessage || t('admin.ordersPage.toast.ordersWindowSaveError'))
-  } finally {
-    savingOrdersWindow.value = false
-  }
+const closeDetails = () => {
+  detailsDialog.value?.close()
+  details.value = null
 }
 
-const saveOccurrence = async () => {
-  if (!detailsReservation.value || !currentOccurrence.value) return
-  savingOccurrence.value = true
+const updateStatus = async (status: ShopOrder['status'], paymentStatus: ShopOrder['paymentStatus']) => {
+  if (!details.value) return
+  actionPending.value = true
   try {
-    await $fetch(`/api/admin/order-occurrences/${currentOccurrence.value.id}/update`, {
+    details.value = await $fetch<ShopOrder>(`/api/admin/orders/${details.value.id}/status`, {
       method: 'POST',
-      body: {
-        occurrenceDate: occurrenceForm.date,
-        occurrenceTime: occurrenceForm.time || null,
-        occurrenceLocation: occurrenceForm.location || null,
-        email: { subject: occurrenceEmailDraft.subject, body: occurrenceEmailDraft.body }
-      }
+      body: { status, paymentStatus }
     })
-    $toast.success(t('admin.ordersPage.toast.occurrenceUpdated'))
-    closeOccurrenceEditor()
     await refresh()
-    await loadDetails()
-  } catch (e: any) {
-    $toast.error(e.statusMessage || t('admin.ordersPage.toast.occurrenceUpdateError'))
+    $toast.success(t('admin.ordersPage.saved'))
+  } catch (error: any) {
+    $toast.error(error?.statusMessage || t('common.error'))
   } finally {
-    savingOccurrence.value = false
+    actionPending.value = false
   }
 }
-
-const cancelOccurrence = async (reservation: Reservation, occurrence: Reservation['occurrences'][number]) => {
-  const confirmed = confirm(t('admin.ordersPage.confirmCancelOccurrence'))
-  if (!confirmed) return
-  try {
-    currentOccurrence.value = occurrence
-    const preview = await $fetch<{ subject: string; body: string }>(
-      `/api/admin/order-occurrences/${occurrence.id}/preview?action=cancelled`
-    )
-    await $fetch(`/api/admin/order-occurrences/${occurrence.id}/cancel`, {
-      method: 'POST',
-      body: {
-        email: {
-          subject: preview.subject,
-          body: preview.body
-        }
-      }
-    })
-    $toast.success(t('admin.ordersPage.toast.occurrenceCancelled'))
-    await refresh()
-    await loadDetails(reservation.id)
-  } catch (e: any) {
-    $toast.error(e.statusMessage || t('admin.ordersPage.toast.occurrenceCancelError'))
-  }
-}
-
-const archiveReservation = async (reservation: Reservation) => {
-  const confirmed = confirm(t('admin.ordersPage.confirmArchive'))
-  if (!confirmed) return
-
-  try {
-    await $fetch(`/api/admin/orders/${reservation.id}/archive`, { method: 'POST' })
-    $toast.success(t('admin.ordersPage.toast.archived'))
-
-    if (detailsReservation.value?.id === reservation.id) {
-      closeDetails()
-    }
-
-    await refresh()
-  } catch (e: any) {
-    $toast.error(e.statusMessage || t('admin.ordersPage.toast.archiveError'))
-  }
-}
-
-const submit = async () => {
-  if (!current.value) return
-  sending.value = true
-  try {
-    const response = await $fetch<{ calendarSynced?: boolean; calendarRemoved?: boolean; calendarReason?: string | null; proposalPending?: boolean }>(
-      `/api/admin/orders/${current.value.id}/decide`,
-      {
-        method: 'POST',
-        body: {
-          decision: decisionAction.value.toUpperCase(),
-          scheduleMode: decisionAction.value === 'confirmed' ? scheduleMode.value : undefined,
-          adminNote: adminNote.value || null,
-          fulfillmentDate: decisionAction.value === 'confirmed' ? fulfillmentForm.date || null : null,
-          fulfillmentTime: decisionAction.value === 'confirmed' ? fulfillmentForm.time || null : null,
-          fulfillmentLocation: decisionAction.value === 'confirmed' ? fulfillmentForm.location || null : null,
-          email: { subject: emailDraft.subject, body: emailDraft.body }
-        }
-      }
-    )
-
-    if (decisionAction.value === 'confirmed' && response.proposalPending) {
-      $toast.success(t('admin.ordersPage.toast.counterProposalSent'))
-    } else if (decisionAction.value === 'confirmed') {
-      $toast.success(response.calendarSynced
-        ? t('admin.ordersPage.toast.confirmedAndSynced')
-        : t('admin.ordersPage.toast.confirmed'))
-      if (!response.calendarSynced && response.calendarReason) {
-        $toast.info(response.calendarReason)
-      }
-    } else if (decisionAction.value === 'cancelled') {
-      $toast.success(response.calendarRemoved
-        ? t('admin.ordersPage.toast.cancelledAndRemoved')
-        : t('admin.ordersPage.toast.cancelled'))
-    } else {
-      $toast.success(response.calendarRemoved
-        ? t('admin.ordersPage.toast.rejectedAndRemoved')
-        : t('admin.ordersPage.toast.rejected'))
-    }
-
-    closeAction()
-    await refresh()
-    if (detailsReservation.value) {
-      await loadDetails(current.value.id)
-    }
-  } catch (e: any) {
-    $toast.error(e.statusMessage || t('admin.ordersPage.toast.actionError'))
-  } finally {
-    sending.value = false
-  }
-}
-
-const ReservationSummary = defineComponent({
-  props: {
-    reservation: { type: Object as PropType<Reservation>, required: true },
-    badgeClass: { type: Function as PropType<(status: string) => string>, required: true },
-    statusLabel: { type: Function as PropType<(status: string) => string>, required: true },
-    formatDateInput: { type: Function as PropType<(value: string | null) => string>, required: true },
-    formatPrice: { type: Function as PropType<(value: number) => string>, required: true },
-    formatDate: { type: Function as PropType<(value: string | null) => string>, required: true }
-  },
-  emits: ['confirm', 'reject', 'cancel', 'archive', 'select'],
-  setup(props, { emit }) {
-    return () => h('div', { class: 'flex flex-wrap items-start justify-between gap-2' }, [
-      h('div', { class: 'cursor-pointer', onClick: () => emit('select') }, [
-        h('div', { class: 'flex items-center gap-2' }, [
-          h('h2', { class: 'font-bold' }, props.reservation.customerName),
-          h('span', { class: `badge ${props.badgeClass(props.reservation.status)}` }, props.statusLabel(props.reservation.status)),
-          props.reservation.googleCalendarEventId
-            ? h('span', { class: 'badge badge-info badge-outline' }, 'Google')
-            : null
-        ]),
-        h('p', { class: 'text-sm opacity-70' }, `${props.reservation.basket.name} - ${props.formatPrice(props.reservation.basket.finalPrice)} - ${props.formatDate(props.reservation.createdAt)}`),
-        h('p', { class: 'text-sm' }, [
-          h('a', { href: `mailto:${props.reservation.email}`, class: 'link' }, props.reservation.email),
-          props.reservation.phone ? ` · ${props.reservation.phone}` : ''
-        ]),
-        props.reservation.message ? h('p', { class: 'mt-2 text-sm italic opacity-80' }, `"${props.reservation.message}"`) : null,
-        props.reservation.deliveryType ? h('div', { class: 'mt-2 space-y-1 rounded bg-base-300 p-2 text-sm' }, [
-          h('div', { class: 'font-medium' },
-            props.reservation.deliveryType === 'TOUR'
-              ? t('admin.ordersPage.deliveryTour')
-              : props.reservation.deliveryType === 'FARM'
-                ? t('admin.ordersPage.farmPickup')
-                : t('admin.ordersPage.pickupPoint')
-          ),
-          props.reservation.deliveryType === 'PICKUP' && props.reservation.pickupPoint
-            ? h('div', { class: 'opacity-80' }, `${props.reservation.pickupPoint.name}${props.reservation.pickupPoint.address ? ` - ${props.reservation.pickupPoint.address}` : ''}`)
-            : null,
-          props.reservation.deliveryType === 'TOUR' && props.reservation.deliveryTour
-            ? h('div', { class: 'opacity-80' }, `${props.reservation.deliveryTour.name} - ${props.reservation.deliveryTour.startTime}-${props.reservation.deliveryTour.endTime}`)
-            : null,
-          props.reservation.deliveryAddress ? h('div', { class: 'opacity-80' }, props.reservation.deliveryAddress) : null,
-          props.reservation.deliveryCity
-            ? h('div', { class: 'opacity-80' }, `${props.reservation.deliveryCity}${props.reservation.deliveryPostalCode ? ` ${props.reservation.deliveryPostalCode}` : ''}`)
-            : null,
-          props.reservation.monthlySubscription
-            ? h('div', { class: 'text-success' }, `${t('admin.ordersPage.monthlySubscription')}${props.reservation.deliveryTour?.monthlyPrice ? ` - ${props.formatPrice(props.reservation.deliveryTour.monthlyPrice)}/${t('admin.ordersPage.perMonth')}` : ''}`)
-            : null,
-          props.reservation.fulfillmentDate || props.reservation.fulfillmentTime || props.reservation.fulfillmentLocation
-            ? h('div', { class: 'mt-2 rounded-box bg-base-100 p-2' }, [
-                props.reservation.fulfillmentDate ? h('div', [h('strong', `${t('admin.ordersPage.date')} : `), props.formatDateInput(props.reservation.fulfillmentDate)]) : null,
-                props.reservation.fulfillmentTime ? h('div', [h('strong', `${t('admin.ordersPage.time')} : `), props.reservation.fulfillmentTime]) : null,
-                props.reservation.deliveryType === 'TOUR' && props.reservation.deliveryTour
-                  ? h('div', [h('strong', `${t('admin.ordersPage.deliveryWindow')} : `), `${props.reservation.deliveryTour.startTime}-${props.reservation.deliveryTour.endTime}`])
-                  : null,
-                props.reservation.fulfillmentLocation ? h('div', [h('strong', `${t('admin.ordersPage.location')} : `), props.reservation.fulfillmentLocation]) : null
-              ])
-            : null
-        ]) : null
-      ]),
-      h('div', { class: 'flex gap-2' }, [
-        ['PENDING', 'REJECTED', 'CANCELLED'].includes(props.reservation.status)
-          ? h('button', { class: 'btn btn-sm btn-success', onClick: () => emit('confirm') }, t('admin.ordersPage.confirm'))
-          : null,
-        ['PENDING', 'CANCELLED'].includes(props.reservation.status)
-          ? h('button', { class: 'btn btn-sm btn-error btn-outline', onClick: () => emit('reject') }, t('admin.ordersPage.reject'))
-          : null,
-        props.reservation.status === 'CONFIRMED'
-          ? h('button', { class: 'btn btn-sm btn-primary btn-outline', onClick: () => emit('confirm') }, t('admin.common.edit'))
-          : null,
-        props.reservation.status === 'CONFIRMED'
-          ? h('button', { class: 'btn btn-sm btn-warning btn-outline', onClick: () => emit('cancel') }, t('admin.ordersPage.cancelReservation'))
-          : null,
-        ['REJECTED', 'CANCELLED'].includes(props.reservation.status)
-          ? h('button', { class: 'btn btn-sm btn-neutral btn-outline', onClick: () => emit('archive') }, t('admin.ordersPage.archive'))
-          : null
-      ])
-    ])
-  }
-})
 </script>

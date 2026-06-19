@@ -861,8 +861,11 @@ function buildResolvedNavigationTree(items: ResolvedCmsNavigationItem[]) {
 
 function isFeatureEnabledForHref(href: string, featureFlags: FeatureFlags) {
   const normalizedHref = href.split('?')[0]?.split('#')[0] || href
-  if (normalizedHref === '/paniers' || normalizedHref.startsWith('/paniers/')) {
+  if (normalizedHref === '/paniers' || normalizedHref.startsWith('/paniers/') || normalizedHref === '/lots-produits' || normalizedHref.startsWith('/lots-produits/')) {
     return featureFlags.shop.enabled && featureFlags.shop.basketsEnabled
+  }
+  if (normalizedHref === '/boutique' || normalizedHref.startsWith('/boutique/')) {
+    return featureFlags.shop.enabled && featureFlags.shop.vegetablesEnabled
   }
   if (normalizedHref === '/news' || normalizedHref.startsWith('/news/')) {
     return featureFlags.newsEnabled
@@ -905,21 +908,46 @@ function createLegacyRootResolvedPage(locale: string): Promise<ResolvedCmsPage> 
 function createLegacyBasketsResolvedPage(locale: string): ResolvedCmsPage {
   return {
     id: null,
-    path: '/paniers',
-    slug: 'paniers',
+    path: '/lots-produits',
+    slug: 'lots-produits',
     pageType: 'APPLICATION',
     status: 'PUBLISHED',
     specialRole: null,
     templateKey: 'default',
     rendererKey: 'baskets',
     applicationPosition: 'AFTER_CONTENT',
-    title: locale === 'en' ? 'Baskets' : 'Paniers',
-    navigationLabel: locale === 'en' ? 'Baskets' : 'Paniers',
+    title: locale === 'en' ? 'Product lots' : 'Lots de produits',
+    navigationLabel: locale === 'en' ? 'Product lots' : 'Lots de produits',
     seo: {
-      metaTitle: locale === 'en' ? 'Reserve a vegetable basket' : 'Réserver un panier de légumes',
+      metaTitle: locale === 'en' ? 'Browse product lots' : 'Parcourir les lots de produits',
       metaDescription: locale === 'en'
-        ? 'Browse available vegetable baskets, choose pickup or delivery, and send your reservation online.'
-        : 'Consultez les paniers de légumes disponibles, choisissez votre retrait ou votre livraison et envoyez votre réservation en ligne.',
+        ? 'Browse available product lots for sale or rental.'
+        : 'Consultez les lots de produits disponibles à la vente ou à la location.',
+      ogImage: '',
+      noindex: false
+    },
+    content: createEmptyPageBuilderContent()
+  }
+}
+
+function createLegacyShopResolvedPage(locale: string): ResolvedCmsPage {
+  return {
+    id: null,
+    path: '/boutique',
+    slug: 'boutique',
+    pageType: 'APPLICATION',
+    status: 'PUBLISHED',
+    specialRole: null,
+    templateKey: 'default',
+    rendererKey: 'shop',
+    applicationPosition: 'AFTER_CONTENT',
+    title: locale === 'en' ? 'Shop' : 'Boutique',
+    navigationLabel: locale === 'en' ? 'Shop' : 'Boutique',
+    seo: {
+      metaTitle: locale === 'en' ? 'Browse products' : 'Parcourir les produits',
+      metaDescription: locale === 'en'
+        ? 'Browse the product catalog for sale or rental.'
+        : 'Consultez le catalogue de produits à vendre ou à louer.',
       ogImage: '',
       noindex: false
     },
@@ -1431,7 +1459,8 @@ async function ensureCmsStandardPage(options: {
 
 export async function ensureCmsSystemPages() {
   await ensureCmsRootPage()
-  await ensureCmsApplicationPage('/paniers', 'paniers', 'Paniers', 'Baskets', 'baskets')
+  await ensureCmsApplicationPage('/boutique', 'boutique', 'Boutique', 'Shop', 'shop')
+  await ensureCmsApplicationPage('/lots-produits', 'lots-produits', 'Lots de produits', 'Product lots', 'baskets')
   await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
   await ensureCmsApplicationPage('/events', 'events', 'Événements', 'Events', 'events')
   await ensureCmsApplicationPage('/planning', 'planning', 'Planning', 'Schedule', 'planning')
@@ -1551,7 +1580,7 @@ export async function ensureCmsSystemPages() {
 }
 
 export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCmsPage, locale: CmsLocale) {
-  if (resolvedPage.path === '/' || resolvedPage.path === '/paniers' || resolvedPage.path === '/news' || resolvedPage.path === '/events' || resolvedPage.path === '/planning' || resolvedPage.path === '/construction' || resolvedPage.path === '/contact' || resolvedPage.path === '/terms' || resolvedPage.path === '/privacy') {
+  if (resolvedPage.path === '/' || resolvedPage.path === '/boutique' || resolvedPage.path === '/lots-produits' || resolvedPage.path === '/paniers' || resolvedPage.path === '/news' || resolvedPage.path === '/events' || resolvedPage.path === '/planning' || resolvedPage.path === '/construction' || resolvedPage.path === '/contact' || resolvedPage.path === '/terms' || resolvedPage.path === '/privacy') {
     await ensureCmsSystemPages()
     return await getCmsPageByPath(resolvedPage.path)
   }
@@ -1908,7 +1937,14 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
     return await createLegacyRootResolvedPage(locale)
   }
 
-  if (normalizedPath === '/paniers') {
+  if (normalizedPath === '/boutique') {
+    if (!isRendererEnabled('shop', featureFlags)) {
+      return null
+    }
+    return createLegacyShopResolvedPage(locale)
+  }
+
+  if (normalizedPath === '/lots-produits' || normalizedPath === '/paniers') {
     if (!isRendererEnabled('baskets', featureFlags)) {
       return null
     }

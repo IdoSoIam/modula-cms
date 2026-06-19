@@ -376,12 +376,12 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
     ],
     basketsPage: {
       title: {
-        fr: 'Paniers',
-        en: 'Baskets'
+        fr: 'Lots de produits',
+        en: 'Product lots'
       },
       subtitle: {
-        fr: 'Consultez les paniers disponibles et choisissez votre mode de retrait ou de livraison.',
-        en: 'Browse available baskets and choose your pickup or delivery option.'
+        fr: 'Consultez les lots de produits disponibles à la vente ou à la location.',
+        en: 'Browse available product lots for sale or rental.'
       },
       containerWidth: 'wide',
       gridColumns: 3,
@@ -621,15 +621,28 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
     {
       menu: 'PRIMARY',
       itemType: 'APPLICATION_ROUTE',
-      title: 'Paniers',
-      labels: { fr: 'Paniers', en: 'Baskets' },
-      navigationItemKey: 'nav-baskets',
+      title: 'Boutique',
+      labels: { fr: 'Boutique', en: 'Shop' },
+      navigationItemKey: 'nav-shop',
       parentItemKey: null,
-      href: '/paniers',
+      href: '/boutique',
       pageId: null,
       newTab: false,
       visible: true,
       position: 2
+    },
+    {
+      menu: 'PRIMARY',
+      itemType: 'APPLICATION_ROUTE',
+      title: 'Lots de produits',
+      labels: { fr: 'Lots de produits', en: 'Product lots' },
+      navigationItemKey: 'nav-baskets',
+      parentItemKey: null,
+      href: '/lots-produits',
+      pageId: null,
+      newTab: false,
+      visible: true,
+      position: 3
     },
     {
       menu: 'PRIMARY',
@@ -642,7 +655,7 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       pageId: null,
       newTab: false,
       visible: true,
-      position: 3
+      position: 4
     },
     {
       menu: 'FOOTER',

@@ -318,7 +318,7 @@ function cmsUsageToReferenceItem(
 }
 
 export async function syncImageUsageTable() {
-  const [images, vegetables, baskets, articles, cmsPages] = await Promise.all([
+  const [images, vegetables, baskets, products, productLots, articles, cmsPages] = await Promise.all([
     db.image.findMany({
       select: { id: true, url: true }
     }),
@@ -328,6 +328,12 @@ export async function syncImageUsageTable() {
     db.basket.findMany({
       select: { id: true, name: true, imageUrl: true }
     }),
+    db.product.findMany({
+      select: { id: true, name: true, imageUrl: true }
+    }).catch(() => []),
+    db.productLot.findMany({
+      select: { id: true, name: true, imageUrl: true }
+    }).catch(() => []),
     db.article.findMany({
       select: { id: true, title: true, slug: true, coverUrl: true, content: true }
     }),
@@ -370,6 +376,34 @@ export async function syncImageUsageTable() {
       scopeId: String(basket.id),
       fieldKey: 'imageUrl',
       label: `Panier "${basket.name}"`,
+      createdAt: now,
+      updatedAt: now
+    })
+  }
+
+  for (const product of products) {
+    const imageId = product.imageUrl ? imageIdByUrl.get(product.imageUrl) as number | undefined : undefined
+    if (!imageId) continue
+    usages.push({
+      imageId,
+      scopeType: 'product',
+      scopeId: String(product.id),
+      fieldKey: 'imageUrl',
+      label: `Produit "${product.name}"`,
+      createdAt: now,
+      updatedAt: now
+    })
+  }
+
+  for (const productLot of productLots) {
+    const imageId = productLot.imageUrl ? imageIdByUrl.get(productLot.imageUrl) as number | undefined : undefined
+    if (!imageId) continue
+    usages.push({
+      imageId,
+      scopeType: 'product-lot',
+      scopeId: String(productLot.id),
+      fieldKey: 'imageUrl',
+      label: `Lot produit "${productLot.name}"`,
       createdAt: now,
       updatedAt: now
     })
@@ -547,6 +581,14 @@ export async function updateImageReferences(oldUrl: string, newUrl: string) {
     where: { imageUrl: oldUrl },
     data: { imageUrl: newUrl }
   })
+  await db.product.updateMany({
+    where: { imageUrl: oldUrl },
+    data: { imageUrl: newUrl }
+  })
+  await db.productLot.updateMany({
+    where: { imageUrl: oldUrl },
+    data: { imageUrl: newUrl }
+  })
   await db.article.updateMany({
     where: { coverUrl: oldUrl },
     data: { coverUrl: newUrl }
@@ -573,6 +615,14 @@ export async function removeImageReferences(url: string) {
   })
 
   await db.basket.updateMany({
+    where: { imageUrl: url },
+    data: { imageUrl: null }
+  })
+  await db.product.updateMany({
+    where: { imageUrl: url },
+    data: { imageUrl: null }
+  })
+  await db.productLot.updateMany({
     where: { imageUrl: url },
     data: { imageUrl: null }
   })
@@ -607,6 +657,8 @@ export async function countImageReferences(url: string) {
     return {
       vegetables: 0,
       baskets: 0,
+      products: 0,
+      productLots: 0,
       articles: 0,
       articleContent: 0,
       cmsSiteSettings: {
@@ -651,6 +703,8 @@ export async function countImageReferences(url: string) {
   return {
     vegetables: usages.filter((usage: any) => usage.scopeType === 'vegetable').length,
     baskets: usages.filter((usage: any) => usage.scopeType === 'basket').length,
+    products: usages.filter((usage: any) => usage.scopeType === 'product').length,
+    productLots: usages.filter((usage: any) => usage.scopeType === 'product-lot').length,
     articles: usages.filter((usage: any) => usage.scopeType === 'article').length,
     articleContent: usages.filter((usage: any) => usage.scopeType === 'article-content').length,
     cmsSiteSettings: {

@@ -320,6 +320,7 @@ const localizedTitle = computed({
 })
 const applicationLocalizedTitle = computed<null | { fr: string, en: string }>(() => {
   if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.title
+  if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.title
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.title
   if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.title
   if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.title
@@ -327,6 +328,7 @@ const applicationLocalizedTitle = computed<null | { fr: string, en: string }>(()
 })
 const applicationLocalizedSubtitle = computed<null | { fr: string, en: string }>(() => {
   if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.subtitle
+  if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.subtitle
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.subtitle
   if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.subtitle
   if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.subtitle
@@ -383,6 +385,10 @@ const updateVisibleTitle = (value: { fr: string, en: string }) => {
     siteShellModel.settings.basketsPage.title = structuredClone(value)
     return
   }
+  if (selectedPageRenderer.value === 'shop') {
+    siteShellModel.settings.basketsPage.title = structuredClone(value)
+    return
+  }
   if (selectedPageRenderer.value === 'news') {
     siteShellModel.settings.newsPage.title = structuredClone(value)
     return
@@ -400,6 +406,10 @@ const updateVisibleTitle = (value: { fr: string, en: string }) => {
 
 const updateVisibleSubtitle = (value: { fr: string, en: string }) => {
   if (selectedPageRenderer.value === 'baskets') {
+    siteShellModel.settings.basketsPage.subtitle = structuredClone(value)
+    return
+  }
+  if (selectedPageRenderer.value === 'shop') {
     siteShellModel.settings.basketsPage.subtitle = structuredClone(value)
     return
   }
