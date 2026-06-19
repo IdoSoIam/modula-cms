@@ -144,13 +144,18 @@
           </div>
           <div class="form-control flex gap-3">
             <label class="label cursor-pointer justify-start gap-3">
-              <input v-model="editing.allowOfflinePayment" type="checkbox" class="checkbox" />
+              <input v-model="editing.allowOfflinePayment" type="checkbox" class="checkbox" :disabled="!lotPaymentCapabilities.allowOfflinePayment" />
               <span class="label-text">{{ t('admin.basketsPage.paymentOffline') }}</span>
             </label>
             <label class="label cursor-pointer justify-start gap-3">
-              <input v-model="editing.allowOnlinePayment" type="checkbox" class="checkbox" />
+              <input v-model="editing.allowOnlinePayment" type="checkbox" class="checkbox" :disabled="!lotPaymentCapabilities.allowOnlinePayment" />
               <span class="label-text">{{ t('admin.basketsPage.paymentOnline') }}</span>
             </label>
+          </div>
+          <div class="md:col-span-2">
+            <p class="text-sm" :class="lotPaymentConflict ? 'text-error' : 'opacity-70'">
+              {{ lotPaymentRuleMessage }}
+            </p>
           </div>
           <div class="form-control flex gap-3 md:col-span-2">
             <label class="label cursor-pointer justify-start gap-3">
@@ -186,7 +191,7 @@
 
         <div class="modal-action">
           <button class="btn" @click="close">{{ t('admin.common.cancel') }}</button>
-          <button class="btn btn-primary" :disabled="saving" @click="save">
+          <button class="btn btn-primary" :disabled="saving || lotPaymentConflict || (!editing.allowOfflinePayment && !editing.allowOnlinePayment)" @click="save">
             <span v-if="saving" class="loading loading-spinner loading-sm" />
             {{ t('admin.common.save') }}
           </button>
@@ -213,6 +218,8 @@ interface Product {
   name: string
   price: number
   stock: number
+  allowOfflinePayment: boolean
+  allowOnlinePayment: boolean
 }
 
 interface ProductLotItem {
@@ -320,6 +327,55 @@ const computedStockPreview = computed(() => {
   return Math.max(0, Math.min(...candidates))
 })
 
+const lotPaymentCapabilities = computed(() => {
+  const selectedProducts = editing.items
+    .filter((item) => item.productId > 0 && item.quantity > 0)
+    .map((item) => products.value?.find((entry) => entry.id === item.productId))
+    .filter((entry): entry is Product => Boolean(entry))
+
+  if (!selectedProducts.length) {
+    return {
+      allowOfflinePayment: true,
+      allowOnlinePayment: true
+    }
+  }
+
+  return {
+    allowOfflinePayment: selectedProducts.every((product) => product.allowOfflinePayment),
+    allowOnlinePayment: selectedProducts.every((product) => product.allowOnlinePayment)
+  }
+})
+
+const lotPaymentConflict = computed(() =>
+  !lotPaymentCapabilities.value.allowOfflinePayment && !lotPaymentCapabilities.value.allowOnlinePayment
+)
+
+const lotPaymentRuleMessage = computed(() => {
+  if (lotPaymentConflict.value) return t('admin.basketsPage.paymentRuleConflict')
+  if (!lotPaymentCapabilities.value.allowOfflinePayment && lotPaymentCapabilities.value.allowOnlinePayment) {
+    return t('admin.basketsPage.paymentRuleOnlineOnly')
+  }
+  if (lotPaymentCapabilities.value.allowOfflinePayment && !lotPaymentCapabilities.value.allowOnlinePayment) {
+    return t('admin.basketsPage.paymentRuleOfflineOnly')
+  }
+  return t('admin.basketsPage.paymentRuleFlexible')
+})
+
+watch(lotPaymentCapabilities, (value) => {
+  if (!value.allowOfflinePayment) {
+    editing.allowOfflinePayment = false
+  }
+  if (!value.allowOnlinePayment) {
+    editing.allowOnlinePayment = false
+  }
+  if (!value.allowOfflinePayment && value.allowOnlinePayment) {
+    editing.allowOnlinePayment = true
+  }
+  if (value.allowOfflinePayment && !value.allowOnlinePayment) {
+    editing.allowOfflinePayment = true
+  }
+}, { deep: true, immediate: true })
+
 const openNew = () => {
   resetEditing()
   dlg.value?.showModal()
@@ -350,6 +406,14 @@ const addItem = () => editing.items.push({ productId: 0, quantity: 1 })
 const removeItem = (index: number) => editing.items.splice(index, 1)
 
 const save = async () => {
+  if (lotPaymentConflict.value) {
+    $toast.error(t('admin.basketsPage.paymentRuleConflict'))
+    return
+  }
+  if (!editing.allowOfflinePayment && !editing.allowOnlinePayment) {
+    $toast.error(t('admin.basketsPage.paymentRuleMissing'))
+    return
+  }
   saving.value = true
   try {
     const payload = {

@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { getAdminPhone, getContactEmail, getGmailSenderEmail, getReservationNotificationEmail, getResendSenderEmail, getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig, getImageVariantSettings } from '#modula/server/utils/settings'
+import { getAdminPhone, getContactEmail, getGmailSenderEmail, getReservationNotificationEmail, getResendSenderEmail, getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig, getImageVariantSettings, getOnlinePaymentsSettings } from '#modula/server/utils/settings'
 import { listGoogleCalendars } from '#modula/server/utils/gmail'
 import { getAllAdminEmailTemplateDefinitions } from '#modula/server/utils/adminEmailTemplates'
 
@@ -18,6 +18,11 @@ export default defineEventHandler(async (event) => {
     SETTING_KEYS.RESEND_FROM_EMAIL,
     SETTING_KEYS.MAIL_PRIMARY_PROVIDER,
     SETTING_KEYS.MAIL_SECONDARY_PROVIDER,
+    SETTING_KEYS.PAYMENTS_ENABLED,
+    SETTING_KEYS.PAYMENT_PROVIDER,
+    SETTING_KEYS.STRIPE_PUBLISHABLE_KEY,
+    SETTING_KEYS.STRIPE_SECRET_KEY,
+    SETTING_KEYS.STRIPE_WEBHOOK_SECRET,
     SETTING_KEYS.GOOGLE_CALENDAR_ID,
     SETTING_KEYS.GOOGLE_CALENDAR_NAME,
     SETTING_KEYS.IN_DEVELOPMENT,
@@ -39,7 +44,7 @@ export default defineEventHandler(async (event) => {
     SETTING_KEYS.FARM_PICKUP_TIME
   ]
   const s = await getSettings(allSettingKeys)
-  const [featureFlags, farmPickup, gmailSenderEmail, resendSenderEmail, reservationNotificationEmail, contactEmail, adminPhone, imageVariantSettings] = await Promise.all([
+  const [featureFlags, farmPickup, gmailSenderEmail, resendSenderEmail, reservationNotificationEmail, contactEmail, adminPhone, imageVariantSettings, onlinePayments] = await Promise.all([
     getFeatureFlags(),
     getFarmPickupConfig(),
     getGmailSenderEmail(),
@@ -47,7 +52,8 @@ export default defineEventHandler(async (event) => {
     getReservationNotificationEmail(),
     getContactEmail(),
     getAdminPhone(),
-    getImageVariantSettings()
+    getImageVariantSettings(),
+    getOnlinePaymentsSettings()
   ])
 
   let googleCalendars: Array<{ id: string; summary: string; primary: boolean; accessRole: string }> = []
@@ -75,7 +81,9 @@ export default defineEventHandler(async (event) => {
     inDevelopment: featureFlags.inDevelopment,
     registerEnabled: featureFlags.registerEnabled,
     subscriptionsEnabled: featureFlags.subscriptionsEnabled,
+    onlinePaymentsEnabled: featureFlags.onlinePaymentsEnabled,
     featureFlags,
+    onlinePayments,
     farmPickup,
     imagePersistVariants: imageVariantSettings.persistVariants,
     imagePersistVariantsSupported: imageVariantSettings.persistVariantsSupported,

@@ -1,7 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
-import { ensureUniqueSlug, serializeProductLot } from '#modula/server/utils/shop'
+import { computePaymentModeCapabilities, ensureUniqueSlug, serializeProductLot } from '#modula/server/utils/shop'
 
 interface Body {
   name?: string
@@ -44,11 +44,6 @@ export default defineEventHandler(async (event) => {
   if (body.kind !== undefined) data.kind = body.kind === 'SINGLE' ? 'SINGLE' : 'LOT'
   const effectiveAllowOfflinePayment = body.allowOfflinePayment !== undefined ? Boolean(body.allowOfflinePayment) : Boolean(existing.allowOfflinePayment)
   const effectiveAllowOnlinePayment = body.allowOnlinePayment !== undefined ? Boolean(body.allowOnlinePayment) : Boolean(existing.allowOnlinePayment)
-  if (!effectiveAllowOfflinePayment && !effectiveAllowOnlinePayment) {
-    throw createError({ statusCode: 400, statusMessage: 'Au moins un mode de paiement doit être activé' })
-  }
-  if (body.allowOfflinePayment !== undefined) data.allowOfflinePayment = effectiveAllowOfflinePayment
-  if (body.allowOnlinePayment !== undefined) data.allowOnlinePayment = effectiveAllowOnlinePayment
   if (body.active !== undefined) data.active = body.active
   if (body.position !== undefined) data.position = body.position
   if (body.price !== undefined) {
@@ -62,13 +57,48 @@ export default defineEventHandler(async (event) => {
     data.slug = await ensureUniqueSlug('productLot', body.slug?.trim() || body.name?.trim() || existing.slug, id)
   }
 
+  let normalizedAllowOfflinePayment = effectiveAllowOfflinePayment
+  let normalizedAllowOnlinePayment = effectiveAllowOnlinePayment
+
+  const incomingItems = body.items
+    ? body.items.filter((item) => Number(item.productId) > 0 && Number(item.quantity) > 0)
+    : null
+
+  const effectiveItems = incomingItems ?? await db.productLotItem.findMany({
+    where: { productLotId: id }
+  })
+
+  const productIds = Array.from(new Set(effectiveItems.map((item: any) => Number(item.productId)).filter(Boolean)))
+  const selectedProducts = productIds.length
+    ? await db.product.findMany({ where: { id: { in: productIds }, active: true } })
+    : []
+  if (selectedProducts.length !== productIds.length) {
+    throw createError({ statusCode: 400, statusMessage: 'Un ou plusieurs produits du lot sont introuvables ou inactifs' })
+  }
+
+  if (selectedProducts.length) {
+    const itemCapabilities = computePaymentModeCapabilities(selectedProducts.map((product: any) => ({
+      allowOfflinePayment: Boolean(product.allowOfflinePayment),
+      allowOnlinePayment: Boolean(product.allowOnlinePayment)
+    })))
+    normalizedAllowOfflinePayment = normalizedAllowOfflinePayment && itemCapabilities.allowOfflinePayment
+    normalizedAllowOnlinePayment = normalizedAllowOnlinePayment && itemCapabilities.allowOnlinePayment
+  }
+
+  if (!normalizedAllowOfflinePayment && !normalizedAllowOnlinePayment) {
+    throw createError({ statusCode: 400, statusMessage: 'La composition du lot ne permet aucun mode de paiement compatible' })
+  }
+
+  data.allowOfflinePayment = normalizedAllowOfflinePayment
+  data.allowOnlinePayment = normalizedAllowOnlinePayment
+
   await db.productLot.update({
     where: { id },
     data
   })
 
   if (body.items) {
-    const items = body.items.filter((item) => Number(item.productId) > 0 && Number(item.quantity) > 0)
+    const items = incomingItems ?? []
     await db.productLotItem.deleteMany({ where: { productLotId: id } })
     if (items.length) {
       await db.productLotItem.createMany({

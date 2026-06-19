@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { normalizeFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { normalizeFeatureFlags, saveOnlinePaymentsSettings, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { findAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
 
 interface Body {
@@ -16,10 +16,12 @@ interface Body {
   inDevelopment?: boolean
   registerEnabled?: boolean
   subscriptionsEnabled?: boolean
+  onlinePaymentsEnabled?: boolean
   featureFlags?: {
     inDevelopment?: boolean
     registerEnabled?: boolean
     subscriptionsEnabled?: boolean
+    onlinePaymentsEnabled?: boolean
     shop?: {
       enabled?: boolean
       basketsEnabled?: boolean
@@ -37,6 +39,12 @@ interface Body {
   ordersOpenTo?: string
   ordersClosedMessage?: string
   imagePersistVariants?: boolean
+  onlinePayments?: {
+    provider?: 'stripe' | 'none'
+    stripePublishableKey?: string
+    stripeSecretKey?: string
+    stripeWebhookSecret?: string
+  }
   templates?: Record<string, { fr?: { subject: string; body: string }; en?: { subject: string; body: string } }>
 }
 
@@ -47,6 +55,7 @@ export default defineEventHandler(async (event) => {
     inDevelopment: body.featureFlags?.inDevelopment ?? body.inDevelopment ?? false,
     registerEnabled: body.featureFlags?.registerEnabled ?? body.registerEnabled ?? false,
     subscriptionsEnabled: body.featureFlags?.subscriptionsEnabled ?? body.subscriptionsEnabled ?? false,
+    onlinePaymentsEnabled: body.featureFlags?.onlinePaymentsEnabled ?? body.onlinePaymentsEnabled ?? true,
     shop: {
       enabled: body.featureFlags?.shop?.enabled ?? false,
       basketsEnabled: body.featureFlags?.shop?.basketsEnabled ?? false,
@@ -98,6 +107,9 @@ export default defineEventHandler(async (event) => {
   if (typeof body.subscriptionsEnabled === 'boolean' || typeof body.featureFlags?.subscriptionsEnabled === 'boolean') {
     await setSetting(SETTING_KEYS.SUBSCRIPTIONS_ENABLED, featureFlags.subscriptionsEnabled ? 'true' : 'false')
   }
+  if (typeof body.onlinePaymentsEnabled === 'boolean' || typeof body.featureFlags?.onlinePaymentsEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.PAYMENTS_ENABLED, featureFlags.onlinePaymentsEnabled ? 'true' : 'false')
+  }
   if (typeof body.featureFlags?.shop?.enabled === 'boolean' || typeof body.featureFlags?.shop?.basketsEnabled === 'boolean' || typeof body.featureFlags?.shop?.vegetablesEnabled === 'boolean') {
     await setSetting(SETTING_KEYS.SHOP_ENABLED, featureFlags.shop.enabled ? 'true' : 'false')
     await setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, featureFlags.shop.basketsEnabled ? 'true' : 'false')
@@ -135,6 +147,14 @@ export default defineEventHandler(async (event) => {
   }
   if (typeof body.imagePersistVariants === 'boolean') {
     await setSetting(SETTING_KEYS.IMAGE_PERSIST_VARIANTS, body.imagePersistVariants ? 'true' : 'false')
+  }
+  if (body.onlinePayments) {
+    await saveOnlinePaymentsSettings({
+      provider: body.onlinePayments.provider === 'stripe' ? 'stripe' : 'none',
+      stripePublishableKey: body.onlinePayments.stripePublishableKey || '',
+      stripeSecretKey: body.onlinePayments.stripeSecretKey || '',
+      stripeWebhookSecret: body.onlinePayments.stripeWebhookSecret || ''
+    })
   }
   if (body.templates) {
     for (const [action, locales] of Object.entries(body.templates)) {

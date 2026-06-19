@@ -1,7 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
-import { ensureUniqueSlug, serializeProductLot } from '#modula/server/utils/shop'
+import { computePaymentModeCapabilities, ensureUniqueSlug, serializeProductLot } from '#modula/server/utils/shop'
 
 interface Body {
   name: string
@@ -44,6 +44,24 @@ export default defineEventHandler(async (event) => {
   const slug = await ensureUniqueSlug('productLot', body.slug?.trim() || body.name.trim())
   const categoryId = body.categoryId == null || Number(body.categoryId) <= 0 ? null : Number(body.categoryId)
   const items = (body.items || []).filter((item) => Number(item.productId) > 0 && Number(item.quantity) > 0)
+  const productIds = Array.from(new Set(items.map((item) => Number(item.productId))))
+  const selectedProducts = productIds.length
+    ? await db.product.findMany({ where: { id: { in: productIds }, active: true } })
+    : []
+  if (selectedProducts.length !== productIds.length) {
+    throw createError({ statusCode: 400, statusMessage: 'Un ou plusieurs produits du lot sont introuvables ou inactifs' })
+  }
+
+  const itemCapabilities = computePaymentModeCapabilities(selectedProducts.map((product: any) => ({
+    allowOfflinePayment: Boolean(product.allowOfflinePayment),
+    allowOnlinePayment: Boolean(product.allowOnlinePayment)
+  })))
+  const normalizedAllowOfflinePayment = allowOfflinePayment && itemCapabilities.allowOfflinePayment
+  const normalizedAllowOnlinePayment = allowOnlinePayment && itemCapabilities.allowOnlinePayment
+
+  if (!normalizedAllowOfflinePayment && !normalizedAllowOnlinePayment) {
+    throw createError({ statusCode: 400, statusMessage: 'La composition du lot ne permet aucun mode de paiement compatible' })
+  }
 
   const lot = await db.productLot.create({
     data: {
@@ -55,8 +73,8 @@ export default defineEventHandler(async (event) => {
       imageUrl: body.imageUrl || null,
       kind,
       price,
-      allowOfflinePayment,
-      allowOnlinePayment,
+      allowOfflinePayment: normalizedAllowOfflinePayment,
+      allowOnlinePayment: normalizedAllowOnlinePayment,
       active: body.active ?? true,
       position: body.position ?? 0
     }

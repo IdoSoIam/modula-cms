@@ -99,6 +99,7 @@
                 <option v-if="paymentCapabilities.allowOnline" value="stripe">{{ onlineLabel }}</option>
               </select>
               <input v-else class="input input-bordered" :value="resolvedPaymentLabel" disabled />
+              <p v-if="paymentConstraintNotice" class="text-sm opacity-70">{{ paymentConstraintNotice }}</p>
             </div>
             <div class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ messageLabel }}</span></label>
@@ -198,6 +199,20 @@ const resolvedPaymentLabel = computed(() =>
     ? onlineLabel.value
     : offlineLabel.value
 )
+
+const paymentConstraintNotice = computed(() => {
+  if (paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline) {
+    return locale.value === 'en'
+      ? 'At least one line in the cart is only available with online payment. The whole cart must be paid online.'
+      : 'Au moins une ligne du panier est uniquement payable en ligne. Le panier entier doit donc être payé en ligne.'
+  }
+  if (paymentCapabilities.value.allowOffline && !paymentCapabilities.value.allowOnline) {
+    return locale.value === 'en'
+      ? 'At least one line in the cart does not support online payment. The whole cart must therefore be paid on site.'
+      : 'Au moins une ligne du panier ne prend pas en charge le paiement en ligne. Le panier entier doit donc être réglé sur place.'
+  }
+  return ''
+})
 
 const canSubmit = computed(() =>
   items.value.length > 0

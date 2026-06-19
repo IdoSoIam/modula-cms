@@ -43,6 +43,11 @@ export const SETTING_KEYS = {
   RESEND_FROM_EMAIL: 'resend_from_email',
   MAIL_PRIMARY_PROVIDER: 'mail_primary_provider',
   MAIL_SECONDARY_PROVIDER: 'mail_secondary_provider',
+  PAYMENTS_ENABLED: 'payments_enabled',
+  PAYMENT_PROVIDER: 'payment_provider',
+  STRIPE_PUBLISHABLE_KEY: 'stripe_publishable_key',
+  STRIPE_SECRET_KEY: 'stripe_secret_key',
+  STRIPE_WEBHOOK_SECRET: 'stripe_webhook_secret',
   GOOGLE_CALENDAR_ID: 'google_calendar_id',
   GOOGLE_CALENDAR_NAME: 'google_calendar_name',
   PAGE_BUILDER_CONTENT: 'home_page_content_v1',
@@ -130,6 +135,7 @@ export interface FeatureFlags {
   inDevelopment: boolean
   registerEnabled: boolean
   subscriptionsEnabled: boolean
+  onlinePaymentsEnabled: boolean
   shop: {
     enabled: boolean
     basketsEnabled: boolean
@@ -153,6 +159,7 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   inDevelopment: false,
   registerEnabled: false,
   subscriptionsEnabled: false,
+  onlinePaymentsEnabled: true,
   shop: {
     enabled: cmsProjectConfig.modules.shop,
     basketsEnabled: cmsProjectConfig.modules.shop && cmsProjectConfig.modules.shopBaskets,
@@ -294,6 +301,7 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     SETTING_KEYS.IN_DEVELOPMENT,
     SETTING_KEYS.REGISTER_ENABLED,
     SETTING_KEYS.SUBSCRIPTIONS_ENABLED,
+    SETTING_KEYS.PAYMENTS_ENABLED,
     SETTING_KEYS.SHOP_ENABLED,
     SETTING_KEYS.SHOP_BASKETS_ENABLED,
     SETTING_KEYS.SHOP_VEGETABLES_ENABLED,
@@ -310,6 +318,7 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     inDevelopment: parseBooleanSetting(settings[SETTING_KEYS.IN_DEVELOPMENT], DEFAULT_FEATURE_FLAGS.inDevelopment),
     registerEnabled: parseBooleanSetting(settings[SETTING_KEYS.REGISTER_ENABLED], DEFAULT_FEATURE_FLAGS.registerEnabled),
     subscriptionsEnabled: parseBooleanSetting(settings[SETTING_KEYS.SUBSCRIPTIONS_ENABLED], DEFAULT_FEATURE_FLAGS.subscriptionsEnabled),
+    onlinePaymentsEnabled: parseBooleanSetting(settings[SETTING_KEYS.PAYMENTS_ENABLED], DEFAULT_FEATURE_FLAGS.onlinePaymentsEnabled),
     shop: {
       enabled: shopEnabled,
       basketsEnabled: shopEnabled && basketsEnabled,
@@ -338,6 +347,38 @@ export async function isRegisterEnabled() {
 
 export async function isSubscriptionsEnabled() {
   return (await getFeatureFlags()).subscriptionsEnabled
+}
+
+export type PaymentProvider = 'stripe' | 'none'
+
+export interface OnlinePaymentsSettings {
+  provider: PaymentProvider
+  stripePublishableKey: string
+  stripeSecretKey: string
+  stripeWebhookSecret: string
+}
+
+export async function getOnlinePaymentsSettings(): Promise<OnlinePaymentsSettings> {
+  const settings = await getSettings([
+    SETTING_KEYS.PAYMENT_PROVIDER,
+    SETTING_KEYS.STRIPE_PUBLISHABLE_KEY,
+    SETTING_KEYS.STRIPE_SECRET_KEY,
+    SETTING_KEYS.STRIPE_WEBHOOK_SECRET
+  ])
+
+  return {
+    provider: settings[SETTING_KEYS.PAYMENT_PROVIDER] === 'stripe' ? 'stripe' : 'none',
+    stripePublishableKey: settings[SETTING_KEYS.STRIPE_PUBLISHABLE_KEY]?.trim() || '',
+    stripeSecretKey: settings[SETTING_KEYS.STRIPE_SECRET_KEY]?.trim() || '',
+    stripeWebhookSecret: settings[SETTING_KEYS.STRIPE_WEBHOOK_SECRET]?.trim() || ''
+  }
+}
+
+export async function saveOnlinePaymentsSettings(settings: OnlinePaymentsSettings) {
+  await setSetting(SETTING_KEYS.PAYMENT_PROVIDER, settings.provider === 'stripe' ? 'stripe' : 'none')
+  await setSetting(SETTING_KEYS.STRIPE_PUBLISHABLE_KEY, settings.stripePublishableKey.trim())
+  await setSetting(SETTING_KEYS.STRIPE_SECRET_KEY, settings.stripeSecretKey.trim())
+  await setSetting(SETTING_KEYS.STRIPE_WEBHOOK_SECRET, settings.stripeWebhookSecret.trim())
 }
 
 export interface EmailVisualTemplateConfig {

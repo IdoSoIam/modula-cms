@@ -53,6 +53,11 @@ export interface ProductLotPayload {
   }>
 }
 
+export interface PaymentModeCapabilities {
+  allowOfflinePayment: boolean
+  allowOnlinePayment: boolean
+}
+
 export interface ShopOrderPayload {
   id: number
   orderNumber: string
@@ -91,6 +96,22 @@ function toNumber(value: unknown) {
 
 function toBoolean(value: unknown) {
   return value === true || value === 1 || value === '1'
+}
+
+export function computePaymentModeCapabilities(
+  sources: PaymentModeCapabilities[]
+): PaymentModeCapabilities {
+  if (!sources.length) {
+    return {
+      allowOfflinePayment: true,
+      allowOnlinePayment: true
+    }
+  }
+
+  return {
+    allowOfflinePayment: sources.every((source) => Boolean(source.allowOfflinePayment)),
+    allowOnlinePayment: sources.every((source) => Boolean(source.allowOnlinePayment))
+  }
 }
 
 function computeProductLotStock(row: any) {
@@ -147,6 +168,26 @@ export function serializeProductCategory(row: any): ProductCategoryPayload {
 }
 
 export function serializeProductLot(row: any): ProductLotPayload {
+  const itemPaymentCapabilities = computePaymentModeCapabilities(
+    Array.isArray(row.items)
+      ? row.items
+          .map((item: any) => item?.product
+            ? {
+                allowOfflinePayment: toBoolean(item.product.allowOfflinePayment),
+                allowOnlinePayment: toBoolean(item.product.allowOnlinePayment)
+              }
+            : null)
+          .filter(Boolean)
+      : []
+  )
+  const hasResolvedItems = Array.isArray(row.items) && row.items.some((item: any) => item?.product)
+  const allowOfflinePayment = hasResolvedItems
+    ? toBoolean(row.allowOfflinePayment) && itemPaymentCapabilities.allowOfflinePayment
+    : toBoolean(row.allowOfflinePayment)
+  const allowOnlinePayment = hasResolvedItems
+    ? toBoolean(row.allowOnlinePayment) && itemPaymentCapabilities.allowOnlinePayment
+    : toBoolean(row.allowOnlinePayment)
+
   return {
     id: Number(row.id),
     name: String(row.name),
@@ -159,8 +200,8 @@ export function serializeProductLot(row: any): ProductLotPayload {
     kind: row.kind === 'SINGLE' ? 'SINGLE' : 'LOT',
     price: toNumber(row.price),
     stock: computeProductLotStock(row),
-    allowOfflinePayment: toBoolean(row.allowOfflinePayment),
-    allowOnlinePayment: toBoolean(row.allowOnlinePayment),
+    allowOfflinePayment,
+    allowOnlinePayment,
     active: toBoolean(row.active),
     position: Number(row.position || 0),
     items: Array.isArray(row.items)
