@@ -116,6 +116,14 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
           { requiredModule: 'shop_orders', requiredAction: 'read' }
         ),
         createAdminNavigationItem(
+          'shop-product-categories',
+          'admin.navigation.items.productCategories',
+          getAdminRoutePath('shopProductCategories'),
+          'mdi:shape-outline',
+          getAdminRoutePaths('shopProductCategories'),
+          { requiredModule: 'shop_orders', requiredAction: 'read' }
+        ),
+        createAdminNavigationItem(
           'shop-baskets',
           'admin.navigation.items.baskets',
           getAdminRoutePath('shopBaskets'),
@@ -323,7 +331,7 @@ export function getAdminNavigationSections(options: AdminNavigationOptions = {})
         if (item.id === 'content-events' || item.id === 'content-planning' || item.id === 'customization-events' || item.id === 'customization-planning' || item.id === 'management-event-reservations') return eventsEnabled
         if (item.id === 'shop-baskets' || item.id === 'customization-baskets') return shopBasketsEnabled
         if (item.id === 'shop-vegetables') return shopVegetablesEnabled
-        if (item.id === 'shop-orders' || item.id === 'shop-delivery') return shopEnabled
+        if (item.id === 'shop-product-categories' || item.id === 'shop-orders' || item.id === 'shop-delivery') return shopEnabled
         if (item.id === 'management-member-roles') return associationRolesEnabled
         return true
       })

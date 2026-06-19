@@ -4,9 +4,13 @@
       v-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'news' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
       v-bind="newsPageProps"
     />
-    <BasketsPage
+    <ProductLotsPage
       v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'baskets' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
       v-bind="basketsPageProps"
+    />
+    <ShopPage
+      v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'shop' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
+      v-bind="shopPageProps"
     />
     <EventsPage
       v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'events' && resolvedPage.applicationPosition === 'BEFORE_CONTENT'"
@@ -29,9 +33,13 @@
       v-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'news' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
       v-bind="newsPageProps"
     />
-    <BasketsPage
+    <ProductLotsPage
       v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'baskets' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
       v-bind="basketsPageProps"
+    />
+    <ShopPage
+      v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'shop' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
+      v-bind="shopPageProps"
     />
     <EventsPage
       v-else-if="showApplication && isRendererEnabled(resolvedPage.rendererKey) && resolvedPage.rendererKey === 'events' && resolvedPage.applicationPosition === 'AFTER_CONTENT'"
@@ -49,10 +57,11 @@
 import type { ResolvedCmsPage } from '#modula/shared/cms'
 import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
 import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
-import BasketsPage from '#modula/components/pages/BasketsPage.vue'
 import EventsPage from '#modula/components/pages/EventsPage.vue'
 import NewsListPage from '#modula/components/pages/NewsListPage.vue'
 import PlanningPage from '#modula/components/pages/PlanningPage.vue'
+import ProductLotsPage from '#modula/components/pages/ProductLotsPage.vue'
+import ShopPage from '#modula/components/pages/ShopPage.vue'
 
 const props = defineProps<{
   resolvedPage: ResolvedCmsPage
@@ -81,6 +90,10 @@ const basketsPageProps = computed(() => ({
   settings: cmsSettings.value?.basketsPage ?? null
 }))
 
+const shopPageProps = computed(() => ({
+  settings: cmsSettings.value?.basketsPage ?? null
+}))
+
 const newsPageProps = computed(() => ({
   settings: cmsSettings.value?.newsPage ?? null,
   showArticles: true
@@ -102,6 +115,6 @@ const showContent = computed(() =>
 
 const showApplication = computed(() =>
   (props.resolvedPage.pageType === 'APPLICATION' || props.resolvedPage.pageType === 'HYBRID')
-  && (props.resolvedPage.rendererKey === 'news' || props.resolvedPage.rendererKey === 'baskets' || props.resolvedPage.rendererKey === 'events' || props.resolvedPage.rendererKey === 'planning')
+  && (props.resolvedPage.rendererKey === 'news' || props.resolvedPage.rendererKey === 'baskets' || props.resolvedPage.rendererKey === 'shop' || props.resolvedPage.rendererKey === 'events' || props.resolvedPage.rendererKey === 'planning')
 )
 </script>

@@ -15,6 +15,10 @@ import type {
   ImageVariantRecord,
   MemberRoleRecord,
   PasswordSetupTokenRecord,
+  ProductLotItemRecord,
+  ProductLotRecord,
+  ProductCategoryRecord,
+  ProductRecord,
   PickupPointRecord,
   ReservationNotificationRecord,
   ReservationOccurrenceRecord,
@@ -22,6 +26,8 @@ import type {
   ReservationScheduleProposalRecord,
   RolePermissionRecord,
   RoleRecord,
+  ShopOrderLineRecord,
+  ShopOrderRecord,
   SiteParamsRecord,
   TourCityRecord,
   UserMemberRoleRecord,
@@ -46,6 +52,12 @@ export type ReservationNotification = ReservationNotificationRecord
 export type PickupPoint = PickupPointRecord
 export type DeliveryTour = DeliveryTourRecord
 export type TourCity = TourCityRecord
+export type Product = ProductRecord
+export type ProductCategory = ProductCategoryRecord
+export type ProductLot = ProductLotRecord
+export type ProductLotItem = ProductLotItemRecord
+export type ShopOrder = ShopOrderRecord
+export type ShopOrderLine = ShopOrderLineRecord
 export type Article = ArticleRecord
 export type Image = ImageRecord
 export type ImageVariant = ImageVariantRecord
@@ -70,6 +82,10 @@ export namespace DbTypes {
   export type UserInclude = any
   export type RoleInclude = any
   export type BasketInclude = any
+  export type ProductInclude = any
+  export type ProductCategoryInclude = any
+  export type ProductLotInclude = any
+  export type ShopOrderInclude = any
   export type DeliveryTourInclude = any
   export type CmsPageInclude = any
   export type CmsNavigationItemInclude = any

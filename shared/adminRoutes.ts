@@ -24,12 +24,16 @@ export const ADMIN_I18N_PATHS = {
     en: '/admin/content/planning'
   },
   shopVegetables: {
-    fr: '/admin/boutique/legumes',
-    en: '/admin/shop/vegetables'
+    fr: '/admin/boutique/produits',
+    en: '/admin/shop/products'
+  },
+  shopProductCategories: {
+    fr: '/admin/boutique/categories-produits',
+    en: '/admin/shop/product-categories'
   },
   shopBaskets: {
-    fr: '/admin/boutique/paniers',
-    en: '/admin/shop/baskets'
+    fr: '/admin/boutique/lots-produits',
+    en: '/admin/shop/product-lots'
   },
   shopOrders: {
     fr: '/admin/boutique/commandes',

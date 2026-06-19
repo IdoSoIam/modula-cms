@@ -37,6 +37,12 @@ const MODEL_NAMES = [
   'PickupPoint',
   'DeliveryTour',
   'TourCity',
+  'Product',
+  'ProductCategory',
+  'ProductLot',
+  'ProductLotItem',
+  'ShopOrder',
+  'ShopOrderLine',
   'Article',
   'Image',
   'ImageVariant',
@@ -56,7 +62,8 @@ const COMPOSITE_UNIQUE_FIELDS: Record<string, string[]> = {
   roleId_module: ['roleId', 'module'],
   userId_memberRoleId: ['userId', 'memberRoleId'],
   eventId_userId: ['eventId', 'userId'],
-  eventId_occurrenceDate: ['eventId', 'occurrenceDate']
+  eventId_occurrenceDate: ['eventId', 'occurrenceDate'],
+  productLotId_productId: ['productLotId', 'productId']
 }
 
 const MANUAL_RELATIONS: Record<ModelName, Record<string, { type: 'hasMany'; target: ModelName; foreignKey: string }>> = {
@@ -89,6 +96,16 @@ const MANUAL_RELATIONS: Record<ModelName, Record<string, { type: 'hasMany'; targ
     cities: { type: 'hasMany', target: 'TourCity', foreignKey: 'tourId' }
   },
   TourCity: {},
+  Product: {},
+  ProductCategory: {},
+  ProductLot: {
+    items: { type: 'hasMany', target: 'ProductLotItem', foreignKey: 'productLotId' }
+  },
+  ProductLotItem: {},
+  ShopOrder: {
+    lines: { type: 'hasMany', target: 'ShopOrderLine', foreignKey: 'orderId' }
+  },
+  ShopOrderLine: {},
   Article: {},
   Image: {
     variants: { type: 'hasMany', target: 'ImageVariant', foreignKey: 'imageId' },

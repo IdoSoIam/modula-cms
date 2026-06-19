@@ -5,6 +5,11 @@ const reservationStatuses = ['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED']
 const reservationOccurrenceStatuses = ['SCHEDULED', 'CANCELLED']
 const deliveryTypes = ['FARM', 'PICKUP', 'TOUR']
 const reservationScheduleProposalSources = ['CUSTOMER', 'ADMIN']
+const productLotKinds = ['SINGLE', 'LOT']
+const productSaleTypes = ['SALE', 'RENTAL']
+const shopOrderStatuses = ['DRAFT', 'PENDING', 'PAID', 'CANCELLED']
+const shopPaymentProviders = ['OFFLINE', 'STRIPE']
+const shopPaymentStatuses = ['UNPAID', 'PENDING', 'PAID', 'FAILED', 'REFUNDED']
 const eventStatuses = ['DRAFT', 'PUBLISHED', 'ARCHIVED', 'CANCELLED']
 const eventVisibilities = ['PUBLIC', 'PRIVATE']
 const eventApprovalModes = ['AUTO', 'MANUAL']
@@ -389,6 +394,163 @@ export const cmsDataSchema = defineSchema({
       },
       indexes: [
         index(['tourId'], 'TourCity_tourId_idx')
+      ]
+    }),
+    Product: defineModel({
+      tableName: 'Product',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        name: field.string(),
+        slug: field.string({ unique: true }),
+        saleType: field.enum(productSaleTypes, { default: 'SALE' }),
+        categoryId: field.int({ nullable: true }),
+        excerpt: field.string({ nullable: true }),
+        description: field.string({ nullable: true }),
+        imageUrl: field.string({ nullable: true }),
+        price: field.decimal({ default: 0 }),
+        stock: field.int({ default: 0 }),
+        unitLabel: field.string({ nullable: true }),
+        allowOfflinePayment: field.boolean({ default: true }),
+        allowOnlinePayment: field.boolean({ default: false }),
+        active: field.boolean({ default: true }),
+        position: field.int({ default: 0 }),
+        createdAt: field.datetime({ default: 'now' }),
+        updatedAt: field.datetime()
+      },
+      relations: {
+        category: relation.belongsTo('ProductCategory', 'categoryId', 'id', { onDelete: 'setNull' })
+      },
+      indexes: [
+        unique(['slug'], 'Product_slug_key'),
+        index(['categoryId'], 'Product_categoryId_idx'),
+        index(['saleType'], 'Product_saleType_idx'),
+        index(['active', 'position'], 'Product_active_position_idx')
+      ]
+    }),
+    ProductCategory: defineModel({
+      tableName: 'ProductCategory',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        name: field.string(),
+        slug: field.string({ unique: true }),
+        description: field.string({ nullable: true }),
+        position: field.int({ default: 0 }),
+        active: field.boolean({ default: true }),
+        createdAt: field.datetime({ default: 'now' }),
+        updatedAt: field.datetime()
+      },
+      indexes: [
+        unique(['slug'], 'ProductCategory_slug_key'),
+        index(['active', 'position'], 'ProductCategory_active_position_idx')
+      ]
+    }),
+    ProductLot: defineModel({
+      tableName: 'ProductLot',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        name: field.string(),
+        slug: field.string({ unique: true }),
+        saleType: field.enum(productSaleTypes, { default: 'SALE' }),
+        categoryId: field.int({ nullable: true }),
+        description: field.string({ nullable: true }),
+        imageUrl: field.string({ nullable: true }),
+        kind: field.enum(productLotKinds, { default: 'LOT' }),
+        price: field.decimal({ default: 0 }),
+        stock: field.int({ default: 0 }),
+        allowOfflinePayment: field.boolean({ default: true }),
+        allowOnlinePayment: field.boolean({ default: false }),
+        active: field.boolean({ default: true }),
+        position: field.int({ default: 0 }),
+        createdAt: field.datetime({ default: 'now' }),
+        updatedAt: field.datetime()
+      },
+      relations: {
+        category: relation.belongsTo('ProductCategory', 'categoryId', 'id', { onDelete: 'setNull' })
+      },
+      indexes: [
+        unique(['slug'], 'ProductLot_slug_key'),
+        index(['categoryId'], 'ProductLot_categoryId_idx'),
+        index(['saleType'], 'ProductLot_saleType_idx'),
+        index(['active', 'position'], 'ProductLot_active_position_idx')
+      ]
+    }),
+    ProductLotItem: defineModel({
+      tableName: 'ProductLotItem',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        productLotId: field.int(),
+        productId: field.int(),
+        quantity: field.decimal()
+      },
+      relations: {
+        productLot: relation.belongsTo('ProductLot', 'productLotId', 'id', { onDelete: 'cascade' }),
+        product: relation.belongsTo('Product', 'productId', 'id', { onDelete: 'restrict' })
+      },
+      indexes: [
+        unique(['productLotId', 'productId'], 'ProductLotItem_productLotId_productId_key'),
+        index(['productLotId'], 'ProductLotItem_productLotId_idx'),
+        index(['productId'], 'ProductLotItem_productId_idx')
+      ]
+    }),
+    ShopOrder: defineModel({
+      tableName: 'ShopOrder',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        orderNumber: field.string({ unique: true }),
+        status: field.enum(shopOrderStatuses, { default: 'PENDING' }),
+        paymentProvider: field.enum(shopPaymentProviders, { default: 'OFFLINE' }),
+        paymentStatus: field.enum(shopPaymentStatuses, { default: 'UNPAID' }),
+        stripeCheckoutSessionId: field.string({ nullable: true, unique: true }),
+        customerName: field.string(),
+        email: field.string(),
+        phone: field.string({ nullable: true }),
+        message: field.string({ nullable: true }),
+        currency: field.string({ default: 'eur' }),
+        subtotal: field.decimal({ default: 0 }),
+        total: field.decimal({ default: 0 }),
+        checkoutUrl: field.string({ nullable: true }),
+        paidAt: field.datetime({ nullable: true }),
+        cancelledAt: field.datetime({ nullable: true }),
+        createdAt: field.datetime({ default: 'now' }),
+        updatedAt: field.datetime()
+      },
+      indexes: [
+        unique(['orderNumber'], 'ShopOrder_orderNumber_key'),
+        unique(['stripeCheckoutSessionId'], 'ShopOrder_stripeCheckoutSessionId_key'),
+        index(['status', 'createdAt'], 'ShopOrder_status_createdAt_idx'),
+        index(['paymentStatus', 'createdAt'], 'ShopOrder_paymentStatus_createdAt_idx')
+      ]
+    }),
+    ShopOrderLine: defineModel({
+      tableName: 'ShopOrderLine',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        orderId: field.int(),
+        productLotId: field.int({ nullable: true }),
+        productId: field.int({ nullable: true }),
+        title: field.string(),
+        quantity: field.int({ default: 1 }),
+        unitPrice: field.decimal({ default: 0 }),
+        totalPrice: field.decimal({ default: 0 }),
+        metaJson: field.string({ default: '{}' }),
+        createdAt: field.datetime({ default: 'now' }),
+        updatedAt: field.datetime()
+      },
+      relations: {
+        order: relation.belongsTo('ShopOrder', 'orderId', 'id', { onDelete: 'cascade' }),
+        productLot: relation.belongsTo('ProductLot', 'productLotId', 'id', { onDelete: 'setNull' }),
+        product: relation.belongsTo('Product', 'productId', 'id', { onDelete: 'setNull' })
+      },
+      indexes: [
+        index(['orderId'], 'ShopOrderLine_orderId_idx'),
+        index(['productLotId'], 'ShopOrderLine_productLotId_idx'),
+        index(['productId'], 'ShopOrderLine_productId_idx')
       ]
     }),
     Article: defineModel({

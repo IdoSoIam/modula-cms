@@ -69,13 +69,13 @@
         <h2 class="text-xl font-semibold">{{ t('admin.customizationBasketsPage.previewTitle') }}</h2>
         <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationBasketsPage.previewDescription') }}</p>
       </div>
-      <BasketsPage :preview="true" :settings="model.settings.basketsPage" />
+      <ProductLotsPage :preview="true" :settings="model.settings.basketsPage" />
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import BasketsPage from '#modula/components/pages/BasketsPage.vue'
+import ProductLotsPage from '#modula/components/pages/ProductLotsPage.vue'
 import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
 import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
