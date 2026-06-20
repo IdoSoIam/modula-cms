@@ -2,6 +2,7 @@ import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
 import { computePaymentModeCapabilities, ensureUniqueSlug, serializeProductLot } from '#modula/server/utils/shop'
+import { normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate } from '#modula/server/utils/settings'
 
 interface Body {
   name?: string
@@ -12,6 +13,9 @@ interface Body {
   imageUrl?: string | null
   kind?: 'SINGLE' | 'LOT'
   price?: number
+  vatRate?: number
+  stripeTaxCode?: string | null
+  stripeTaxBehavior?: 'inclusive' | 'exclusive' | null
   allowOfflinePayment?: boolean
   allowOnlinePayment?: boolean
   active?: boolean
@@ -52,6 +56,21 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Prix invalide' })
     }
     data.price = price
+  }
+  if (body.vatRate !== undefined) {
+    const vatRate = Number(body.vatRate)
+    if (!Number.isFinite(vatRate) || vatRate < 0 || vatRate > 100) {
+      throw createError({ statusCode: 400, statusMessage: 'Taux de TVA invalide' })
+    }
+    data.vatRate = normalizeVatRate(vatRate, Number(existing.vatRate || 20))
+  }
+  if (body.stripeTaxCode !== undefined) {
+    data.stripeTaxCode = normalizeStripeTaxCode(body.stripeTaxCode) || null
+  }
+  if (body.stripeTaxBehavior !== undefined) {
+    data.stripeTaxBehavior = body.stripeTaxBehavior == null
+      ? null
+      : normalizeStripeTaxBehavior(body.stripeTaxBehavior, existing.stripeTaxBehavior === 'exclusive' ? 'exclusive' : 'inclusive')
   }
   if (body.slug !== undefined || body.name !== undefined) {
     data.slug = await ensureUniqueSlug('productLot', body.slug?.trim() || body.name?.trim() || existing.slug, id)

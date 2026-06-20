@@ -11,6 +11,8 @@ export interface PaymentCheckoutLineItem {
   currency?: string;
   description?: string;
   imageUrl?: string;
+  taxBehavior?: 'inclusive' | 'exclusive';
+  taxCode?: string;
 }
 
 export interface PaymentCheckoutOptions {
@@ -19,6 +21,7 @@ export interface PaymentCheckoutOptions {
   customerEmail?: string;
   metadata?: Record<string, string>;
   lineItems: PaymentCheckoutLineItem[];
+  automaticTaxEnabled?: boolean;
 }
 
 export interface PaymentCheckoutSession {
@@ -102,15 +105,18 @@ export async function createStripeCheckoutSession(
     cancel_url: options.cancelUrl,
     customer_email: options.customerEmail,
     metadata: options.metadata,
+    automatic_tax: options.automaticTaxEnabled ? { enabled: true } : undefined,
     line_items: options.lineItems.map((item) => ({
       quantity: Math.max(1, item.quantity || 1),
       price_data: {
         currency: item.currency || "eur",
         unit_amount: Math.max(0, Math.round(item.amount)),
+        tax_behavior: item.taxBehavior,
         product_data: {
           name: item.name,
           description: item.description,
           images: item.imageUrl ? [item.imageUrl] : undefined,
+          tax_code: item.taxCode || undefined,
         },
       },
     })),

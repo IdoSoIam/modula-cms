@@ -1,8 +1,14 @@
 import { db } from "#modula/server/data/client";
+import { AuthService } from "#modula/server/services/auth/authService";
 import {
   createStripeCheckoutSession,
   isStripeConfigured,
 } from "#modula/server/services/payment/paymentService";
+import { getReservationFulfillment } from "#modula/server/utils/orderFulfillment";
+import {
+  getFarmPickupConfig,
+  getOnlinePaymentsSettings,
+} from "#modula/server/utils/settings";
 import {
   createOrderNumber,
   serializeProduct,
@@ -23,17 +29,30 @@ interface OrderBody {
   phone?: string | null;
   message?: string | null;
   paymentMode?: "offline" | "stripe";
+  deliveryType?: "FARM" | "PICKUP" | "TOUR";
+  pickupPointId?: number | null;
+  deliveryTourId?: number | null;
+  deliveryAddress?: string | null;
+  deliveryCity?: string | null;
+  deliveryPostalCode?: string | null;
   lines?: OrderLineInput[];
 }
 
+const authService = new AuthService();
+
 export default defineEventHandler(async (event) => {
   const body = await readBody<OrderBody>(event);
+  const sessionUser = await authService.getUserFromSession(event);
 
   if (!body.customerName?.trim() || !body.email?.trim()) {
     throw createError({
       statusCode: 400,
       statusMessage: "Informations client incomplètes",
     });
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())) {
+    throw createError({ statusCode: 400, statusMessage: "Email invalide" });
   }
 
   const lines = Array.isArray(body.lines) ? body.lines : [];
@@ -74,10 +93,12 @@ export default defineEventHandler(async (event) => {
     number,
     ReturnType<typeof serializeProduct>
   >();
+
   for (const row of directProducts) {
     const serialized = serializeProduct(row);
     productMapSource.set(serialized.id, serialized);
   }
+
   for (const lotRow of productLots) {
     for (const item of lotRow.items || []) {
       if (item?.product) {
@@ -94,6 +115,7 @@ export default defineEventHandler(async (event) => {
 
   const normalizedLines = lines.map((line) => {
     const quantity = Math.max(1, Math.round(Number(line.quantity || 1)));
+
     if (line.kind === "product") {
       const product = productById.get(Number(line.productId));
       if (!product) {
@@ -102,6 +124,7 @@ export default defineEventHandler(async (event) => {
           statusMessage: "Produit introuvable dans le panier",
         });
       }
+
       return {
         kind: "product" as const,
         quantity,
@@ -110,6 +133,7 @@ export default defineEventHandler(async (event) => {
         productLotId: null,
         unitPrice: product.price,
         totalPrice: product.price * quantity,
+        vatRate: product.vatRate,
         stock: product.stock,
         allowOfflinePayment: product.allowOfflinePayment,
         allowOnlinePayment: product.allowOnlinePayment,
@@ -118,6 +142,9 @@ export default defineEventHandler(async (event) => {
         metaJson: JSON.stringify({
           slug: product.slug,
           unitLabel: product.unitLabel,
+          vatRate: product.vatRate,
+          stripeTaxCode: product.stripeTaxCode,
+          stripeTaxBehavior: product.stripeTaxBehavior,
         }),
       };
     }
@@ -129,6 +156,7 @@ export default defineEventHandler(async (event) => {
         statusMessage: "Lot introuvable dans le panier",
       });
     }
+
     if (productLot.stock >= 0 && productLot.stock < quantity) {
       throw createError({
         statusCode: 400,
@@ -144,6 +172,7 @@ export default defineEventHandler(async (event) => {
       productLotId: productLot.id,
       unitPrice: productLot.price,
       totalPrice: productLot.price * quantity,
+      vatRate: productLot.vatRate,
       stock: productLot.stock,
       allowOfflinePayment: productLot.allowOfflinePayment,
       allowOnlinePayment: productLot.allowOnlinePayment,
@@ -152,6 +181,9 @@ export default defineEventHandler(async (event) => {
       metaJson: JSON.stringify({
         slug: productLot.slug,
         kind: productLot.kind,
+        vatRate: productLot.vatRate,
+        stripeTaxCode: productLot.stripeTaxCode,
+        stripeTaxBehavior: productLot.stripeTaxBehavior,
         items: productLot.items.map((item) => ({
           productId: item.productId,
           productName: item.product?.name || "",
@@ -192,8 +224,7 @@ export default defineEventHandler(async (event) => {
   if (paymentMode === "offline" && !allowOffline) {
     throw createError({
       statusCode: 400,
-      statusMessage:
-        "Le paiement sur place n’est pas disponible pour ce panier",
+      statusMessage: "Le paiement sur place n’est pas disponible pour ce panier",
     });
   }
 
@@ -241,17 +272,170 @@ export default defineEventHandler(async (event) => {
     0,
   );
   const useStripe = paymentMode === "stripe" && allowOnline;
+  const farmPickup = await getFarmPickupConfig();
+
+  let deliveryType: "FARM" | "PICKUP" | "TOUR" | null = null;
+  let pickupPointId: number | null = null;
+  let deliveryTourId: number | null = null;
+  let pickupPoint: {
+    id: number;
+    name: string;
+    address: string | null;
+    deliveryDay: number | null;
+    pickupStartTime: string | null;
+  } | null = null;
+  let deliveryTour: {
+    id: number;
+    name: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+  } | null = null;
+
+  if (body.deliveryType === "FARM") {
+    deliveryType = "FARM";
+  } else if (body.deliveryType === "PICKUP") {
+    if (!body.pickupPointId) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Point relais requis",
+      });
+    }
+
+    const row = await db.pickupPoint.findUnique({
+      where: { id: Number(body.pickupPointId) },
+      select: {
+        id: true,
+        active: true,
+        name: true,
+        address: true,
+        deliveryDay: true,
+        pickupStartTime: true,
+      },
+    });
+
+    if (!row || !row.active) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Point relais invalide",
+      });
+    }
+
+    deliveryType = "PICKUP";
+    pickupPointId = Number(row.id);
+    pickupPoint = {
+      id: Number(row.id),
+      name: String(row.name),
+      address: row.address ?? null,
+      deliveryDay: row.deliveryDay == null ? null : Number(row.deliveryDay),
+      pickupStartTime: row.pickupStartTime ?? null,
+    };
+  } else if (body.deliveryType === "TOUR") {
+    if (!body.deliveryTourId) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Livraison requise",
+      });
+    }
+    if (!body.deliveryCity?.trim()) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Ville requise pour la livraison",
+      });
+    }
+    if (!body.deliveryAddress?.trim()) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Adresse requise pour la livraison",
+      });
+    }
+
+    const row = await db.deliveryTour.findUnique({
+      where: { id: Number(body.deliveryTourId) },
+      select: {
+        id: true,
+        active: true,
+        name: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+        cities: {
+          select: {
+            city: true,
+          },
+        },
+      },
+    });
+
+    if (!row || !row.active) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Tournée invalide",
+      });
+    }
+
+    const cityLower = body.deliveryCity.trim().toLowerCase();
+    const cityAllowed = row.cities.some(
+      (entry: any) => String(entry.city).trim().toLowerCase() === cityLower,
+    );
+
+    if (!cityAllowed) {
+      throw createError({
+        statusCode: 400,
+        statusMessage:
+          "Cette ville n'est pas desservie par la tournée sélectionnée",
+      });
+    }
+
+    deliveryType = "TOUR";
+    deliveryTourId = Number(row.id);
+    deliveryTour = {
+      id: Number(row.id),
+      name: String(row.name),
+      dayOfWeek: Number(row.dayOfWeek),
+      startTime: String(row.startTime),
+      endTime: String(row.endTime),
+    };
+  } else {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "Mode de livraison requis",
+    });
+  }
+
+  const deliveryAddress = body.deliveryAddress?.trim() || null;
+  const deliveryCity = body.deliveryCity?.trim() || null;
+  const deliveryPostalCode = body.deliveryPostalCode?.trim() || null;
+  const fulfillment = getReservationFulfillment({
+    deliveryType,
+    pickupPoint,
+    deliveryTour,
+    farmPickup,
+    deliveryAddress,
+    deliveryCity,
+    deliveryPostalCode,
+  });
 
   const order = await db.shopOrder.create({
     data: {
       orderNumber: `TMP-${Date.now()}`,
+      userId: sessionUser?.id ?? null,
       status: "PENDING",
       paymentProvider: useStripe ? "STRIPE" : "OFFLINE",
       paymentStatus: useStripe ? "PENDING" : "UNPAID",
       customerName: body.customerName.trim(),
-      email: body.email.trim(),
+      email: body.email.trim().toLowerCase(),
       phone: body.phone?.trim() || null,
       message: body.message?.trim() || null,
+      deliveryType,
+      pickupPointId,
+      deliveryTourId,
+      deliveryAddress,
+      deliveryCity,
+      deliveryPostalCode,
+      fulfillmentDate: fulfillment.fulfillmentDate,
+      fulfillmentTime: fulfillment.fulfillmentTime,
+      fulfillmentLocation: fulfillment.fulfillmentLocation,
       currency: "eur",
       subtotal,
       total: subtotal,
@@ -293,13 +477,15 @@ export default defineEventHandler(async (event) => {
   let stripeSessionId: string | null = null;
 
   if (useStripe) {
+    const paymentSettings = await getOnlinePaymentsSettings();
     const requestUrl = getRequestURL(event);
-    const successUrl = `${requestUrl.origin}${requestUrl.pathname}?checkout=success&order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${requestUrl.origin}${requestUrl.pathname}?checkout=cancel&order=${order.id}`;
+    const successUrl = `${requestUrl.origin}/payment/success?order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${requestUrl.origin}/panier?checkout=cancel&order=${order.id}`;
     const session = await createStripeCheckoutSession({
       successUrl,
       cancelUrl,
       customerEmail: body.email.trim(),
+      automaticTaxEnabled: paymentSettings.stripeAutomaticTaxEnabled,
       metadata: {
         orderId: String(order.id),
         orderNumber,
@@ -310,7 +496,18 @@ export default defineEventHandler(async (event) => {
         quantity: line.quantity,
         currency: "eur",
         description: line.description,
-        imageUrl: line.imageUrl || undefined,
+        imageUrl: toStripeCompatibleImageUrl(line.imageUrl, requestUrl.origin),
+        taxBehavior: paymentSettings.stripeAutomaticTaxEnabled
+          ? ((safeParseMeta(line.metaJson).stripeTaxBehavior ||
+              paymentSettings.stripeDefaultTaxBehavior) as
+              | "inclusive"
+              | "exclusive")
+          : undefined,
+        taxCode: paymentSettings.stripeAutomaticTaxEnabled
+          ? safeParseMeta(line.metaJson).stripeTaxCode ||
+            paymentSettings.stripeDefaultTaxCode ||
+            undefined
+          : undefined,
       })),
     });
     checkoutUrl = session.url;
@@ -326,7 +523,11 @@ export default defineEventHandler(async (event) => {
 
   const fullOrder = await db.shopOrder.findUnique({
     where: { id: order.id },
-    include: { lines: true },
+    include: {
+      lines: true,
+      pickupPoint: true,
+      deliveryTour: true,
+    },
   });
 
   return {
@@ -335,3 +536,39 @@ export default defineEventHandler(async (event) => {
     order: serializeShopOrder(fullOrder),
   };
 });
+
+function safeParseMeta(value: string) {
+  try {
+    return JSON.parse(value) as Record<string, any>;
+  } catch {
+    return {};
+  }
+}
+
+function toStripeCompatibleImageUrl(
+  value: string | null | undefined,
+  origin: string,
+) {
+  if (!value?.trim()) return undefined;
+
+  try {
+    const resolved = new URL(value, origin);
+    if (!["http:", "https:"].includes(resolved.protocol)) {
+      return undefined;
+    }
+
+    const hostname = resolved.hostname.toLowerCase();
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "::1" ||
+      hostname.endsWith(".local")
+    ) {
+      return undefined;
+    }
+
+    return resolved.toString();
+  } catch {
+    return undefined;
+  }
+}

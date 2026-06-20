@@ -100,13 +100,13 @@ export function formatFulfillmentDate(date: Date | null | undefined, locale = 'f
 
 export function getDeliveryMethodLabel(deliveryType: Reservation['deliveryType'], locale: string | null | undefined = 'fr') {
   if (normalizeReservationLocale(locale) === 'en') {
-    if (deliveryType === 'FARM') return 'Farm pickup'
+    if (deliveryType === 'FARM') return 'On-site pickup'
     if (deliveryType === 'PICKUP') return 'Pickup point collection'
     if (deliveryType === 'TOUR') return 'Delivery route'
     return 'Pickup / delivery'
   }
 
-  if (deliveryType === 'FARM') return 'Retrait à la ferme'
+  if (deliveryType === 'FARM') return 'Retrait sur place'
   if (deliveryType === 'PICKUP') return 'Retrait en point relais'
   if (deliveryType === 'TOUR') return 'Livraison (tournée)'
   return 'Retrait / livraison'

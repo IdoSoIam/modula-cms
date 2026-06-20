@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { normalizeFeatureFlags, saveOnlinePaymentsSettings, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { normalizeFeatureFlags, normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate, saveOnlinePaymentsSettings, saveShopDefaultVatRate, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { findAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
 
 interface Body {
@@ -39,11 +39,15 @@ interface Body {
   ordersOpenTo?: string
   ordersClosedMessage?: string
   imagePersistVariants?: boolean
+  shopDefaultVatRate?: number
   onlinePayments?: {
     provider?: 'stripe' | 'none'
     stripePublishableKey?: string
     stripeSecretKey?: string
     stripeWebhookSecret?: string
+    stripeAutomaticTaxEnabled?: boolean
+    stripeDefaultTaxCode?: string
+    stripeDefaultTaxBehavior?: 'inclusive' | 'exclusive'
   }
   templates?: Record<string, { fr?: { subject: string; body: string }; en?: { subject: string; body: string } }>
 }
@@ -148,12 +152,22 @@ export default defineEventHandler(async (event) => {
   if (typeof body.imagePersistVariants === 'boolean') {
     await setSetting(SETTING_KEYS.IMAGE_PERSIST_VARIANTS, body.imagePersistVariants ? 'true' : 'false')
   }
+  if (body.shopDefaultVatRate !== undefined) {
+    const vatRate = Number(body.shopDefaultVatRate)
+    if (!Number.isFinite(vatRate) || vatRate < 0 || vatRate > 100) {
+      throw createError({ statusCode: 400, statusMessage: 'Taux de TVA invalide' })
+    }
+    await saveShopDefaultVatRate(normalizeVatRate(vatRate, 20))
+  }
   if (body.onlinePayments) {
     await saveOnlinePaymentsSettings({
       provider: body.onlinePayments.provider === 'stripe' ? 'stripe' : 'none',
       stripePublishableKey: body.onlinePayments.stripePublishableKey || '',
       stripeSecretKey: body.onlinePayments.stripeSecretKey || '',
-      stripeWebhookSecret: body.onlinePayments.stripeWebhookSecret || ''
+      stripeWebhookSecret: body.onlinePayments.stripeWebhookSecret || '',
+      stripeAutomaticTaxEnabled: Boolean(body.onlinePayments.stripeAutomaticTaxEnabled),
+      stripeDefaultTaxCode: normalizeStripeTaxCode(body.onlinePayments.stripeDefaultTaxCode),
+      stripeDefaultTaxBehavior: normalizeStripeTaxBehavior(body.onlinePayments.stripeDefaultTaxBehavior, 'inclusive')
     })
   }
   if (body.templates) {

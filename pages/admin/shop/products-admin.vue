@@ -21,6 +21,8 @@
             <th>{{ t('admin.vegetablesPage.headers.slug') }}</th>
             <th>{{ t('admin.vegetablesPage.headers.category') }}</th>
             <th class="text-right">{{ t('admin.vegetablesPage.headers.price') }}</th>
+            <th class="text-right">{{ t('admin.vegetablesPage.headers.vatRate') }}</th>
+            <th>{{ t('admin.vegetablesPage.headers.taxBehavior') }}</th>
             <th class="text-right">{{ t('admin.vegetablesPage.fieldAvailable') }}</th>
             <th>{{ t('admin.vegetablesPage.headers.saleType') }}</th>
             <th>{{ t('admin.vegetablesPage.headers.unit') }}</th>
@@ -40,6 +42,8 @@
             <td><code>{{ product.slug }}</code></td>
             <td>{{ product.category?.name || '-' }}</td>
             <td class="text-right">{{ $formatPrice(product.price) }}</td>
+            <td class="text-right">{{ formatVatRate(product.vatRate) }}</td>
+            <td>{{ formatTaxBehavior(product.stripeTaxBehavior) }}</td>
             <td class="text-right">{{ product.stock }}</td>
             <td>{{ product.saleType === 'RENTAL' ? t('admin.vegetablesPage.saleTypeRental') : t('admin.vegetablesPage.saleTypeSale') }}</td>
             <td>{{ product.unitLabel || '-' }}</td>
@@ -58,7 +62,7 @@
             </td>
           </tr>
           <tr v-if="!products?.length">
-            <td colspan="10" class="py-8 text-center opacity-60">
+            <td colspan="12" class="py-8 text-center opacity-60">
               {{ t('admin.vegetablesPage.empty') }}
             </td>
           </tr>
@@ -98,6 +102,22 @@
           <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldPrice') }}</span></label>
             <input v-model.number="editing.price" type="number" min="0" step="0.01" class="input input-bordered" />
+          </div>
+          <div class="form-control flex flex-col gap-3">
+            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldVatRate') }}</span></label>
+            <input v-model.number="editing.vatRate" type="number" min="0" max="100" step="0.01" class="input input-bordered" />
+          </div>
+          <div class="form-control flex flex-col gap-3">
+            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldTaxBehavior') }}</span></label>
+            <select v-model="editing.stripeTaxBehavior" class="select select-bordered">
+              <option :value="''">{{ t('admin.vegetablesPage.taxBehaviorDefault') }}</option>
+              <option value="inclusive">{{ t('admin.vegetablesPage.taxBehaviorInclusive') }}</option>
+              <option value="exclusive">{{ t('admin.vegetablesPage.taxBehaviorExclusive') }}</option>
+            </select>
+          </div>
+          <div class="form-control flex flex-col gap-3">
+            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldTaxCode') }}</span></label>
+            <input v-model="editing.stripeTaxCode" class="input input-bordered" placeholder="txcd_..." />
           </div>
           <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldAvailable') }}</span></label>
@@ -176,6 +196,9 @@ interface Product {
   description: string | null
   imageUrl?: string | null
   price: number
+  vatRate: number
+  stripeTaxCode: string | null
+  stripeTaxBehavior: 'inclusive' | 'exclusive' | null
   stock: number
   unitLabel?: string | null
   allowOfflinePayment: boolean
@@ -192,11 +215,20 @@ interface ProductCategory {
 
 const { data: products, pending, refresh } = await useFetch<Product[]>('/api/admin/products')
 const { data: categories } = await useFetch<ProductCategory[]>('/api/admin/product-categories')
+const { data: settingsData } = await useFetch<{ shopDefaultVatRate: number }>('/api/admin/settings')
 
 const dlg = ref<HTMLDialogElement>()
 const saving = ref(false)
 const { t } = useI18n()
 const { $toast, $formatPrice } = useNuxtApp() as any
+const defaultVatRate = computed(() => Number(settingsData.value?.shopDefaultVatRate ?? 20))
+const formatVatRate = (value: number) => `${Number(value || 0).toFixed(2)}%`
+const formatTaxBehavior = (value: Product['stripeTaxBehavior']) =>
+  value === 'exclusive'
+    ? t('admin.vegetablesPage.taxBehaviorExclusive')
+    : value === 'inclusive'
+      ? t('admin.vegetablesPage.taxBehaviorInclusive')
+      : t('admin.vegetablesPage.taxBehaviorDefault')
 
 const editing = reactive<Partial<Product>>({
   id: undefined,
@@ -208,6 +240,9 @@ const editing = reactive<Partial<Product>>({
   description: '',
   imageUrl: '',
   price: 0,
+  vatRate: defaultVatRate.value,
+  stripeTaxCode: '',
+  stripeTaxBehavior: null,
   stock: 0,
   unitLabel: '',
   allowOfflinePayment: true,
@@ -227,6 +262,9 @@ const resetEditing = () => {
     description: '',
     imageUrl: '',
     price: 0,
+    vatRate: defaultVatRate.value,
+    stripeTaxCode: '',
+    stripeTaxBehavior: null,
     stock: 0,
     unitLabel: '',
     allowOfflinePayment: true,
@@ -259,7 +297,10 @@ const save = async () => {
       excerpt: editing.excerpt,
       description: editing.description,
       imageUrl: editing.imageUrl,
-      price: editing.price,
+    price: editing.price,
+    vatRate: editing.vatRate,
+      stripeTaxCode: editing.stripeTaxCode?.trim() || null,
+      stripeTaxBehavior: editing.stripeTaxBehavior || null,
       stock: editing.stock,
       unitLabel: editing.unitLabel,
       allowOfflinePayment: editing.allowOfflinePayment,

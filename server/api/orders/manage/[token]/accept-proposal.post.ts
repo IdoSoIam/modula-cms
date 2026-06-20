@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
       ? formatDateLabel(updated.fulfillmentDate, updated.language === 'en' ? 'en-US' : 'fr-FR')
       : (updated.language === 'en' ? 'to be confirmed' : 'à confirmer'),
     fulfillmentTime: updated.fulfillmentTime ?? (updated.language === 'en' ? 'to be confirmed' : 'à confirmer'),
-    fulfillmentLocation: updated.fulfillmentLocation ?? 'Ferme du Campeyrigoux'
+    fulfillmentLocation: updated.fulfillmentLocation ?? (updated.language === 'en' ? 'On-site pickup' : 'Retrait sur place')
   })
 
   const emailPayload = await buildReservationDecisionEmail({
@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
   if (reservationNotificationEmail) {
     const adminTemplate = await resolveTemplateFromSettings('admin_customer_accepted_proposal', 'fr')
     const adminDraft = applyTemplateVars(adminTemplate, {
-      contextLine: 'Le client a accepté la proposition de créneau envoyée par la ferme.',
+      contextLine: 'Le client a accepté la proposition de créneau envoyée depuis le site.',
       reservationId: String(updated.id),
       basketName: updated.basket.name,
       customerName: updated.customerName,

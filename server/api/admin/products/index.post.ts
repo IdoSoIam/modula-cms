@@ -2,6 +2,7 @@ import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
 import { ensureUniqueSlug, serializeProduct } from '#modula/server/utils/shop'
+import { getShopDefaultVatRate, normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate } from '#modula/server/utils/settings'
 
 interface Body {
   name: string
@@ -12,6 +13,9 @@ interface Body {
   description?: string | null
   imageUrl?: string | null
   price?: number
+  vatRate?: number
+  stripeTaxCode?: string | null
+  stripeTaxBehavior?: 'inclusive' | 'exclusive' | null
   stock?: number
   unitLabel?: string | null
   allowOfflinePayment?: boolean
@@ -29,11 +33,20 @@ export default defineEventHandler(async (event) => {
   }
 
   const price = Number(body.price ?? 0)
+  const shopDefaultVatRate = await getShopDefaultVatRate()
+  const vatRate = normalizeVatRate(body.vatRate ?? shopDefaultVatRate, shopDefaultVatRate)
   const stock = Number(body.stock ?? 0)
+  const stripeTaxCode = normalizeStripeTaxCode(body.stripeTaxCode)
+  const stripeTaxBehavior = body.stripeTaxBehavior == null
+    ? null
+    : normalizeStripeTaxBehavior(body.stripeTaxBehavior, 'inclusive')
   const allowOfflinePayment = body.allowOfflinePayment ?? true
   const allowOnlinePayment = body.allowOnlinePayment ?? false
   if (!Number.isFinite(price) || price < 0) {
     throw createError({ statusCode: 400, statusMessage: 'Prix invalide' })
+  }
+  if (!Number.isFinite(vatRate) || vatRate < 0 || vatRate > 100) {
+    throw createError({ statusCode: 400, statusMessage: 'Taux de TVA invalide' })
   }
   if (!Number.isInteger(stock) || stock < 0) {
     throw createError({ statusCode: 400, statusMessage: 'Stock invalide' })
@@ -55,6 +68,9 @@ export default defineEventHandler(async (event) => {
       description: body.description?.trim() || null,
       imageUrl: body.imageUrl || null,
       price,
+      vatRate,
+      stripeTaxCode: stripeTaxCode || null,
+      stripeTaxBehavior,
       stock,
       unitLabel: body.unitLabel?.trim() || null,
       allowOfflinePayment,

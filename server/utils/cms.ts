@@ -1491,13 +1491,13 @@ export async function ensureCmsSystemPages() {
     titleEn: 'Contact',
     seoFr: {
       metaTitle: 'Contact',
-      metaDescription: 'Contactez la Ferme du Campeyrigoux pour vos questions, paniers et horaires.',
+      metaDescription: 'Contactez le site pour vos questions, réservations et horaires.',
       ogImage: '',
       noindex: false
     },
     seoEn: {
       metaTitle: 'Contact',
-      metaDescription: 'Contact Ferme du Campeyrigoux for questions, baskets and opening hours.',
+      metaDescription: 'Contact the website for questions, reservations and opening hours.',
       ogImage: '',
       noindex: false
     },
@@ -1510,13 +1510,13 @@ export async function ensureCmsSystemPages() {
     titleEn: 'Terms of use',
     seoFr: {
       metaTitle: 'Conditions d’utilisation',
-      metaDescription: 'Consultez les conditions d’utilisation applicables aux services numériques de la Ferme du Campeyrigoux.',
+      metaDescription: 'Consultez les conditions d’utilisation applicables aux services numériques du site.',
       ogImage: '',
       noindex: false
     },
     seoEn: {
       metaTitle: 'Terms of use',
-      metaDescription: 'Read the terms of use for the Ferme du Campeyrigoux digital services.',
+      metaDescription: 'Read the terms of use for the website digital services.',
       ogImage: '',
       noindex: false
     },
@@ -1547,13 +1547,13 @@ export async function ensureCmsSystemPages() {
     titleEn: 'Privacy policy',
     seoFr: {
       metaTitle: 'Politique de confidentialité',
-      metaDescription: 'Consultez la politique de confidentialité relative aux services numériques de la Ferme du Campeyrigoux.',
+      metaDescription: 'Consultez la politique de confidentialité relative aux services numériques du site.',
       ogImage: '',
       noindex: false
     },
     seoEn: {
       metaTitle: 'Privacy policy',
-      metaDescription: 'Read the privacy policy for the Ferme du Campeyrigoux digital services.',
+      metaDescription: 'Read the privacy policy for the website digital services.',
       ogImage: '',
       noindex: false
     },

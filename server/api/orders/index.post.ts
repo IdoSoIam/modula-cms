@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
   if (body.deliveryType === 'FARM') {
     deliveryType = 'FARM'
     if (body.farmAlternateDate && !farmAlternateTime) {
-      throw createError({ statusCode: 400, statusMessage: 'Heure requise pour proposer un autre créneau à la ferme' })
+      throw createError({ statusCode: 400, statusMessage: 'Heure requise pour proposer un autre créneau sur place' })
     }
   } else if (body.deliveryType === 'PICKUP') {
     if (!body.pickupPointId) throw createError({ statusCode: 400, statusMessage: 'Point relais requis' })
@@ -184,7 +184,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const deliveryLabel = deliveryType === 'FARM'
-      ? 'Retrait à la ferme'
+      ? 'Retrait sur place'
       : deliveryType === 'PICKUP'
         ? 'Retrait en point relais'
         : deliveryType === 'TOUR'
@@ -232,7 +232,7 @@ export default defineEventHandler(async (event) => {
       const adminTemplate = await resolveTemplateFromSettings('admin_new_reservation', 'fr')
       const adminDraft = applyTemplateVars(adminTemplate, {
         contextLine: deliveryType === 'FARM' && body.farmAlternateDate
-          ? 'Nouvelle réservation reçue avec proposition client pour le retrait à la ferme.'
+          ? 'Nouvelle réservation reçue avec proposition client pour le Retrait sur place.'
           : 'Nouvelle réservation reçue.',
         reservationId: String(reservation.id),
         basketName: basket.name,

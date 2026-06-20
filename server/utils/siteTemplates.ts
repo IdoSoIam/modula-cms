@@ -774,7 +774,7 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
       basketsPage: {
         ...base.basketsPage,
         subtitle: text(
-          'Retrouvez les paniers de saison, le retrait à la ferme et les informations pratiques.',
+          'Retrouvez les paniers de saison, le Retrait sur place et les informations pratiques.',
           'Browse seasonal baskets, farm pickup and practical information.'
         )
       },

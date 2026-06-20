@@ -92,6 +92,77 @@
               <label class="label"><span class="label-text">{{ phoneLabel }}</span></label>
               <input v-model="checkoutForm.phone" class="input input-bordered" />
             </div>
+
+            <div class="form-control flex flex-col gap-3">
+              <label class="label"><span class="label-text">{{ deliveryLabel }}</span></label>
+              <select v-model="checkoutForm.deliveryType" class="select select-bordered" :disabled="deliveryOptionsPending">
+                <option value="">{{ deliveryPlaceholderLabel }}</option>
+                <option v-if="deliveryChoices.includes('FARM')" value="FARM">{{ farmDeliveryLabel }}</option>
+                <option v-if="deliveryChoices.includes('PICKUP')" value="PICKUP">{{ pickupDeliveryLabel }}</option>
+                <option v-if="deliveryChoices.includes('TOUR')" value="TOUR">{{ tourDeliveryLabel }}</option>
+              </select>
+            </div>
+
+            <div v-if="checkoutForm.deliveryType === 'FARM'" class="rounded-2xl bg-base-200 p-4 text-sm">
+              <div class="font-medium">{{ farmDeliveryLabel }}</div>
+              <div class="mt-1 opacity-75">{{ farmPickupSummary }}</div>
+            </div>
+
+            <div v-if="checkoutForm.deliveryType === 'PICKUP'" class="space-y-3">
+              <div class="form-control flex flex-col gap-3">
+                <label class="label"><span class="label-text">{{ pickupPointLabel }}</span></label>
+                <select v-model.number="checkoutForm.pickupPointId" class="select select-bordered">
+                  <option :value="0">{{ pickupPlaceholderLabel }}</option>
+                  <option
+                    v-for="point in pickupPoints"
+                    :key="point.id"
+                    :value="point.id"
+                  >
+                    {{ point.name }}
+                  </option>
+                </select>
+              </div>
+              <div v-if="selectedPickupPoint" class="rounded-2xl bg-base-200 p-4 text-sm">
+                <div class="font-medium">{{ selectedPickupPoint.name }}</div>
+                <div class="mt-1 opacity-75">{{ selectedPickupPoint.address || noAddressLabel }}</div>
+              </div>
+            </div>
+
+            <div v-if="checkoutForm.deliveryType === 'TOUR'" class="space-y-3">
+              <div class="form-control flex flex-col gap-3">
+                <label class="label"><span class="label-text">{{ cityLabel }}</span></label>
+                <input v-model="checkoutForm.deliveryCity" class="input input-bordered" />
+              </div>
+              <div class="form-control flex flex-col gap-3">
+                <label class="label"><span class="label-text">{{ addressLabel }}</span></label>
+                <input v-model="checkoutForm.deliveryAddress" class="input input-bordered" />
+              </div>
+              <div class="form-control flex flex-col gap-3">
+                <label class="label"><span class="label-text">{{ postalCodeLabel }}</span></label>
+                <input v-model="checkoutForm.deliveryPostalCode" class="input input-bordered" />
+              </div>
+              <div class="form-control flex flex-col gap-3">
+                <label class="label"><span class="label-text">{{ deliveryTourLabel }}</span></label>
+                <select v-model.number="checkoutForm.deliveryTourId" class="select select-bordered">
+                  <option :value="0">{{ tourPlaceholderLabel }}</option>
+                  <option
+                    v-for="tour in filteredTours"
+                    :key="tour.id"
+                    :value="tour.id"
+                  >
+                    {{ tour.name }}
+                  </option>
+                </select>
+              </div>
+              <p v-if="checkoutForm.deliveryCity.trim() && !filteredTours.length" class="text-sm text-warning">
+                {{ unavailableCityLabel }}
+              </p>
+              <div v-if="selectedDeliveryTour" class="rounded-2xl bg-base-200 p-4 text-sm">
+                <div class="font-medium">{{ selectedDeliveryTour.name }}</div>
+                <div class="mt-1 opacity-75">{{ deliveryTourSummary(selectedDeliveryTour) }}</div>
+              </div>
+            </div>
+
             <div class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ paymentLabel }}</span></label>
               <select v-if="paymentCapabilities.requiresChoice" v-model="checkoutForm.paymentMode" class="select select-bordered">
@@ -101,6 +172,7 @@
               <input v-else class="input input-bordered" :value="resolvedPaymentLabel" disabled />
               <p v-if="paymentConstraintNotice" class="text-sm opacity-70">{{ paymentConstraintNotice }}</p>
             </div>
+
             <div class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ messageLabel }}</span></label>
               <textarea v-model="checkoutForm.message" class="textarea textarea-bordered min-h-28" />
@@ -141,29 +213,90 @@
 
 <script setup lang="ts">
 import { getShopCartPaymentCapabilities, useShopCart } from '#modula/composables/useShopCart'
+import { useAuthStore } from '#modula/stores/auth'
 
-const { locale, t } = useI18n()
+interface DeliveryOptionPickupPoint {
+  id: number
+  name: string
+  address: string | null
+}
+
+interface DeliveryOptionTour {
+  id: number
+  name: string
+  dayOfWeek: number
+  nextDate: string
+  startTime: string
+  endTime: string
+  cities: Array<{
+    id: number
+    city: string
+    postalCodes: string | null
+  }>
+}
+
+interface DeliveryOptionsPayload {
+  farmPickup?: {
+    label: string
+    address: string
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+    nextDate: string
+    slotLabel: string
+  } | null
+  pickupPoints: DeliveryOptionPickupPoint[]
+  tours: DeliveryOptionTour[]
+  servedCities: string[]
+}
+
+type DeliveryType = '' | 'FARM' | 'PICKUP' | 'TOUR'
+
+const { locale } = useI18n()
 const localePath = useLocalePath()
-const { $toast, $formatPrice } = useNuxtApp() as any
+const route = useRoute()
+const authStore = useAuthStore()
+const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
 const { items, count, total, updateQuantity, remove, clear } = useShopCart()
+
+await authStore.ensureInitialized()
+
 const { data: paymentConfig } = await useFetch<{ enabled: boolean }>('/api/payments/config')
+const { data: deliveryOptions, pending: deliveryOptionsPending } = await useFetch<DeliveryOptionsPayload>('/api/delivery-options')
 
 const stripeEnabled = computed(() => Boolean(paymentConfig.value?.enabled))
 const paymentCapabilities = computed(() => getShopCartPaymentCapabilities(items.value, stripeEnabled.value))
+const pickupPoints = computed(() => deliveryOptions.value?.pickupPoints || [])
+const deliveryTours = computed(() => deliveryOptions.value?.tours || [])
+const deliveryChoices = computed<DeliveryType[]>(() => {
+  const values: DeliveryType[] = []
+  if (deliveryOptions.value?.farmPickup) values.push('FARM')
+  if (pickupPoints.value.length) values.push('PICKUP')
+  if (deliveryTours.value.length) values.push('TOUR')
+  return values
+})
+
 const checkoutForm = ref({
   customerName: '',
   email: '',
   phone: '',
   message: '',
-  paymentMode: 'offline' as 'offline' | 'stripe'
+  paymentMode: 'offline' as 'offline' | 'stripe',
+  deliveryType: '' as DeliveryType,
+  pickupPointId: 0,
+  deliveryTourId: 0,
+  deliveryAddress: '',
+  deliveryCity: '',
+  deliveryPostalCode: ''
 })
+
 const savingOrder = ref(false)
 
 const eyebrowLabel = computed(() => locale.value === 'en' ? 'Checkout' : 'Commande')
 const titleLabel = computed(() => locale.value === 'en' ? 'Shopping cart' : 'Panier d’achat')
 const introLabel = computed(() => locale.value === 'en'
-  ? 'Review the selected products and lots, then confirm the order with the available payment mode.'
-  : 'Vérifiez les produits et lots sélectionnés, puis confirmez la commande avec le mode de règlement disponible.')
+  ? 'Review the selected products and lots, then confirm the order with delivery and payment details.'
+  : 'Vérifiez les produits et lots sélectionnés, puis confirmez la commande avec les informations de livraison et de règlement.')
 const productsLinkLabel = computed(() => locale.value === 'en' ? 'Browse products' : 'Voir les produits')
 const lotsLinkLabel = computed(() => locale.value === 'en' ? 'Browse product lots' : 'Voir les lots de produits')
 const productBadgeLabel = computed(() => locale.value === 'en' ? 'Product' : 'Produit')
@@ -176,11 +309,23 @@ const totalLabel = computed(() => locale.value === 'en' ? 'Total' : 'Total')
 const removeLabel = computed(() => locale.value === 'en' ? 'Remove' : 'Supprimer')
 const checkoutTitleLabel = computed(() => locale.value === 'en' ? 'Checkout details' : 'Validation de commande')
 const checkoutIntroLabel = computed(() => locale.value === 'en'
-  ? 'The available payment methods adapt to the selected offers.'
-  : 'Les modes de règlement disponibles s’adaptent aux offres sélectionnées.')
+  ? 'Delivery and payment options adapt to the selected offers.'
+  : 'Les options de livraison et de règlement s’adaptent aux offres sélectionnées.')
 const countLabel = computed(() => locale.value === 'en' ? `${count.value} item(s)` : `${count.value} article(s)`)
 const fullNameLabel = computed(() => locale.value === 'en' ? 'Full name' : 'Nom complet')
 const phoneLabel = computed(() => locale.value === 'en' ? 'Phone' : 'Téléphone')
+const deliveryLabel = computed(() => locale.value === 'en' ? 'Delivery method' : 'Mode de livraison')
+const deliveryPlaceholderLabel = computed(() => locale.value === 'en' ? 'Select a delivery method' : 'Choisir un mode de livraison')
+const farmDeliveryLabel = computed(() => deliveryOptions.value?.farmPickup?.label || (locale.value === 'en' ? 'On-site pickup' : 'Retrait sur place'))
+const pickupDeliveryLabel = computed(() => locale.value === 'en' ? 'Pickup point' : 'Point relais')
+const tourDeliveryLabel = computed(() => locale.value === 'en' ? 'Delivery' : 'Livraison')
+const pickupPointLabel = computed(() => locale.value === 'en' ? 'Pickup point' : 'Point relais')
+const pickupPlaceholderLabel = computed(() => locale.value === 'en' ? 'Select a pickup point' : 'Choisir un point relais')
+const deliveryTourLabel = computed(() => locale.value === 'en' ? 'Delivery tour' : 'Tournée de livraison')
+const tourPlaceholderLabel = computed(() => locale.value === 'en' ? 'Select a delivery tour' : 'Choisir une tournée')
+const addressLabel = computed(() => locale.value === 'en' ? 'Address' : 'Adresse')
+const cityLabel = computed(() => locale.value === 'en' ? 'City' : 'Ville')
+const postalCodeLabel = computed(() => locale.value === 'en' ? 'Postal code' : 'Code postal')
 const paymentLabel = computed(() => locale.value === 'en' ? 'Payment method' : 'Mode de règlement')
 const messageLabel = computed(() => locale.value === 'en' ? 'Message' : 'Message')
 const submitLabel = computed(() => checkoutForm.value.paymentMode === 'stripe' && paymentCapabilities.value.allowOnline
@@ -193,12 +338,40 @@ const emptyLabel = computed(() => locale.value === 'en' ? 'Your cart is empty.' 
 const emptyHelpLabel = computed(() => locale.value === 'en'
   ? 'Add a product or a product lot to continue.'
   : 'Ajoutez un produit ou un lot de produits pour continuer.')
+const noAddressLabel = computed(() => locale.value === 'en' ? 'Address to be confirmed' : 'Adresse à confirmer')
+const unavailableCityLabel = computed(() => locale.value === 'en'
+  ? 'No delivery tour currently serves this city.'
+  : 'Aucune tournée ne dessert actuellement cette ville.')
 
 const resolvedPaymentLabel = computed(() =>
   paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline
     ? onlineLabel.value
     : offlineLabel.value
 )
+
+const selectedPickupPoint = computed(() =>
+  pickupPoints.value.find((point) => point.id === Number(checkoutForm.value.pickupPointId)) || null
+)
+
+const filteredTours = computed(() => {
+  const city = checkoutForm.value.deliveryCity.trim().toLowerCase()
+  if (!city) return deliveryTours.value
+  return deliveryTours.value.filter((tour) =>
+    tour.cities.some((entry) => entry.city.trim().toLowerCase() === city)
+  )
+})
+
+const selectedDeliveryTour = computed(() =>
+  filteredTours.value.find((tour) => tour.id === Number(checkoutForm.value.deliveryTourId))
+  || deliveryTours.value.find((tour) => tour.id === Number(checkoutForm.value.deliveryTourId))
+  || null
+)
+
+const farmPickupSummary = computed(() => {
+  const farmPickup = deliveryOptions.value?.farmPickup
+  if (!farmPickup) return ''
+  return [farmPickup.address, `${$formatDate(farmPickup.nextDate)} · ${farmPickup.slotLabel}`].filter(Boolean).join(' — ')
+})
 
 const paymentConstraintNotice = computed(() => {
   if (paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline) {
@@ -214,8 +387,22 @@ const paymentConstraintNotice = computed(() => {
   return ''
 })
 
+const deliveryValid = computed(() => {
+  if (checkoutForm.value.deliveryType === 'FARM') return true
+  if (checkoutForm.value.deliveryType === 'PICKUP') {
+    return Number(checkoutForm.value.pickupPointId) > 0
+  }
+  if (checkoutForm.value.deliveryType === 'TOUR') {
+    return Number(checkoutForm.value.deliveryTourId) > 0
+      && checkoutForm.value.deliveryAddress.trim().length > 0
+      && checkoutForm.value.deliveryCity.trim().length > 0
+  }
+  return false
+})
+
 const canSubmit = computed(() =>
   items.value.length > 0
+  && deliveryValid.value
   && (paymentCapabilities.value.allowOffline || paymentCapabilities.value.allowOnline)
 )
 
@@ -223,12 +410,85 @@ watch(paymentCapabilities, (value) => {
   checkoutForm.value.paymentMode = value.resolvedDefaultMode
 }, { immediate: true, deep: true })
 
+watch(deliveryChoices, (choices) => {
+  if (!choices.length) {
+    checkoutForm.value.deliveryType = ''
+    return
+  }
+  if (!choices.includes(checkoutForm.value.deliveryType)) {
+    checkoutForm.value.deliveryType = choices[0] as DeliveryType
+  }
+}, { immediate: true })
+
+watch(() => checkoutForm.value.deliveryType, (value) => {
+  if (value !== 'PICKUP') {
+    checkoutForm.value.pickupPointId = 0
+  }
+  if (value !== 'TOUR') {
+    checkoutForm.value.deliveryTourId = 0
+  }
+})
+
+watch(filteredTours, (tours) => {
+  if (!tours.some((tour) => tour.id === Number(checkoutForm.value.deliveryTourId))) {
+    checkoutForm.value.deliveryTourId = 0
+  }
+})
+
+watch(() => authStore.user, (user) => {
+  if (!user) return
+  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
+  if (!checkoutForm.value.customerName.trim() && fullName) {
+    checkoutForm.value.customerName = fullName
+  }
+  if (!checkoutForm.value.email.trim() && user.email) {
+    checkoutForm.value.email = user.email
+  }
+  if (user.shippingAddress) {
+    if (!checkoutForm.value.deliveryAddress.trim()) {
+      checkoutForm.value.deliveryAddress = user.shippingAddress.street || ''
+    }
+    if (!checkoutForm.value.deliveryCity.trim()) {
+      checkoutForm.value.deliveryCity = user.shippingAddress.city || ''
+    }
+    if (!checkoutForm.value.deliveryPostalCode.trim()) {
+      checkoutForm.value.deliveryPostalCode = user.shippingAddress.postalCode || ''
+    }
+  }
+}, { immediate: true })
+
+onMounted(() => {
+  if (route.query.checkout === 'cancel') {
+    $toast.warning(locale.value === 'en'
+      ? 'Stripe payment was cancelled. You can review your cart and try again.'
+      : 'Le paiement Stripe a été annulé. Vous pouvez revoir votre panier et réessayer.')
+  }
+})
+
 const updateItemQuantity = (key: string, quantity: number) => updateQuantity(key, quantity)
 const removeItem = (key: string) => remove(key)
+
+function deliveryTourSummary(tour: DeliveryOptionTour) {
+  return `${$formatDate(tour.nextDate)} · ${tour.startTime} - ${tour.endTime}`
+}
+
+function resetCheckoutForm() {
+  checkoutForm.value.message = ''
+  checkoutForm.value.paymentMode = paymentCapabilities.value.resolvedDefaultMode
+  checkoutForm.value.pickupPointId = 0
+  checkoutForm.value.deliveryTourId = 0
+  const firstChoice = deliveryChoices.value[0] || ''
+  checkoutForm.value.deliveryType = firstChoice
+}
 
 async function submitOrder() {
   if (!checkoutForm.value.customerName.trim() || !checkoutForm.value.email.trim()) {
     $toast.error(locale.value === 'en' ? 'Name and email are required.' : 'Le nom et l’email sont requis.')
+    return
+  }
+
+  if (!deliveryValid.value) {
+    $toast.error(locale.value === 'en' ? 'Please complete the delivery information.' : 'Veuillez compléter les informations de livraison.')
     return
   }
 
@@ -247,6 +507,12 @@ async function submitOrder() {
         phone: checkoutForm.value.phone,
         message: checkoutForm.value.message,
         paymentMode: checkoutForm.value.paymentMode,
+        deliveryType: checkoutForm.value.deliveryType,
+        pickupPointId: checkoutForm.value.deliveryType === 'PICKUP' ? checkoutForm.value.pickupPointId : undefined,
+        deliveryTourId: checkoutForm.value.deliveryType === 'TOUR' ? checkoutForm.value.deliveryTourId : undefined,
+        deliveryAddress: checkoutForm.value.deliveryType === 'TOUR' ? checkoutForm.value.deliveryAddress : undefined,
+        deliveryCity: checkoutForm.value.deliveryType === 'TOUR' ? checkoutForm.value.deliveryCity : undefined,
+        deliveryPostalCode: checkoutForm.value.deliveryType === 'TOUR' ? checkoutForm.value.deliveryPostalCode : undefined,
         lines: items.value.map((item) => ({
           kind: item.kind,
           productId: item.productId || undefined,
@@ -262,11 +528,10 @@ async function submitOrder() {
     }
 
     clear()
-    checkoutForm.value = { customerName: '', email: '', phone: '', message: '', paymentMode: 'offline' }
-    $toast.success(locale.value === 'en' ? 'Order created successfully.' : 'Commande créée avec succès.')
-    await navigateTo(localePath('/boutique'))
+    resetCheckoutForm()
+    $toast.success(locale.value === 'en' ? 'Order sent successfully.' : 'Commande envoyée avec succès.')
   } catch (error: any) {
-    $toast.error(error?.statusMessage || t('common.error'))
+    $toast.error(error?.statusMessage || error?.data?.statusMessage || (locale.value === 'en' ? 'Unable to create order.' : 'Impossible de créer la commande.'))
   } finally {
     savingOrder.value = false
   }

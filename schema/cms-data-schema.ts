@@ -10,6 +10,7 @@ const productSaleTypes = ['SALE', 'RENTAL']
 const shopOrderStatuses = ['DRAFT', 'PENDING', 'PAID', 'CANCELLED']
 const shopPaymentProviders = ['OFFLINE', 'STRIPE']
 const shopPaymentStatuses = ['UNPAID', 'PENDING', 'PAID', 'FAILED', 'REFUNDED']
+const stripeTaxBehaviors = ['inclusive', 'exclusive']
 const eventStatuses = ['DRAFT', 'PUBLISHED', 'ARCHIVED', 'CANCELLED']
 const eventVisibilities = ['PUBLIC', 'PRIVATE']
 const eventApprovalModes = ['AUTO', 'MANUAL']
@@ -409,6 +410,9 @@ export const cmsDataSchema = defineSchema({
         description: field.string({ nullable: true }),
         imageUrl: field.string({ nullable: true }),
         price: field.decimal({ default: 0 }),
+        vatRate: field.decimal({ default: 20 }),
+        stripeTaxCode: field.string({ nullable: true }),
+        stripeTaxBehavior: field.enum(stripeTaxBehaviors, { nullable: true }),
         stock: field.int({ default: 0 }),
         unitLabel: field.string({ nullable: true }),
         allowOfflinePayment: field.boolean({ default: true }),
@@ -459,6 +463,9 @@ export const cmsDataSchema = defineSchema({
         imageUrl: field.string({ nullable: true }),
         kind: field.enum(productLotKinds, { default: 'LOT' }),
         price: field.decimal({ default: 0 }),
+        vatRate: field.decimal({ default: 20 }),
+        stripeTaxCode: field.string({ nullable: true }),
+        stripeTaxBehavior: field.enum(stripeTaxBehaviors, { nullable: true }),
         stock: field.int({ default: 0 }),
         allowOfflinePayment: field.boolean({ default: true }),
         allowOnlinePayment: field.boolean({ default: false }),
@@ -502,6 +509,7 @@ export const cmsDataSchema = defineSchema({
       fields: {
         id: field.id(),
         orderNumber: field.string({ unique: true }),
+        userId: field.int({ nullable: true }),
         status: field.enum(shopOrderStatuses, { default: 'PENDING' }),
         paymentProvider: field.enum(shopPaymentProviders, { default: 'OFFLINE' }),
         paymentStatus: field.enum(shopPaymentStatuses, { default: 'UNPAID' }),
@@ -510,6 +518,15 @@ export const cmsDataSchema = defineSchema({
         email: field.string(),
         phone: field.string({ nullable: true }),
         message: field.string({ nullable: true }),
+        deliveryType: field.enum(deliveryTypes, { nullable: true }),
+        pickupPointId: field.int({ nullable: true }),
+        deliveryTourId: field.int({ nullable: true }),
+        deliveryAddress: field.string({ nullable: true }),
+        deliveryCity: field.string({ nullable: true }),
+        deliveryPostalCode: field.string({ nullable: true }),
+        fulfillmentDate: field.datetime({ nullable: true }),
+        fulfillmentTime: field.string({ nullable: true }),
+        fulfillmentLocation: field.string({ nullable: true }),
         currency: field.string({ default: 'eur' }),
         subtotal: field.decimal({ default: 0 }),
         total: field.decimal({ default: 0 }),
@@ -519,11 +536,19 @@ export const cmsDataSchema = defineSchema({
         createdAt: field.datetime({ default: 'now' }),
         updatedAt: field.datetime()
       },
+      relations: {
+        user: relation.belongsTo('User', 'userId', 'id', { onDelete: 'setNull' }),
+        pickupPoint: relation.belongsTo('PickupPoint', 'pickupPointId', 'id', { onDelete: 'setNull' }),
+        deliveryTour: relation.belongsTo('DeliveryTour', 'deliveryTourId', 'id', { onDelete: 'setNull' })
+      },
       indexes: [
         unique(['orderNumber'], 'ShopOrder_orderNumber_key'),
         unique(['stripeCheckoutSessionId'], 'ShopOrder_stripeCheckoutSessionId_key'),
         index(['status', 'createdAt'], 'ShopOrder_status_createdAt_idx'),
-        index(['paymentStatus', 'createdAt'], 'ShopOrder_paymentStatus_createdAt_idx')
+        index(['paymentStatus', 'createdAt'], 'ShopOrder_paymentStatus_createdAt_idx'),
+        index(['userId'], 'ShopOrder_userId_idx'),
+        index(['pickupPointId'], 'ShopOrder_pickupPointId_idx'),
+        index(['deliveryTourId'], 'ShopOrder_deliveryTourId_idx')
       ]
     }),
     ShopOrderLine: defineModel({

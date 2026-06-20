@@ -152,6 +152,73 @@
           </label>
         </div>
 
+        <div class="rounded-xl border border-base-300 bg-base-200 p-4 space-y-4">
+          <div>
+            <div class="font-medium">
+              {{ t("admin.onlinePaymentsPage.taxTitle") }}
+            </div>
+            <p class="mt-1 text-sm opacity-75">
+              {{ t("admin.onlinePaymentsPage.taxDescription") }}
+            </p>
+          </div>
+
+          <label class="form-control flex gap-2">
+            <span class="label">
+              <span class="label-text">{{
+                t("admin.onlinePaymentsPage.automaticTaxEnabled")
+              }}</span>
+            </span>
+            <label class="label cursor-pointer justify-start gap-3">
+              <input
+                v-model="form.stripeAutomaticTaxEnabled"
+                type="checkbox"
+                class="checkbox"
+                :disabled="form.provider !== 'stripe'"
+              />
+              <span class="label-text">{{
+                t("admin.onlinePaymentsPage.automaticTaxHelp")
+              }}</span>
+            </label>
+          </label>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            <label class="form-control flex flex-col gap-2">
+              <span class="label">
+                <span class="label-text">{{
+                  t("admin.onlinePaymentsPage.defaultTaxBehavior")
+                }}</span>
+              </span>
+              <select
+                v-model="form.stripeDefaultTaxBehavior"
+                class="select select-bordered w-full"
+                :disabled="form.provider !== 'stripe' || !form.stripeAutomaticTaxEnabled"
+              >
+                <option value="inclusive">
+                  {{ t("admin.onlinePaymentsPage.taxBehaviorInclusive") }}
+                </option>
+                <option value="exclusive">
+                  {{ t("admin.onlinePaymentsPage.taxBehaviorExclusive") }}
+                </option>
+              </select>
+            </label>
+
+            <label class="form-control flex flex-col gap-2">
+              <span class="label">
+                <span class="label-text">{{
+                  t("admin.onlinePaymentsPage.defaultTaxCode")
+                }}</span>
+              </span>
+              <input
+                v-model="form.stripeDefaultTaxCode"
+                class="input input-bordered w-full"
+                placeholder="txcd_..."
+                autocomplete="off"
+                :disabled="form.provider !== 'stripe' || !form.stripeAutomaticTaxEnabled"
+              />
+            </label>
+          </div>
+        </div>
+
         <div
           class="rounded-xl border border-base-300 bg-base-200 p-4 text-sm space-y-2"
         >
@@ -190,6 +257,9 @@ interface SettingsData {
     stripePublishableKey: string;
     stripeSecretKey: string;
     stripeWebhookSecret: string;
+    stripeAutomaticTaxEnabled: boolean;
+    stripeDefaultTaxCode: string;
+    stripeDefaultTaxBehavior: "inclusive" | "exclusive";
   };
 }
 
@@ -205,6 +275,9 @@ const form = reactive({
   stripePublishableKey: "",
   stripeSecretKey: "",
   stripeWebhookSecret: "",
+  stripeAutomaticTaxEnabled: false,
+  stripeDefaultTaxCode: "",
+  stripeDefaultTaxBehavior: "inclusive" as "inclusive" | "exclusive",
 });
 
 watchEffect(() => {
@@ -216,6 +289,14 @@ watchEffect(() => {
   form.stripeSecretKey = data.value.onlinePayments?.stripeSecretKey || "";
   form.stripeWebhookSecret =
     data.value.onlinePayments?.stripeWebhookSecret || "";
+  form.stripeAutomaticTaxEnabled =
+    Boolean(data.value.onlinePayments?.stripeAutomaticTaxEnabled);
+  form.stripeDefaultTaxCode =
+    data.value.onlinePayments?.stripeDefaultTaxCode || "";
+  form.stripeDefaultTaxBehavior =
+    data.value.onlinePayments?.stripeDefaultTaxBehavior === "exclusive"
+      ? "exclusive"
+      : "inclusive";
 });
 
 const publicConfig = computed(() => {
@@ -243,6 +324,9 @@ const save = async () => {
           stripePublishableKey: form.stripePublishableKey.trim(),
           stripeSecretKey: form.stripeSecretKey.trim(),
           stripeWebhookSecret: form.stripeWebhookSecret.trim(),
+          stripeAutomaticTaxEnabled: form.stripeAutomaticTaxEnabled,
+          stripeDefaultTaxCode: form.stripeDefaultTaxCode.trim(),
+          stripeDefaultTaxBehavior: form.stripeDefaultTaxBehavior,
         },
       },
     });

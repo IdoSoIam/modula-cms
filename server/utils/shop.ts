@@ -12,6 +12,9 @@ export interface ProductPayload {
   description: string | null
   imageUrl: string | null
   price: number
+  vatRate: number
+  stripeTaxCode: string | null
+  stripeTaxBehavior: 'inclusive' | 'exclusive' | null
   stock: number
   unitLabel: string | null
   allowOfflinePayment: boolean
@@ -40,6 +43,9 @@ export interface ProductLotPayload {
   imageUrl: string | null
   kind: 'SINGLE' | 'LOT'
   price: number
+  vatRate: number
+  stripeTaxCode: string | null
+  stripeTaxBehavior: 'inclusive' | 'exclusive' | null
   stock: number
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
@@ -69,6 +75,27 @@ export interface ShopOrderPayload {
   email: string
   phone: string | null
   message: string | null
+  deliveryType: 'FARM' | 'PICKUP' | 'TOUR' | null
+  pickupPointId: number | null
+  deliveryTourId: number | null
+  deliveryAddress: string | null
+  deliveryCity: string | null
+  deliveryPostalCode: string | null
+  fulfillmentDate: string | null
+  fulfillmentTime: string | null
+  fulfillmentLocation: string | null
+  pickupPoint: {
+    id: number
+    name: string
+    address: string | null
+  } | null
+  deliveryTour: {
+    id: number
+    name: string
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+  } | null
   currency: string
   subtotal: number
   total: number
@@ -147,6 +174,9 @@ export function serializeProduct(row: any): ProductPayload {
     description: row.description ?? null,
     imageUrl: row.imageUrl ?? null,
     price: toNumber(row.price),
+    vatRate: toNumber(row.vatRate),
+    stripeTaxCode: row.stripeTaxCode?.trim() || null,
+    stripeTaxBehavior: row.stripeTaxBehavior === 'exclusive' ? 'exclusive' : row.stripeTaxBehavior === 'inclusive' ? 'inclusive' : null,
     stock: Math.max(0, Number(row.stock || 0)),
     unitLabel: row.unitLabel ?? null,
     allowOfflinePayment: toBoolean(row.allowOfflinePayment),
@@ -199,6 +229,9 @@ export function serializeProductLot(row: any): ProductLotPayload {
     imageUrl: row.imageUrl ?? null,
     kind: row.kind === 'SINGLE' ? 'SINGLE' : 'LOT',
     price: toNumber(row.price),
+    vatRate: toNumber(row.vatRate),
+    stripeTaxCode: row.stripeTaxCode?.trim() || null,
+    stripeTaxBehavior: row.stripeTaxBehavior === 'exclusive' ? 'exclusive' : row.stripeTaxBehavior === 'inclusive' ? 'inclusive' : null,
     stock: computeProductLotStock(row),
     allowOfflinePayment,
     allowOnlinePayment,
@@ -227,6 +260,33 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
     email: String(row.email),
     phone: row.phone ?? null,
     message: row.message ?? null,
+    deliveryType: row.deliveryType === 'PICKUP' || row.deliveryType === 'TOUR' || row.deliveryType === 'FARM'
+      ? row.deliveryType
+      : null,
+    pickupPointId: row.pickupPointId == null ? null : Number(row.pickupPointId),
+    deliveryTourId: row.deliveryTourId == null ? null : Number(row.deliveryTourId),
+    deliveryAddress: row.deliveryAddress ?? null,
+    deliveryCity: row.deliveryCity ?? null,
+    deliveryPostalCode: row.deliveryPostalCode ?? null,
+    fulfillmentDate: row.fulfillmentDate ? new Date(row.fulfillmentDate).toISOString() : null,
+    fulfillmentTime: row.fulfillmentTime ?? null,
+    fulfillmentLocation: row.fulfillmentLocation ?? null,
+    pickupPoint: row.pickupPoint
+      ? {
+          id: Number(row.pickupPoint.id),
+          name: String(row.pickupPoint.name),
+          address: row.pickupPoint.address ?? null
+        }
+      : null,
+    deliveryTour: row.deliveryTour
+      ? {
+          id: Number(row.deliveryTour.id),
+          name: String(row.deliveryTour.name),
+          dayOfWeek: Number(row.deliveryTour.dayOfWeek || 0),
+          startTime: String(row.deliveryTour.startTime || ''),
+          endTime: String(row.deliveryTour.endTime || '')
+        }
+      : null,
     currency: String(row.currency || 'eur'),
     subtotal: toNumber(row.subtotal),
     total: toNumber(row.total),

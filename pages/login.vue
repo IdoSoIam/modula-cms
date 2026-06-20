@@ -18,7 +18,7 @@
 const router = useRouter()
 const localePath = useLocalePath()
 
-useNoIndexSeo('Connexion', 'Accès réservé aux comptes autorisés de la ferme.')
+useNoIndexSeo('Connexion', 'Accès réservé aux comptes autorisés du site.')
 
 const handleSuccess = async () => {
   await router.push(localePath('/profile'))

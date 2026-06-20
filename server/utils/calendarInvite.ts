@@ -153,7 +153,7 @@ export function buildReservationIcs(options: {
 
   const lines = [
     'BEGIN:VCALENDAR',
-    'PRODID:-//Ferme du Campeyrigoux//Reservations//FR',
+    'PRODID:-//ModulaCMS//Reservations//FR',
     'VERSION:2.0',
     'CALSCALE:GREGORIAN',
     `METHOD:${options.method}`,
@@ -172,7 +172,7 @@ export function buildReservationIcs(options: {
     `SEQUENCE:${sequence}`,
     ...(options.subscriptionsEnabled && options.reservation.monthlySubscription && !options.singleOccurrence ? ['RRULE:FREQ=WEEKLY;INTERVAL=1'] : []),
     ...(options.manageUrl ? [`URL:${escapeIcs(options.manageUrl)}`] : []),
-    `ORGANIZER;CN=${escapeIcs(options.organizerName ?? 'Ferme du Campeyrigoux')}:mailto:${options.organizerEmail}`,
+    `ORGANIZER;CN=${escapeIcs(options.organizerName ?? 'Le site')}:mailto:${options.organizerEmail}`,
     `ATTENDEE;CN=${escapeIcs(options.reservation.customerName)};CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${options.reservation.email}`,
     'END:VEVENT',
     'END:VCALENDAR'

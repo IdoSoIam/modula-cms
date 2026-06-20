@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
 
   await sendGmail({
     to: reservationNotificationEmail,
-    subject: '[Test email] Configuration de la ferme',
+    subject: '[Test email] Configuration du site',
     body,
     htmlBody: await buildGenericEmail({
       title: 'Test email',

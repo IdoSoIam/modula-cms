@@ -99,6 +99,19 @@
 
     <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5">
       <div>
+        <h2 class="text-xl font-semibold">{{ t('admin.settingsGlobalPage.shopTitle') }}</h2>
+        <p class="mt-1 text-sm opacity-70">{{ t('admin.settingsGlobalPage.shopDescription') }}</p>
+      </div>
+
+      <label class="form-control flex flex-col gap-2 max-w-xs">
+        <span class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.defaultVatRate') }}</span></span>
+        <input v-model.number="shopDefaultVatRate" type="number" min="0" max="100" step="0.01" class="input input-bordered w-full" />
+        <span class="text-xs opacity-70">{{ t('admin.settingsGlobalPage.defaultVatRateHelp') }}</span>
+      </label>
+    </section>
+
+    <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5">
+      <div>
         <h2 class="text-xl font-semibold">{{ t('admin.settingsGlobalPage.cookieConsent.title') }}</h2>
         <p class="mt-1 text-sm opacity-70">
           {{ t('admin.settingsGlobalPage.cookieConsent.description') }}
@@ -222,6 +235,7 @@ const { data: settingsData } = await useFetch<{
   }
   contactEmail: string
   adminPhone: string
+  shopDefaultVatRate: number
 }>('/api/admin/settings')
 
 if (!data.value) {
@@ -234,6 +248,7 @@ if (!data.value) {
 const model = reactive<SiteShellModel>(structuredClone(data.value))
 const publicPhone = ref(settingsData.value?.adminPhone ?? '')
 const contactEmail = ref(settingsData.value?.contactEmail ?? '')
+const shopDefaultVatRate = ref(Number(settingsData.value?.shopDefaultVatRate ?? 20))
 const farmOpening = reactive({
   address: settingsData.value?.farmPickup.address ?? '',
   dayOfWeek: settingsData.value?.farmPickup.dayOfWeek ?? 5,
@@ -249,6 +264,7 @@ watchEffect(() => {
   farmOpening.endTime = settingsData.value.farmPickup.endTime
   publicPhone.value = settingsData.value.adminPhone
   contactEmail.value = settingsData.value.contactEmail
+  shopDefaultVatRate.value = Number(settingsData.value.shopDefaultVatRate ?? 20)
 })
 
 const dayLabels = [
@@ -300,6 +316,7 @@ const save = async () => {
         body: {
           contactEmail: contactEmail.value,
           adminPhone: publicPhone.value,
+          shopDefaultVatRate: shopDefaultVatRate.value,
           farmPickupAddress: farmOpening.address,
           farmPickupDayOfWeek: farmOpening.dayOfWeek,
           farmPickupStartTime: farmOpening.startTime,

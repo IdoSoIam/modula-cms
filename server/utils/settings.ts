@@ -48,6 +48,10 @@ export const SETTING_KEYS = {
   STRIPE_PUBLISHABLE_KEY: 'stripe_publishable_key',
   STRIPE_SECRET_KEY: 'stripe_secret_key',
   STRIPE_WEBHOOK_SECRET: 'stripe_webhook_secret',
+  STRIPE_AUTOMATIC_TAX_ENABLED: 'stripe_automatic_tax_enabled',
+  STRIPE_DEFAULT_TAX_CODE: 'stripe_default_tax_code',
+  STRIPE_DEFAULT_TAX_BEHAVIOR: 'stripe_default_tax_behavior',
+  SHOP_DEFAULT_VAT_RATE: 'shop_default_vat_rate',
   GOOGLE_CALENDAR_ID: 'google_calendar_id',
   GOOGLE_CALENDAR_NAME: 'google_calendar_name',
   PAGE_BUILDER_CONTENT: 'home_page_content_v1',
@@ -171,7 +175,7 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
 }
 
 const DEFAULT_FARM_PICKUP_CONFIG: FarmPickupConfig = {
-  label: 'Retrait à la ferme',
+  label: 'Retrait sur place',
   address: cmsProjectConfig.site.defaultFarmPickupAddress,
   dayOfWeek: 5,
   startTime: '17:30',
@@ -219,9 +223,20 @@ function parseIntegerSetting(value: string | null | undefined, fallback: number)
   return Number.isInteger(parsed) ? parsed : fallback
 }
 
+function parseDecimalSetting(value: string | null | undefined, fallback: number) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+export function normalizeVatRate(value: unknown, fallback = 20) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.max(0, Math.min(100, Math.round(parsed * 100) / 100))
+}
+
 export const DEFAULT_TEMPLATES = {
   confirmed: {
-    subject: 'Votre réservation de panier est confirmée - Ferme du Campeyrigoux',
+    subject: 'Votre réservation de panier est confirmée - Le site',
     body: `Bonjour {{customerName}},
 
 Votre réservation pour le panier "{{basketName}}" est confirmée !
@@ -239,10 +254,10 @@ Le paiement se fait en espèces au retrait ou à la remise du panier.
 Si vous avez la moindre question, vous pouvez répondre à cet email.
 
 À bientôt,
-La Ferme du Campeyrigoux`
+L'équipe du site`
   },
   rejected: {
-    subject: 'Concernant votre réservation de panier - Ferme du Campeyrigoux',
+    subject: 'Concernant votre réservation de panier - Le site',
     body: `Bonjour {{customerName}},
 
 Nous sommes désolés, votre réservation pour le panier "{{basketName}}" n'a pas pu être confirmée.
@@ -251,10 +266,10 @@ Raison : {{adminNote}}
 
 N'hésitez pas à nous recontacter pour une prochaine réservation.
 
-La Ferme du Campeyrigoux`
+L'équipe du site`
   },
   cancelled: {
-    subject: 'Votre réservation a été annulée - Ferme du Campeyrigoux',
+    subject: 'Votre réservation a été annulée - Le site',
     body: `Bonjour {{customerName}},
 
 Votre réservation pour le panier "{{basketName}}" a été annulée.
@@ -263,7 +278,7 @@ Raison : {{adminNote}}
 
 Si besoin, vous pouvez nous contacter directement pour en discuter.
 
-La Ferme du Campeyrigoux`
+L'équipe du site`
   }
 }
 
@@ -350,12 +365,27 @@ export async function isSubscriptionsEnabled() {
 }
 
 export type PaymentProvider = 'stripe' | 'none'
+export type StripeTaxBehavior = 'inclusive' | 'exclusive'
 
 export interface OnlinePaymentsSettings {
   provider: PaymentProvider
   stripePublishableKey: string
   stripeSecretKey: string
   stripeWebhookSecret: string
+  stripeAutomaticTaxEnabled: boolean
+  stripeDefaultTaxCode: string
+  stripeDefaultTaxBehavior: StripeTaxBehavior
+}
+
+export function normalizeStripeTaxCode(value: unknown) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+export function normalizeStripeTaxBehavior(
+  value: unknown,
+  fallback: StripeTaxBehavior = 'inclusive'
+): StripeTaxBehavior {
+  return value === 'exclusive' ? 'exclusive' : value === 'inclusive' ? 'inclusive' : fallback
 }
 
 export async function getOnlinePaymentsSettings(): Promise<OnlinePaymentsSettings> {
@@ -363,14 +393,20 @@ export async function getOnlinePaymentsSettings(): Promise<OnlinePaymentsSetting
     SETTING_KEYS.PAYMENT_PROVIDER,
     SETTING_KEYS.STRIPE_PUBLISHABLE_KEY,
     SETTING_KEYS.STRIPE_SECRET_KEY,
-    SETTING_KEYS.STRIPE_WEBHOOK_SECRET
+    SETTING_KEYS.STRIPE_WEBHOOK_SECRET,
+    SETTING_KEYS.STRIPE_AUTOMATIC_TAX_ENABLED,
+    SETTING_KEYS.STRIPE_DEFAULT_TAX_CODE,
+    SETTING_KEYS.STRIPE_DEFAULT_TAX_BEHAVIOR
   ])
 
   return {
     provider: settings[SETTING_KEYS.PAYMENT_PROVIDER] === 'stripe' ? 'stripe' : 'none',
     stripePublishableKey: settings[SETTING_KEYS.STRIPE_PUBLISHABLE_KEY]?.trim() || '',
     stripeSecretKey: settings[SETTING_KEYS.STRIPE_SECRET_KEY]?.trim() || '',
-    stripeWebhookSecret: settings[SETTING_KEYS.STRIPE_WEBHOOK_SECRET]?.trim() || ''
+    stripeWebhookSecret: settings[SETTING_KEYS.STRIPE_WEBHOOK_SECRET]?.trim() || '',
+    stripeAutomaticTaxEnabled: parseBooleanSetting(settings[SETTING_KEYS.STRIPE_AUTOMATIC_TAX_ENABLED], false),
+    stripeDefaultTaxCode: normalizeStripeTaxCode(settings[SETTING_KEYS.STRIPE_DEFAULT_TAX_CODE]),
+    stripeDefaultTaxBehavior: normalizeStripeTaxBehavior(settings[SETTING_KEYS.STRIPE_DEFAULT_TAX_BEHAVIOR], 'inclusive')
   }
 }
 
@@ -379,6 +415,18 @@ export async function saveOnlinePaymentsSettings(settings: OnlinePaymentsSetting
   await setSetting(SETTING_KEYS.STRIPE_PUBLISHABLE_KEY, settings.stripePublishableKey.trim())
   await setSetting(SETTING_KEYS.STRIPE_SECRET_KEY, settings.stripeSecretKey.trim())
   await setSetting(SETTING_KEYS.STRIPE_WEBHOOK_SECRET, settings.stripeWebhookSecret.trim())
+  await setSetting(SETTING_KEYS.STRIPE_AUTOMATIC_TAX_ENABLED, settings.stripeAutomaticTaxEnabled ? 'true' : 'false')
+  await setSetting(SETTING_KEYS.STRIPE_DEFAULT_TAX_CODE, normalizeStripeTaxCode(settings.stripeDefaultTaxCode))
+  await setSetting(SETTING_KEYS.STRIPE_DEFAULT_TAX_BEHAVIOR, normalizeStripeTaxBehavior(settings.stripeDefaultTaxBehavior))
+}
+
+export async function getShopDefaultVatRate() {
+  const raw = await getSetting(SETTING_KEYS.SHOP_DEFAULT_VAT_RATE)
+  return normalizeVatRate(parseDecimalSetting(raw, 20), 20)
+}
+
+export async function saveShopDefaultVatRate(value: unknown) {
+  await setSetting(SETTING_KEYS.SHOP_DEFAULT_VAT_RATE, String(normalizeVatRate(value, 20)))
 }
 
 export interface EmailVisualTemplateConfig {

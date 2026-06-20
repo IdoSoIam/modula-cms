@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
   }
   if (reservation.deliveryType !== 'FARM') {
-    throw createError({ statusCode: 400, statusMessage: 'Cette action est réservée au retrait à la ferme' })
+    throw createError({ statusCode: 400, statusMessage: 'Cette action est réservée au Retrait sur place' })
   }
 
   const proposalDate = normalizeProposalDate(body.proposalDate)
@@ -63,14 +63,14 @@ export default defineEventHandler(async (event) => {
   if (reservationNotificationEmail) {
     const adminTemplate = await resolveTemplateFromSettings('admin_customer_proposed_slot', 'fr')
     const adminDraft = applyTemplateVars(adminTemplate, {
-      contextLine: `${reservation.customerName} a proposé un autre créneau pour son retrait à la ferme.`,
+      contextLine: `${reservation.customerName} a proposé un autre créneau pour son Retrait sur place.`,
       reservationId: String(reservation.id),
       basketName: reservation.basket.name,
       customerName: reservation.customerName,
       customerEmail: reservation.email,
       customerPhone: reservation.phone ?? '-',
       customerMessage: reservation.message ?? '-',
-      deliveryMethod: 'Retrait à la ferme',
+      deliveryMethod: 'Retrait sur place',
       fulfillmentDate: formatDateLabel(proposalDate, 'fr-FR'),
       fulfillmentTime: proposalTime,
       fulfillmentLocation: reservation.fulfillmentLocation ?? 'à confirmer',

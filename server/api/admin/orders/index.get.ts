@@ -15,7 +15,11 @@ export default defineEventHandler(async (event) => {
     db.shopOrder.count({ where }),
     db.shopOrder.findMany({
       where,
-      include: { lines: true },
+      include: {
+        lines: true,
+        pickupPoint: true,
+        deliveryTour: true
+      },
       orderBy: [{ createdAt: 'desc' }],
       take: limit,
       skip

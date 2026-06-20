@@ -2,6 +2,7 @@ import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
 import { computePaymentModeCapabilities, ensureUniqueSlug, serializeProductLot } from '#modula/server/utils/shop'
+import { getShopDefaultVatRate, normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate } from '#modula/server/utils/settings'
 
 interface Body {
   name: string
@@ -12,6 +13,9 @@ interface Body {
   imageUrl?: string | null
   kind?: 'SINGLE' | 'LOT'
   price?: number
+  vatRate?: number
+  stripeTaxCode?: string | null
+  stripeTaxBehavior?: 'inclusive' | 'exclusive' | null
   allowOfflinePayment?: boolean
   allowOnlinePayment?: boolean
   active?: boolean
@@ -31,10 +35,19 @@ export default defineEventHandler(async (event) => {
   }
 
   const price = Number(body.price ?? 0)
+  const shopDefaultVatRate = await getShopDefaultVatRate()
+  const vatRate = normalizeVatRate(body.vatRate ?? shopDefaultVatRate, shopDefaultVatRate)
+  const stripeTaxCode = normalizeStripeTaxCode(body.stripeTaxCode)
+  const stripeTaxBehavior = body.stripeTaxBehavior == null
+    ? null
+    : normalizeStripeTaxBehavior(body.stripeTaxBehavior, 'inclusive')
   const allowOfflinePayment = body.allowOfflinePayment ?? true
   const allowOnlinePayment = body.allowOnlinePayment ?? false
   if (!Number.isFinite(price) || price < 0) {
     throw createError({ statusCode: 400, statusMessage: 'Prix invalide' })
+  }
+  if (!Number.isFinite(vatRate) || vatRate < 0 || vatRate > 100) {
+    throw createError({ statusCode: 400, statusMessage: 'Taux de TVA invalide' })
   }
   if (!allowOfflinePayment && !allowOnlinePayment) {
     throw createError({ statusCode: 400, statusMessage: 'Au moins un mode de paiement doit être activé' })
@@ -73,6 +86,9 @@ export default defineEventHandler(async (event) => {
       imageUrl: body.imageUrl || null,
       kind,
       price,
+      vatRate,
+      stripeTaxCode: stripeTaxCode || null,
+      stripeTaxBehavior,
       allowOfflinePayment: normalizedAllowOfflinePayment,
       allowOnlinePayment: normalizedAllowOnlinePayment,
       active: body.active ?? true,

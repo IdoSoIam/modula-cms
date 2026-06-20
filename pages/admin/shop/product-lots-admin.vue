@@ -53,6 +53,14 @@
               <div class="opacity-60">{{ t('admin.basketsPage.finalPrice') }}</div>
               <div class="font-medium text-primary">{{ $formatPrice(lot.price) }}</div>
             </div>
+            <div>
+              <div class="opacity-60">{{ t('admin.basketsPage.fieldVatRate') }}</div>
+              <div class="font-medium">{{ formatVatRate(lot.vatRate) }}</div>
+            </div>
+            <div>
+              <div class="opacity-60">{{ t('admin.basketsPage.fieldTaxBehavior') }}</div>
+              <div class="font-medium">{{ formatTaxBehavior(lot.stripeTaxBehavior) }}</div>
+            </div>
           </div>
 
           <div class="mt-3 flex flex-wrap gap-2">
@@ -139,6 +147,22 @@
             <input v-model.number="editing.price" type="number" min="0" step="0.01" class="input input-bordered" />
           </div>
           <div class="form-control flex flex-col gap-3">
+            <label class="label"><span class="label-text">{{ t('admin.basketsPage.fieldVatRate') }}</span></label>
+            <input v-model.number="editing.vatRate" type="number" min="0" max="100" step="0.01" class="input input-bordered" />
+          </div>
+          <div class="form-control flex flex-col gap-3">
+            <label class="label"><span class="label-text">{{ t('admin.basketsPage.fieldTaxBehavior') }}</span></label>
+            <select v-model="editing.stripeTaxBehavior" class="select select-bordered">
+              <option :value="''">{{ t('admin.basketsPage.taxBehaviorDefault') }}</option>
+              <option value="inclusive">{{ t('admin.basketsPage.taxBehaviorInclusive') }}</option>
+              <option value="exclusive">{{ t('admin.basketsPage.taxBehaviorExclusive') }}</option>
+            </select>
+          </div>
+          <div class="form-control flex flex-col gap-3">
+            <label class="label"><span class="label-text">{{ t('admin.basketsPage.fieldTaxCode') }}</span></label>
+            <input v-model="editing.stripeTaxCode" class="input input-bordered" placeholder="txcd_..." />
+          </div>
+          <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ t('admin.basketsPage.fieldPosition') }}</span></label>
             <input v-model.number="editing.position" type="number" min="0" step="1" class="input input-bordered" />
           </div>
@@ -217,6 +241,9 @@ interface Product {
   id: number
   name: string
   price: number
+  vatRate: number
+  stripeTaxCode: string | null
+  stripeTaxBehavior: 'inclusive' | 'exclusive' | null
   stock: number
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
@@ -240,6 +267,7 @@ interface ProductLot {
   imageUrl: string | null
   kind: 'SINGLE' | 'LOT'
   price: number
+  vatRate: number
   stock: number
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
@@ -257,11 +285,20 @@ interface ProductCategory {
 const { data: productLots, pending, refresh } = await useFetch<ProductLot[]>('/api/admin/product-lots')
 const { data: products } = await useFetch<Product[]>('/api/admin/products')
 const { data: categories } = await useFetch<ProductCategory[]>('/api/admin/product-categories')
+const { data: settingsData } = await useFetch<{ shopDefaultVatRate: number }>('/api/admin/settings')
 
 const dlg = ref<HTMLDialogElement>()
 const saving = ref(false)
 const { t } = useI18n()
 const { $toast, $formatPrice } = useNuxtApp() as any
+const defaultVatRate = computed(() => Number(settingsData.value?.shopDefaultVatRate ?? 20))
+const formatVatRate = (value: number) => `${Number(value || 0).toFixed(2)}%`
+const formatTaxBehavior = (value: ProductLot['stripeTaxBehavior']) =>
+  value === 'exclusive'
+    ? t('admin.basketsPage.taxBehaviorExclusive')
+    : value === 'inclusive'
+      ? t('admin.basketsPage.taxBehaviorInclusive')
+      : t('admin.basketsPage.taxBehaviorDefault')
 
 const editing = reactive<{
   id?: number
@@ -273,6 +310,9 @@ const editing = reactive<{
   imageUrl: string
   kind: 'SINGLE' | 'LOT'
   price: number
+  vatRate: number
+  stripeTaxCode: string
+  stripeTaxBehavior: 'inclusive' | 'exclusive' | null
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
   active: boolean
@@ -288,6 +328,9 @@ const editing = reactive<{
   imageUrl: '',
   kind: 'LOT',
   price: 0,
+  vatRate: defaultVatRate.value,
+  stripeTaxCode: '',
+  stripeTaxBehavior: null,
   allowOfflinePayment: true,
   allowOnlinePayment: false,
   active: true,
@@ -306,6 +349,9 @@ const resetEditing = () => {
     imageUrl: '',
     kind: 'LOT',
     price: 0,
+    vatRate: defaultVatRate.value,
+    stripeTaxCode: '',
+    stripeTaxBehavior: null,
     allowOfflinePayment: true,
     allowOnlinePayment: false,
     active: true,
@@ -392,6 +438,9 @@ const openEdit = (lot: ProductLot) => {
     imageUrl: lot.imageUrl || '',
     kind: lot.kind,
     price: lot.price,
+    vatRate: lot.vatRate,
+    stripeTaxCode: lot.stripeTaxCode || '',
+    stripeTaxBehavior: lot.stripeTaxBehavior,
     allowOfflinePayment: lot.allowOfflinePayment,
     allowOnlinePayment: lot.allowOnlinePayment,
     active: lot.active,
@@ -425,6 +474,9 @@ const save = async () => {
       imageUrl: editing.imageUrl,
       kind: editing.kind,
       price: editing.price,
+      vatRate: editing.vatRate,
+      stripeTaxCode: editing.stripeTaxCode?.trim() || null,
+      stripeTaxBehavior: editing.stripeTaxBehavior || null,
       allowOfflinePayment: editing.allowOfflinePayment,
       allowOnlinePayment: editing.allowOnlinePayment,
       active: editing.active,

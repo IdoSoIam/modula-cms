@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
 
   if (body.decision === 'CONFIRMED' && body.scheduleMode === 'PROPOSE') {
     if (reservation.deliveryType !== 'FARM') {
-      throw createError({ statusCode: 400, statusMessage: 'Les contre-propositions sont réservées au retrait à la ferme' })
+      throw createError({ statusCode: 400, statusMessage: 'Les contre-propositions sont réservées au Retrait sur place' })
     }
     if (!requestedDate || !requestedTime) {
       throw createError({ statusCode: 400, statusMessage: 'Date et heure requises pour une contre-proposition' })

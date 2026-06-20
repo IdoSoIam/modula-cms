@@ -250,10 +250,10 @@ We will get back to you as soon as possible.`
   },
   user_invitation: {
     fr: {
-      subject: 'Activez votre compte - Ferme du Campeyrigoux',
+      subject: 'Activez votre compte - Le site',
       body: `Bonjour {{recipientName}},
 
-Un compte a été créé pour vous sur le site de la Ferme du Campeyrigoux.
+Un compte a été créé pour vous sur ce site.
 
 Pour choisir votre mot de passe et activer votre compte, utilisez ce lien :
 {{passwordSetupUrl}}
@@ -261,10 +261,10 @@ Pour choisir votre mot de passe et activer votre compte, utilisez ce lien :
 Ce lien expire le {{expiresAt}}.`
     },
     en: {
-      subject: 'Activate your account - Ferme du Campeyrigoux',
+      subject: 'Activate your account - The website',
       body: `Hello {{recipientName}},
 
-An account has been created for you on the Ferme du Campeyrigoux website.
+An account has been created for you on this website.
 
 To choose your password and activate your account, use this link:
 {{passwordSetupUrl}}

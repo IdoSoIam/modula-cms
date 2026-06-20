@@ -26,7 +26,11 @@ export default defineEventHandler(async (event) => {
   const row = await db.shopOrder.update({
     where: { id },
     data,
-    include: { lines: true }
+    include: {
+      lines: true,
+      pickupPoint: true,
+      deliveryTour: true
+    }
   })
 
   return serializeShopOrder(row)

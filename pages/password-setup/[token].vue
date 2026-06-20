@@ -8,7 +8,7 @@
               <div class="badge badge-primary badge-outline mb-3">Invitation</div>
               <h1 class="text-3xl font-bold">Définir votre mot de passe</h1>
               <p class="mt-2 max-w-2xl text-sm opacity-70">
-                Choisissez un mot de passe pour activer votre accès à l’espace de la ferme.
+                Choisissez un mot de passe pour activer votre accès à l’espace du site.
               </p>
               <p v-if="invitation?.email" class="mt-3 text-sm">
                 Compte invité : <span class="font-semibold">{{ invitation.email }}</span>

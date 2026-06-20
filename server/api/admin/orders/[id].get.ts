@@ -11,7 +11,11 @@ export default defineEventHandler(async (event) => {
 
   const row = await db.shopOrder.findUnique({
     where: { id },
-    include: { lines: true }
+    include: {
+      lines: true,
+      pickupPoint: true,
+      deliveryTour: true
+    }
   })
 
   if (!row) {

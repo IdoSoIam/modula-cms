@@ -105,10 +105,27 @@
             </div>
             <div class="rounded-xl bg-base-200 p-4">
               <div class="font-medium">{{ t('admin.ordersPage.checkoutDetails') }}</div>
-              <div class="mt-2 text-sm space-y-1">
+              <div class="mt-2 space-y-1 text-sm">
                 <div>{{ t('admin.ordersPage.total') }}: <strong>{{ $formatPrice(details.total) }}</strong></div>
                 <div>{{ t('admin.ordersPage.providerLabel') }}: <strong>{{ details.paymentProvider }}</strong></div>
                 <div v-if="details.stripeCheckoutSessionId">Stripe: <code>{{ details.stripeCheckoutSessionId }}</code></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-xl bg-base-200 p-4">
+            <div class="font-medium">{{ t('admin.ordersPage.deliveryTitle') }}</div>
+            <div class="mt-2 space-y-1 text-sm">
+              <div>{{ t('admin.ordersPage.deliveryTypeLabel') }}: <strong>{{ deliveryTypeLabel(details.deliveryType) }}</strong></div>
+              <div v-if="details.pickupPoint">{{ t('admin.ordersPage.pickupPointLabel') }}: <strong>{{ details.pickupPoint.name }}</strong></div>
+              <div v-if="details.deliveryTour">{{ t('admin.ordersPage.tourLabel') }}: <strong>{{ details.deliveryTour.name }}</strong></div>
+              <div v-if="deliveryAddressLine(details)">
+                {{ t('admin.ordersPage.deliveryAddressLabel') }}: <strong>{{ deliveryAddressLine(details) }}</strong>
+              </div>
+              <div v-if="details.fulfillmentLocation">{{ t('admin.ordersPage.fulfillmentLabel') }}: <strong>{{ details.fulfillmentLocation }}</strong></div>
+              <div v-if="details.fulfillmentDate || details.fulfillmentTime">
+                {{ t('admin.ordersPage.deliveryDateLabel') }}:
+                <strong>{{ [details.fulfillmentDate ? $formatDate(details.fulfillmentDate) : '', details.fulfillmentTime || ''].filter(Boolean).join(' · ') }}</strong>
               </div>
             </div>
           </div>
@@ -189,6 +206,15 @@ interface ShopOrder {
   email: string
   phone: string | null
   message: string | null
+  deliveryType: 'FARM' | 'PICKUP' | 'TOUR' | null
+  deliveryAddress: string | null
+  deliveryCity: string | null
+  deliveryPostalCode: string | null
+  fulfillmentDate: string | null
+  fulfillmentTime: string | null
+  fulfillmentLocation: string | null
+  pickupPoint: { id: number, name: string, address: string | null } | null
+  deliveryTour: { id: number, name: string, dayOfWeek: number, startTime: string, endTime: string } | null
   total: number
   createdAt: string
   lines: ShopOrderLine[]
@@ -258,6 +284,15 @@ const paymentBadgeClass = (status: ShopOrder['paymentStatus']) => ({
   FAILED: 'badge-error',
   REFUNDED: 'badge-info'
 }[status] || 'badge-ghost')
+
+const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => ({
+  FARM: t('admin.ordersPage.deliveryTypeFarm'),
+  PICKUP: t('admin.ordersPage.deliveryTypePickup'),
+  TOUR: t('admin.ordersPage.deliveryTypeTour')
+}[value || ''] || '-')
+
+const deliveryAddressLine = (order: ShopOrder) =>
+  [order.deliveryAddress, [order.deliveryPostalCode, order.deliveryCity].filter(Boolean).join(' ')].filter(Boolean).join(', ')
 
 const openDetails = async (id: number) => {
   loadingDetails.value = true

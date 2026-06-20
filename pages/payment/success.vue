@@ -16,6 +16,11 @@
         <div class="mt-1 break-all opacity-80">{{ sessionId }}</div>
       </div>
 
+      <div v-if="orderId" class="mt-4 rounded-2xl border border-base-300 bg-base-200/70 p-4 text-sm">
+        <div class="font-medium">Commande</div>
+        <div class="mt-1 opacity-80">#{{ orderId }}</div>
+      </div>
+
       <div class="mt-8 flex flex-wrap gap-3">
         <NuxtLink to="/" class="btn btn-primary">Retour au site</NuxtLink>
         <NuxtLink to="/profile" class="btn btn-outline">Mon espace</NuxtLink>
@@ -26,7 +31,13 @@
 
 <script setup lang="ts">
 const route = useRoute()
+const { clear } = useShopCart()
+const orderId = computed(() => typeof route.query.order === 'string' ? route.query.order : '')
 const sessionId = computed(() => typeof route.query.session_id === 'string' ? route.query.session_id : '')
+
+onMounted(() => {
+  clear()
+})
 
 usePageSeo({
   title: 'Paiement confirmé',
