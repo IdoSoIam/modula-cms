@@ -9,7 +9,7 @@
             </div>
             <h1 class="text-4xl font-black tracking-tight">{{ $t('profile.title') }}</h1>
             <p class="mt-3 max-w-2xl opacity-70">
-              {{ authStore.isAdmin ? 'Gérez vos informations de connexion administrateur et la sécurité du compte.' : 'Retrouvez vos informations personnelles, votre adresse de livraison et la sécurité de votre compte.' }}
+              {{ authStore.isAdmin ? 'Gérez vos informations de connexion administrateur et la sécurité du compte.' : 'Retrouvez vos informations personnelles, vos commandes et la sécurité de votre compte.' }}
             </p>
           </div>
 
@@ -45,6 +45,14 @@
           @click="activeTab = 'shipping'"
         >
           {{ $t('profile.shippingAddress') }}
+        </button>
+        <button
+          v-if="showOrdersTab"
+          class="btn rounded-full"
+          :class="activeTab === 'orders' ? 'btn-primary' : 'btn-ghost border border-base-300'"
+          @click="activeTab = 'orders'"
+        >
+          {{ $t('auth.orders') }}
         </button>
         <button
           class="btn rounded-full"
@@ -255,6 +263,12 @@
         </div>
       </div>
 
+      <ProfileOrdersPanel
+        v-if="showOrdersTab && activeTab === 'orders'"
+        :active="activeTab === 'orders'"
+        :initial-order-id="initialOrderId"
+      />
+
       <div v-if="activeTab === 'security'" class="space-y-6">
         <div class="card border border-base-300 bg-base-100 shadow-xl">
           <div class="card-body">
@@ -348,7 +362,7 @@
         <h3 class="font-bold text-lg text-error">{{ $t('profile.deleteAccount') }}</h3>
         <p class="py-4">{{ $t('profile.deleteAccountWarning') }}</p>
         
-        <div class="form-control gap-3 flex py-4">
+        <div class="form-control gap-3 flex py-4 flex-col">
           <label class="label">
             <span class="label-text">{{ $t('profile.enterPasswordToDelete') }}</span>
           </label>
@@ -360,7 +374,7 @@
           />
         </div>
 
-        <div class="form-control gap-3 flex py-4">
+        <div class="form-control gap-3 flex py-4 flex-col">
           <label class="label">
             <span class="label-text">{{ $t('profile.deleteAccountConfirm') }}</span>
           </label>
@@ -397,13 +411,23 @@ definePageMeta({
 })
 
 const localePath = useLocalePath()
+const route = useRoute()
 const authStore = useAuthStore()
 const { $toast } = useNuxtApp() as any
 
 useNoIndexSeo('Mon compte', 'Espace personnel réservé aux clients connectés.')
 
 // State
-const activeTab = ref<'personal' | 'shipping' | 'security'>('personal')
+type ProfileTab = 'personal' | 'shipping' | 'orders' | 'security'
+
+const normalizeTab = (value: unknown): ProfileTab => {
+  if (value === 'shipping') return 'shipping'
+  if (value === 'orders') return 'orders'
+  if (value === 'security') return 'security'
+  return 'personal'
+}
+
+const activeTab = ref<ProfileTab>(normalizeTab(route.query.tab))
 const isEditingPersonal = ref(false)
 const isEditingShipping = ref(false)
 const isUpdatingPersonal = ref(false)
@@ -440,6 +464,13 @@ const deleteForm = reactive({
 })
 
 const showShippingTab = computed(() => !authStore.isAdmin)
+const siteConfig = useSiteConfigState()
+const showOrdersTab = computed(() => !authStore.isAdmin && siteConfig.value?.featureFlags?.shop?.enabled === true)
+const initialOrderId = computed(() => {
+  const raw = route.query.order
+  const value = typeof raw === 'string' ? Number(raw) : NaN
+  return Number.isFinite(value) && value > 0 ? value : null
+})
 
 const canDelete = computed(() => {
   return deleteForm.password && deleteForm.confirmText === 'DELETE_MY_ACCOUNT'
@@ -480,6 +511,12 @@ watch(() => authStore.user, (user) => {
 
 watch(showShippingTab, (visible) => {
   if (!visible && activeTab.value === 'shipping') {
+    activeTab.value = 'personal'
+  }
+}, { immediate: true })
+
+watch(showOrdersTab, (visible) => {
+  if (!visible && activeTab.value === 'orders') {
     activeTab.value = 'personal'
   }
 }, { immediate: true })

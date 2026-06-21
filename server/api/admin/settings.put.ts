@@ -55,11 +55,23 @@ interface Body {
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const body = await readBody<Body>(event)
+  const resolvedInDevelopment = typeof body.inDevelopment === 'boolean'
+    ? body.inDevelopment
+    : body.featureFlags?.inDevelopment ?? false
+  const resolvedRegisterEnabled = typeof body.registerEnabled === 'boolean'
+    ? body.registerEnabled
+    : body.featureFlags?.registerEnabled ?? false
+  const resolvedSubscriptionsEnabled = typeof body.subscriptionsEnabled === 'boolean'
+    ? body.subscriptionsEnabled
+    : body.featureFlags?.subscriptionsEnabled ?? false
+  const resolvedOnlinePaymentsEnabled = typeof body.onlinePaymentsEnabled === 'boolean'
+    ? body.onlinePaymentsEnabled
+    : body.featureFlags?.onlinePaymentsEnabled ?? true
   const featureFlags = normalizeFeatureFlags({
-    inDevelopment: body.featureFlags?.inDevelopment ?? body.inDevelopment ?? false,
-    registerEnabled: body.featureFlags?.registerEnabled ?? body.registerEnabled ?? false,
-    subscriptionsEnabled: body.featureFlags?.subscriptionsEnabled ?? body.subscriptionsEnabled ?? false,
-    onlinePaymentsEnabled: body.featureFlags?.onlinePaymentsEnabled ?? body.onlinePaymentsEnabled ?? true,
+    inDevelopment: resolvedInDevelopment,
+    registerEnabled: resolvedRegisterEnabled,
+    subscriptionsEnabled: resolvedSubscriptionsEnabled,
+    onlinePaymentsEnabled: resolvedOnlinePaymentsEnabled,
     shop: {
       enabled: body.featureFlags?.shop?.enabled ?? false,
       basketsEnabled: body.featureFlags?.shop?.basketsEnabled ?? false,

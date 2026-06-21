@@ -499,11 +499,17 @@ async function submitOrder() {
 
   savingOrder.value = true
   try {
-    const response = await $fetch<{ redirectUrl?: string | null }>('/api/shop/orders', {
+    const response = await $fetch<{
+      redirectUrl?: string | null
+      accountProvisioning?: {
+        invitationSent?: boolean
+      }
+    }>('/api/shop/orders', {
       method: 'POST',
       body: {
         customerName: checkoutForm.value.customerName,
         email: checkoutForm.value.email,
+        language: locale.value,
         phone: checkoutForm.value.phone,
         message: checkoutForm.value.message,
         paymentMode: checkoutForm.value.paymentMode,
@@ -529,6 +535,11 @@ async function submitOrder() {
 
     clear()
     resetCheckoutForm()
+    if (response.accountProvisioning?.invitationSent) {
+      $toast.info(locale.value === 'en'
+        ? 'An email was sent so you can activate your account and track this order later.'
+        : 'Un email vous a Ã©tÃ© envoyÃ© pour activer votre compte et retrouver cette commande plus tard.')
+    }
     $toast.success(locale.value === 'en' ? 'Order sent successfully.' : 'Commande envoyée avec succès.')
   } catch (error: any) {
     $toast.error(error?.statusMessage || error?.data?.statusMessage || (locale.value === 'en' ? 'Unable to create order.' : 'Impossible de créer la commande.'))

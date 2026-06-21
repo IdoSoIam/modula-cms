@@ -67,10 +67,15 @@ export interface PaymentModeCapabilities {
 export interface ShopOrderPayload {
   id: number
   orderNumber: string
+  language: string
   status: 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED'
   paymentProvider: 'OFFLINE' | 'STRIPE'
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
   stripeCheckoutSessionId: string | null
+  stripePaymentIntentId: string | null
+  stripePaymentIntentStatus: string | null
+  stripeLastEventId: string | null
+  paymentFailureReason: string | null
   customerName: string
   email: string
   phone: string | null
@@ -101,6 +106,7 @@ export interface ShopOrderPayload {
   total: number
   checkoutUrl: string | null
   paidAt: string | null
+  refundedAt: string | null
   cancelledAt: string | null
   createdAt: string
   updatedAt: string
@@ -252,10 +258,15 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
   return {
     id: Number(row.id),
     orderNumber: String(row.orderNumber),
+    language: typeof row.language === 'string' && row.language.trim() ? row.language : 'fr',
     status: row.status,
     paymentProvider: row.paymentProvider,
     paymentStatus: row.paymentStatus,
     stripeCheckoutSessionId: row.stripeCheckoutSessionId ?? null,
+    stripePaymentIntentId: row.stripePaymentIntentId ?? null,
+    stripePaymentIntentStatus: row.stripePaymentIntentStatus ?? null,
+    stripeLastEventId: row.stripeLastEventId ?? null,
+    paymentFailureReason: row.paymentFailureReason ?? null,
     customerName: String(row.customerName),
     email: String(row.email),
     phone: row.phone ?? null,
@@ -292,6 +303,7 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
     total: toNumber(row.total),
     checkoutUrl: row.checkoutUrl ?? null,
     paidAt: row.paidAt ?? null,
+    refundedAt: row.refundedAt ?? null,
     cancelledAt: row.cancelledAt ?? null,
     createdAt: new Date(row.createdAt).toISOString(),
     updatedAt: new Date(row.updatedAt).toISOString(),

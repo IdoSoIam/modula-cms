@@ -267,6 +267,27 @@ watch(
   },
 );
 
+watch(
+  () => form.inDevelopment,
+  (enabled) => {
+    form.featureFlags.inDevelopment = enabled;
+  },
+);
+
+watch(
+  () => form.registerEnabled,
+  (enabled) => {
+    form.featureFlags.registerEnabled = enabled;
+  },
+);
+
+watch(
+  () => form.subscriptionsEnabled,
+  (enabled) => {
+    form.featureFlags.subscriptionsEnabled = enabled;
+  },
+);
+
 const save = async () => {
   saving.value = true;
   try {
@@ -279,6 +300,9 @@ const save = async () => {
         onlinePaymentsEnabled: form.onlinePaymentsEnabled,
         featureFlags: {
           ...form.featureFlags,
+          inDevelopment: form.inDevelopment,
+          registerEnabled: form.registerEnabled,
+          subscriptionsEnabled: form.subscriptionsEnabled,
           onlinePaymentsEnabled: form.onlinePaymentsEnabled,
         },
       },

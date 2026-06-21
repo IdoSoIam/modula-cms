@@ -118,10 +118,14 @@
         </div>
         <div class="space-y-2">
           <template v-if="!authStore.isAuthenticated">
-            <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="showAuthModal = true">
+            <NuxtLink :to="localePath('/login')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:login" size="18" class="shrink-0" />
               <span>{{ t('auth.login') }}</span>
-            </button>
+            </NuxtLink>
+            <NuxtLink v-if="registerEnabled" :to="localePath('/register')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
+              <Icon name="mdi:account-multiple-outline" size="18" class="shrink-0" />
+              <span>{{ t('auth.register') }}</span>
+            </NuxtLink>
           </template>
 
           <template v-else>
@@ -133,6 +137,11 @@
             <NuxtLink :to="localePath('/profile')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:account-outline" size="18" class="shrink-0" />
               <span>{{ t('auth.profile') }}</span>
+            </NuxtLink>
+
+            <NuxtLink v-if="shopEnabled && !authStore.isAdmin" :to="ordersProfileLink" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
+              <Icon name="mdi:invoice" size="18" class="shrink-0" />
+              <span>{{ t('auth.orders') }}</span>
             </NuxtLink>
 
             <NuxtLink v-if="authStore.canAccessAdmin" :to="localePath('/admin')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
@@ -149,17 +158,6 @@
       </section>
     </aside>
 
-    <dialog id="mobile_auth_modal" class="modal" :class="{ 'modal-open': showAuthModal }">
-      <div class="modal-box relative">
-        <button class="btn btn-sm btn-circle absolute right-2 top-2" @click="showAuthModal = false">
-          x
-        </button>
-        <AuthForm @success="onAuthSuccess" />
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button @click="showAuthModal = false">close</button>
-      </form>
-    </dialog>
   </div>
 </template>
 
@@ -199,6 +197,7 @@ const previewStatic = computed(() => props.previewStatic)
 const inDevelopment = computed(() => effectiveSiteConfig.value?.inDevelopment === true)
 const cms = computed(() => effectiveSiteConfig.value?.cms)
 const registerEnabled = computed(() => effectiveSiteConfig.value?.registerEnabled === true)
+const shopEnabled = computed(() => effectiveSiteConfig.value?.featureFlags?.shop?.enabled === true)
 const headerSettings = computed(() => cms.value?.settings.header ?? {
   heightPx: 84,
   logoHeightPx: 48,
@@ -228,8 +227,8 @@ const headerSettings = computed(() => cms.value?.settings.header ?? {
 })
 const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated) && headerSettings.value.showPrimaryNavigation)
 const openGroupKeys = ref<string[]>([])
-const showAuthModal = ref(false)
 const isHydrated = ref(false)
+const ordersProfileLink = computed(() => localePath({ path: '/profile', query: { tab: 'orders' } }))
 
 const siteName = computed(() => effectiveLocale.value === 'en'
   ? cms.value?.settings?.siteName?.en || 'Site name'
@@ -458,13 +457,6 @@ const handleLogout = async () => {
   $toast?.success(t('layout.logoutSuccess'))
   closeDrawer()
   await router.push(localePath('/'))
-}
-
-const onAuthSuccess = () => {
-  showAuthModal.value = false
-  const { $toast } = useNuxtApp() as any
-  $toast?.success(t('auth.loginSuccess'))
-  closeDrawer()
 }
 
 onMounted(() => {

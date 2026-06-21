@@ -29,6 +29,7 @@ export interface PaymentCheckoutSession {
   url: string | null;
   status: string | null;
   mode: string;
+  paymentIntentId: string | null;
 }
 
 interface PaymentRuntimeConfig {
@@ -127,21 +128,35 @@ export async function createStripeCheckoutSession(
     url: session.url,
     status: session.payment_status,
     mode: session.mode,
+    paymentIntentId:
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id || null,
   };
 }
 
 export async function retrieveStripeCheckoutSession(
   sessionId: string,
 ): Promise<PaymentCheckoutSession> {
-  const { stripe } = await createStripeClient();
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  const session = await retrieveStripeCheckoutSessionRaw(sessionId);
 
   return {
     id: session.id,
     url: session.url,
     status: session.payment_status,
     mode: session.mode,
+    paymentIntentId:
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id || null,
   };
+}
+
+export async function retrieveStripeCheckoutSessionRaw(
+  sessionId: string,
+): Promise<Stripe.Checkout.Session> {
+  const { stripe } = await createStripeClient();
+  return await stripe.checkout.sessions.retrieve(sessionId);
 }
 
 export async function verifyStripeWebhook(rawBody: string, signature: string) {

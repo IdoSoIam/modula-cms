@@ -109,6 +109,10 @@
                 <div>{{ t('admin.ordersPage.total') }}: <strong>{{ $formatPrice(details.total) }}</strong></div>
                 <div>{{ t('admin.ordersPage.providerLabel') }}: <strong>{{ details.paymentProvider }}</strong></div>
                 <div v-if="details.stripeCheckoutSessionId">Stripe: <code>{{ details.stripeCheckoutSessionId }}</code></div>
+                <div v-if="details.stripePaymentIntentId">PaymentIntent: <code>{{ details.stripePaymentIntentId }}</code></div>
+                <div v-if="details.stripePaymentIntentStatus">{{ t('admin.ordersPage.intentStatusLabel') }}: <strong>{{ details.stripePaymentIntentStatus }}</strong></div>
+                <div v-if="details.paymentFailureReason">{{ t('admin.ordersPage.failureReasonLabel') }}: <strong>{{ details.paymentFailureReason }}</strong></div>
+                <div v-if="details.refundedAt">{{ t('admin.ordersPage.refundedAtLabel') }}: <strong>{{ $formatDate(details.refundedAt) }}</strong></div>
               </div>
             </div>
           </div>
@@ -202,6 +206,10 @@ interface ShopOrder {
   paymentProvider: 'OFFLINE' | 'STRIPE'
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
   stripeCheckoutSessionId: string | null
+  stripePaymentIntentId: string | null
+  stripePaymentIntentStatus: string | null
+  stripeLastEventId: string | null
+  paymentFailureReason: string | null
   customerName: string
   email: string
   phone: string | null
@@ -216,6 +224,7 @@ interface ShopOrder {
   pickupPoint: { id: number, name: string, address: string | null } | null
   deliveryTour: { id: number, name: string, dayOfWeek: number, startTime: string, endTime: string } | null
   total: number
+  refundedAt: string | null
   createdAt: string
   lines: ShopOrderLine[]
 }

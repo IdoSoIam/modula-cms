@@ -1,50 +1,13 @@
 import { AuthService } from '#modula/server/services/auth/authService'
 import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
-import { resolveAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
-import { getSiteOrigin, sendGmail } from '#modula/server/utils/gmail'
-import { buildGenericEmail } from '#modula/server/utils/orderEmails'
 import { isAssociationRolesEnabled } from '#modula/server/utils/settings'
+import { sendUserInvitationEmail } from '#modula/server/services/auth/userInvitation'
 
 const authService = new AuthService()
 
 function randomPassword() {
   return Math.random().toString(36).slice(2, 12) + 'A1!'
-}
-
-function replaceTemplateVariables(template: string, variables: Record<string, string>) {
-  return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key) => variables[key] ?? '')
-}
-
-async function sendInvitationEmail(options: {
-  email: string
-  firstName?: string
-  lastName?: string
-  setupToken: string
-  expiresAt: Date
-}) {
-  const template = await resolveAdminEmailTemplate('user_invitation', 'fr')
-  const recipientName = [options.firstName, options.lastName].filter(Boolean).join(' ') || options.email
-  const variables = {
-    recipientName,
-    email: options.email,
-    passwordSetupUrl: `${getSiteOrigin()}/password-setup/${options.setupToken}`,
-    expiresAt: new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(options.expiresAt)
-  }
-  const subject = replaceTemplateVariables(template.subject, variables)
-  const body = replaceTemplateVariables(template.body, variables)
-
-  await sendGmail({
-    to: options.email,
-    subject,
-    body,
-    htmlBody: await buildGenericEmail({
-      title: subject,
-      body,
-      accent: '#4f8a34',
-      lang: 'fr'
-    })
-  })
 }
 
 export default defineEventHandler(async (event) => {
@@ -117,7 +80,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (created) {
-    await sendInvitationEmail({
+    await sendUserInvitationEmail({
       email,
       firstName,
       lastName,

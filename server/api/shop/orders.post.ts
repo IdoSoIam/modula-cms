@@ -1,9 +1,11 @@
 import { db } from "#modula/server/data/client";
 import { AuthService } from "#modula/server/services/auth/authService";
+import { sendUserInvitationEmail } from "#modula/server/services/auth/userInvitation";
 import {
   createStripeCheckoutSession,
   isStripeConfigured,
 } from "#modula/server/services/payment/paymentService";
+import { sendShopOrderCreatedNotifications } from "#modula/server/services/shop/shopOrderEmails";
 import { getReservationFulfillment } from "#modula/server/utils/orderFulfillment";
 import {
   getFarmPickupConfig,
@@ -26,6 +28,7 @@ interface OrderLineInput {
 interface OrderBody {
   customerName: string;
   email: string;
+  language?: string | null;
   phone?: string | null;
   message?: string | null;
   paymentMode?: "offline" | "stripe";
@@ -43,6 +46,8 @@ const authService = new AuthService();
 export default defineEventHandler(async (event) => {
   const body = await readBody<OrderBody>(event);
   const sessionUser = await authService.getUserFromSession(event);
+  const language = body.language === "en" ? "en" : "fr";
+  const normalizedEmail = body.email.trim().toLowerCase();
 
   if (!body.customerName?.trim() || !body.email?.trim()) {
     throw createError({
@@ -51,7 +56,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     throw createError({ statusCode: 400, statusMessage: "Email invalide" });
   }
 
@@ -273,6 +278,17 @@ export default defineEventHandler(async (event) => {
   );
   const useStripe = paymentMode === "stripe" && allowOnline;
   const farmPickup = await getFarmPickupConfig();
+  const accountProvisioning = await resolveOrderAccountProvisioning({
+    sessionUserId: sessionUser?.id ?? null,
+    email: normalizedEmail,
+    customerName: body.customerName.trim(),
+    locale: language,
+  });
+  const accountProvisioningFeedback = {
+    invitationSent: accountProvisioning.invitationSent,
+    linkedToExistingAccount: accountProvisioning.linkedToExistingAccount,
+    createdInvitedAccount: accountProvisioning.createdInvitedAccount,
+  };
 
   let deliveryType: "FARM" | "PICKUP" | "TOUR" | null = null;
   let pickupPointId: number | null = null;
@@ -419,12 +435,13 @@ export default defineEventHandler(async (event) => {
   const order = await db.shopOrder.create({
     data: {
       orderNumber: `TMP-${Date.now()}`,
-      userId: sessionUser?.id ?? null,
+      userId: accountProvisioning.userId,
+      language,
       status: "PENDING",
       paymentProvider: useStripe ? "STRIPE" : "OFFLINE",
       paymentStatus: useStripe ? "PENDING" : "UNPAID",
       customerName: body.customerName.trim(),
-      email: body.email.trim().toLowerCase(),
+      email: normalizedEmail,
       phone: body.phone?.trim() || null,
       message: body.message?.trim() || null,
       deliveryType,
@@ -475,6 +492,7 @@ export default defineEventHandler(async (event) => {
 
   let checkoutUrl: string | null = null;
   let stripeSessionId: string | null = null;
+  let stripePaymentIntentId: string | null = null;
 
   if (useStripe) {
     const paymentSettings = await getOnlinePaymentsSettings();
@@ -484,7 +502,7 @@ export default defineEventHandler(async (event) => {
     const session = await createStripeCheckoutSession({
       successUrl,
       cancelUrl,
-      customerEmail: body.email.trim(),
+      customerEmail: normalizedEmail,
       automaticTaxEnabled: paymentSettings.stripeAutomaticTaxEnabled,
       metadata: {
         orderId: String(order.id),
@@ -512,11 +530,13 @@ export default defineEventHandler(async (event) => {
     });
     checkoutUrl = session.url;
     stripeSessionId = session.id;
+    stripePaymentIntentId = session.paymentIntentId;
     await db.shopOrder.update({
       where: { id: order.id },
       data: {
         checkoutUrl,
         stripeCheckoutSessionId: stripeSessionId,
+        stripePaymentIntentId,
       },
     });
   }
@@ -530,12 +550,131 @@ export default defineEventHandler(async (event) => {
     },
   });
 
+  await sendShopOrderCreatedNotifications(order.id, {
+    notifyAdmin: !useStripe,
+  });
+
   return {
     ok: true,
     redirectUrl: checkoutUrl,
+    accountProvisioning: accountProvisioningFeedback,
     order: serializeShopOrder(fullOrder),
   };
 });
+
+async function resolveOrderAccountProvisioning(options: {
+  sessionUserId: number | null;
+  email: string;
+  customerName: string;
+  locale: "fr" | "en";
+}) {
+  if (options.sessionUserId) {
+    return {
+      userId: options.sessionUserId,
+      invitationSent: false,
+      linkedToExistingAccount: true,
+      createdInvitedAccount: false,
+    };
+  }
+
+  const existingUser = await db.user.findUnique({
+    where: { email: options.email },
+    select: {
+      id: true,
+      email: true,
+      isActive: true,
+      firstName: true,
+      lastName: true,
+    },
+  });
+
+  if (existingUser?.isActive) {
+    return {
+      userId: existingUser.id,
+      invitationSent: false,
+      linkedToExistingAccount: true,
+      createdInvitedAccount: false,
+    };
+  }
+
+  if (existingUser) {
+    const { token: setupToken, expiresAt } =
+      await authService.createPasswordSetupToken(existingUser.id);
+    const invitationSent = await trySendOrderInvitationEmail({
+      email: existingUser.email,
+      firstName: existingUser.firstName ?? extractNameParts(options.customerName).firstName,
+      lastName: existingUser.lastName ?? extractNameParts(options.customerName).lastName,
+      setupToken,
+      expiresAt,
+      locale: options.locale,
+    });
+    return {
+      userId: existingUser.id,
+      invitationSent,
+      linkedToExistingAccount: true,
+      createdInvitedAccount: false,
+    };
+  }
+
+  const defaultRole =
+    (await db.role.findFirst({
+      where: { isDefault: true },
+      orderBy: { id: "asc" },
+      select: { slug: true },
+    }))?.slug || "utilisateur_public";
+  const nameParts = extractNameParts(options.customerName);
+  const invited = await authService.createInvitedUser(
+    options.email,
+    nameParts.firstName,
+    nameParts.lastName,
+    undefined,
+    defaultRole,
+  );
+
+  const invitationSent = await trySendOrderInvitationEmail({
+    email: options.email,
+    firstName: nameParts.firstName,
+    lastName: nameParts.lastName,
+    setupToken: invited.setupToken,
+    expiresAt: invited.expiresAt,
+    locale: options.locale,
+  });
+
+  return {
+    userId: invited.user.id,
+    invitationSent,
+    linkedToExistingAccount: false,
+    createdInvitedAccount: true,
+  };
+}
+
+function extractNameParts(customerName: string) {
+  const parts = customerName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return {
+    firstName: parts[0] || undefined,
+    lastName: parts.slice(1).join(" ") || undefined,
+  };
+}
+
+async function trySendOrderInvitationEmail(options: {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  setupToken: string;
+  expiresAt: Date;
+  locale: "fr" | "en";
+}) {
+  try {
+    await sendUserInvitationEmail(options);
+    return true;
+  } catch (error) {
+    console.error("Unable to send guest account invitation email:", error);
+    return false;
+  }
+}
 
 function safeParseMeta(value: string) {
   try {

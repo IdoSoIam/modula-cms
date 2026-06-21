@@ -1,5 +1,6 @@
 import { verifyStripeWebhook } from '#modula/server/services/payment/paymentService'
-import { db } from '#modula/server/data/client'
+import { syncShopOrderFromStripeEvent } from '#modula/server/services/payment/shopOrderStripeSync'
+import { sendShopOrderTransitionNotifications } from '#modula/server/services/shop/shopOrderEmails'
 
 export default defineEventHandler(async (event) => {
   const signature = getHeader(event, 'stripe-signature')
@@ -21,36 +22,23 @@ export default defineEventHandler(async (event) => {
   }
 
   const stripeEvent = await verifyStripeWebhook(rawBody, signature)
+  const syncedOrder = await syncShopOrderFromStripeEvent(stripeEvent)
 
-  if (stripeEvent.type === 'checkout.session.completed' || stripeEvent.type === 'checkout.session.async_payment_succeeded') {
-    const session = stripeEvent.data.object as { id?: string }
-    if (session.id) {
-      await db.shopOrder.updateMany({
-        where: { stripeCheckoutSessionId: session.id },
-        data: {
-          status: 'PAID',
-          paymentStatus: 'PAID',
-          paidAt: new Date()
-        }
-      })
-    }
-  }
-
-  if (stripeEvent.type === 'checkout.session.expired' || stripeEvent.type === 'checkout.session.async_payment_failed') {
-    const session = stripeEvent.data.object as { id?: string }
-    if (session.id) {
-      await db.shopOrder.updateMany({
-        where: { stripeCheckoutSessionId: session.id },
-        data: {
-          paymentStatus: 'FAILED'
-        }
-      })
-    }
+  if (syncedOrder?.changed) {
+    await sendShopOrderTransitionNotifications(syncedOrder.id, {
+      previousStatus: syncedOrder.previousStatus,
+      previousPaymentStatus: syncedOrder.previousPaymentStatus,
+      previousPaymentFailureReason: syncedOrder.previousPaymentFailureReason
+    })
   }
 
   return {
     received: true,
     type: stripeEvent.type,
-    objectId: 'id' in stripeEvent.data.object ? String((stripeEvent.data.object as { id?: string }).id || '') : ''
+    objectId: 'id' in stripeEvent.data.object ? String((stripeEvent.data.object as { id?: string }).id || '') : '',
+    orderId: syncedOrder?.id ?? null,
+    orderNumber: syncedOrder?.orderNumber ?? null,
+    orderStatus: syncedOrder?.status ?? null,
+    paymentStatus: syncedOrder?.paymentStatus ?? null,
   }
 })

@@ -6,8 +6,12 @@
 
         <AuthForm :show-heading="false" @success="handleSuccess" />
 
-        <div class="text-sm mt-4">
-          <p>Vous n'avez pas de compte ? Contactez l'administrateur.</p>
+        <div class="text-sm mt-4 space-y-2">
+          <p v-if="registerEnabled">
+            {{ $t('auth.noAccount') }}
+            <NuxtLink :to="localePath('/register')" class="link link-primary">{{ $t('auth.register') }}</NuxtLink>
+          </p>
+          <p v-else>{{ $t('auth.contactAdminForAccount') }}</p>
         </div>
       </div>
     </div>
@@ -17,6 +21,8 @@
 <script setup lang="ts">
 const router = useRouter()
 const localePath = useLocalePath()
+const siteConfig = useSiteConfigState()
+const registerEnabled = computed(() => siteConfig.value?.registerEnabled === true)
 
 useNoIndexSeo('Connexion', 'Accès réservé aux comptes autorisés du site.')
 
