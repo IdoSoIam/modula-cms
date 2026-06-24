@@ -4,7 +4,7 @@
 
     <div class="tabs tabs-border mb-6">
       <a class="tab" :class="{ 'tab-active': tab === 'pickup' }" @click="tab = 'pickup'">{{ $t('admin.deliveryPage.tabPickup') }}</a>
-      <a class="tab" :class="{ 'tab-active': tab === 'tour' }" @click="tab = 'tour'">{{ $t('admin.deliveryPage.tabTour') }}</a>
+      <a class="tab" :class="{ 'tab-active': tab === 'tour' }" @click="tab = 'tour'">{{ $t('admin.deliveryPage.tabHomeDelivery') }}</a>
     </div>
 
     <div  class="card bg-base-100 p-6">
@@ -61,7 +61,7 @@
 
       <div v-else-if="tab === 'tour'">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-semibold">{{ $t('admin.deliveryPage.tourTitle') }}</h2>
+          <h2 class="text-xl font-semibold">{{ $t('admin.deliveryPage.homeDeliveryTitle') }}</h2>
           <button class="btn btn-primary btn-sm" @click="openNewTour">
             <Icon name="mdi:plus" size="16" />
             {{ $t('admin.deliveryPage.add') }}
@@ -72,7 +72,7 @@
           <span class="loading loading-spinner" />
         </div>
         <div v-else-if="!tours?.length" class="text-center py-8 opacity-60">
-          {{ $t('admin.deliveryPage.noTour') }}
+          {{ $t('admin.deliveryPage.noHomeDelivery') }}
         </div>
         <div v-else class="grid gap-3">
           <div v-for="tr in tours" :key="tr.id" class="card bg-base-200">
@@ -83,7 +83,6 @@
                     <span class="font-semibold">{{ tr.name }}</span>
                     <span v-if="!tr.active" class="badge badge-ghost badge-sm">{{ $t('admin.deliveryPage.inactive') }}</span>
                     <span class="badge badge-secondary badge-sm">{{ $t(`pages.baskets.weekdays.${tr.dayOfWeek}`) }}</span>
-                    <span v-if="tr.monthlyPrice" class="badge badge-success badge-sm">{{ formatPrice(tr.monthlyPrice) }}/mois</span>
                   </div>
                   <div class="text-sm">
                     <Icon name="mdi:clock-outline" size="14" class="inline mr-1" />
@@ -119,36 +118,36 @@
           {{ pForm.id ? $t('admin.deliveryPage.editPickup') : $t('admin.deliveryPage.newPickup') }}
         </h3>
         <div class="space-y-3">
-          <div class="form-control gap-3 flex">
+          <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldName') }} *</span></label>
             <input v-model="pForm.name" class="input input-bordered w-full" />
           </div>
-          <div class="form-control gap-3 flex">
+          <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldAddress') }}</span></label>
             <textarea v-model="pForm.address" class="textarea textarea-bordered w-full" rows="2" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div class="form-control gap-3 flex">
+            <div class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldDeliveryDay') }}</span></label>
               <select v-model.number="pForm.deliveryDay" class="select select-bordered w-full">
                 <option :value="null">—</option>
                 <option v-for="i in 7" :key="i - 1" :value="i - 1">{{ $t(`pages.baskets.weekdays.${i - 1}`) }}</option>
               </select>
             </div>
-            <div class="form-control gap-3 flex">
+            <div class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldPickupStart') }}</span></label>
               <input v-model="pForm.pickupStartTime" type="time" class="input input-bordered w-full" />
             </div>
           </div>
-          <div class="form-control gap-3 flex">
+          <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldOpeningHours') }}</span></label>
             <textarea v-model="pForm.openingHours" class="textarea textarea-bordered w-full" rows="2" placeholder="Lun-Ven 8h-19h, Sam 8h-12h" />
           </div>
-          <div class="form-control gap-3 flex">
+          <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldWebsiteUrl') }}</span></label>
             <input v-model="pForm.websiteUrl" type="url" class="input input-bordered w-full" placeholder="https://..." />
           </div>
-          <div class="form-control gap-3 flex">
+          <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldDetails') }}</span></label>
             <textarea v-model="pForm.details" class="textarea textarea-bordered w-full" rows="2" />
           </div>
@@ -171,13 +170,14 @@
         <h3 class="font-bold text-lg mb-4">
           {{ tForm.id ? $t('admin.deliveryPage.editTour') : $t('admin.deliveryPage.newTour') }}
         </h3>
+        <p class="mb-4 text-sm opacity-70">{{ $t('admin.deliveryPage.homeDeliveryHelp') }}</p>
         <div class="space-y-3">
-          <div class="form-control gap-3 flex">
+          <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldName') }} *</span></label>
             <input v-model="tForm.name" class="input input-bordered w-full" />
           </div>
 
-          <div class="form-control gap-3 flex">
+          <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldDayOfWeek') }} *</span></label>
             <select v-model.number="tForm.dayOfWeek" class="select select-bordered w-full">
               <option v-for="i in 7" :key="i - 1" :value="i - 1">{{ $t(`pages.baskets.weekdays.${i - 1}`) }}</option>
@@ -185,24 +185,19 @@
           </div>
 
           <div class="grid grid-cols-2 gap-2">
-            <div class="form-control gap-3 flex">
+            <div class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldFrom') }} *</span></label>
               <input v-model="tForm.startTime" type="time" class="input input-bordered w-full" />
             </div>
-            <div class="form-control gap-3 flex">
+            <div class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldTo') }} *</span></label>
               <input v-model="tForm.endTime" type="time" class="input input-bordered w-full" />
             </div>
           </div>
 
-          <div class="form-control gap-3 flex">
-            <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldMonthlyPrice') }}</span></label>
-            <input v-model.number="tForm.monthlyPrice" type="number" min="0" step="0.01" class="input input-bordered w-full" placeholder="45.00" />
-            <span class="label-text-alt opacity-60">{{ $t('admin.deliveryPage.monthlyPriceHelp') }}</span>
-          </div>
-
-          <div class="form-control gap-3 flex">
+          <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldCities') }}</span></label>
+            <span class="label-text-alt opacity-60">{{ $t('admin.deliveryPage.fieldCitiesHelp') }}</span>
             <div class="space-y-2">
               <div v-for="(c, idx) in tForm.cities" :key="idx" class="flex gap-2">
                 <input v-model="c.city" class="input input-bordered flex-1" placeholder="Ville" />
@@ -218,7 +213,7 @@
             </div>
           </div>
 
-          <div class="form-control gap-3 flex">
+          <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ $t('admin.deliveryPage.fieldNotes') }}</span></label>
             <textarea v-model="tForm.notes" class="textarea textarea-bordered w-full" rows="2" />
           </div>
@@ -269,14 +264,12 @@ interface DeliveryTour {
   id: number; name: string
   dayOfWeek: number
   startTime: string; endTime: string
-  monthlyPrice: number | null
   notes: string | null
   cities: TourCity[]
   active: boolean
 }
 
 const { t } = useI18n()
-const { $formatPrice } = useNuxtApp() as any
 const tab = ref<'pickup' | 'tour'>('pickup')
 
 const { data: pickupPoints, pending: pickupPending, refresh: refreshPickup } = await useFetch<PickupPoint[]>('/api/admin/pickup-points')
@@ -297,13 +290,10 @@ const tForm = reactive({
   dayOfWeek: 1,
   startTime: '08:00',
   endTime: '12:00',
-  monthlyPrice: null as number | null,
   notes: '',
   cities: [] as { city: string; postalCodes: string }[],
   active: true
 })
-
-const formatPrice = (p: number) => $formatPrice ? $formatPrice(p) : `${p.toFixed(2)} €`
 
 const openNewPickup = () => {
   Object.assign(pForm, {
@@ -359,7 +349,7 @@ const openNewTour = () => {
   Object.assign(tForm, {
     id: null, name: '', dayOfWeek: 1,
     startTime: '08:00', endTime: '12:00',
-    monthlyPrice: null, notes: '',
+    notes: '',
     cities: [], active: true
   })
   tourDlg.value?.showModal()
@@ -370,7 +360,6 @@ const openEditTour = (tr: DeliveryTour) => {
     id: tr.id, name: tr.name,
     dayOfWeek: tr.dayOfWeek,
     startTime: tr.startTime, endTime: tr.endTime,
-    monthlyPrice: tr.monthlyPrice,
     notes: tr.notes ?? '',
     cities: tr.cities.map(c => ({ city: c.city, postalCodes: c.postalCodes ?? '' })),
     active: tr.active
@@ -394,7 +383,6 @@ const saveTour = async () => {
     dayOfWeek: tForm.dayOfWeek,
     startTime: tForm.startTime,
     endTime: tForm.endTime,
-    monthlyPrice: tForm.monthlyPrice,
     notes: tForm.notes,
     cities: tForm.cities.filter(c => c.city.trim()),
     active: tForm.active

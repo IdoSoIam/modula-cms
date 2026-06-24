@@ -13,7 +13,6 @@ export default defineEventHandler(async (event) => {
     dayOfWeek: number
     startTime: string
     endTime: string
-    monthlyPrice?: number | null
     notes?: string
     cities?: CityInput[]
     active?: boolean
@@ -27,22 +26,31 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Plage horaire requise' })
   }
 
-  return db.deliveryTour.create({
+  const tour = await db.deliveryTour.create({
     data: {
       name: body.name.trim(),
       dayOfWeek: body.dayOfWeek,
       startTime: body.startTime,
       endTime: body.endTime,
-      monthlyPrice: body.monthlyPrice ?? null,
       notes: body.notes?.trim() || null,
-      active: body.active ?? true,
-      cities: {
-        create: body.cities?.filter(c => c.city.trim()).map(c => ({
-          city: c.city.trim(),
-          postalCodes: c.postalCodes?.trim() || null
-        })) || []
-      }
-    },
+      active: body.active ?? true
+    }
+  })
+
+  const cities = (body.cities || [])
+    .filter(c => c.city.trim())
+    .map(c => ({
+      tourId: tour.id,
+      city: c.city.trim(),
+      postalCodes: c.postalCodes?.trim() || null
+    }))
+
+  if (cities.length) {
+    await db.tourCity.createMany({ data: cities })
+  }
+
+  return db.deliveryTour.findUnique({
+    where: { id: tour.id },
     include: { cities: true }
   })
 })

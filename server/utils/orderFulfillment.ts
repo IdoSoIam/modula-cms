@@ -108,13 +108,13 @@ export function getDeliveryMethodLabel(deliveryType: Reservation['deliveryType']
   if (normalizeReservationLocale(locale) === 'en') {
     if (isOnSiteDeliveryType(deliveryType)) return 'On-site pickup'
     if (deliveryType === 'PICKUP') return 'Pickup point collection'
-    if (deliveryType === 'TOUR') return 'Delivery route'
+    if (deliveryType === 'TOUR') return 'Home delivery'
     return 'Pickup / delivery'
   }
 
   if (isOnSiteDeliveryType(deliveryType)) return 'Retrait sur place'
   if (deliveryType === 'PICKUP') return 'Retrait en point relais'
-  if (deliveryType === 'TOUR') return 'Livraison (tournée)'
+  if (deliveryType === 'TOUR') return 'Livraison à domicile'
   return 'Retrait / livraison'
 }
 

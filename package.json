@@ -1,6 +1,6 @@
 {
   "name": "modula-cms",
-  "version": "0.1.0",
+  "version": "0.1.38",
   "private": false,
   "description": "CMS modulaire Nuxt avec pages éditoriales, admin et installation guidée.",
   "license": "GPL-3.0-only",

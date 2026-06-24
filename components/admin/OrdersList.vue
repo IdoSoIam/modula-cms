@@ -39,10 +39,6 @@
               <div v-if="reservation.deliveryCity" class="opacity-80">
                 {{ reservation.deliveryCity }}<span v-if="reservation.deliveryPostalCode"> {{ reservation.deliveryPostalCode }}</span>
               </div>
-              <div v-if="subscriptionsEnabled && reservation.monthlySubscription" class="text-success">
-                {{ t('admin.ordersPage.monthlySubscription') }}<span v-if="reservation.deliveryTour?.monthlyPrice"> - {{ formatPrice(reservation.deliveryTour.monthlyPrice) }}/{{ t('admin.ordersPage.perMonth') }}</span>
-              </div>
-
               <div v-if="reservation.displayDate || reservation.displayTime || reservation.displayLocation" class="mt-2 rounded-box bg-base-100 p-2">
                 <div v-if="reservation.displayDate"><strong>{{ subscriptionsEnabled && reservation.monthlySubscription ? t('admin.ordersPage.nextOccurrence') : t('admin.ordersPage.date') }} :</strong> {{ formatDateOnly(reservation.displayDate) }}</div>
                 <div v-if="reservation.displayTime"><strong>{{ t('admin.ordersPage.time') }} :</strong> {{ reservation.displayTime }}</div>
@@ -112,8 +108,8 @@ defineEmits<{
 const { t } = useI18n()
 
 const deliveryTypeLabel = (reservation: any) => {
-  if (reservation.deliveryType === 'TOUR') return t('admin.ordersPage.deliveryTour')
-  if (reservation.deliveryType === 'ONSITE') return t('admin.ordersPage.farmPickup')
+  if (reservation.deliveryType === 'TOUR') return t('admin.ordersPage.deliveryTypeHome')
+  if (reservation.deliveryType === 'ONSITE') return t('admin.ordersPage.deliveryTypeOnSite')
   return t('admin.ordersPage.pickupPoint')
 }
 </script>

@@ -389,7 +389,7 @@ export default defineEventHandler(async (event) => {
     if (!row || !row.active) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Tournée invalide",
+        statusMessage: "Créneau de livraison invalide",
       });
     }
 
@@ -402,7 +402,7 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 400,
         statusMessage:
-          "Cette ville n'est pas desservie par la tournée sélectionnée",
+          "Cette ville n'est pas desservie par le créneau de livraison sélectionné",
       });
     }
 

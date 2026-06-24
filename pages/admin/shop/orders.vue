@@ -122,7 +122,7 @@
             <div class="mt-2 space-y-1 text-sm">
               <div>{{ t('admin.ordersPage.deliveryTypeLabel') }}: <strong>{{ deliveryTypeLabel(details.deliveryType) }}</strong></div>
               <div v-if="details.pickupPoint">{{ t('admin.ordersPage.pickupPointLabel') }}: <strong>{{ details.pickupPoint.name }}</strong></div>
-              <div v-if="details.deliveryTour">{{ t('admin.ordersPage.tourLabel') }}: <strong>{{ details.deliveryTour.name }}</strong></div>
+              <div v-if="details.deliveryTour">{{ t('admin.ordersPage.homeDeliverySlotLabel') }}: <strong>{{ details.deliveryTour.name }}</strong></div>
               <div v-if="deliveryAddressLine(details)">
                 {{ t('admin.ordersPage.deliveryAddressLabel') }}: <strong>{{ deliveryAddressLine(details) }}</strong>
               </div>
@@ -297,7 +297,7 @@ const paymentBadgeClass = (status: ShopOrder['paymentStatus']) => ({
 const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => ({
   ONSITE: t('admin.ordersPage.deliveryTypeOnSite'),
   PICKUP: t('admin.ordersPage.deliveryTypePickup'),
-  TOUR: t('admin.ordersPage.deliveryTypeTour')
+  TOUR: t('admin.ordersPage.deliveryTypeHome')
 }[value])
 
 const deliveryAddressLine = (order: ShopOrder) =>

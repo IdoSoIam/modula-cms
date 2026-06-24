@@ -337,11 +337,11 @@ const deliveryLabel = computed(() => locale.value === 'en' ? 'Delivery method' :
 const deliveryPlaceholderLabel = computed(() => locale.value === 'en' ? 'Select a delivery method' : 'Choisir un mode de livraison')
 const onSiteDeliveryLabel = computed(() => deliveryOptions.value?.onSitePickup?.label || (locale.value === 'en' ? 'On-site pickup' : 'Retrait sur place'))
 const pickupDeliveryLabel = computed(() => locale.value === 'en' ? 'Pickup point' : 'Point relais')
-const tourDeliveryLabel = computed(() => locale.value === 'en' ? 'Delivery' : 'Livraison')
+const tourDeliveryLabel = computed(() => locale.value === 'en' ? 'Home delivery' : 'Livraison à domicile')
 const pickupPointLabel = computed(() => locale.value === 'en' ? 'Pickup point' : 'Point relais')
 const pickupPlaceholderLabel = computed(() => locale.value === 'en' ? 'Select a pickup point' : 'Choisir un point relais')
-const deliveryTourLabel = computed(() => locale.value === 'en' ? 'Delivery tour' : 'Tournée de livraison')
-const tourPlaceholderLabel = computed(() => locale.value === 'en' ? 'Select a delivery tour' : 'Choisir une tournée')
+const deliveryTourLabel = computed(() => locale.value === 'en' ? 'Delivery slot' : 'Créneau de livraison')
+const tourPlaceholderLabel = computed(() => locale.value === 'en' ? 'Select a delivery slot' : 'Choisir un créneau')
 const addressLabel = computed(() => locale.value === 'en' ? 'Address' : 'Adresse')
 const cityLabel = computed(() => locale.value === 'en' ? 'City' : 'Ville')
 const postalCodeLabel = computed(() => locale.value === 'en' ? 'Postal code' : 'Code postal')
@@ -359,8 +359,8 @@ const emptyHelpLabel = computed(() => locale.value === 'en'
   : 'Ajoutez un produit ou un lot de produits pour continuer.')
 const noAddressLabel = computed(() => locale.value === 'en' ? 'Address to be confirmed' : 'Adresse à confirmer')
 const unavailableCityLabel = computed(() => locale.value === 'en'
-  ? 'No delivery tour currently serves this city.'
-  : 'Aucune tournée ne dessert actuellement cette ville.')
+  ? 'Home delivery is not currently available in this city.'
+  : 'La livraison à domicile n’est pas actuellement disponible dans cette ville.')
 const taxIncludedLabel = computed(() => locale.value === 'en' ? 'VAT included' : 'TVA incluse')
 const taxCodeLabel = computed(() => locale.value === 'en' ? 'Tax code' : 'Code taxe')
 

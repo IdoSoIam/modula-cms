@@ -347,9 +347,9 @@ const paymentProviderLabel = (value: ShopOrder['paymentProvider']) => {
 }
 
 const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => {
-  if (value === 'TOUR') return t('orders.deliveryType.tour')
+  if (value === 'TOUR') return t('orders.deliveryType.home')
   if (value === 'PICKUP') return t('orders.deliveryType.pickup')
-  if (value === 'ONSITE') return t('orders.deliveryType.farm')
+  if (value === 'ONSITE') return t('orders.deliveryType.onSite')
   return t('orders.none')
 }
 

@@ -90,9 +90,9 @@ export default defineEventHandler(async (event) => {
     pickupPointId = p.id
     pickupPoint = p
   } else if (body.deliveryType === 'TOUR') {
-    if (!body.deliveryTourId) throw createError({ statusCode: 400, statusMessage: 'Tournée requise' })
-    if (!body.deliveryCity?.trim()) throw createError({ statusCode: 400, statusMessage: 'Ville requise pour la tournée' })
-    if (!body.deliveryAddress?.trim()) throw createError({ statusCode: 400, statusMessage: 'Adresse requise pour la tournée' })
+    if (!body.deliveryTourId) throw createError({ statusCode: 400, statusMessage: 'Créneau de livraison requis' })
+    if (!body.deliveryCity?.trim()) throw createError({ statusCode: 400, statusMessage: 'Ville requise pour la livraison à domicile' })
+    if (!body.deliveryAddress?.trim()) throw createError({ statusCode: 400, statusMessage: 'Adresse requise pour la livraison à domicile' })
     const t = await db.deliveryTour.findUnique({
           where: { id: body.deliveryTourId },
           select: {
@@ -109,11 +109,11 @@ export default defineEventHandler(async (event) => {
             }
           }
         })
-    if (!t || !t.active) throw createError({ statusCode: 400, statusMessage: 'Tournée invalide' })
+    if (!t || !t.active) throw createError({ statusCode: 400, statusMessage: 'Créneau de livraison invalide' })
     const cityLower = body.deliveryCity.trim().toLowerCase()
     const cityAllowed = t.cities.some((city: any) => city.city.trim().toLowerCase() === cityLower)
     if (!cityAllowed) {
-      throw createError({ statusCode: 400, statusMessage: 'Cette ville n\'est pas desservie par la tournée sélectionnée' })
+      throw createError({ statusCode: 400, statusMessage: 'Cette ville n\'est pas desservie par le créneau de livraison sélectionné' })
     }
     deliveryType = 'TOUR'
     deliveryTourId = t.id
@@ -189,7 +189,7 @@ export default defineEventHandler(async (event) => {
       : deliveryType === 'PICKUP'
         ? 'Retrait en point relais'
         : deliveryType === 'TOUR'
-          ? 'Livraison en tournée'
+          ? 'Livraison à domicile'
           : 'Retrait / livraison à confirmer'
 
     const tpl = await resolveTemplateFromSettings('created', reservation.language)
