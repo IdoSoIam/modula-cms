@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   if (!reservation) {
     throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
   }
-  if (reservation.deliveryType !== 'FARM' || reservation.scheduleProposalPendingBy !== 'CUSTOMER') {
+  if (reservation.deliveryType !== 'ONSITE' || reservation.scheduleProposalPendingBy !== 'CUSTOMER') {
     throw createError({ statusCode: 409, statusMessage: 'Aucune proposition en attente de votre confirmation' })
   }
   if (!reservation.fulfillmentDate || !reservation.fulfillmentTime) {

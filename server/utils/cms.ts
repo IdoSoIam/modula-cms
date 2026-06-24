@@ -676,7 +676,7 @@ function createDefaultContactPageContent() {
           kind: 'text',
           source: 'opening-hours',
           icon: 'mdi:clock',
-          title: { fr: 'Vente directe à la ferme', en: 'Farm direct sale' },
+          title: { fr: 'Vente directe à la ferme', en: 'OnSite direct sale' },
           text: { fr: '', en: '' },
           titleSize: 'sm',
           textSize: 'sm'
@@ -969,7 +969,7 @@ function createLegacyNewsResolvedPage(locale: string): ResolvedCmsPage {
     title: locale === 'en' ? 'News' : 'Actualités',
     navigationLabel: locale === 'en' ? 'News' : 'Actualités',
     seo: {
-      metaTitle: locale === 'en' ? 'Farm news and updates' : 'Actualités de la ferme',
+      metaTitle: locale === 'en' ? 'OnSite news and updates' : 'Actualités de la ferme',
       metaDescription: locale === 'en'
         ? 'Read the latest news, updates and highlights published on the site.'
         : 'Suivez les actualités, les nouveautés et les temps forts publiés sur le site.',
@@ -1019,7 +1019,7 @@ function createLegacyPlanningResolvedPage(locale: string): ResolvedCmsPage {
     title: locale === 'en' ? 'Schedule' : 'Planning',
     navigationLabel: locale === 'en' ? 'Schedule' : 'Planning',
     seo: {
-      metaTitle: locale === 'en' ? 'Farm schedule' : 'Planning de la ferme',
+      metaTitle: locale === 'en' ? 'OnSite schedule' : 'Planning de la ferme',
       metaDescription: locale === 'en'
         ? 'Browse the farm schedule, public events and volunteer information.'
         : 'Consultez le planning de la ferme, les événements publics et les informations bénévoles.',

@@ -290,7 +290,7 @@ interface ShopOrder {
   email: string
   phone: string | null
   message: string | null
-  deliveryType: 'FARM' | 'PICKUP' | 'TOUR' | null
+  deliveryType: 'ONSITE' | 'PICKUP' | 'TOUR' | null
   fulfillmentDate: string | null
   fulfillmentTime: string | null
   fulfillmentLocation: string | null
@@ -349,7 +349,7 @@ const paymentProviderLabel = (value: ShopOrder['paymentProvider']) => {
 const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => {
   if (value === 'TOUR') return t('orders.deliveryType.tour')
   if (value === 'PICKUP') return t('orders.deliveryType.pickup')
-  if (value === 'FARM') return t('orders.deliveryType.farm')
+  if (value === 'ONSITE') return t('orders.deliveryType.farm')
   return t('orders.none')
 }
 

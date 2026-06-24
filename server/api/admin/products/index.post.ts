@@ -14,8 +14,8 @@ interface Body {
   imageUrl?: string | null
   price?: number
   vatRate?: number
-  stripeTaxCode?: string | null
-  stripeTaxBehavior?: 'inclusive' | 'exclusive' | null
+  paymentTaxCode?: string | null
+  paymentTaxBehavior?: 'inclusive' | 'exclusive' | null
   stock?: number
   unitLabel?: string | null
   allowOfflinePayment?: boolean
@@ -36,10 +36,10 @@ export default defineEventHandler(async (event) => {
   const shopDefaultVatRate = await getShopDefaultVatRate()
   const vatRate = normalizeVatRate(body.vatRate ?? shopDefaultVatRate, shopDefaultVatRate)
   const stock = Number(body.stock ?? 0)
-  const stripeTaxCode = normalizeStripeTaxCode(body.stripeTaxCode)
-  const stripeTaxBehavior = body.stripeTaxBehavior == null
+  const paymentTaxCode = normalizeStripeTaxCode(body.paymentTaxCode)
+  const paymentTaxBehavior = body.paymentTaxBehavior == null
     ? null
-    : normalizeStripeTaxBehavior(body.stripeTaxBehavior, 'inclusive')
+    : normalizeStripeTaxBehavior(body.paymentTaxBehavior, 'inclusive')
   const allowOfflinePayment = body.allowOfflinePayment ?? true
   const allowOnlinePayment = body.allowOnlinePayment ?? false
   if (!Number.isFinite(price) || price < 0) {
@@ -69,8 +69,8 @@ export default defineEventHandler(async (event) => {
       imageUrl: body.imageUrl || null,
       price,
       vatRate,
-      stripeTaxCode: stripeTaxCode || null,
-      stripeTaxBehavior,
+      paymentTaxCode: paymentTaxCode || null,
+      paymentTaxBehavior,
       stock,
       unitLabel: body.unitLabel?.trim() || null,
       allowOfflinePayment,

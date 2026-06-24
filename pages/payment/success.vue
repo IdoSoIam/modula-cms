@@ -7,12 +7,12 @@
       <p class="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-success">Paiement confirmé</p>
       <h1 class="text-3xl font-bold">Merci, votre paiement a bien été pris en compte.</h1>
       <p class="mt-3 max-w-2xl opacity-70">
-        Vous pouvez fermer cette page ou revenir à l'accueil. La commande est resynchronisée avec Stripe au chargement.
+        Vous pouvez fermer cette page ou revenir à l'accueil. La commande est resynchronisée avec le service de paiement au chargement.
       </p>
 
       <div v-if="syncPending" class="mt-6 rounded-2xl border border-base-300 bg-base-200/70 p-4 text-sm">
         <div class="font-medium">Vérification du paiement</div>
-        <div class="mt-1 opacity-80">Synchronisation en cours avec Stripe...</div>
+        <div class="mt-1 opacity-80">Synchronisation du paiement en cours...</div>
       </div>
 
       <div v-else-if="syncError" class="mt-6 rounded-2xl border border-error/30 bg-error/10 p-4 text-sm text-error">
@@ -58,7 +58,7 @@ onMounted(async () => {
       query: { sync: '1' }
     })
   } catch (error: any) {
-    syncError.value = error?.statusMessage || error?.data?.message || 'Impossible de vérifier le paiement Stripe.'
+    syncError.value = error?.statusMessage || error?.data?.message || 'Impossible de vérifier le paiement.'
   } finally {
     syncPending.value = false
   }
@@ -66,6 +66,6 @@ onMounted(async () => {
 
 usePageSeo({
   title: 'Paiement confirmé',
-  description: 'Votre paiement Stripe a été validé.'
+  description: 'Votre paiement a été validé.'
 })
 </script>

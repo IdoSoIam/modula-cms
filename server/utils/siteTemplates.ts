@@ -574,7 +574,7 @@ function buildTemplateHomePage(key: CmsSiteTemplateKey, siteName: CmsLocalizedTe
           'Showcase your baskets, direct sales, news and seasonal events on a website that stays easy to manage.'
         ),
         imageUrl: heroImage('farm-hero.svg'),
-        imageAlt: text('Illustration ferme', 'Farm illustration'),
+        imageAlt: text('Illustration ferme', 'OnSite illustration'),
         primaryHref: '/paniers',
         primaryLabel: text('Voir les paniers', 'Browse baskets'),
         secondaryHref: '/contact',
@@ -651,7 +651,7 @@ function buildTemplateHomePage(key: CmsSiteTemplateKey, siteName: CmsLocalizedTe
           {
             id: 'template-farm',
             imageUrl: heroImage('preview-farm.svg'),
-            title: text('Template ferme', 'Farm template'),
+            title: text('Template ferme', 'OnSite template'),
             body: text('Pensé pour la vente directe, les paniers et l\'actualité terrain.', 'Designed for direct sales, baskets and field updates.')
           },
           {
@@ -787,7 +787,7 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
       },
       eventsPage: {
         ...base.eventsPage,
-        title: text('Événements à la ferme', 'Farm events'),
+        title: text('Événements à la ferme', 'OnSite events'),
         subtitle: text(
           'Retrouvez les portes ouvertes, ateliers et rendez-vous publics.',
           'Discover open days, workshops and public events.'
@@ -795,7 +795,7 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
       },
       planningPage: {
         ...base.planningPage,
-        title: text('Planning de la ferme', 'Farm planning'),
+        title: text('Planning de la ferme', 'OnSite planning'),
         subtitle: text(
           'Consultez les rendez-vous publics et, si vous êtes connecté, les permanences bénévoles.',
           'Check public activities and, if you are logged in, volunteer shifts.'

@@ -575,7 +575,7 @@ export function buildGoogleCalendarEventPayload(input: GoogleCalendarReservation
     `Email : ${input.email}`,
     `Telephone : ${input.phone ?? '-'}`,
     `Panier : ${input.basketName} (${input.basketPrice.toFixed(2)} EUR)`,
-    `Mode : ${input.deliveryType === 'TOUR' ? 'Livraison' : input.deliveryType === 'PICKUP' ? 'Retrait' : input.deliveryType === 'FARM' ? 'Retrait sur place' : '-'}`,
+    `Mode : ${input.deliveryType === 'TOUR' ? 'Livraison' : input.deliveryType === 'PICKUP' ? 'Retrait' : input.deliveryType === 'ONSITE' ? 'Retrait sur place' : '-'}`,
     `Abonnement mensuel : ${input.subscriptionsEnabled && input.monthlySubscription ? 'Oui' : 'Non'}`,
     `Lieu : ${input.fulfillmentLocation ?? input.pickupPoint?.address ?? input.deliveryAddress ?? '-'}`,
     `Message client : ${input.message ?? '-'}`

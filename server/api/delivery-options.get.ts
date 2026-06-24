@@ -1,12 +1,12 @@
 import { db } from '#modula/server/data/client'
 import { getNextDateForDayOfWeek } from '#modula/server/utils/orderFulfillment'
-import { getFarmPickupConfig } from '#modula/server/utils/settings'
+import { getOnSitePickupConfig } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800')
 
   const now = new Date()
-  const [pickupPoints, tours, farmPickup] = await Promise.all([
+  const [pickupPoints, tours, onSitePickup] = await Promise.all([
     db.pickupPoint.findMany({
       where: { active: true },
       orderBy: [{ position: 'asc' }, { name: 'asc' }],
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
       orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
       include: { cities: true }
     }),
-    getFarmPickupConfig()
+    getOnSitePickupConfig()
   ])
 
   const formattedTours = tours.map((t: any) => {
@@ -52,14 +52,14 @@ export default defineEventHandler(async (event) => {
   const allServedCities = [...new Set(tours.flatMap((t: any) => t.cities.map((c: any) => c.city.toLowerCase())))]
 
   return {
-    farmPickup: {
-      label: farmPickup.label,
-      address: farmPickup.address,
-      dayOfWeek: farmPickup.dayOfWeek,
-      startTime: farmPickup.startTime,
-      endTime: farmPickup.endTime,
-      nextDate: getNextDateForDayOfWeek(farmPickup.dayOfWeek, now).toISOString(),
-      slotLabel: farmPickup.slotLabel
+    onSitePickup: {
+      label: onSitePickup.label,
+      address: onSitePickup.address,
+      dayOfWeek: onSitePickup.dayOfWeek,
+      startTime: onSitePickup.startTime,
+      endTime: onSitePickup.endTime,
+      nextDate: getNextDateForDayOfWeek(onSitePickup.dayOfWeek, now).toISOString(),
+      slotLabel: onSitePickup.slotLabel
     },
     pickupPoints,
     tours: formattedTours,

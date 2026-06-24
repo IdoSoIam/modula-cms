@@ -189,7 +189,7 @@ const previewItems = computed<EventListItem[]>(() => [
     visibility: 'PRIVATE',
     startsAt: new Date().toISOString(),
     endsAt: null,
-    placeName: locale.value === 'en' ? 'Farm kitchen' : 'Cuisine de la ferme',
+    placeName: locale.value === 'en' ? 'OnSite kitchen' : 'Cuisine de la ferme',
     placeCity: 'Saint-Sébastien-d’Aigrefeuille',
     coverImageUrl: '',
     publicReservationEnabled: false,

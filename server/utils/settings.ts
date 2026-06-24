@@ -592,3 +592,9 @@ export async function getFarmPickupConfig(): Promise<FarmPickupConfig> {
     slotLabel: `${startTime}-${endTime}`
   }
 }
+
+export type OnSitePickupConfig = FarmPickupConfig
+
+export async function getOnSitePickupConfig(): Promise<OnSitePickupConfig> {
+  return getFarmPickupConfig()
+}

@@ -3,7 +3,7 @@ import { defineModel, defineSchema, field, index, relation, unique } from './dsl
 const vegetableUnits = ['KG', 'PIECE']
 const reservationStatuses = ['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED']
 const reservationOccurrenceStatuses = ['SCHEDULED', 'CANCELLED']
-const deliveryTypes = ['FARM', 'PICKUP', 'TOUR']
+const deliveryTypes = ['ONSITE', 'PICKUP', 'TOUR']
 const reservationScheduleProposalSources = ['CUSTOMER', 'ADMIN']
 const productLotKinds = ['SINGLE', 'LOT']
 const productSaleTypes = ['SALE', 'RENTAL']
@@ -411,8 +411,8 @@ export const cmsDataSchema = defineSchema({
         imageUrl: field.string({ nullable: true }),
         price: field.decimal({ default: 0 }),
         vatRate: field.decimal({ default: 20 }),
-        stripeTaxCode: field.string({ nullable: true }),
-        stripeTaxBehavior: field.enum(stripeTaxBehaviors, { nullable: true }),
+        paymentTaxCode: field.string({ nullable: true }),
+        paymentTaxBehavior: field.enum(stripeTaxBehaviors, { nullable: true }),
         stock: field.int({ default: 0 }),
         unitLabel: field.string({ nullable: true }),
         allowOfflinePayment: field.boolean({ default: true }),
@@ -464,8 +464,8 @@ export const cmsDataSchema = defineSchema({
         kind: field.enum(productLotKinds, { default: 'LOT' }),
         price: field.decimal({ default: 0 }),
         vatRate: field.decimal({ default: 20 }),
-        stripeTaxCode: field.string({ nullable: true }),
-        stripeTaxBehavior: field.enum(stripeTaxBehaviors, { nullable: true }),
+        paymentTaxCode: field.string({ nullable: true }),
+        paymentTaxBehavior: field.enum(stripeTaxBehaviors, { nullable: true }),
         stock: field.int({ default: 0 }),
         allowOfflinePayment: field.boolean({ default: true }),
         allowOnlinePayment: field.boolean({ default: false }),
@@ -514,10 +514,10 @@ export const cmsDataSchema = defineSchema({
         status: field.enum(shopOrderStatuses, { default: 'PENDING' }),
         paymentProvider: field.enum(shopPaymentProviders, { default: 'OFFLINE' }),
         paymentStatus: field.enum(shopPaymentStatuses, { default: 'UNPAID' }),
-        stripeCheckoutSessionId: field.string({ nullable: true, unique: true }),
-        stripePaymentIntentId: field.string({ nullable: true, unique: true }),
-        stripePaymentIntentStatus: field.string({ nullable: true }),
-        stripeLastEventId: field.string({ nullable: true }),
+        providerSessionId: field.string({ nullable: true, unique: true }),
+        providerPaymentIntentId: field.string({ nullable: true, unique: true }),
+        providerPaymentStatus: field.string({ nullable: true }),
+        providerLastEventId: field.string({ nullable: true }),
         paymentFailureReason: field.string({ nullable: true }),
         customerName: field.string(),
         email: field.string(),
@@ -549,8 +549,8 @@ export const cmsDataSchema = defineSchema({
       },
       indexes: [
         unique(['orderNumber'], 'ShopOrder_orderNumber_key'),
-        unique(['stripeCheckoutSessionId'], 'ShopOrder_stripeCheckoutSessionId_key'),
-        unique(['stripePaymentIntentId'], 'ShopOrder_stripePaymentIntentId_key'),
+        unique(['providerSessionId'], 'ShopOrder_providerSessionId_key'),
+        unique(['providerPaymentIntentId'], 'ShopOrder_providerPaymentIntentId_key'),
         index(['status', 'createdAt'], 'ShopOrder_status_createdAt_idx'),
         index(['paymentStatus', 'createdAt'], 'ShopOrder_paymentStatus_createdAt_idx'),
         index(['userId'], 'ShopOrder_userId_idx'),

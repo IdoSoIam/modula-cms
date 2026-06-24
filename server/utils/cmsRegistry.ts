@@ -13,6 +13,9 @@ import type {
   CmsRegistryEndpointState,
   CmsRegistryDeploymentJob,
   CmsRegistryInstanceRecord,
+  CmsRegistryPaymentConfig,
+  CmsRegistryPaymentLineItem,
+  CmsRegistryPaymentRecord,
   CmsRegistryPaginatedResult,
   CmsRegistryRollbackCapabilities,
   CmsRegistryReleaseRecord,
@@ -1299,4 +1302,44 @@ export async function triggerUpdateAgentRollback(mode: 'fast' | 'full' = 'fast')
     method: 'POST',
     body: { mode }
   })
+}
+
+export async function getRegistryPaymentConfig() {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {}, scope)
+}
+
+export async function saveRegistryPaymentConfig(settings: Partial<CmsRegistryPaymentConfig>) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {
+    method: 'PUT',
+    body: settings
+  }, scope)
+}
+
+export async function createRegistryCheckoutSession(body: {
+  orderId: string
+  orderNumber?: string
+  successUrl: string
+  cancelUrl: string
+  customerEmail?: string
+  currency?: string
+  metadata?: Record<string, string>
+  lineItems: CmsRegistryPaymentLineItem[]
+}) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentRecord>('/v1/payments/checkout', {
+    method: 'POST',
+    body
+  }, scope)
+}
+
+export async function getRegistryPaymentBySession(sessionId: string) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentRecord>(`/v1/payments/sessions/${encodeURIComponent(sessionId)}`, {}, scope)
+}
+
+export async function getRegistryPaymentByOrder(orderId: string) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentRecord>(`/v1/payments/orders/${encodeURIComponent(orderId)}`, {}, scope)
 }

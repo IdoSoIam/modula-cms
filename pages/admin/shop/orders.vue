@@ -106,11 +106,11 @@
             <div class="rounded-xl bg-base-200 p-4">
               <div class="font-medium">{{ t('admin.ordersPage.checkoutDetails') }}</div>
               <div class="mt-2 space-y-1 text-sm">
-                <div>{{ t('admin.ordersPage.total') }}: <strong>{{ $formatPrice(details.total) }}</strong></div>
-                <div>{{ t('admin.ordersPage.providerLabel') }}: <strong>{{ details.paymentProvider }}</strong></div>
-                <div v-if="details.stripeCheckoutSessionId">Stripe: <code>{{ details.stripeCheckoutSessionId }}</code></div>
-                <div v-if="details.stripePaymentIntentId">PaymentIntent: <code>{{ details.stripePaymentIntentId }}</code></div>
-                <div v-if="details.stripePaymentIntentStatus">{{ t('admin.ordersPage.intentStatusLabel') }}: <strong>{{ details.stripePaymentIntentStatus }}</strong></div>
+                <div>{{ t('admin.ordersPage.total') }} : <strong>{{ $formatPrice(details.total) }}</strong></div>
+                <div>{{ t('admin.ordersPage.providerLabel') }} : <strong>{{ details.paymentProvider }}</strong></div>
+                <div v-if="details.providerSessionId">Session : <code class="break-all">{{ details.providerSessionId }}</code></div>
+                <div v-if="details.providerPaymentIntentId">{{ t('admin.ordersPage.intentIdLabel') }} : <code class="text-xs break-all">{{ details.providerPaymentIntentId }}</code></div>
+                <div v-if="details.providerPaymentStatus">{{ t('admin.ordersPage.intentStatusLabel') }}: <strong>{{ paymentStatusLabel(details.providerPaymentStatus.toUpperCase() as any) }}</strong></div>
                 <div v-if="details.paymentFailureReason">{{ t('admin.ordersPage.failureReasonLabel') }}: <strong>{{ details.paymentFailureReason }}</strong></div>
                 <div v-if="details.refundedAt">{{ t('admin.ordersPage.refundedAtLabel') }}: <strong>{{ $formatDate(details.refundedAt) }}</strong></div>
               </div>
@@ -205,16 +205,16 @@ interface ShopOrder {
   status: 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED'
   paymentProvider: 'OFFLINE' | 'STRIPE'
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
-  stripeCheckoutSessionId: string | null
-  stripePaymentIntentId: string | null
-  stripePaymentIntentStatus: string | null
-  stripeLastEventId: string | null
+  providerSessionId: string | null
+  providerPaymentIntentId: string | null
+  providerPaymentStatus: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
+  providerLastEventId: string | null
   paymentFailureReason: string | null
   customerName: string
   email: string
   phone: string | null
   message: string | null
-  deliveryType: 'FARM' | 'PICKUP' | 'TOUR' | null
+  deliveryType: 'ONSITE' | 'PICKUP' | 'TOUR'
   deliveryAddress: string | null
   deliveryCity: string | null
   deliveryPostalCode: string | null
@@ -295,10 +295,10 @@ const paymentBadgeClass = (status: ShopOrder['paymentStatus']) => ({
 }[status] || 'badge-ghost')
 
 const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => ({
-  FARM: t('admin.ordersPage.deliveryTypeFarm'),
+  ONSITE: t('admin.ordersPage.deliveryTypeOnSite'),
   PICKUP: t('admin.ordersPage.deliveryTypePickup'),
   TOUR: t('admin.ordersPage.deliveryTypeTour')
-}[value || ''] || '-')
+}[value])
 
 const deliveryAddressLine = (order: ShopOrder) =>
   [order.deliveryAddress, [order.deliveryPostalCode, order.deliveryCity].filter(Boolean).join(' ')].filter(Boolean).join(', ')

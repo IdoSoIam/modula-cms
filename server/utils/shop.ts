@@ -13,8 +13,8 @@ export interface ProductPayload {
   imageUrl: string | null
   price: number
   vatRate: number
-  stripeTaxCode: string | null
-  stripeTaxBehavior: 'inclusive' | 'exclusive' | null
+  paymentTaxCode: string | null
+  paymentTaxBehavior: 'inclusive' | 'exclusive' | null
   stock: number
   unitLabel: string | null
   allowOfflinePayment: boolean
@@ -44,8 +44,8 @@ export interface ProductLotPayload {
   kind: 'SINGLE' | 'LOT'
   price: number
   vatRate: number
-  stripeTaxCode: string | null
-  stripeTaxBehavior: 'inclusive' | 'exclusive' | null
+  paymentTaxCode: string | null
+  paymentTaxBehavior: 'inclusive' | 'exclusive' | null
   stock: number
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
@@ -71,16 +71,16 @@ export interface ShopOrderPayload {
   status: 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED'
   paymentProvider: 'OFFLINE' | 'STRIPE'
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
-  stripeCheckoutSessionId: string | null
-  stripePaymentIntentId: string | null
-  stripePaymentIntentStatus: string | null
-  stripeLastEventId: string | null
+  providerSessionId: string | null
+  providerPaymentIntentId: string | null
+  providerPaymentStatus: string | null
+  providerLastEventId: string | null
   paymentFailureReason: string | null
   customerName: string
   email: string
   phone: string | null
   message: string | null
-  deliveryType: 'FARM' | 'PICKUP' | 'TOUR' | null
+  deliveryType: 'ONSITE' | 'PICKUP' | 'TOUR' | null
   pickupPointId: number | null
   deliveryTourId: number | null
   deliveryAddress: string | null
@@ -181,8 +181,8 @@ export function serializeProduct(row: any): ProductPayload {
     imageUrl: row.imageUrl ?? null,
     price: toNumber(row.price),
     vatRate: toNumber(row.vatRate),
-    stripeTaxCode: row.stripeTaxCode?.trim() || null,
-    stripeTaxBehavior: row.stripeTaxBehavior === 'exclusive' ? 'exclusive' : row.stripeTaxBehavior === 'inclusive' ? 'inclusive' : null,
+    paymentTaxCode: row.paymentTaxCode?.trim() || null,
+    paymentTaxBehavior: row.paymentTaxBehavior === 'exclusive' ? 'exclusive' : row.paymentTaxBehavior === 'inclusive' ? 'inclusive' : null,
     stock: Math.max(0, Number(row.stock || 0)),
     unitLabel: row.unitLabel ?? null,
     allowOfflinePayment: toBoolean(row.allowOfflinePayment),
@@ -236,8 +236,8 @@ export function serializeProductLot(row: any): ProductLotPayload {
     kind: row.kind === 'SINGLE' ? 'SINGLE' : 'LOT',
     price: toNumber(row.price),
     vatRate: toNumber(row.vatRate),
-    stripeTaxCode: row.stripeTaxCode?.trim() || null,
-    stripeTaxBehavior: row.stripeTaxBehavior === 'exclusive' ? 'exclusive' : row.stripeTaxBehavior === 'inclusive' ? 'inclusive' : null,
+    paymentTaxCode: row.paymentTaxCode?.trim() || null,
+    paymentTaxBehavior: row.paymentTaxBehavior === 'exclusive' ? 'exclusive' : row.paymentTaxBehavior === 'inclusive' ? 'inclusive' : null,
     stock: computeProductLotStock(row),
     allowOfflinePayment,
     allowOnlinePayment,
@@ -262,16 +262,16 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
     status: row.status,
     paymentProvider: row.paymentProvider,
     paymentStatus: row.paymentStatus,
-    stripeCheckoutSessionId: row.stripeCheckoutSessionId ?? null,
-    stripePaymentIntentId: row.stripePaymentIntentId ?? null,
-    stripePaymentIntentStatus: row.stripePaymentIntentStatus ?? null,
-    stripeLastEventId: row.stripeLastEventId ?? null,
+    providerSessionId: row.providerSessionId ?? null,
+    providerPaymentIntentId: row.providerPaymentIntentId ?? null,
+    providerPaymentStatus: row.providerPaymentStatus ?? null,
+    providerLastEventId: row.providerLastEventId ?? null,
     paymentFailureReason: row.paymentFailureReason ?? null,
     customerName: String(row.customerName),
     email: String(row.email),
     phone: row.phone ?? null,
     message: row.message ?? null,
-    deliveryType: row.deliveryType === 'PICKUP' || row.deliveryType === 'TOUR' || row.deliveryType === 'FARM'
+    deliveryType: row.deliveryType === 'PICKUP' || row.deliveryType === 'TOUR' || row.deliveryType === 'ONSITE'
       ? row.deliveryType
       : null,
     pickupPointId: row.pickupPointId == null ? null : Number(row.pickupPointId),

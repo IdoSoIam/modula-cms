@@ -113,7 +113,7 @@ const { t } = useI18n()
 
 const deliveryTypeLabel = (reservation: any) => {
   if (reservation.deliveryType === 'TOUR') return t('admin.ordersPage.deliveryTour')
-  if (reservation.deliveryType === 'FARM') return t('admin.ordersPage.farmPickup')
+  if (reservation.deliveryType === 'ONSITE') return t('admin.ordersPage.farmPickup')
   return t('admin.ordersPage.pickupPoint')
 }
 </script>

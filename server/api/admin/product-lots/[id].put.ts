@@ -14,8 +14,8 @@ interface Body {
   kind?: 'SINGLE' | 'LOT'
   price?: number
   vatRate?: number
-  stripeTaxCode?: string | null
-  stripeTaxBehavior?: 'inclusive' | 'exclusive' | null
+  paymentTaxCode?: string | null
+  paymentTaxBehavior?: 'inclusive' | 'exclusive' | null
   allowOfflinePayment?: boolean
   allowOnlinePayment?: boolean
   active?: boolean
@@ -64,13 +64,13 @@ export default defineEventHandler(async (event) => {
     }
     data.vatRate = normalizeVatRate(vatRate, Number(existing.vatRate || 20))
   }
-  if (body.stripeTaxCode !== undefined) {
-    data.stripeTaxCode = normalizeStripeTaxCode(body.stripeTaxCode) || null
+  if (body.paymentTaxCode !== undefined) {
+    data.paymentTaxCode = normalizeStripeTaxCode(body.paymentTaxCode) || null
   }
-  if (body.stripeTaxBehavior !== undefined) {
-    data.stripeTaxBehavior = body.stripeTaxBehavior == null
+  if (body.paymentTaxBehavior !== undefined) {
+    data.paymentTaxBehavior = body.paymentTaxBehavior == null
       ? null
-      : normalizeStripeTaxBehavior(body.stripeTaxBehavior, existing.stripeTaxBehavior === 'exclusive' ? 'exclusive' : 'inclusive')
+      : normalizeStripeTaxBehavior(body.paymentTaxBehavior, existing.paymentTaxBehavior === 'exclusive' ? 'exclusive' : 'inclusive')
   }
   if (body.slug !== undefined || body.name !== undefined) {
     data.slug = await ensureUniqueSlug('productLot', body.slug?.trim() || body.name?.trim() || existing.slug, id)

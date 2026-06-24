@@ -751,7 +751,7 @@ export function createDefaultPageBuilderContent(farmAddress: string): PageBuilde
   const intro = createEmptyColumnsSection('intro', 1)
   intro.backgroundMode = 'image'
   intro.backgroundImage.imageUrl = '/images/plaquette.jpg'
-  intro.backgroundImage.alt = { fr: 'Production de la ferme', en: 'Farm production' }
+  intro.backgroundImage.alt = { fr: 'Production de la ferme', en: 'OnSite production' }
   intro.backgroundImage.overlayColor = { token: 'neutral', opacity: 100 }
   intro.backgroundImage.overlayOpacity = 55
   intro.columns[0]?.items.push(
@@ -810,7 +810,7 @@ export function createDefaultPageBuilderContent(farmAddress: string): PageBuilde
     { ...createEmptyCard('activities-1'), title: { fr: 'Maraichage Bio', en: 'Organic Market Gardening' }, text: { fr: 'Production de legumes frais et de saison en agriculture biologique.', en: 'Fresh seasonal vegetables grown organically.' }, icon: 'mdi:sprout' },
     { ...createEmptyCard('activities-2'), title: { fr: 'Paniers de legumes', en: 'Vegetable baskets' }, text: { fr: 'Reservez votre panier hebdomadaire de legumes frais, bio et de saison, recoltes a la ferme.', en: 'Reserve your weekly basket of fresh, organic seasonal vegetables harvested at the farm.' }, icon: 'mdi:basket-outline' },
     { ...createEmptyCard('activities-3'), title: { fr: 'Oeufs & Volailles', en: 'Eggs & Poultry' }, text: { fr: 'Elevage de poules en plein air et production d oeufs bio.', en: 'Free-range poultry and organic egg production.' }, icon: 'mdi:egg-outline' },
-    { ...createEmptyCard('activities-4'), title: { fr: 'Diversification de la ferme', en: 'Farm diversification' }, text: { fr: 'La ferme developpe aussi d autres ateliers et cultures pour construire un modele agricole resilient.', en: 'The farm is also developing other activities and crops to build a resilient model.' }, icon: 'mdi:leaf-circle-outline' }
+    { ...createEmptyCard('activities-4'), title: { fr: 'Diversification de la ferme', en: 'OnSite diversification' }, text: { fr: 'La ferme developpe aussi d autres ateliers et cultures pour construire un modele agricole resilient.', en: 'The farm is also developing other activities and crops to build a resilient model.' }, icon: 'mdi:leaf-circle-outline' }
   ]
   aButtons.primaryButton = { label: { fr: 'Voir les paniers', en: 'View baskets' }, href: '/paniers', tone: 'primary', size: 'md' }
   aImage.imageUrl = '/images/erasebg-transformed.png'
@@ -841,7 +841,7 @@ export function createDefaultPageBuilderContent(farmAddress: string): PageBuilde
   }
   dCards.display = 'stack'
   dCards.cards = [
-    { ...createEmptyCard('sale-1'), title: { fr: 'Vente directe a la ferme', en: 'Farm direct sale' }, text: { fr: 'Tous les lundi de 16h00 a 19h00\n' + farmAddress, en: 'Every Monday from 4pm to 7pm\n' + farmAddress }, icon: 'mdi:home-heart' },
+    { ...createEmptyCard('sale-1'), title: { fr: 'Vente directe a la ferme', en: 'OnSite direct sale' }, text: { fr: 'Tous les lundi de 16h00 a 19h00\n' + farmAddress, en: 'Every Monday from 4pm to 7pm\n' + farmAddress }, icon: 'mdi:home-heart' },
     { ...createEmptyCard('sale-2'), title: { fr: 'Marche de Saint-Sebastien', en: 'Saint-Sebastien market' }, text: { fr: 'Tous les samedi de 9h30 a 12h00\nSur la terrasse du Saint Seb', en: 'Every Saturday from 9:30am to 12pm\nOn the Saint Seb terrace' }, icon: 'mdi:storefront-outline' }
   ]
   dButtons.primaryButton = { label: { fr: 'Nous trouver', en: 'Find us' }, href: '/contact', tone: 'primary', size: 'md' }

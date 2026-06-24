@@ -15,7 +15,7 @@ interface Body {
   email: string
   phone?: string
   message?: string
-  deliveryType?: 'FARM' | 'PICKUP' | 'TOUR'
+  deliveryType?: 'ONSITE' | 'PICKUP' | 'TOUR'
   pickupPointId?: number | null
   deliveryTourId?: number | null
   deliveryAddress?: string
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
 
   const sessionUser = await authService.getUserFromSession(event)
 
-  let deliveryType: 'FARM' | 'PICKUP' | 'TOUR' | null = null
+  let deliveryType: 'ONSITE' | 'PICKUP' | 'TOUR' | null = null
   let pickupPointId: number | null = null
   let deliveryTourId: number | null = null
   let pickupPoint: { name: string; address: string | null; deliveryDay: number | null; pickupStartTime: string | null } | null = null
@@ -67,8 +67,8 @@ export default defineEventHandler(async (event) => {
   const farmPickup = await getFarmPickupConfig()
   const farmAlternateTime = normalizeProposalTime(body.farmAlternateTime)
 
-  if (body.deliveryType === 'FARM') {
-    deliveryType = 'FARM'
+  if (body.deliveryType === 'ONSITE') {
+    deliveryType = 'ONSITE'
     if (body.farmAlternateDate && !farmAlternateTime) {
       throw createError({ statusCode: 400, statusMessage: 'Heure requise pour proposer un autre créneau sur place' })
     }
@@ -124,20 +124,21 @@ export default defineEventHandler(async (event) => {
   const deliveryCity = body.deliveryCity?.trim() || null
   const deliveryPostalCode = body.deliveryPostalCode?.trim() || null
   const reservationLanguage = normalizeReservationLocale(body.language)
+  const persistedDeliveryType = deliveryType === 'ONSITE' ? 'FARM' : deliveryType
   const fulfillment = getReservationFulfillment({
     deliveryType,
     pickupPoint,
     deliveryTour,
-    farmPickup,
+    onSitePickup: farmPickup,
     deliveryAddress,
     deliveryCity,
     deliveryPostalCode
   })
 
-  const farmRequestedDate = deliveryType === 'FARM'
+  const farmRequestedDate = deliveryType === 'ONSITE'
     ? (body.farmAlternateDate ? normalizeProposalDate(body.farmAlternateDate) : fulfillment.fulfillmentDate)
     : null
-  const farmRequestedTime = deliveryType === 'FARM'
+  const farmRequestedTime = deliveryType === 'ONSITE'
     ? (farmAlternateTime || fulfillment.fulfillmentTime)
     : null
 
@@ -152,19 +153,19 @@ export default defineEventHandler(async (event) => {
       phone: body.phone?.trim() || null,
       message: body.message?.trim() || null,
       status: 'PENDING',
-      deliveryType,
+      deliveryType: persistedDeliveryType,
       pickupPointId,
       deliveryTourId,
       deliveryAddress,
       deliveryCity,
       deliveryPostalCode,
-      fulfillmentDate: deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate,
-      fulfillmentTime: deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime,
+      fulfillmentDate: deliveryType === 'ONSITE' ? farmRequestedDate : fulfillment.fulfillmentDate,
+      fulfillmentTime: deliveryType === 'ONSITE' ? farmRequestedTime : fulfillment.fulfillmentTime,
       fulfillmentLocation: fulfillment.fulfillmentLocation,
       monthlySubscription: subscriptionsEnabled ? (body.monthlySubscription ?? false) : false,
       publicActionToken,
-      scheduleProposalPendingBy: deliveryType === 'FARM' ? 'ADMIN' : null,
-      lastScheduleProposalAt: deliveryType === 'FARM' ? new Date() : null
+      scheduleProposalPendingBy: deliveryType === 'ONSITE' ? 'ADMIN' : null,
+      lastScheduleProposalAt: deliveryType === 'ONSITE' ? new Date() : null
     }
   })
 
@@ -172,7 +173,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Creation de reservation impossible' })
   }
 
-  if (deliveryType === 'FARM' && farmRequestedDate && farmRequestedTime) {
+  if (deliveryType === 'ONSITE' && farmRequestedDate && farmRequestedTime) {
     await createReservationScheduleProposal({
       reservationId: reservation.id,
       proposedBy: 'CUSTOMER',
@@ -183,7 +184,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const deliveryLabel = deliveryType === 'FARM'
+    const deliveryLabel = deliveryType === 'ONSITE'
       ? 'Retrait sur place'
       : deliveryType === 'PICKUP'
         ? 'Retrait en point relais'
@@ -198,10 +199,10 @@ export default defineEventHandler(async (event) => {
       basketName: basket.name,
       deliveryMethod: getDeliveryMethodLabel(deliveryType, reservation.language),
       fulfillmentLocation: fulfillment.fulfillmentLocation ?? (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
-      fulfillmentDate: (deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)
-        ? formatDateLabel(deliveryType === 'FARM' ? farmRequestedDate! : fulfillment.fulfillmentDate!, localeCode)
+      fulfillmentDate: (deliveryType === 'ONSITE' ? farmRequestedDate : fulfillment.fulfillmentDate)
+        ? formatDateLabel(deliveryType === 'ONSITE' ? farmRequestedDate! : fulfillment.fulfillmentDate!, localeCode)
         : (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
-      fulfillmentTime: (deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime) ?? (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
+      fulfillmentTime: (deliveryType === 'ONSITE' ? farmRequestedTime : fulfillment.fulfillmentTime) ?? (reservation.language === 'en' ? 'to be confirmed' : 'à confirmer'),
       basketPrice: new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'EUR' }).format(Number(basket.finalPrice))
     })
     const customerBody = appendReservationManageLink({
@@ -231,7 +232,7 @@ export default defineEventHandler(async (event) => {
     if (reservationNotificationEmail) {
       const adminTemplate = await resolveTemplateFromSettings('admin_new_reservation', 'fr')
       const adminDraft = applyTemplateVars(adminTemplate, {
-        contextLine: deliveryType === 'FARM' && body.farmAlternateDate
+        contextLine: deliveryType === 'ONSITE' && body.farmAlternateDate
           ? 'Nouvelle réservation reçue avec proposition client pour le Retrait sur place.'
           : 'Nouvelle réservation reçue.',
         reservationId: String(reservation.id),
@@ -241,10 +242,10 @@ export default defineEventHandler(async (event) => {
         customerPhone: reservation.phone ?? '-',
         customerMessage: reservation.message ?? '-',
         deliveryMethod: deliveryLabel,
-        fulfillmentDate: (deliveryType === 'FARM' ? farmRequestedDate : fulfillment.fulfillmentDate)
-          ? formatDateLabel(deliveryType === 'FARM' ? farmRequestedDate! : fulfillment.fulfillmentDate!, 'fr-FR')
+        fulfillmentDate: (deliveryType === 'ONSITE' ? farmRequestedDate : fulfillment.fulfillmentDate)
+          ? formatDateLabel(deliveryType === 'ONSITE' ? farmRequestedDate! : fulfillment.fulfillmentDate!, 'fr-FR')
           : 'à confirmer',
-        fulfillmentTime: (deliveryType === 'FARM' ? farmRequestedTime : fulfillment.fulfillmentTime) ?? 'à confirmer',
+        fulfillmentTime: (deliveryType === 'ONSITE' ? farmRequestedTime : fulfillment.fulfillmentTime) ?? 'à confirmer',
         fulfillmentLocation: fulfillment.fulfillmentLocation ?? 'à confirmer',
         adminReservationUrl: getAdminReservationUrl(reservation.id)
       })

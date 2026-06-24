@@ -8,6 +8,9 @@ export interface ShopCartItem {
   description?: string | null
   quantity: number
   availableQuantity: number | null
+  vatRate: number
+  paymentTaxCode?: string | null
+  paymentTaxBehavior?: 'inclusive' | 'exclusive' | null
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
   unitPrice: number
@@ -63,6 +66,9 @@ export function useShopCart() {
               description: item?.description ?? null,
               quantity: Math.max(1, Number(item?.quantity || 1)),
               availableQuantity: item?.availableQuantity == null ? null : Number(item.availableQuantity),
+              vatRate: Number(item?.vatRate || 0),
+              paymentTaxCode: item?.paymentTaxCode ?? null,
+              paymentTaxBehavior: item?.paymentTaxBehavior === 'exclusive' ? 'exclusive' : item?.paymentTaxBehavior === 'inclusive' ? 'inclusive' : null,
               allowOfflinePayment: item?.allowOfflinePayment !== false,
               allowOnlinePayment: item?.allowOnlinePayment === true,
               unitPrice: Number(item?.unitPrice || 0),
@@ -95,6 +101,9 @@ export function useShopCart() {
       existing.imageUrl = item.imageUrl ?? null
       existing.description = item.description ?? null
       existing.availableQuantity = item.availableQuantity
+      existing.vatRate = item.vatRate
+      existing.paymentTaxCode = item.paymentTaxCode ?? null
+      existing.paymentTaxBehavior = item.paymentTaxBehavior ?? null
       existing.allowOfflinePayment = item.allowOfflinePayment
       existing.allowOnlinePayment = item.allowOnlinePayment
       existing.quantity = clampQuantity(existing.quantity + requestedQuantity, existing.availableQuantity)

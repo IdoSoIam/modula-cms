@@ -87,7 +87,7 @@ export const BUNDLED_SYSTEM_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
     key: 'farm',
     label: {
       fr: 'Template ferme',
-      en: 'Farm template'
+      en: 'OnSite template'
     },
     description: {
       fr: 'Présente paniers, actualités de la ferme, vente directe et événements saisonniers.',

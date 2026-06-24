@@ -157,7 +157,7 @@ const previewItems = computed<EventListItem[]>(() => [
     visibility: 'PUBLIC',
     startsAt: new Date().toISOString(),
     endsAt: null,
-    placeName: locale.value === 'en' ? 'Farm courtyard' : 'Cour de la ferme',
+    placeName: locale.value === 'en' ? 'OnSite courtyard' : 'Cour de la ferme',
     placeCity: 'Saint-Sébastien-d’Aigrefeuille',
     coverImageUrl: '',
     publicReservationEnabled: true,

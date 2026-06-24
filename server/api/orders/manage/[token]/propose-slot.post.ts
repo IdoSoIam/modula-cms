@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   if (!reservation) {
     throw createError({ statusCode: 404, statusMessage: 'Réservation introuvable' })
   }
-  if (reservation.deliveryType !== 'FARM') {
+  if (reservation.deliveryType !== 'ONSITE') {
     throw createError({ statusCode: 400, statusMessage: 'Cette action est réservée au Retrait sur place' })
   }
 

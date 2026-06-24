@@ -174,7 +174,7 @@ function buildShopOrderTemplateVars(order: ShopOrderPayload, locale: ShopOrderEm
     || buildFallbackFulfillmentLocation(order)
     || (isEnglish ? 'To be confirmed' : 'À confirmer')
   const paymentProvider = order.paymentProvider === 'STRIPE'
-    ? (isEnglish ? 'Online payment (Stripe)' : 'Paiement en ligne (Stripe)')
+    ? (isEnglish ? 'Online payment' : 'Paiement en ligne')
     : (isEnglish ? 'On-site payment' : 'Paiement sur place')
   const paymentStatus = formatPaymentStatus(order.paymentStatus, locale)
   const deliveryMethod = formatDeliveryType(order.deliveryType, locale)
@@ -244,12 +244,12 @@ function formatDeliveryType(
 ) {
   const labels = locale === 'en'
     ? {
-        FARM: 'On-site pickup',
+        ONSITE: 'On-site pickup',
         PICKUP: 'Pickup point',
         TOUR: 'Delivery tour',
       }
     : {
-        FARM: 'Retrait sur place',
+        ONSITE: 'Retrait sur place',
         PICKUP: 'Point relais',
         TOUR: 'Livraison',
       }

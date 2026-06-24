@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { normalizeFeatureFlags, normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate, saveOnlinePaymentsSettings, saveShopDefaultVatRate, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { normalizeFeatureFlags, normalizeVatRate, saveShopDefaultVatRate, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { findAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
 
 interface Body {
@@ -40,15 +40,6 @@ interface Body {
   ordersClosedMessage?: string
   imagePersistVariants?: boolean
   shopDefaultVatRate?: number
-  onlinePayments?: {
-    provider?: 'stripe' | 'none'
-    stripePublishableKey?: string
-    stripeSecretKey?: string
-    stripeWebhookSecret?: string
-    stripeAutomaticTaxEnabled?: boolean
-    stripeDefaultTaxCode?: string
-    stripeDefaultTaxBehavior?: 'inclusive' | 'exclusive'
-  }
   templates?: Record<string, { fr?: { subject: string; body: string }; en?: { subject: string; body: string } }>
 }
 
@@ -170,17 +161,6 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Taux de TVA invalide' })
     }
     await saveShopDefaultVatRate(normalizeVatRate(vatRate, 20))
-  }
-  if (body.onlinePayments) {
-    await saveOnlinePaymentsSettings({
-      provider: body.onlinePayments.provider === 'stripe' ? 'stripe' : 'none',
-      stripePublishableKey: body.onlinePayments.stripePublishableKey || '',
-      stripeSecretKey: body.onlinePayments.stripeSecretKey || '',
-      stripeWebhookSecret: body.onlinePayments.stripeWebhookSecret || '',
-      stripeAutomaticTaxEnabled: Boolean(body.onlinePayments.stripeAutomaticTaxEnabled),
-      stripeDefaultTaxCode: normalizeStripeTaxCode(body.onlinePayments.stripeDefaultTaxCode),
-      stripeDefaultTaxBehavior: normalizeStripeTaxBehavior(body.onlinePayments.stripeDefaultTaxBehavior, 'inclusive')
-    })
   }
   if (body.templates) {
     for (const [action, locales] of Object.entries(body.templates)) {

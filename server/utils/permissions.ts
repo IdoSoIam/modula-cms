@@ -279,6 +279,7 @@ function inferRoutePermission(event: H3Event): RoutePermissionMatch | null {
     { pattern: /^\/api\/admin\/themes/, modules: ['themes_images'] },
     { pattern: /^\/api\/admin\/images/, modules: ['themes_images'] },
     { pattern: /^\/api\/admin\/settings/, modules: ['settings'] },
+    { pattern: /^\/api\/admin\/payments/, modules: ['settings'] },
     { pattern: /^\/api\/admin\/registry/, modules: ['settings'] },
     { pattern: /^\/api\/admin\/updates/, modules: ['settings'] },
     { pattern: /^\/api\/auth\/gmail/, modules: ['settings'] },

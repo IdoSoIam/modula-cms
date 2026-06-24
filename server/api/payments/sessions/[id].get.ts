@@ -1,8 +1,8 @@
 import {
   retrieveStripeCheckoutSession,
-  retrieveStripeCheckoutSessionRaw,
+  retrieveRegistryPaymentRecord,
 } from '#modula/server/services/payment/paymentService'
-import { syncShopOrderFromCheckoutSession } from '#modula/server/services/payment/shopOrderStripeSync'
+import { syncShopOrderFromRegistryPayment } from '#modula/server/services/payment/shopOrderStripeSync'
 import { sendShopOrderTransitionNotifications } from '#modula/server/services/shop/shopOrderEmails'
 
 export default defineEventHandler(async (event) => {
@@ -19,8 +19,8 @@ export default defineEventHandler(async (event) => {
   let syncedOrder = null
 
   if (getQuery(event).sync !== '0') {
-    const stripeSession = await retrieveStripeCheckoutSessionRaw(id)
-    syncedOrder = await syncShopOrderFromCheckoutSession(stripeSession)
+    const payment = await retrieveRegistryPaymentRecord(id)
+    syncedOrder = await syncShopOrderFromRegistryPayment(payment)
     if (syncedOrder?.changed) {
       await sendShopOrderTransitionNotifications(syncedOrder.id, {
         previousStatus: syncedOrder.previousStatus,

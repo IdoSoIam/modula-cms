@@ -153,4 +153,54 @@ export interface CmsRegistryInstanceRecord {
   releaseChannel: string
   currentVersion: string | null
   lastSeenAt: string | null
+  payment?: CmsRegistryPaymentConfig
+}
+
+export interface CmsRegistryPaymentConfig {
+  provider: 'none' | 'stripe_connect'
+  configured: boolean
+  connectedAccountId: string
+  connectedAccountLabel: string
+  commissionPercent: number
+  automaticTaxEnabled: boolean
+  defaultTaxBehavior: 'inclusive' | 'exclusive'
+  defaultTaxCode: string
+  publishableKey: string
+}
+
+export interface CmsRegistryPaymentLineItem {
+  name: string
+  amount: number
+  quantity?: number
+  currency?: string
+  description?: string
+  imageUrl?: string
+  taxBehavior?: 'inclusive' | 'exclusive'
+  taxCode?: string
+}
+
+export interface CmsRegistryPaymentRecord {
+  id: string
+  instanceSlug: string
+  orderId: string
+  orderNumber: string | null
+  provider: string
+  providerAccountId: string | null
+  providerSessionId: string | null
+  providerPaymentIntentId: string | null
+  providerPaymentStatus: string | null
+  paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
+  checkoutUrl: string | null
+  amountTotal: number
+  currency: string
+  commissionAmount: number
+  commissionPercent: number
+  customerEmail: string | null
+  successUrl: string | null
+  cancelUrl: string | null
+  metadata: Record<string, any>
+  lastEventId: string | null
+  failureReason: string | null
+  createdAt: string
+  updatedAt: string
 }

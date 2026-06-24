@@ -39,6 +39,11 @@
                     <span class="badge badge-soft">{{ stockLabel }}: {{ item.availableQuantity ?? '-' }}</span>
                     <span v-if="item.allowOfflinePayment" class="badge badge-soft">{{ offlineLabel }}</span>
                     <span v-if="item.allowOnlinePayment && stripeEnabled" class="badge badge-outline">{{ onlineLabel }}</span>
+                    <span class="badge badge-ghost">TVA {{ formatVatRate(item.vatRate) }}</span>
+                    <span v-if="!stripeTaxEnabled" class="badge badge-soft">{{ taxIncludedLabel }}</span>
+                    <span v-else-if="resolveCartTaxCode(item)" class="badge badge-outline">
+                      {{ taxCodeLabel }}: {{ resolveCartTaxCode(item) }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -96,16 +101,16 @@
             <div class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ deliveryLabel }}</span></label>
               <select v-model="checkoutForm.deliveryType" class="select select-bordered" :disabled="deliveryOptionsPending">
-                <option value="">{{ deliveryPlaceholderLabel }}</option>
-                <option v-if="deliveryChoices.includes('FARM')" value="FARM">{{ farmDeliveryLabel }}</option>
+                <option v-if="!deliveryChoices.length" value="">{{ deliveryPlaceholderLabel }}</option>
+                <option v-if="deliveryChoices.includes('ONSITE')" value="ONSITE">{{ onSiteDeliveryLabel }}</option>
                 <option v-if="deliveryChoices.includes('PICKUP')" value="PICKUP">{{ pickupDeliveryLabel }}</option>
                 <option v-if="deliveryChoices.includes('TOUR')" value="TOUR">{{ tourDeliveryLabel }}</option>
               </select>
             </div>
 
-            <div v-if="checkoutForm.deliveryType === 'FARM'" class="rounded-2xl bg-base-200 p-4 text-sm">
-              <div class="font-medium">{{ farmDeliveryLabel }}</div>
-              <div class="mt-1 opacity-75">{{ farmPickupSummary }}</div>
+            <div v-if="checkoutForm.deliveryType === 'ONSITE'" class="rounded-2xl bg-base-200 p-4 text-sm">
+              <div class="font-medium">{{ onSiteDeliveryLabel }}</div>
+              <div class="mt-1 opacity-75">{{ onSitePickupSummary }}</div>
             </div>
 
             <div v-if="checkoutForm.deliveryType === 'PICKUP'" class="space-y-3">
@@ -193,6 +198,9 @@
             <p v-if="!paymentCapabilities.allowOffline && !paymentCapabilities.allowOnline" class="mt-3 text-sm text-error">
               {{ unavailablePaymentLabel }}
             </p>
+            <p v-else class="mt-3 text-sm opacity-70">
+              {{ checkoutTaxNotice }}
+            </p>
           </div>
         </aside>
       </div>
@@ -236,7 +244,7 @@ interface DeliveryOptionTour {
 }
 
 interface DeliveryOptionsPayload {
-  farmPickup?: {
+  onSitePickup?: {
     label: string
     address: string
     dayOfWeek: number
@@ -250,7 +258,7 @@ interface DeliveryOptionsPayload {
   servedCities: string[]
 }
 
-type DeliveryType = '' | 'FARM' | 'PICKUP' | 'TOUR'
+type DeliveryType = '' | 'ONSITE' | 'PICKUP' | 'TOUR'
 
 const { locale } = useI18n()
 const localePath = useLocalePath()
@@ -261,16 +269,27 @@ const { items, count, total, updateQuantity, remove, clear } = useShopCart()
 
 await authStore.ensureInitialized()
 
-const { data: paymentConfig } = await useFetch<{ enabled: boolean }>('/api/payments/config')
+const { data: paymentConfig } = await useFetch<{
+  enabled: boolean
+  provider: 'none' | 'stripe_connect'
+  publishableKey: string
+  config?: {
+    automaticTaxEnabled?: boolean
+    defaultTaxBehavior?: 'inclusive' | 'exclusive'
+    defaultTaxCode?: string
+  } | null
+}>('/api/payments/config')
 const { data: deliveryOptions, pending: deliveryOptionsPending } = await useFetch<DeliveryOptionsPayload>('/api/delivery-options')
 
 const stripeEnabled = computed(() => Boolean(paymentConfig.value?.enabled))
+const stripeTaxEnabled = computed(() => Boolean(paymentConfig.value?.config?.automaticTaxEnabled))
+const registryDefaultTaxCode = computed(() => paymentConfig.value?.config?.defaultTaxCode?.trim() || '')
 const paymentCapabilities = computed(() => getShopCartPaymentCapabilities(items.value, stripeEnabled.value))
 const pickupPoints = computed(() => deliveryOptions.value?.pickupPoints || [])
 const deliveryTours = computed(() => deliveryOptions.value?.tours || [])
 const deliveryChoices = computed<DeliveryType[]>(() => {
   const values: DeliveryType[] = []
-  if (deliveryOptions.value?.farmPickup) values.push('FARM')
+  if (deliveryOptions.value?.onSitePickup) values.push('ONSITE')
   if (pickupPoints.value.length) values.push('PICKUP')
   if (deliveryTours.value.length) values.push('TOUR')
   return values
@@ -316,7 +335,7 @@ const fullNameLabel = computed(() => locale.value === 'en' ? 'Full name' : 'Nom 
 const phoneLabel = computed(() => locale.value === 'en' ? 'Phone' : 'Téléphone')
 const deliveryLabel = computed(() => locale.value === 'en' ? 'Delivery method' : 'Mode de livraison')
 const deliveryPlaceholderLabel = computed(() => locale.value === 'en' ? 'Select a delivery method' : 'Choisir un mode de livraison')
-const farmDeliveryLabel = computed(() => deliveryOptions.value?.farmPickup?.label || (locale.value === 'en' ? 'On-site pickup' : 'Retrait sur place'))
+const onSiteDeliveryLabel = computed(() => deliveryOptions.value?.onSitePickup?.label || (locale.value === 'en' ? 'On-site pickup' : 'Retrait sur place'))
 const pickupDeliveryLabel = computed(() => locale.value === 'en' ? 'Pickup point' : 'Point relais')
 const tourDeliveryLabel = computed(() => locale.value === 'en' ? 'Delivery' : 'Livraison')
 const pickupPointLabel = computed(() => locale.value === 'en' ? 'Pickup point' : 'Point relais')
@@ -342,6 +361,8 @@ const noAddressLabel = computed(() => locale.value === 'en' ? 'Address to be con
 const unavailableCityLabel = computed(() => locale.value === 'en'
   ? 'No delivery tour currently serves this city.'
   : 'Aucune tournée ne dessert actuellement cette ville.')
+const taxIncludedLabel = computed(() => locale.value === 'en' ? 'VAT included' : 'TVA incluse')
+const taxCodeLabel = computed(() => locale.value === 'en' ? 'Tax code' : 'Code taxe')
 
 const resolvedPaymentLabel = computed(() =>
   paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline
@@ -367,10 +388,10 @@ const selectedDeliveryTour = computed(() =>
   || null
 )
 
-const farmPickupSummary = computed(() => {
-  const farmPickup = deliveryOptions.value?.farmPickup
-  if (!farmPickup) return ''
-  return [farmPickup.address, `${$formatDate(farmPickup.nextDate)} · ${farmPickup.slotLabel}`].filter(Boolean).join(' — ')
+const onSitePickupSummary = computed(() => {
+  const onSitePickup = deliveryOptions.value?.onSitePickup
+  if (!onSitePickup) return ''
+  return [onSitePickup.address, `${$formatDate(onSitePickup.nextDate)} · ${onSitePickup.slotLabel}`].filter(Boolean).join(' — ')
 })
 
 const paymentConstraintNotice = computed(() => {
@@ -387,8 +408,22 @@ const paymentConstraintNotice = computed(() => {
   return ''
 })
 
+const checkoutTaxNotice = computed(() => {
+  if (!stripeEnabled.value || checkoutForm.value.paymentMode !== 'stripe') {
+    return taxIncludedLabel.value
+  }
+  if (!stripeTaxEnabled.value) {
+    return locale.value === 'en'
+      ? 'VAT is included in the displayed prices. Stripe will not add extra tax during checkout.'
+      : 'La TVA est incluse dans les prix affichés. Stripe n’ajoutera pas de taxe supplémentaire au checkout.'
+  }
+  return locale.value === 'en'
+    ? 'Stripe Tax is enabled. Taxes and tax codes configured for this order will be applied during checkout.'
+    : 'Stripe Tax est activé. Les règles fiscales et codes taxe configurés pour cette commande seront appliqués au checkout.'
+})
+
 const deliveryValid = computed(() => {
-  if (checkoutForm.value.deliveryType === 'FARM') return true
+  if (checkoutForm.value.deliveryType === 'ONSITE') return true
   if (checkoutForm.value.deliveryType === 'PICKUP') {
     return Number(checkoutForm.value.pickupPointId) > 0
   }
@@ -470,6 +505,14 @@ const removeItem = (key: string) => remove(key)
 
 function deliveryTourSummary(tour: DeliveryOptionTour) {
   return `${$formatDate(tour.nextDate)} · ${tour.startTime} - ${tour.endTime}`
+}
+
+function formatVatRate(value: number) {
+  return `${Number(value || 0).toFixed(2)}%`
+}
+
+function resolveCartTaxCode(item: { paymentTaxCode?: string | null }) {
+  return item.paymentTaxCode?.trim() || registryDefaultTaxCode.value || ''
 }
 
 function resetCheckoutForm() {

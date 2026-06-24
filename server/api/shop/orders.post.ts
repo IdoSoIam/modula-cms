@@ -8,8 +8,7 @@ import {
 import { sendShopOrderCreatedNotifications } from "#modula/server/services/shop/shopOrderEmails";
 import { getReservationFulfillment } from "#modula/server/utils/orderFulfillment";
 import {
-  getFarmPickupConfig,
-  getOnlinePaymentsSettings,
+  getOnSitePickupConfig,
 } from "#modula/server/utils/settings";
 import {
   createOrderNumber,
@@ -32,7 +31,7 @@ interface OrderBody {
   phone?: string | null;
   message?: string | null;
   paymentMode?: "offline" | "stripe";
-  deliveryType?: "FARM" | "PICKUP" | "TOUR";
+  deliveryType?: "ONSITE" | "PICKUP" | "TOUR";
   pickupPointId?: number | null;
   deliveryTourId?: number | null;
   deliveryAddress?: string | null;
@@ -114,7 +113,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const productById = productMapSource;
-  const lotById = new Map(
+  const lotById = new Map<number, ReturnType<typeof serializeProductLot>>(
     productLots.map((row: any) => [Number(row.id), serializeProductLot(row)]),
   );
 
@@ -148,9 +147,11 @@ export default defineEventHandler(async (event) => {
           slug: product.slug,
           unitLabel: product.unitLabel,
           vatRate: product.vatRate,
-          stripeTaxCode: product.stripeTaxCode,
-          stripeTaxBehavior: product.stripeTaxBehavior,
+          paymentTaxCode: product.paymentTaxCode,
+          paymentTaxBehavior: product.paymentTaxBehavior,
         }),
+        paymentTaxCode: product.paymentTaxCode,
+        paymentTaxBehavior: product.paymentTaxBehavior,
       };
     }
 
@@ -183,19 +184,21 @@ export default defineEventHandler(async (event) => {
       allowOnlinePayment: productLot.allowOnlinePayment,
       imageUrl: productLot.imageUrl,
       description: productLot.description || undefined,
-      metaJson: JSON.stringify({
-        slug: productLot.slug,
-        kind: productLot.kind,
-        vatRate: productLot.vatRate,
-        stripeTaxCode: productLot.stripeTaxCode,
-        stripeTaxBehavior: productLot.stripeTaxBehavior,
-        items: productLot.items.map((item) => ({
-          productId: item.productId,
-          productName: item.product?.name || "",
-          quantity: item.quantity,
-        })),
-      }),
-    };
+        metaJson: JSON.stringify({
+          slug: productLot.slug,
+          kind: productLot.kind,
+          vatRate: productLot.vatRate,
+          paymentTaxCode: productLot.paymentTaxCode,
+          paymentTaxBehavior: productLot.paymentTaxBehavior,
+          items: productLot.items.map((item) => ({
+            productId: item.productId,
+            productName: item.product?.name || "",
+            quantity: item.quantity,
+          })),
+        }),
+        paymentTaxCode: productLot.paymentTaxCode,
+        paymentTaxBehavior: productLot.paymentTaxBehavior,
+      };
   });
 
   const allowOffline = normalizedLines.every(
@@ -277,7 +280,7 @@ export default defineEventHandler(async (event) => {
     0,
   );
   const useStripe = paymentMode === "stripe" && allowOnline;
-  const farmPickup = await getFarmPickupConfig();
+  const onSitePickup = await getOnSitePickupConfig();
   const accountProvisioning = await resolveOrderAccountProvisioning({
     sessionUserId: sessionUser?.id ?? null,
     email: normalizedEmail,
@@ -290,7 +293,7 @@ export default defineEventHandler(async (event) => {
     createdInvitedAccount: accountProvisioning.createdInvitedAccount,
   };
 
-  let deliveryType: "FARM" | "PICKUP" | "TOUR" | null = null;
+  let deliveryType: "ONSITE" | "PICKUP" | "TOUR";
   let pickupPointId: number | null = null;
   let deliveryTourId: number | null = null;
   let pickupPoint: {
@@ -308,8 +311,8 @@ export default defineEventHandler(async (event) => {
     endTime: string;
   } | null = null;
 
-  if (body.deliveryType === "FARM") {
-    deliveryType = "FARM";
+  if (body.deliveryType === "ONSITE") {
+    deliveryType = "ONSITE";
   } else if (body.deliveryType === "PICKUP") {
     if (!body.pickupPointId) {
       throw createError({
@@ -426,7 +429,7 @@ export default defineEventHandler(async (event) => {
     deliveryType,
     pickupPoint,
     deliveryTour,
-    farmPickup,
+    onSitePickup,
     deliveryAddress,
     deliveryCity,
     deliveryPostalCode,
@@ -491,19 +494,19 @@ export default defineEventHandler(async (event) => {
   }
 
   let checkoutUrl: string | null = null;
-  let stripeSessionId: string | null = null;
-  let stripePaymentIntentId: string | null = null;
+  let providerSessionId: string | null = null;
+  let providerPaymentIntentId: string | null = null;
 
   if (useStripe) {
-    const paymentSettings = await getOnlinePaymentsSettings();
     const requestUrl = getRequestURL(event);
     const successUrl = `${requestUrl.origin}/payment/success?order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${requestUrl.origin}/panier?checkout=cancel&order=${order.id}`;
     const session = await createStripeCheckoutSession({
+      orderId: String(order.id),
+      orderNumber,
       successUrl,
       cancelUrl,
       customerEmail: normalizedEmail,
-      automaticTaxEnabled: paymentSettings.stripeAutomaticTaxEnabled,
       metadata: {
         orderId: String(order.id),
         orderNumber,
@@ -515,28 +518,19 @@ export default defineEventHandler(async (event) => {
         currency: "eur",
         description: line.description,
         imageUrl: toStripeCompatibleImageUrl(line.imageUrl, requestUrl.origin),
-        taxBehavior: paymentSettings.stripeAutomaticTaxEnabled
-          ? ((safeParseMeta(line.metaJson).stripeTaxBehavior ||
-              paymentSettings.stripeDefaultTaxBehavior) as
-              | "inclusive"
-              | "exclusive")
-          : undefined,
-        taxCode: paymentSettings.stripeAutomaticTaxEnabled
-          ? safeParseMeta(line.metaJson).stripeTaxCode ||
-            paymentSettings.stripeDefaultTaxCode ||
-            undefined
-          : undefined,
+        taxBehavior: line.paymentTaxBehavior || undefined,
+        taxCode: line.paymentTaxCode || undefined,
       })),
     });
     checkoutUrl = session.url;
-    stripeSessionId = session.id;
-    stripePaymentIntentId = session.paymentIntentId;
+    providerSessionId = session.id;
+    providerPaymentIntentId = session.paymentIntentId;
     await db.shopOrder.update({
       where: { id: order.id },
       data: {
         checkoutUrl,
-        stripeCheckoutSessionId: stripeSessionId,
-        stripePaymentIntentId,
+        providerSessionId,
+        providerPaymentIntentId,
       },
     });
   }

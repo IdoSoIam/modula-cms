@@ -32,7 +32,7 @@
             {{ t('pages.reservationManage.subscriptionInactive') }}
           </div>
 
-          <div v-else-if="reservation.deliveryType === 'FARM' && reservation.scheduleProposalPendingBy === 'CUSTOMER'" class="mt-6 space-y-4">
+          <div v-else-if="reservation.deliveryType === 'ONSITE' && reservation.scheduleProposalPendingBy === 'CUSTOMER'" class="mt-6 space-y-4">
             <div class="alert alert-info">
               {{ t('pages.reservationManage.pendingProposal') }}
             </div>
@@ -82,7 +82,7 @@
             <NuxtLink :to="localePath('/')" class="btn btn-ghost">{{ t('pages.reservationManage.backHome') }}</NuxtLink>
           </div>
 
-          <div v-if="reservation.deliveryType === 'FARM' && reservation.scheduleProposals?.length" class="mt-8">
+          <div v-if="reservation.deliveryType === 'ONSITE' && reservation.scheduleProposals?.length" class="mt-8">
             <h2 class="text-xl font-semibold">{{ t('pages.reservationManage.proposalsHistory') }}</h2>
             <div class="mt-4 space-y-3">
               <div
@@ -155,7 +155,7 @@ interface ManagedReservation {
   customerName: string
   email: string
   status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
-  deliveryType: 'FARM' | 'PICKUP' | 'TOUR' | null
+  deliveryType: 'ONSITE' | 'PICKUP' | 'TOUR' | null
   monthlySubscription: boolean
   subscriptionActive: boolean
   fulfillmentDate: string | null
@@ -218,7 +218,7 @@ const introText = computed(() => {
   if (subscriptionsEnabled.value && reservation.value.monthlySubscription) {
     return t('pages.reservationManage.introSubscription')
   }
-  if (reservation.value.deliveryType === 'FARM') {
+  if (reservation.value.deliveryType === 'ONSITE') {
     return t('pages.reservationManage.introFarm')
   }
   return t('pages.reservationManage.introDefault')

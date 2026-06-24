@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
   const requestedLocation = body.fulfillmentLocation?.trim() || reservation.fulfillmentLocation
 
   if (body.decision === 'CONFIRMED' && body.scheduleMode === 'PROPOSE') {
-    if (reservation.deliveryType !== 'FARM') {
+    if (reservation.deliveryType !== 'ONSITE') {
       throw createError({ statusCode: 400, statusMessage: 'Les contre-propositions sont réservées au Retrait sur place' })
     }
     if (!requestedDate || !requestedTime) {
@@ -150,7 +150,7 @@ export default defineEventHandler(async (event) => {
   let calendarReason: string | null = null
 
   if (body.decision === 'CONFIRMED') {
-    if (updated.deliveryType === 'FARM' && updated.fulfillmentDate && updated.fulfillmentTime) {
+    if (updated.deliveryType === 'ONSITE' && updated.fulfillmentDate && updated.fulfillmentTime) {
       await markReservationProposalAccepted({
         reservationId: updated.id,
         proposalDate: updated.fulfillmentDate,
