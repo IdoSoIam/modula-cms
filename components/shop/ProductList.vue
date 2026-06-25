@@ -38,7 +38,7 @@
         </div>
       </div>
       <button class="btn btn-outline mt-5 w-full" :disabled="product.stock <= 0" @click="$emit('add', product)">
-        {{ product.stock <= 0 ? soldOutLabel : addLabel }}
+        {{ product.stock <= 0 ? soldOutLabel : product.saleType === 'RENTAL' ? rentalAddLabel : addLabel }}
       </button>
     </article>
   </div>
@@ -53,6 +53,7 @@ defineProps<{
   showDescriptions?: boolean
   itemBackgroundColor?: string
   addLabel: string
+  rentalAddLabel: string
   soldOutLabel: string
   saleLabel: string
   rentalLabel: string

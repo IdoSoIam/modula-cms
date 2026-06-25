@@ -138,6 +138,27 @@
             <label class="label"><span class="label-text">{{ t('admin.basketsPage.fieldAvailable') }}</span></label>
             <input :value="computedStockPreview" class="input input-bordered" disabled />
           </div>
+          <template v-if="editing.saleType === 'RENTAL'">
+            <div class="form-control flex flex-col gap-3">
+              <label class="label"><span class="label-text">{{ t('admin.basketsPage.fieldRentalAvailableFrom') }}</span></label>
+              <input v-model="editing.rentalAvailableFrom" type="date" class="input input-bordered" />
+            </div>
+            <div class="form-control flex flex-col gap-3">
+              <label class="label"><span class="label-text">{{ t('admin.basketsPage.fieldRentalAvailableTo') }}</span></label>
+              <input v-model="editing.rentalAvailableTo" type="date" class="input input-bordered" />
+            </div>
+            <div class="form-control flex flex-col gap-3">
+              <label class="label"><span class="label-text">{{ t('admin.basketsPage.fieldRentalMinDays') }}</span></label>
+              <input v-model.number="editing.rentalMinDays" type="number" min="1" step="1" class="input input-bordered" />
+            </div>
+            <div class="form-control flex flex-col gap-3">
+              <label class="label"><span class="label-text">{{ t('admin.basketsPage.fieldRentalMaxDays') }}</span></label>
+              <input v-model.number="editing.rentalMaxDays" type="number" min="1" step="1" class="input input-bordered" />
+            </div>
+            <div class="md:col-span-2 text-sm opacity-70">
+              {{ t('admin.basketsPage.rentalHelp') }}
+            </div>
+          </template>
           <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ t('admin.basketsPage.editableFinalPrice') }}</span></label>
             <input v-model.number="editing.price" type="number" min="0" step="0.01" class="input input-bordered" />
@@ -241,6 +262,10 @@ interface Product {
   paymentTaxCode: string | null
   paymentTaxBehavior: 'inclusive' | 'exclusive' | null
   stock: number
+  rentalAvailableFrom: string | null
+  rentalAvailableTo: string | null
+  rentalMinDays: number
+  rentalMaxDays: number | null
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
 }
@@ -304,6 +329,10 @@ const editing = reactive<{
   vatRate: number
   paymentTaxCode: string
   paymentTaxBehavior: '' | 'inclusive' | 'exclusive'
+  rentalAvailableFrom: string
+  rentalAvailableTo: string
+  rentalMinDays: number
+  rentalMaxDays: number | null
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
   active: boolean
@@ -322,6 +351,10 @@ const editing = reactive<{
   vatRate: defaultVatRate.value,
   paymentTaxCode: '',
   paymentTaxBehavior: '',
+  rentalAvailableFrom: '',
+  rentalAvailableTo: '',
+  rentalMinDays: 1,
+  rentalMaxDays: null,
   allowOfflinePayment: true,
   allowOnlinePayment: false,
   active: true,
@@ -343,6 +376,10 @@ const resetEditing = () => {
     vatRate: defaultVatRate.value,
     paymentTaxCode: '',
     paymentTaxBehavior: '',
+    rentalAvailableFrom: '',
+    rentalAvailableTo: '',
+    rentalMinDays: 1,
+    rentalMaxDays: null,
     allowOfflinePayment: true,
     allowOnlinePayment: false,
     active: true,
@@ -432,6 +469,10 @@ const openEdit = (lot: ProductLot) => {
     vatRate: lot.vatRate,
     paymentTaxCode: lot.paymentTaxCode || '',
     paymentTaxBehavior: lot.paymentTaxBehavior || '',
+    rentalAvailableFrom: toDateInputValue(lot.rentalAvailableFrom),
+    rentalAvailableTo: toDateInputValue(lot.rentalAvailableTo),
+    rentalMinDays: lot.rentalMinDays || 1,
+    rentalMaxDays: lot.rentalMaxDays ?? null,
     allowOfflinePayment: lot.allowOfflinePayment,
     allowOnlinePayment: lot.allowOnlinePayment,
     active: lot.active,
@@ -468,6 +509,10 @@ const save = async () => {
       vatRate: editing.vatRate,
       paymentTaxCode: editing.paymentTaxCode.trim() || null,
       paymentTaxBehavior: editing.paymentTaxBehavior || null,
+      rentalAvailableFrom: editing.saleType === 'RENTAL' ? normalizeDateValue(editing.rentalAvailableFrom) : null,
+      rentalAvailableTo: editing.saleType === 'RENTAL' ? normalizeDateValue(editing.rentalAvailableTo) : null,
+      rentalMinDays: editing.saleType === 'RENTAL' ? Number(editing.rentalMinDays || 1) : 1,
+      rentalMaxDays: editing.saleType === 'RENTAL' ? normalizeNullableNumber(editing.rentalMaxDays) : null,
       allowOfflinePayment: editing.allowOfflinePayment,
       allowOnlinePayment: editing.allowOnlinePayment,
       active: editing.active,
@@ -497,5 +542,19 @@ const remove = async (lot: ProductLot) => {
   } catch (error: any) {
     $toast.error(error?.statusMessage || t('common.error'))
   }
+}
+
+function toDateInputValue(value: string | null | undefined) {
+  return value ? String(value).slice(0, 10) : ''
+}
+
+function normalizeDateValue(value: string | null | undefined) {
+  return value?.trim() ? value.trim() : null
+}
+
+function normalizeNullableNumber(value: number | null | undefined) {
+  if (value === '' as any) return null
+  if (value == null || Number.isNaN(Number(value))) return null
+  return Number(value)
 }
 </script>

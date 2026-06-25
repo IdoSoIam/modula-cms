@@ -3,6 +3,7 @@ import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
 import { ensureUniqueSlug, serializeProduct } from '#modula/server/utils/shop'
 import { normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate } from '#modula/server/utils/settings'
+import { normalizeRentalConfig } from '#modula/server/services/shop/rentalConfig'
 
 interface Body {
   name?: string
@@ -17,6 +18,10 @@ interface Body {
   paymentTaxCode?: string | null
   paymentTaxBehavior?: 'inclusive' | 'exclusive' | null
   stock?: number
+  rentalAvailableFrom?: string | null
+  rentalAvailableTo?: string | null
+  rentalMinDays?: number | null
+  rentalMaxDays?: number | null
   unitLabel?: string | null
   allowOfflinePayment?: boolean
   allowOnlinePayment?: boolean
@@ -38,6 +43,12 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<Body>(event)
   const data: Record<string, any> = {}
+  const rentalConfig = normalizeRentalConfig({
+    rentalAvailableFrom: body.rentalAvailableFrom ?? existing.rentalAvailableFrom,
+    rentalAvailableTo: body.rentalAvailableTo ?? existing.rentalAvailableTo,
+    rentalMinDays: body.rentalMinDays ?? existing.rentalMinDays,
+    rentalMaxDays: body.rentalMaxDays ?? existing.rentalMaxDays
+  })
 
   if (body.name !== undefined) data.name = body.name.trim()
   if (body.excerpt !== undefined) data.excerpt = body.excerpt?.trim() || null
@@ -84,6 +95,10 @@ export default defineEventHandler(async (event) => {
     }
     data.stock = stock
   }
+  if (body.rentalAvailableFrom !== undefined) data.rentalAvailableFrom = rentalConfig.rentalAvailableFrom
+  if (body.rentalAvailableTo !== undefined) data.rentalAvailableTo = rentalConfig.rentalAvailableTo
+  if (body.rentalMinDays !== undefined) data.rentalMinDays = rentalConfig.rentalMinDays
+  if (body.rentalMaxDays !== undefined) data.rentalMaxDays = rentalConfig.rentalMaxDays
 
   if (body.slug !== undefined || body.name !== undefined) {
     data.slug = await ensureUniqueSlug('product', body.slug?.trim() || body.name?.trim() || existing.slug, id)

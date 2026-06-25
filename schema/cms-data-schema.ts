@@ -414,6 +414,10 @@ export const cmsDataSchema = defineSchema({
         paymentTaxCode: field.string({ nullable: true }),
         paymentTaxBehavior: field.enum(stripeTaxBehaviors, { nullable: true }),
         stock: field.int({ default: 0 }),
+        rentalAvailableFrom: field.datetime({ nullable: true }),
+        rentalAvailableTo: field.datetime({ nullable: true }),
+        rentalMinDays: field.int({ default: 1 }),
+        rentalMaxDays: field.int({ nullable: true }),
         unitLabel: field.string({ nullable: true }),
         allowOfflinePayment: field.boolean({ default: true }),
         allowOnlinePayment: field.boolean({ default: false }),
@@ -467,6 +471,10 @@ export const cmsDataSchema = defineSchema({
         paymentTaxCode: field.string({ nullable: true }),
         paymentTaxBehavior: field.enum(stripeTaxBehaviors, { nullable: true }),
         stock: field.int({ default: 0 }),
+        rentalAvailableFrom: field.datetime({ nullable: true }),
+        rentalAvailableTo: field.datetime({ nullable: true }),
+        rentalMinDays: field.int({ default: 1 }),
+        rentalMaxDays: field.int({ nullable: true }),
         allowOfflinePayment: field.boolean({ default: true }),
         allowOnlinePayment: field.boolean({ default: false }),
         active: field.boolean({ default: true }),
@@ -529,6 +537,8 @@ export const cmsDataSchema = defineSchema({
         deliveryAddress: field.string({ nullable: true }),
         deliveryCity: field.string({ nullable: true }),
         deliveryPostalCode: field.string({ nullable: true }),
+        rentalStartDate: field.datetime({ nullable: true }),
+        rentalEndDate: field.datetime({ nullable: true }),
         fulfillmentDate: field.datetime({ nullable: true }),
         fulfillmentTime: field.string({ nullable: true }),
         fulfillmentLocation: field.string({ nullable: true }),
@@ -552,8 +562,9 @@ export const cmsDataSchema = defineSchema({
         unique(['providerSessionId'], 'ShopOrder_providerSessionId_key'),
         unique(['providerPaymentIntentId'], 'ShopOrder_providerPaymentIntentId_key'),
         index(['status', 'createdAt'], 'ShopOrder_status_createdAt_idx'),
-        index(['paymentStatus', 'createdAt'], 'ShopOrder_paymentStatus_createdAt_idx'),
-        index(['userId'], 'ShopOrder_userId_idx'),
+         index(['paymentStatus', 'createdAt'], 'ShopOrder_paymentStatus_createdAt_idx'),
+         index(['status', 'rentalStartDate'], 'ShopOrder_status_rentalStartDate_idx'),
+         index(['userId'], 'ShopOrder_userId_idx'),
         index(['pickupPointId'], 'ShopOrder_pickupPointId_idx'),
         index(['deliveryTourId'], 'ShopOrder_deliveryTourId_idx')
       ]
@@ -570,6 +581,8 @@ export const cmsDataSchema = defineSchema({
         quantity: field.int({ default: 1 }),
         unitPrice: field.decimal({ default: 0 }),
         totalPrice: field.decimal({ default: 0 }),
+        rentalStartDate: field.datetime({ nullable: true }),
+        rentalEndDate: field.datetime({ nullable: true }),
         metaJson: field.string({ default: '{}' }),
         createdAt: field.datetime({ default: 'now' }),
         updatedAt: field.datetime()
@@ -582,7 +595,9 @@ export const cmsDataSchema = defineSchema({
       indexes: [
         index(['orderId'], 'ShopOrderLine_orderId_idx'),
         index(['productLotId'], 'ShopOrderLine_productLotId_idx'),
-        index(['productId'], 'ShopOrderLine_productId_idx')
+        index(['productId'], 'ShopOrderLine_productId_idx'),
+        index(['productId', 'rentalStartDate'], 'ShopOrderLine_productId_rentalStartDate_idx'),
+        index(['productLotId', 'rentalStartDate'], 'ShopOrderLine_productLotId_rentalStartDate_idx')
       ]
     }),
     Article: defineModel({

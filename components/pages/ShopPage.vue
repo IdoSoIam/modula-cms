@@ -37,6 +37,7 @@
           :show-descriptions="settings?.showDescriptions !== false"
           :item-background-color="itemBackgroundColor"
           :add-label="addProductLabel"
+          :rental-add-label="chooseRentalPeriodLabel"
           :sold-out-label="soldOutLabel"
           :sale-label="saleLabel"
           :rental-label="rentalLabel"
@@ -52,6 +53,14 @@
       </template>
     </div>
 
+    <RentalAvailabilityModal
+      :open="rentalModalOpen"
+      source-kind="product"
+      :source-id="selectedRentalProduct?.id ?? null"
+      :source-name="selectedRentalProduct?.name || ''"
+      @close="closeRentalModal"
+      @confirm="confirmRentalSelection"
+    />
   </section>
 </template>
 
@@ -61,6 +70,7 @@ import { pickCmsLocalizedText } from '#modula/shared/cms'
 import type { ProductCategoryPayload, ProductPayload } from '#modula/server/utils/shop'
 import { useShopCart } from '#modula/composables/useShopCart'
 import ProductList from '#modula/components/shop/ProductList.vue'
+import RentalAvailabilityModal from '#modula/components/shop/RentalAvailabilityModal.vue'
 
 const props = defineProps<{
   settings?: CmsBasketsPageSettings | null
@@ -96,7 +106,10 @@ const allCategoriesLabel = computed(() => locale.value === 'en' ? 'All categorie
 const emptyLabel = computed(() => locale.value === 'en' ? 'No product is currently published.' : 'Aucun produit n’est publié pour le moment.')
 const offlineLabel = computed(() => locale.value === 'en' ? 'Offline payment' : 'Paiement hors ligne')
 const onlineLabel = computed(() => locale.value === 'en' ? 'Online payment' : 'Paiement en ligne')
+const chooseRentalPeriodLabel = computed(() => locale.value === 'en' ? 'Choose rental period' : 'Choisir la période')
 const itemBackgroundColor = computed(() => 'var(--fallback-b1,oklch(var(--b1)/1))')
+const rentalModalOpen = ref(false)
+const selectedRentalProduct = ref<ProductPayload | null>(null)
 
 const selectCategory = async (slug: string) => {
   selectedCategorySlug.value = slug
@@ -110,6 +123,12 @@ const selectCategory = async (slug: string) => {
 }
 
 const addProductToCart = (product: ProductPayload) => {
+  if (product.saleType === 'RENTAL') {
+    selectedRentalProduct.value = product
+    rentalModalOpen.value = true
+    return
+  }
+
   add({
     key: `product-${product.id}`,
     kind: 'product',
@@ -119,6 +138,7 @@ const addProductToCart = (product: ProductPayload) => {
     imageUrl: product.imageUrl,
     description: product.excerpt || product.description,
     quantity: 1,
+    saleType: product.saleType,
     availableQuantity: product.stock,
     vatRate: product.vatRate,
     paymentTaxCode: product.paymentTaxCode,
@@ -129,6 +149,40 @@ const addProductToCart = (product: ProductPayload) => {
     totalPrice: product.price
   })
   $toast.success(locale.value === 'en' ? 'Added to cart' : 'Ajouté au panier')
+}
+
+const closeRentalModal = () => {
+  rentalModalOpen.value = false
+  selectedRentalProduct.value = null
+}
+
+const confirmRentalSelection = ({ rentalStartDate, rentalEndDate }: { rentalStartDate: string, rentalEndDate: string }) => {
+  const product = selectedRentalProduct.value
+  if (!product) return
+
+  add({
+    key: `product-${product.id}-${rentalStartDate}-${rentalEndDate}`,
+    kind: 'product',
+    productId: product.id,
+    productLotId: null,
+    title: product.name,
+    imageUrl: product.imageUrl,
+    description: product.excerpt || product.description,
+    quantity: 1,
+    saleType: product.saleType,
+    rentalStartDate,
+    rentalEndDate,
+    availableQuantity: product.stock,
+    vatRate: product.vatRate,
+    paymentTaxCode: product.paymentTaxCode,
+    paymentTaxBehavior: product.paymentTaxBehavior,
+    allowOfflinePayment: product.allowOfflinePayment,
+    allowOnlinePayment: product.allowOnlinePayment,
+    unitPrice: product.price,
+    totalPrice: product.price
+  })
+  $toast.success(locale.value === 'en' ? 'Rental added to cart' : 'Location ajoutée au panier')
+  closeRentalModal()
 }
 
 const goToCart = () => navigateTo(localePath('/panier'))

@@ -48,7 +48,7 @@
           <span v-if="lot.allowOnlinePayment" class="badge badge-outline">{{ onlineLabel }}</span>
         </div>
         <button class="btn btn-primary w-full" :disabled="lot.stock <= 0" @click="$emit('add', lot)">
-          {{ lot.stock <= 0 ? soldOutLabel : addLabel }}
+          {{ lot.stock <= 0 ? soldOutLabel : lot.saleType === 'RENTAL' ? rentalAddLabel : addLabel }}
         </button>
       </div>
     </article>
@@ -65,6 +65,7 @@ defineProps<{
   showComposition?: boolean
   cardBackgroundColor?: string
   addLabel: string
+  rentalAddLabel: string
   soldOutLabel: string
   saleLabel: string
   rentalLabel: string

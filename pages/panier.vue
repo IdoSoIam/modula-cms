@@ -45,6 +45,13 @@
                       {{ taxCodeLabel }}: {{ resolveCartTaxCode(item) }}
                     </span>
                   </div>
+                  <div
+                    v-if="item.saleType === 'RENTAL'"
+                    class="rounded-2xl bg-base-200 px-3 py-2 text-sm"
+                  >
+                    <span class="font-medium">{{ rentalPeriodLabel }}:</span>
+                    {{ formatRentalRange(item.rentalStartDate, item.rentalEndDate) }}
+                  </div>
                 </div>
               </div>
 
@@ -96,6 +103,10 @@
             <div class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ phoneLabel }}</span></label>
               <input v-model="checkoutForm.phone" class="input input-bordered" />
+            </div>
+
+            <div v-if="hasRentalItems" class="rounded-2xl bg-base-200 p-4 text-sm opacity-80">
+              {{ rentalHelpLabel }}
             </div>
 
             <div class="form-control flex flex-col gap-3">
@@ -285,6 +296,11 @@ const stripeEnabled = computed(() => Boolean(paymentConfig.value?.enabled))
 const stripeTaxEnabled = computed(() => Boolean(paymentConfig.value?.config?.automaticTaxEnabled))
 const registryDefaultTaxCode = computed(() => paymentConfig.value?.config?.defaultTaxCode?.trim() || '')
 const paymentCapabilities = computed(() => getShopCartPaymentCapabilities(items.value, stripeEnabled.value))
+const hasRentalItems = computed(() => items.value.some((item) => item.saleType === 'RENTAL'))
+const rentalLinesValid = computed(() => items.value.every((item) =>
+  item.saleType !== 'RENTAL'
+  || (item.rentalStartDate?.trim().length && item.rentalEndDate?.trim().length)
+))
 const pickupPoints = computed(() => deliveryOptions.value?.pickupPoints || [])
 const deliveryTours = computed(() => deliveryOptions.value?.tours || [])
 const deliveryChoices = computed<DeliveryType[]>(() => {
@@ -333,6 +349,10 @@ const checkoutIntroLabel = computed(() => locale.value === 'en'
 const countLabel = computed(() => locale.value === 'en' ? `${count.value} item(s)` : `${count.value} article(s)`)
 const fullNameLabel = computed(() => locale.value === 'en' ? 'Full name' : 'Nom complet')
 const phoneLabel = computed(() => locale.value === 'en' ? 'Phone' : 'Téléphone')
+const rentalHelpLabel = computed(() => locale.value === 'en'
+  ? 'Rental dates are selected before adding each rental to the cart. Availability is checked again when the order is created.'
+  : 'Les dates de location sont choisies avant l’ajout de chaque location au panier. La disponibilité est revérifiée lors de la création de la commande.')
+const rentalPeriodLabel = computed(() => locale.value === 'en' ? 'Rental period' : 'Période de location')
 const deliveryLabel = computed(() => locale.value === 'en' ? 'Delivery method' : 'Mode de livraison')
 const deliveryPlaceholderLabel = computed(() => locale.value === 'en' ? 'Select a delivery method' : 'Choisir un mode de livraison')
 const onSiteDeliveryLabel = computed(() => deliveryOptions.value?.onSitePickup?.label || (locale.value === 'en' ? 'On-site pickup' : 'Retrait sur place'))
@@ -438,6 +458,7 @@ const deliveryValid = computed(() => {
 const canSubmit = computed(() =>
   items.value.length > 0
   && deliveryValid.value
+  && rentalLinesValid.value
   && (paymentCapabilities.value.allowOffline || paymentCapabilities.value.allowOnline)
 )
 
@@ -511,6 +532,13 @@ function formatVatRate(value: number) {
   return `${Number(value || 0).toFixed(2)}%`
 }
 
+function formatRentalRange(startDate: string | null | undefined, endDate: string | null | undefined) {
+  if (!startDate || !endDate) {
+    return locale.value === 'en' ? 'To be selected' : 'À sélectionner'
+  }
+  return `${$formatDate(startDate)} → ${$formatDate(endDate)}`
+}
+
 function resolveCartTaxCode(item: { paymentTaxCode?: string | null }) {
   return item.paymentTaxCode?.trim() || registryDefaultTaxCode.value || ''
 }
@@ -532,6 +560,11 @@ async function submitOrder() {
 
   if (!deliveryValid.value) {
     $toast.error(locale.value === 'en' ? 'Please complete the delivery information.' : 'Veuillez compléter les informations de livraison.')
+    return
+  }
+
+  if (!rentalLinesValid.value) {
+    $toast.error(locale.value === 'en' ? 'Please select rental dates for each rental line.' : 'Veuillez renseigner les dates pour chaque ligne de location.')
     return
   }
 
@@ -566,7 +599,10 @@ async function submitOrder() {
           kind: item.kind,
           productId: item.productId || undefined,
           productLotId: item.productLotId || undefined,
-          quantity: item.quantity
+          quantity: item.quantity,
+          saleType: item.saleType,
+          rentalStartDate: item.saleType === 'RENTAL' ? item.rentalStartDate : undefined,
+          rentalEndDate: item.saleType === 'RENTAL' ? item.rentalEndDate : undefined
         }))
       }
     })

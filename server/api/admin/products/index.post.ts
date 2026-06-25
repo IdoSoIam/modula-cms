@@ -3,6 +3,7 @@ import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
 import { ensureUniqueSlug, serializeProduct } from '#modula/server/utils/shop'
 import { getShopDefaultVatRate, normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate } from '#modula/server/utils/settings'
+import { normalizeRentalConfig } from '#modula/server/services/shop/rentalConfig'
 
 interface Body {
   name: string
@@ -17,6 +18,10 @@ interface Body {
   paymentTaxCode?: string | null
   paymentTaxBehavior?: 'inclusive' | 'exclusive' | null
   stock?: number
+  rentalAvailableFrom?: string | null
+  rentalAvailableTo?: string | null
+  rentalMinDays?: number | null
+  rentalMaxDays?: number | null
   unitLabel?: string | null
   allowOfflinePayment?: boolean
   allowOnlinePayment?: boolean
@@ -36,6 +41,12 @@ export default defineEventHandler(async (event) => {
   const shopDefaultVatRate = await getShopDefaultVatRate()
   const vatRate = normalizeVatRate(body.vatRate ?? shopDefaultVatRate, shopDefaultVatRate)
   const stock = Number(body.stock ?? 0)
+  const rentalConfig = normalizeRentalConfig({
+    rentalAvailableFrom: body.rentalAvailableFrom,
+    rentalAvailableTo: body.rentalAvailableTo,
+    rentalMinDays: body.rentalMinDays,
+    rentalMaxDays: body.rentalMaxDays
+  })
   const paymentTaxCode = normalizeStripeTaxCode(body.paymentTaxCode)
   const paymentTaxBehavior = body.paymentTaxBehavior == null
     ? null
@@ -72,6 +83,10 @@ export default defineEventHandler(async (event) => {
       paymentTaxCode: paymentTaxCode || null,
       paymentTaxBehavior,
       stock,
+      rentalAvailableFrom: rentalConfig.rentalAvailableFrom,
+      rentalAvailableTo: rentalConfig.rentalAvailableTo,
+      rentalMinDays: rentalConfig.rentalMinDays,
+      rentalMaxDays: rentalConfig.rentalMaxDays,
       unitLabel: body.unitLabel?.trim() || null,
       allowOfflinePayment,
       allowOnlinePayment,

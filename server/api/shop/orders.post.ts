@@ -16,12 +16,19 @@ import {
   serializeProductLot,
   serializeShopOrder,
 } from "#modula/server/utils/shop";
+import {
+  ensureRentalAvailability,
+  resolveRentalWindow,
+} from "#modula/server/services/shop/rentalAvailability";
 
 interface OrderLineInput {
   kind: "product" | "productLot";
   productId?: number;
   productLotId?: number;
   quantity?: number;
+  saleType?: "SALE" | "RENTAL";
+  rentalStartDate?: string | null;
+  rentalEndDate?: string | null;
 }
 
 interface OrderBody {
@@ -141,10 +148,12 @@ export default defineEventHandler(async (event) => {
         stock: product.stock,
         allowOfflinePayment: product.allowOfflinePayment,
         allowOnlinePayment: product.allowOnlinePayment,
+        saleType: product.saleType,
         imageUrl: product.imageUrl,
         description: product.excerpt || product.description || undefined,
         metaJson: JSON.stringify({
           slug: product.slug,
+          saleType: product.saleType,
           unitLabel: product.unitLabel,
           vatRate: product.vatRate,
           paymentTaxCode: product.paymentTaxCode,
@@ -152,6 +161,14 @@ export default defineEventHandler(async (event) => {
         }),
         paymentTaxCode: product.paymentTaxCode,
         paymentTaxBehavior: product.paymentTaxBehavior,
+        rentalAvailableFrom: product.rentalAvailableFrom,
+        rentalAvailableTo: product.rentalAvailableTo,
+        rentalMinDays: product.rentalMinDays,
+        rentalMaxDays: product.rentalMaxDays,
+        rentalWindow:
+          product.saleType === "RENTAL"
+            ? resolveRentalWindow(line.rentalStartDate, line.rentalEndDate)
+            : null,
       };
     }
 
@@ -182,11 +199,13 @@ export default defineEventHandler(async (event) => {
       stock: productLot.stock,
       allowOfflinePayment: productLot.allowOfflinePayment,
       allowOnlinePayment: productLot.allowOnlinePayment,
+      saleType: productLot.saleType,
       imageUrl: productLot.imageUrl,
       description: productLot.description || undefined,
         metaJson: JSON.stringify({
           slug: productLot.slug,
           kind: productLot.kind,
+          saleType: productLot.saleType,
           vatRate: productLot.vatRate,
           paymentTaxCode: productLot.paymentTaxCode,
           paymentTaxBehavior: productLot.paymentTaxBehavior,
@@ -198,8 +217,35 @@ export default defineEventHandler(async (event) => {
         }),
         paymentTaxCode: productLot.paymentTaxCode,
         paymentTaxBehavior: productLot.paymentTaxBehavior,
+        rentalAvailableFrom: productLot.rentalAvailableFrom,
+        rentalAvailableTo: productLot.rentalAvailableTo,
+        rentalMinDays: productLot.rentalMinDays,
+        rentalMaxDays: productLot.rentalMaxDays,
+        rentalWindow:
+          productLot.saleType === "RENTAL"
+            ? resolveRentalWindow(line.rentalStartDate, line.rentalEndDate)
+            : null,
       };
   });
+
+  const rentalLines = normalizedLines.filter((line) => line.saleType === "RENTAL");
+
+  if (rentalLines.length) {
+    await ensureRentalAvailability(
+      rentalLines.map((line) => ({
+        kind: line.kind,
+        id: line.productId ?? line.productLotId ?? 0,
+        title: line.title,
+        quantity: line.quantity,
+        stock: line.stock,
+        rentalAvailableFrom: line.rentalAvailableFrom,
+        rentalAvailableTo: line.rentalAvailableTo,
+        rentalMinDays: line.rentalMinDays,
+        rentalMaxDays: line.rentalMaxDays,
+        rentalWindow: line.rentalWindow,
+      })),
+    );
+  }
 
   const allowOffline = normalizedLines.every(
     (line) => line.allowOfflinePayment,
@@ -238,6 +284,9 @@ export default defineEventHandler(async (event) => {
 
   const requiredStocks = new Map<number, number>();
   for (const line of normalizedLines) {
+    if (line.saleType === "RENTAL") {
+      continue;
+    }
     if (line.productId) {
       requiredStocks.set(
         line.productId,
@@ -279,6 +328,22 @@ export default defineEventHandler(async (event) => {
     (sum, line) => sum + line.totalPrice,
     0,
   );
+  const orderRentalStartDate = rentalLines.length
+    ? rentalLines.reduce((current, line) => {
+        const value = line.rentalWindow?.rentalStartDate ?? null;
+        if (!value) return current;
+        if (!current) return value;
+        return value < current ? value : current;
+      }, null as string | null)
+    : null;
+  const orderRentalEndDate = rentalLines.length
+    ? rentalLines.reduce((current, line) => {
+        const value = line.rentalWindow?.rentalEndDate ?? null;
+        if (!value) return current;
+        if (!current) return value;
+        return value > current ? value : current;
+      }, null as string | null)
+    : null;
   const useStripe = paymentMode === "stripe" && allowOnline;
   const onSitePickup = await getOnSitePickupConfig();
   const accountProvisioning = await resolveOrderAccountProvisioning({
@@ -378,11 +443,6 @@ export default defineEventHandler(async (event) => {
         dayOfWeek: true,
         startTime: true,
         endTime: true,
-        cities: {
-          select: {
-            city: true,
-          },
-        },
       },
     });
 
@@ -393,8 +453,13 @@ export default defineEventHandler(async (event) => {
       });
     }
 
+    const servedCities = await db.tourCity.findMany({
+      where: { tourId: Number(row.id) },
+      select: { city: true },
+    });
+
     const cityLower = body.deliveryCity.trim().toLowerCase();
-    const cityAllowed = row.cities.some(
+    const cityAllowed = servedCities.some(
       (entry: any) => String(entry.city).trim().toLowerCase() === cityLower,
     );
 
@@ -456,6 +521,8 @@ export default defineEventHandler(async (event) => {
       fulfillmentDate: fulfillment.fulfillmentDate,
       fulfillmentTime: fulfillment.fulfillmentTime,
       fulfillmentLocation: fulfillment.fulfillmentLocation,
+      rentalStartDate: orderRentalStartDate,
+      rentalEndDate: orderRentalEndDate,
       currency: "eur",
       subtotal,
       total: subtotal,
@@ -477,7 +544,13 @@ export default defineEventHandler(async (event) => {
       quantity: line.quantity,
       unitPrice: line.unitPrice,
       totalPrice: line.totalPrice,
-      metaJson: line.metaJson,
+      rentalStartDate: line.rentalWindow?.rentalStartDate ?? null,
+      rentalEndDate: line.rentalWindow?.rentalEndDate ?? null,
+      metaJson: JSON.stringify({
+        ...safeParseMeta(line.metaJson),
+        rentalStartDate: line.rentalWindow?.rentalStartDate ?? null,
+        rentalEndDate: line.rentalWindow?.rentalEndDate ?? null,
+      }),
     })),
   });
 

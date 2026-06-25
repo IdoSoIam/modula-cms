@@ -101,17 +101,16 @@ export default defineEventHandler(async (event) => {
             name: true,
             dayOfWeek: true,
             startTime: true,
-            endTime: true,
-            cities: {
-              select: {
-                city: true
-              }
-            }
+            endTime: true
           }
         })
     if (!t || !t.active) throw createError({ statusCode: 400, statusMessage: 'Créneau de livraison invalide' })
+    const servedCities = await db.tourCity.findMany({
+      where: { tourId: Number(t.id) },
+      select: { city: true }
+    })
     const cityLower = body.deliveryCity.trim().toLowerCase()
-    const cityAllowed = t.cities.some((city: any) => city.city.trim().toLowerCase() === cityLower)
+    const cityAllowed = servedCities.some((city: any) => String(city.city).trim().toLowerCase() === cityLower)
     if (!cityAllowed) {
       throw createError({ statusCode: 400, statusMessage: 'Cette ville n\'est pas desservie par le créneau de livraison sélectionné' })
     }

@@ -16,6 +16,10 @@ export interface ProductPayload {
   paymentTaxCode: string | null
   paymentTaxBehavior: 'inclusive' | 'exclusive' | null
   stock: number
+  rentalAvailableFrom: string | null
+  rentalAvailableTo: string | null
+  rentalMinDays: number
+  rentalMaxDays: number | null
   unitLabel: string | null
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
@@ -47,6 +51,10 @@ export interface ProductLotPayload {
   paymentTaxCode: string | null
   paymentTaxBehavior: 'inclusive' | 'exclusive' | null
   stock: number
+  rentalAvailableFrom: string | null
+  rentalAvailableTo: string | null
+  rentalMinDays: number
+  rentalMaxDays: number | null
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
   active: boolean
@@ -86,6 +94,8 @@ export interface ShopOrderPayload {
   deliveryAddress: string | null
   deliveryCity: string | null
   deliveryPostalCode: string | null
+  rentalStartDate: string | null
+  rentalEndDate: string | null
   fulfillmentDate: string | null
   fulfillmentTime: string | null
   fulfillmentLocation: string | null
@@ -119,6 +129,8 @@ export interface ShopOrderPayload {
     quantity: number
     unitPrice: number
     totalPrice: number
+    rentalStartDate: string | null
+    rentalEndDate: string | null
     meta: Record<string, any>
   }>
 }
@@ -184,6 +196,10 @@ export function serializeProduct(row: any): ProductPayload {
     paymentTaxCode: row.paymentTaxCode?.trim() || null,
     paymentTaxBehavior: row.paymentTaxBehavior === 'exclusive' ? 'exclusive' : row.paymentTaxBehavior === 'inclusive' ? 'inclusive' : null,
     stock: Math.max(0, Number(row.stock || 0)),
+    rentalAvailableFrom: row.rentalAvailableFrom ? new Date(row.rentalAvailableFrom).toISOString() : null,
+    rentalAvailableTo: row.rentalAvailableTo ? new Date(row.rentalAvailableTo).toISOString() : null,
+    rentalMinDays: Math.max(1, Number(row.rentalMinDays || 1)),
+    rentalMaxDays: row.rentalMaxDays == null ? null : Math.max(1, Number(row.rentalMaxDays)),
     unitLabel: row.unitLabel ?? null,
     allowOfflinePayment: toBoolean(row.allowOfflinePayment),
     allowOnlinePayment: toBoolean(row.allowOnlinePayment),
@@ -239,6 +255,10 @@ export function serializeProductLot(row: any): ProductLotPayload {
     paymentTaxCode: row.paymentTaxCode?.trim() || null,
     paymentTaxBehavior: row.paymentTaxBehavior === 'exclusive' ? 'exclusive' : row.paymentTaxBehavior === 'inclusive' ? 'inclusive' : null,
     stock: computeProductLotStock(row),
+    rentalAvailableFrom: row.rentalAvailableFrom ? new Date(row.rentalAvailableFrom).toISOString() : null,
+    rentalAvailableTo: row.rentalAvailableTo ? new Date(row.rentalAvailableTo).toISOString() : null,
+    rentalMinDays: Math.max(1, Number(row.rentalMinDays || 1)),
+    rentalMaxDays: row.rentalMaxDays == null ? null : Math.max(1, Number(row.rentalMaxDays)),
     allowOfflinePayment,
     allowOnlinePayment,
     active: toBoolean(row.active),
@@ -279,6 +299,8 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
     deliveryAddress: row.deliveryAddress ?? null,
     deliveryCity: row.deliveryCity ?? null,
     deliveryPostalCode: row.deliveryPostalCode ?? null,
+    rentalStartDate: row.rentalStartDate ? new Date(row.rentalStartDate).toISOString() : null,
+    rentalEndDate: row.rentalEndDate ? new Date(row.rentalEndDate).toISOString() : null,
     fulfillmentDate: row.fulfillmentDate ? new Date(row.fulfillmentDate).toISOString() : null,
     fulfillmentTime: row.fulfillmentTime ?? null,
     fulfillmentLocation: row.fulfillmentLocation ?? null,
@@ -317,6 +339,8 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
           quantity: Number(line.quantity || 0),
           unitPrice: toNumber(line.unitPrice),
           totalPrice: toNumber(line.totalPrice),
+          rentalStartDate: line.rentalStartDate ? new Date(line.rentalStartDate).toISOString() : null,
+          rentalEndDate: line.rentalEndDate ? new Date(line.rentalEndDate).toISOString() : null,
           meta: safeParseJson(line.metaJson)
         }))
       : []

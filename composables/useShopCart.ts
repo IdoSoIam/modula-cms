@@ -1,12 +1,15 @@
 export interface ShopCartItem {
   key: string
   kind: 'product' | 'productLot'
+  saleType: 'SALE' | 'RENTAL'
   productId: number | null
   productLotId: number | null
   title: string
   imageUrl?: string | null
   description?: string | null
   quantity: number
+  rentalStartDate?: string | null
+  rentalEndDate?: string | null
   availableQuantity: number | null
   vatRate: number
   paymentTaxCode?: string | null
@@ -59,12 +62,15 @@ export function useShopCart() {
           ? parsed.map((item) => ({
               key: String(item?.key || ''),
               kind: item?.kind === 'productLot' ? 'productLot' : 'product',
+              saleType: item?.saleType === 'RENTAL' ? 'RENTAL' : 'SALE',
               productId: item?.productId == null ? null : Number(item.productId),
               productLotId: item?.productLotId == null ? null : Number(item.productLotId),
               title: String(item?.title || ''),
               imageUrl: item?.imageUrl ?? null,
               description: item?.description ?? null,
               quantity: Math.max(1, Number(item?.quantity || 1)),
+              rentalStartDate: item?.rentalStartDate?.trim() || null,
+              rentalEndDate: item?.rentalEndDate?.trim() || null,
               availableQuantity: item?.availableQuantity == null ? null : Number(item.availableQuantity),
               vatRate: Number(item?.vatRate || 0),
               paymentTaxCode: item?.paymentTaxCode ?? null,
@@ -98,8 +104,11 @@ export function useShopCart() {
     const requestedQuantity = clampQuantity(item.quantity, item.availableQuantity)
     if (existing) {
       existing.title = item.title
+      existing.saleType = item.saleType
       existing.imageUrl = item.imageUrl ?? null
       existing.description = item.description ?? null
+      existing.rentalStartDate = item.rentalStartDate?.trim() || null
+      existing.rentalEndDate = item.rentalEndDate?.trim() || null
       existing.availableQuantity = item.availableQuantity
       existing.vatRate = item.vatRate
       existing.paymentTaxCode = item.paymentTaxCode ?? null

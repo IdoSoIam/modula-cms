@@ -3,6 +3,7 @@ import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
 import { computePaymentModeCapabilities, ensureUniqueSlug, serializeProductLot } from '#modula/server/utils/shop'
 import { getShopDefaultVatRate, normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate } from '#modula/server/utils/settings'
+import { normalizeRentalConfig } from '#modula/server/services/shop/rentalConfig'
 
 interface Body {
   name: string
@@ -18,6 +19,10 @@ interface Body {
   paymentTaxBehavior?: 'inclusive' | 'exclusive' | null
   allowOfflinePayment?: boolean
   allowOnlinePayment?: boolean
+  rentalAvailableFrom?: string | null
+  rentalAvailableTo?: string | null
+  rentalMinDays?: number | null
+  rentalMaxDays?: number | null
   active?: boolean
   position?: number
   items?: Array<{
@@ -37,6 +42,12 @@ export default defineEventHandler(async (event) => {
   const price = Number(body.price ?? 0)
   const shopDefaultVatRate = await getShopDefaultVatRate()
   const vatRate = normalizeVatRate(body.vatRate ?? shopDefaultVatRate, shopDefaultVatRate)
+  const rentalConfig = normalizeRentalConfig({
+    rentalAvailableFrom: body.rentalAvailableFrom,
+    rentalAvailableTo: body.rentalAvailableTo,
+    rentalMinDays: body.rentalMinDays,
+    rentalMaxDays: body.rentalMaxDays
+  })
   const paymentTaxCode = normalizeStripeTaxCode(body.paymentTaxCode)
   const paymentTaxBehavior = body.paymentTaxBehavior == null
     ? null
@@ -89,6 +100,10 @@ export default defineEventHandler(async (event) => {
       vatRate,
       paymentTaxCode: paymentTaxCode || null,
       paymentTaxBehavior,
+      rentalAvailableFrom: rentalConfig.rentalAvailableFrom,
+      rentalAvailableTo: rentalConfig.rentalAvailableTo,
+      rentalMinDays: rentalConfig.rentalMinDays,
+      rentalMaxDays: rentalConfig.rentalMaxDays,
       allowOfflinePayment: normalizedAllowOfflinePayment,
       allowOnlinePayment: normalizedAllowOnlinePayment,
       active: body.active ?? true,
