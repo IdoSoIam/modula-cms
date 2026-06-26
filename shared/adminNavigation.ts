@@ -1,6 +1,7 @@
 import {
   getAdminRoutePath,
   getAdminRoutePaths,
+  normalizeAdminRouteLocale,
 } from "#modula/shared/adminRoutes";
 import type {
   AdminPermissionAction,
@@ -37,6 +38,7 @@ export interface AdminNavigationOptions {
     eventsEnabled: boolean;
     newsEnabled: boolean;
   };
+  locale?: string;
 }
 
 const createAdminNavigationItem = (
@@ -63,6 +65,7 @@ const createAdminNavigationItem = (
 export function getAdminNavigationSections(
   options: AdminNavigationOptions = {},
 ): AdminNavigationSection[] {
+  const routeLocale = normalizeAdminRouteLocale(options.locale);
   const sections: AdminNavigationSection[] = [
     {
       id: "dashboard",
@@ -71,7 +74,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "dashboard-home",
           "admin.navigation.items.dashboard",
-          getAdminRoutePath("dashboard"),
+          getAdminRoutePath("dashboard", routeLocale),
           "mdi:view-dashboard-outline",
           getAdminRoutePaths("dashboard"),
         ),
@@ -85,7 +88,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "content-pages",
           "admin.navigation.items.pages",
-          getAdminRoutePath("contentPages"),
+          getAdminRoutePath("contentPages", routeLocale),
           "mdi:file-document-edit-outline",
           [...getAdminRoutePaths("contentPages"), "/admin/pages"],
           { requiredModule: "cms_pages", requiredAction: "read" },
@@ -93,7 +96,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "content-news",
           "admin.navigation.items.news",
-          getAdminRoutePath("contentNews"),
+          getAdminRoutePath("contentNews", routeLocale),
           "mdi:newspaper-variant-outline",
           [...getAdminRoutePaths("contentNews"), "/admin/articles"],
           { requiredModule: "news", requiredAction: "read" },
@@ -101,7 +104,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "content-planning",
           "admin.navigation.items.planning",
-          getAdminRoutePath("contentPlanning"),
+          getAdminRoutePath("contentPlanning", routeLocale),
           "mdi:calendar-clock-outline",
           [...getAdminRoutePaths("contentPlanning"), "/admin/planning"],
           { requiredModule: "events", requiredAction: "read" },
@@ -109,7 +112,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "content-events",
           "admin.navigation.items.events",
-          getAdminRoutePath("contentEvents"),
+          getAdminRoutePath("contentEvents", routeLocale),
           "mdi:calendar-star",
           [...getAdminRoutePaths("contentEvents"), "/admin/events"],
           { requiredModule: "events", requiredAction: "read" },
@@ -124,7 +127,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "shop-vegetables",
           "admin.navigation.items.vegetables",
-          getAdminRoutePath("shopVegetables"),
+          getAdminRoutePath("shopVegetables", routeLocale),
           "mdi:carrot",
           [...getAdminRoutePaths("shopVegetables"), "/admin/legumes"],
           { requiredModule: "shop_orders", requiredAction: "read" },
@@ -132,7 +135,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "shop-product-categories",
           "admin.navigation.items.productCategories",
-          getAdminRoutePath("shopProductCategories"),
+          getAdminRoutePath("shopProductCategories", routeLocale),
           "mdi:shape-outline",
           getAdminRoutePaths("shopProductCategories"),
           { requiredModule: "shop_orders", requiredAction: "read" },
@@ -140,7 +143,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "shop-baskets",
           "admin.navigation.items.baskets",
-          getAdminRoutePath("shopBaskets"),
+          getAdminRoutePath("shopBaskets", routeLocale),
           "mdi:basket-outline",
           [...getAdminRoutePaths("shopBaskets"), "/admin/paniers"],
           { requiredModule: "shop_orders", requiredAction: "read" },
@@ -148,7 +151,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "shop-orders",
           "admin.navigation.items.orders",
-          getAdminRoutePath("shopOrders"),
+          getAdminRoutePath("shopOrders", routeLocale),
           "mdi:calendar-check",
           getAdminRoutePaths("shopOrders"),
           { requiredModule: "shop_orders", requiredAction: "read" },
@@ -156,7 +159,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "shop-delivery",
           "admin.navigation.items.delivery",
-          getAdminRoutePath("shopDelivery"),
+          getAdminRoutePath("shopDelivery", routeLocale),
           "mdi:truck-outline",
           [...getAdminRoutePaths("shopDelivery"), "/admin/livraison"],
           { requiredModule: "shop_orders", requiredAction: "read" },
@@ -171,7 +174,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "management-event-reservations",
           "admin.navigation.items.eventReservations",
-          getAdminRoutePath("managementEventReservations"),
+          getAdminRoutePath("managementEventReservations", routeLocale),
           "mdi:ticket-confirmation-outline",
           getAdminRoutePaths("managementEventReservations"),
           { requiredModule: "event_reservations", requiredAction: "read" },
@@ -179,7 +182,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "settings-users",
           "admin.navigation.items.users",
-          getAdminRoutePath("settingsUsers"),
+          getAdminRoutePath("settingsUsers", routeLocale),
           "mdi:account-group-outline",
           getAdminRoutePaths("settingsUsers"),
           { requiredModule: "users", requiredAction: "read" },
@@ -187,7 +190,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "management-member-roles",
           "admin.navigation.items.memberRoles",
-          getAdminRoutePath("managementMemberRoles"),
+          getAdminRoutePath("managementMemberRoles", routeLocale),
           "mdi:account-multiple-check-outline",
           getAdminRoutePaths("managementMemberRoles"),
           { requiredModule: "events", requiredAction: "read" },
@@ -202,7 +205,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "customization-layout",
           "admin.navigation.items.layout",
-          getAdminRoutePath("customizationLayout"),
+          getAdminRoutePath("customizationLayout", routeLocale),
           "mdi:home-edit-outline",
           getAdminRoutePaths("customizationLayout"),
           { requiredModule: "layout_customization", requiredAction: "read" },
@@ -210,7 +213,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "customization-navigation",
           "admin.navigation.items.navigation",
-          getAdminRoutePath("customizationNavigation"),
+          getAdminRoutePath("customizationNavigation", routeLocale),
           "mdi:menu",
           getAdminRoutePaths("customizationNavigation"),
           { requiredModule: "navigation", requiredAction: "read" },
@@ -218,7 +221,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "customization-baskets",
           "admin.navigation.items.baskets",
-          getAdminRoutePath("customizationBaskets"),
+          getAdminRoutePath("customizationBaskets", routeLocale),
           "mdi:basket-outline",
           getAdminRoutePaths("customizationBaskets"),
           { requiredModule: "layout_customization", requiredAction: "read" },
@@ -226,7 +229,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "customization-news",
           "admin.navigation.items.news",
-          getAdminRoutePath("customizationNews"),
+          getAdminRoutePath("customizationNews", routeLocale),
           "mdi:newspaper-variant-outline",
           getAdminRoutePaths("customizationNews"),
           { requiredModule: "layout_customization", requiredAction: "read" },
@@ -234,7 +237,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "customization-planning",
           "admin.navigation.items.planning",
-          getAdminRoutePath("customizationPlanning"),
+          getAdminRoutePath("customizationPlanning", routeLocale),
           "mdi:calendar-clock",
           getAdminRoutePaths("customizationPlanning"),
           { requiredModule: "layout_customization", requiredAction: "read" },
@@ -242,7 +245,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "customization-events",
           "admin.navigation.items.events",
-          getAdminRoutePath("customizationEvents"),
+          getAdminRoutePath("customizationEvents", routeLocale),
           "mdi:calendar-heart",
           getAdminRoutePaths("customizationEvents"),
           { requiredModule: "layout_customization", requiredAction: "read" },
@@ -250,7 +253,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "customization-theme",
           "admin.navigation.items.themes",
-          getAdminRoutePath("customizationThemes"),
+          getAdminRoutePath("customizationThemes", routeLocale),
           "mdi:palette-outline",
           getAdminRoutePaths("customizationThemes"),
           { requiredModule: "themes_images", requiredAction: "read" },
@@ -258,7 +261,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "customization-images",
           "admin.navigation.items.images",
-          getAdminRoutePath("customizationImages"),
+          getAdminRoutePath("customizationImages", routeLocale),
           "mdi:image-multiple-outline",
           getAdminRoutePaths("customizationImages"),
           { requiredModule: "themes_images", requiredAction: "read" },
@@ -266,7 +269,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "customization-emails",
           "admin.navigation.items.emailConnectors",
-          getAdminRoutePath("customizationEmails"),
+          getAdminRoutePath("customizationEmails", routeLocale),
           "mdi:email-edit-outline",
           getAdminRoutePaths("customizationEmails"),
           { requiredModule: "layout_customization", requiredAction: "read" },
@@ -281,7 +284,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "settings-global",
           "admin.navigation.items.global",
-          getAdminRoutePath("settingsGlobal"),
+          getAdminRoutePath("settingsGlobal", routeLocale),
           "mdi:monitor-dashboard",
           [...getAdminRoutePaths("settingsGlobal"), "/admin/site-shell"],
           { requiredModule: "settings", requiredAction: "read" },
@@ -289,7 +292,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "settings-site-template",
           "admin.navigation.items.siteTemplate",
-          getAdminRoutePath("settingsSiteTemplate"),
+          getAdminRoutePath("settingsSiteTemplate", routeLocale),
           "mdi:view-dashboard-edit-outline",
           getAdminRoutePaths("settingsSiteTemplate"),
           { requiredModule: "settings", requiredAction: "read" },
@@ -297,7 +300,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "settings-online-payments",
           "admin.navigation.items.onlinePayments",
-          getAdminRoutePath("settingsOnlinePayments"),
+          getAdminRoutePath("settingsOnlinePayments", routeLocale),
           "mdi:cash-check",
           getAdminRoutePaths("settingsOnlinePayments"),
           { requiredModule: "settings", requiredAction: "read" },
@@ -305,7 +308,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "settings-updates",
           "admin.navigation.items.updates",
-          getAdminRoutePath("settingsUpdates"),
+          getAdminRoutePath("settingsUpdates", routeLocale),
           "mdi:update",
           getAdminRoutePaths("settingsUpdates"),
           { requiredModule: "settings", requiredAction: "read" },
@@ -313,7 +316,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "settings-email",
           "admin.navigation.items.emailConnectors",
-          getAdminRoutePath("settingsEmailConnectors"),
+          getAdminRoutePath("settingsEmailConnectors", routeLocale),
           "mdi:email-outline",
           [
             ...getAdminRoutePaths("settingsEmailConnectors"),
@@ -324,7 +327,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "settings-features",
           "admin.navigation.items.features",
-          getAdminRoutePath("settingsFeatures"),
+          getAdminRoutePath("settingsFeatures", routeLocale),
           "mdi:toggle-switch-outline",
           getAdminRoutePaths("settingsFeatures"),
           { requiredModule: "settings", requiredAction: "read" },
@@ -332,7 +335,7 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "settings-roles",
           "admin.navigation.items.roles",
-          getAdminRoutePath("settingsRoles"),
+          getAdminRoutePath("settingsRoles", routeLocale),
           "mdi:shield-account-outline",
           getAdminRoutePaths("settingsRoles"),
           { requiredModule: "roles", requiredAction: "read" },

@@ -8,7 +8,7 @@
           <div class="stat-title">{{ t('admin.dashboardPage.pendingTitle') }}</div>
           <div class="stat-value text-warning">{{ stats?.pendingReservations ?? '-' }}</div>
           <div class="stat-desc">{{ t('admin.dashboardPage.pendingDesc') }}</div>
-          <NuxtLink :to="localePath('/admin/shop/orders')" class="stat-actions"><button class="btn btn-sm btn-ghost">{{ t('common.view') }}</button></NuxtLink>
+          <NuxtLink :to="localePath(shopOrdersPath)" class="stat-actions"><button class="btn btn-sm btn-ghost">{{ t('common.view') }}</button></NuxtLink>
         </div>
 
         <div class="stat rounded-box bg-base-200">
@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import { ADMIN_I18N_PATHS, getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
@@ -113,8 +113,9 @@ interface Stats {
   completedReservations?: number
 }
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const { data: stats } = await useFetch<Stats>('/api/admin/stats')
 const localePath = useLocalePath()
+const shopOrdersPath = computed(() => getAdminRoutePath('shopOrders', normalizeAdminRouteLocale(locale.value)))
 const subscriptionsEnabled = computed(() => stats.value?.subscriptionsEnabled ?? false)
 </script>

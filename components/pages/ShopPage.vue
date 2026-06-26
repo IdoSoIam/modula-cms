@@ -36,15 +36,16 @@
           :show-images="settings?.showImages !== false"
           :show-descriptions="settings?.showDescriptions !== false"
           :item-background-color="itemBackgroundColor"
-          :add-label="addProductLabel"
-          :rental-add-label="chooseRentalPeriodLabel"
+          :add-label="viewProductLabel"
+          :rental-add-label="viewProductLabel"
           :sold-out-label="soldOutLabel"
           :sale-label="saleLabel"
           :rental-label="rentalLabel"
           :stock-label="stockLabel"
           :offline-label="offlineLabel"
           :online-label="onlineLabel"
-          @add="addProductToCart"
+          :disable-on-sold-out="false"
+          @add="openProductDetail"
         />
 
         <div v-else class="rounded-3xl border border-dashed border-base-300 px-6 py-14 text-center opacity-60">
@@ -52,25 +53,15 @@
         </div>
       </template>
     </div>
-
-    <RentalAvailabilityModal
-      :open="rentalModalOpen"
-      source-kind="product"
-      :source-id="selectedRentalProduct?.id ?? null"
-      :source-name="selectedRentalProduct?.name || ''"
-      @close="closeRentalModal"
-      @confirm="confirmRentalSelection"
-    />
   </section>
 </template>
 
 <script setup lang="ts">
 import type { CmsBasketsPageSettings } from '#modula/shared/cms'
 import { pickCmsLocalizedText } from '#modula/shared/cms'
-import type { ProductCategoryPayload, ProductPayload } from '#modula/server/utils/shop'
-import { useShopCart } from '#modula/composables/useShopCart'
 import ProductList from '#modula/components/shop/ProductList.vue'
-import RentalAvailabilityModal from '#modula/components/shop/RentalAvailabilityModal.vue'
+import { useShopCart } from '#modula/composables/useShopCart'
+import type { ProductCategoryPayload, ProductPayload } from '#modula/server/utils/shop'
 
 const props = defineProps<{
   settings?: CmsBasketsPageSettings | null
@@ -79,9 +70,8 @@ const props = defineProps<{
 const { locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { $toast } = useNuxtApp() as any
 const localePath = useLocalePath()
-const { count, add } = useShopCart()
+const { count } = useShopCart()
 
 const selectedCategorySlug = ref(typeof route.query.category === 'string' ? route.query.category : '')
 const { data, pending, refresh } = await useFetch<{ categories: ProductCategoryPayload[], products: ProductPayload[] }>('/api/shop/catalog', {
@@ -94,22 +84,19 @@ const categories = computed(() => data.value?.categories || [])
 const products = computed(() => data.value?.products || [])
 
 const pageTitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.title) || (locale.value === 'en' ? 'Shop' : 'Boutique'))
-const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.subtitle) || (locale.value === 'en' ? 'Browse products for sale or rental.' : 'Parcourez les produits à vendre ou à louer.'))
+const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.subtitle) || (locale.value === 'en' ? 'Browse products for sale or rental.' : 'Parcourez les produits a vendre ou a louer.'))
 const shopLabel = computed(() => locale.value === 'en' ? 'Products' : 'Produits')
 const cartButtonLabel = computed(() => locale.value === 'en' ? `Cart (${count.value})` : `Panier (${count.value})`)
-const addProductLabel = computed(() => locale.value === 'en' ? 'Add product' : 'Ajouter le produit')
-const soldOutLabel = computed(() => locale.value === 'en' ? 'Sold out' : 'Épuisé')
+const viewProductLabel = computed(() => locale.value === 'en' ? 'View product' : 'Voir le produit')
+const soldOutLabel = computed(() => locale.value === 'en' ? 'Sold out' : 'Epuisé')
 const saleLabel = computed(() => locale.value === 'en' ? 'Sale' : 'Vente')
 const rentalLabel = computed(() => locale.value === 'en' ? 'Rental' : 'Location')
 const stockLabel = computed(() => locale.value === 'en' ? 'Stock' : 'Stock')
 const allCategoriesLabel = computed(() => locale.value === 'en' ? 'All categories' : 'Toutes les catégories')
-const emptyLabel = computed(() => locale.value === 'en' ? 'No product is currently published.' : 'Aucun produit n’est publié pour le moment.')
+const emptyLabel = computed(() => locale.value === 'en' ? 'No product is currently published.' : 'Aucun produit n est publié pour le moment.')
 const offlineLabel = computed(() => locale.value === 'en' ? 'Offline payment' : 'Paiement hors ligne')
 const onlineLabel = computed(() => locale.value === 'en' ? 'Online payment' : 'Paiement en ligne')
-const chooseRentalPeriodLabel = computed(() => locale.value === 'en' ? 'Choose rental period' : 'Choisir la période')
 const itemBackgroundColor = computed(() => 'var(--fallback-b1,oklch(var(--b1)/1))')
-const rentalModalOpen = ref(false)
-const selectedRentalProduct = ref<ProductPayload | null>(null)
 
 const selectCategory = async (slug: string) => {
   selectedCategorySlug.value = slug
@@ -122,68 +109,7 @@ const selectCategory = async (slug: string) => {
   await refresh()
 }
 
-const addProductToCart = (product: ProductPayload) => {
-  if (product.saleType === 'RENTAL') {
-    selectedRentalProduct.value = product
-    rentalModalOpen.value = true
-    return
-  }
-
-  add({
-    key: `product-${product.id}`,
-    kind: 'product',
-    productId: product.id,
-    productLotId: null,
-    title: product.name,
-    imageUrl: product.imageUrl,
-    description: product.excerpt || product.description,
-    quantity: 1,
-    saleType: product.saleType,
-    availableQuantity: product.stock,
-    vatRate: product.vatRate,
-    paymentTaxCode: product.paymentTaxCode,
-    paymentTaxBehavior: product.paymentTaxBehavior,
-    allowOfflinePayment: product.allowOfflinePayment,
-    allowOnlinePayment: product.allowOnlinePayment,
-    unitPrice: product.price,
-    totalPrice: product.price
-  })
-  $toast.success(locale.value === 'en' ? 'Added to cart' : 'Ajouté au panier')
-}
-
-const closeRentalModal = () => {
-  rentalModalOpen.value = false
-  selectedRentalProduct.value = null
-}
-
-const confirmRentalSelection = ({ rentalStartDate, rentalEndDate }: { rentalStartDate: string, rentalEndDate: string }) => {
-  const product = selectedRentalProduct.value
-  if (!product) return
-
-  add({
-    key: `product-${product.id}-${rentalStartDate}-${rentalEndDate}`,
-    kind: 'product',
-    productId: product.id,
-    productLotId: null,
-    title: product.name,
-    imageUrl: product.imageUrl,
-    description: product.excerpt || product.description,
-    quantity: 1,
-    saleType: product.saleType,
-    rentalStartDate,
-    rentalEndDate,
-    availableQuantity: product.stock,
-    vatRate: product.vatRate,
-    paymentTaxCode: product.paymentTaxCode,
-    paymentTaxBehavior: product.paymentTaxBehavior,
-    allowOfflinePayment: product.allowOfflinePayment,
-    allowOnlinePayment: product.allowOnlinePayment,
-    unitPrice: product.price,
-    totalPrice: product.price
-  })
-  $toast.success(locale.value === 'en' ? 'Rental added to cart' : 'Location ajoutée au panier')
-  closeRentalModal()
-}
+const openProductDetail = (product: ProductPayload) => navigateTo(localePath(`/products/${product.slug}`))
 
 const goToCart = () => navigateTo(localePath('/panier'))
 </script>

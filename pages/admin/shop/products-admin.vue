@@ -32,19 +32,19 @@
         <tbody>
           <tr v-for="product in products" :key="product.id">
             <td>
-              <AppImage v-if="product.imageUrl" :src="product.imageUrl" :alt="product.name" class="h-12 w-12 rounded object-cover" sizes="48px" />
+              <AppImage v-if="product.imageUrl" :src="product.imageUrl" :alt="getLocalizedProductName(product)" class="h-12 w-12 rounded object-cover" sizes="48px" />
               <div v-else class="flex h-12 w-12 items-center justify-center rounded bg-base-300">
                 <Icon name="mdi:image-off-outline" size="18" class="opacity-40" />
               </div>
             </td>
-            <td class="font-medium">{{ product.name }}</td>
+            <td class="font-medium">{{ getLocalizedProductName(product) }}</td>
             <td><code>{{ product.slug }}</code></td>
             <td>{{ product.category?.name || '-' }}</td>
             <td class="text-right">{{ $formatPrice(product.price) }}</td>
             <td class="text-right">{{ formatVatRate(product.vatRate) }}</td>
             <td class="text-right">{{ product.stock }}</td>
             <td>{{ product.saleType === 'RENTAL' ? t('admin.vegetablesPage.saleTypeRental') : t('admin.vegetablesPage.saleTypeSale') }}</td>
-            <td>{{ product.unitLabel || '-' }}</td>
+            <td>{{ getLocalizedUnitLabel(product) || '-' }}</td>
             <td>
               <span class="badge" :class="product.active ? 'badge-success' : 'badge-ghost'">
                 {{ product.active ? t('admin.vegetablesPage.active') : t('admin.vegetablesPage.inactive') }}
@@ -67,317 +67,35 @@
         </tbody>
       </table>
     </div>
-
-    <dialog ref="dlg" class="modal">
-      <div class="modal-box max-w-3xl">
-        <h3 class="mb-4 text-lg font-bold">
-          {{ editing.id ? t('admin.vegetablesPage.editTitle') : t('admin.vegetablesPage.createTitle') }}
-        </h3>
-
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldName') }}</span></label>
-            <input v-model="editing.name" class="input input-bordered" />
-          </div>
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldSlug') }}</span></label>
-            <input v-model="editing.slug" class="input input-bordered" />
-          </div>
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldCategory') }}</span></label>
-            <select v-model.number="editing.categoryId" class="select select-bordered">
-              <option :value="0">{{ t('admin.vegetablesPage.noCategory') }}</option>
-              <option v-for="category in categories || []" :key="category.id" :value="category.id">{{ category.name }}</option>
-            </select>
-          </div>
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldSaleType') }}</span></label>
-            <select v-model="editing.saleType" class="select select-bordered">
-              <option value="SALE">{{ t('admin.vegetablesPage.saleTypeSale') }}</option>
-              <option value="RENTAL">{{ t('admin.vegetablesPage.saleTypeRental') }}</option>
-            </select>
-          </div>
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldPrice') }}</span></label>
-            <input v-model.number="editing.price" type="number" min="0" step="0.01" class="input input-bordered" />
-          </div>
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldVatRate') }}</span></label>
-            <input v-model.number="editing.vatRate" type="number" min="0" max="100" step="0.01" class="input input-bordered" />
-          </div>
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldTaxBehavior') }}</span></label>
-            <select v-model="editing.paymentTaxBehavior" class="select select-bordered">
-              <option value="">{{ t('admin.vegetablesPage.taxBehaviorDefault') }}</option>
-              <option value="inclusive">{{ t('admin.vegetablesPage.taxBehaviorInclusive') }}</option>
-              <option value="exclusive">{{ t('admin.vegetablesPage.taxBehaviorExclusive') }}</option>
-            </select>
-          </div>
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldTaxCode') }}</span></label>
-            <input v-model="editing.paymentTaxCode" class="input input-bordered" placeholder="txcd_..." />
-          </div>
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldAvailable') }}</span></label>
-            <input v-model.number="editing.stock" type="number" min="0" step="1" class="input input-bordered" />
-          </div>
-          <template v-if="editing.saleType === 'RENTAL'">
-            <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldRentalAvailableFrom') }}</span></label>
-              <input v-model="editing.rentalAvailableFrom" type="date" class="input input-bordered" />
-            </div>
-            <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldRentalAvailableTo') }}</span></label>
-              <input v-model="editing.rentalAvailableTo" type="date" class="input input-bordered" />
-            </div>
-            <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldRentalMinDays') }}</span></label>
-              <input v-model.number="editing.rentalMinDays" type="number" min="1" step="1" class="input input-bordered" />
-            </div>
-            <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldRentalMaxDays') }}</span></label>
-              <input v-model.number="editing.rentalMaxDays" type="number" min="1" step="1" class="input input-bordered" />
-            </div>
-            <div class="md:col-span-2 text-sm opacity-70">
-              {{ t('admin.vegetablesPage.rentalHelp') }}
-            </div>
-          </template>
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldUnit') }}</span></label>
-            <input v-model="editing.unitLabel" class="input input-bordered" :placeholder="t('admin.vegetablesPage.unitPlaceholder')" />
-          </div>
-          <div class="form-control flex flex-col gap-3">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldPosition') }}</span></label>
-            <input v-model.number="editing.position" type="number" min="0" step="1" class="input input-bordered" />
-          </div>
-          <div class="form-control flex flex-col gap-3 md:col-span-2">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldImage') }}</span></label>
-            <ImageInput v-model="editing.imageUrl" />
-          </div>
-          <div class="form-control flex flex-col gap-3 md:col-span-2">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldExcerpt') }}</span></label>
-            <textarea v-model="editing.excerpt" class="textarea textarea-bordered min-h-24" />
-          </div>
-          <div class="form-control flex flex-col gap-3 md:col-span-2">
-            <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldDescription') }}</span></label>
-            <textarea v-model="editing.description" class="textarea textarea-bordered min-h-32" />
-          </div>
-          <div class="form-control flex gap-3">
-            <label class="label cursor-pointer justify-start gap-3">
-              <input v-model="editing.allowOfflinePayment" type="checkbox" class="checkbox" />
-              <span class="label-text">{{ t('admin.vegetablesPage.paymentOffline') }}</span>
-            </label>
-            <label class="label cursor-pointer justify-start gap-3">
-              <input v-model="editing.allowOnlinePayment" type="checkbox" class="checkbox" />
-              <span class="label-text">{{ t('admin.vegetablesPage.paymentOnline') }}</span>
-            </label>
-          </div>
-          <div class="form-control flex gap-3">
-            <label class="label cursor-pointer justify-start gap-3">
-              <input v-model="editing.active" type="checkbox" class="checkbox" />
-              <span class="label-text">{{ t('admin.vegetablesPage.fieldActive') }}</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="modal-action">
-          <button class="btn" @click="close">{{ t('admin.common.cancel') }}</button>
-          <button class="btn btn-primary" :disabled="saving" @click="save">
-            <span v-if="saving" class="loading loading-spinner loading-sm" />
-            {{ t('admin.common.save') }}
-          </button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop"><button>close</button></form>
-    </dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import { pickCmsLocalizedText } from '#modula/shared/cms'
+import type { ProductPayload } from '#modula/server/utils/shop'
+import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
 
-definePageMeta({
-  layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.shopVegetables
-  }
-})
+const { data: products, pending, refresh } = await useFetch<ProductPayload[]>('/api/admin/products')
 
-interface Product {
-  id: number
-  name: string
-  slug: string
-  saleType: 'SALE' | 'RENTAL'
-  categoryId: number | null
-  category?: { id: number, name: string, slug: string } | null
-  excerpt: string | null
-  description: string | null
-  imageUrl?: string | null
-  price: number
-  vatRate: number
-  paymentTaxCode?: string | null
-  paymentTaxBehavior?: 'inclusive' | 'exclusive' | null
-  stock: number
-  rentalAvailableFrom?: string | null
-  rentalAvailableTo?: string | null
-  rentalMinDays: number
-  rentalMaxDays?: number | null
-  unitLabel?: string | null
-  allowOfflinePayment: boolean
-  allowOnlinePayment: boolean
-  active: boolean
-  position: number
-}
+const { locale, t } = useI18n()
+const localePath = useLocalePath()
+const { $toast } = useNuxtApp() as any
+const productsBasePath = computed(() => getAdminRoutePath('shopVegetables', normalizeAdminRouteLocale(locale.value)))
 
-interface ProductCategory {
-  id: number
-  name: string
-  slug: string
-}
-
-const { data: products, pending, refresh } = await useFetch<Product[]>('/api/admin/products')
-const { data: categories } = await useFetch<ProductCategory[]>('/api/admin/product-categories')
-const { data: settingsData } = await useFetch<{ shopDefaultVatRate: number }>('/api/admin/settings')
-
-const dlg = ref<HTMLDialogElement>()
-const saving = ref(false)
-const { t } = useI18n()
-const { $toast, $formatPrice } = useNuxtApp() as any
-const defaultVatRate = computed(() => Number(settingsData.value?.shopDefaultVatRate ?? 20))
 const formatVatRate = (value: number) => `${Number(value || 0).toFixed(2)}%`
-const editing = reactive<Partial<Product>>({
-  id: undefined,
-  name: '',
-  slug: '',
-  saleType: 'SALE',
-  categoryId: 0,
-  excerpt: '',
-  description: '',
-  imageUrl: '',
-  price: 0,
-  vatRate: defaultVatRate.value,
-  paymentTaxCode: '',
-  paymentTaxBehavior: null,
-  stock: 0,
-  rentalAvailableFrom: '',
-  rentalAvailableTo: '',
-  rentalMinDays: 1,
-  rentalMaxDays: null,
-  unitLabel: '',
-  allowOfflinePayment: true,
-  allowOnlinePayment: false,
-  active: true,
-  position: 0
-})
+const getLocalizedProductName = (product: ProductPayload) => pickCmsLocalizedText(locale.value, product.nameLocalized) || product.name
+const getLocalizedUnitLabel = (product: ProductPayload) => pickCmsLocalizedText(locale.value, product.unitLabelLocalized) || product.unitLabel || ''
 
-const resetEditing = () => {
-  Object.assign(editing, {
-    id: undefined,
-    name: '',
-    slug: '',
-    saleType: 'SALE',
-    categoryId: 0,
-    excerpt: '',
-    description: '',
-    imageUrl: '',
-    price: 0,
-    vatRate: defaultVatRate.value,
-    paymentTaxCode: '',
-    paymentTaxBehavior: null,
-    stock: 0,
-    rentalAvailableFrom: '',
-    rentalAvailableTo: '',
-    rentalMinDays: 1,
-    rentalMaxDays: null,
-    unitLabel: '',
-    allowOfflinePayment: true,
-    allowOnlinePayment: false,
-    active: true,
-    position: 0
-  })
-}
+const openNew = () => navigateTo(localePath(`${productsBasePath.value}/new`))
+const openEdit = (product: ProductPayload) => navigateTo(localePath(`${productsBasePath.value}/${product.id}`))
 
-const openNew = () => {
-  resetEditing()
-  dlg.value?.showModal()
-}
-
-const openEdit = (product: Product) => {
-  Object.assign(editing, {
-    ...product,
-    rentalAvailableFrom: toDateInputValue(product.rentalAvailableFrom),
-    rentalAvailableTo: toDateInputValue(product.rentalAvailableTo),
-    rentalMinDays: product.rentalMinDays || 1,
-    rentalMaxDays: product.rentalMaxDays ?? null
-  })
-  dlg.value?.showModal()
-}
-
-const close = () => dlg.value?.close()
-
-const save = async () => {
-  saving.value = true
-  try {
-    const payload = {
-      name: editing.name,
-      slug: editing.slug,
-      saleType: editing.saleType,
-      categoryId: editing.categoryId || null,
-      excerpt: editing.excerpt,
-      description: editing.description,
-      imageUrl: editing.imageUrl,
-      price: editing.price,
-      vatRate: editing.vatRate,
-      paymentTaxCode: editing.paymentTaxCode?.trim() || null,
-      paymentTaxBehavior: editing.paymentTaxBehavior || null,
-      stock: editing.stock,
-      rentalAvailableFrom: editing.saleType === 'RENTAL' ? normalizeDateValue(editing.rentalAvailableFrom) : null,
-      rentalAvailableTo: editing.saleType === 'RENTAL' ? normalizeDateValue(editing.rentalAvailableTo) : null,
-      rentalMinDays: editing.saleType === 'RENTAL' ? Number(editing.rentalMinDays || 1) : 1,
-      rentalMaxDays: editing.saleType === 'RENTAL' ? normalizeNullableNumber(editing.rentalMaxDays) : null,
-      unitLabel: editing.unitLabel,
-      allowOfflinePayment: editing.allowOfflinePayment,
-      allowOnlinePayment: editing.allowOnlinePayment,
-      active: editing.active,
-      position: editing.position
-    }
-    if (editing.id) {
-      await $fetch(`/api/admin/products/${editing.id}`, { method: 'PUT', body: payload })
-    } else {
-      await $fetch('/api/admin/products', { method: 'POST', body: payload })
-    }
-    $toast.success(t('admin.vegetablesPage.saved'))
-    close()
-    await refresh()
-  } catch (error: any) {
-    $toast.error(error?.statusMessage || t('common.error'))
-  } finally {
-    saving.value = false
-  }
-}
-
-const remove = async (product: Product) => {
-  if (!confirm(t('admin.vegetablesPage.deleteConfirm', { name: product.name }))) return
+const remove = async (product: ProductPayload) => {
+  if (!confirm(t('admin.vegetablesPage.deleteConfirm', { name: getLocalizedProductName(product) }))) return
   try {
     await $fetch(`/api/admin/products/${product.id}`, { method: 'DELETE' })
     await refresh()
   } catch (error: any) {
     $toast.error(error?.statusMessage || t('common.error'))
   }
-}
-
-function toDateInputValue(value: string | null | undefined) {
-  return value ? String(value).slice(0, 10) : ''
-}
-
-function normalizeDateValue(value: string | null | undefined) {
-  return value?.trim() ? value.trim() : null
-}
-
-function normalizeNullableNumber(value: number | null | undefined) {
-  if (value === '' as any) return null
-  if (value == null || Number.isNaN(Number(value))) return null
-  return Number(value)
 }
 </script>

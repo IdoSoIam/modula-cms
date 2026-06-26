@@ -93,11 +93,11 @@
 
           <div class="mt-6 space-y-4">
             <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ fullNameLabel }}</span></label>
+              <label class="label"><span class="label-text">{{ requiredLabel(fullNameLabel) }}</span></label>
               <input v-model="checkoutForm.customerName" class="input input-bordered" />
             </div>
             <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">Email</span></label>
+              <label class="label"><span class="label-text">{{ requiredLabel('Email') }}</span></label>
               <input v-model="checkoutForm.email" type="email" class="input input-bordered" />
             </div>
             <div class="form-control flex flex-col gap-3">
@@ -145,21 +145,45 @@
             </div>
 
             <div v-if="checkoutForm.deliveryType === 'TOUR'" class="space-y-3">
-              <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ cityLabel }}</span></label>
-                <input v-model="checkoutForm.deliveryCity" class="input input-bordered" />
+              <div class="rounded-2xl bg-base-200 p-4 text-sm">
+                <div class="font-medium">{{ tourCityHelperTitle }}</div>
+                <div class="mt-1 opacity-75">{{ tourCityHelperLabel }}</div>
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ addressLabel }}</span></label>
+                <label class="label"><span class="label-text">{{ requiredLabel(cityLabel) }}</span></label>
+                <input
+                  v-model="checkoutForm.deliveryCity"
+                  class="input input-bordered"
+                  :list="deliveryCitiesListId"
+                  autocomplete="address-level2"
+                />
+                <datalist :id="deliveryCitiesListId">
+                  <option v-for="city in availableDeliveryCities" :key="city" :value="city" />
+                </datalist>
+              </div>
+              <div class="form-control flex flex-col gap-3">
+                <label class="label"><span class="label-text">{{ requiredLabel(addressLabel) }}</span></label>
                 <input v-model="checkoutForm.deliveryAddress" class="input input-bordered" />
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ postalCodeLabel }}</span></label>
-                <input v-model="checkoutForm.deliveryPostalCode" class="input input-bordered" />
+                <label class="label"><span class="label-text">{{ requiredLabel(postalCodeLabel) }}</span></label>
+                <input
+                  v-model="checkoutForm.deliveryPostalCode"
+                  class="input input-bordered"
+                  :list="deliveryPostalCodesListId"
+                  autocomplete="postal-code"
+                />
+                <datalist :id="deliveryPostalCodesListId">
+                  <option v-for="code in availableDeliveryPostalCodes" :key="code" :value="code" />
+                </datalist>
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ deliveryTourLabel }}</span></label>
-                <select v-model.number="checkoutForm.deliveryTourId" class="select select-bordered">
+                <label class="label"><span class="label-text">{{ requiredLabel(deliveryTourLabel) }}</span></label>
+                <select
+                  v-model.number="checkoutForm.deliveryTourId"
+                  class="select select-bordered"
+                  :disabled="!filteredTours.length"
+                >
                   <option :value="0">{{ tourPlaceholderLabel }}</option>
                   <option
                     v-for="tour in filteredTours"
@@ -170,8 +194,17 @@
                   </option>
                 </select>
               </div>
-              <p v-if="checkoutForm.deliveryCity.trim() && !filteredTours.length" class="text-sm text-warning">
+              <p
+                v-if="checkoutForm.deliveryCity.trim() && !deliveryCityValid"
+                class="text-sm text-warning"
+              >
                 {{ unavailableCityLabel }}
+              </p>
+              <p
+                v-if="deliveryCityValid && checkoutForm.deliveryPostalCode.trim() && !deliveryPostalCodeValid"
+                class="text-sm text-warning"
+              >
+                {{ locale === 'en' ? 'The postal code does not match the selected city.' : 'Le code postal ne correspond pas à la ville sélectionnée.' }}
               </p>
               <div v-if="selectedDeliveryTour" class="rounded-2xl bg-base-200 p-4 text-sm">
                 <div class="font-medium">{{ selectedDeliveryTour.name }}</div>
@@ -365,6 +398,10 @@ const tourPlaceholderLabel = computed(() => locale.value === 'en' ? 'Select a de
 const addressLabel = computed(() => locale.value === 'en' ? 'Address' : 'Adresse')
 const cityLabel = computed(() => locale.value === 'en' ? 'City' : 'Ville')
 const postalCodeLabel = computed(() => locale.value === 'en' ? 'Postal code' : 'Code postal')
+const tourCityHelperTitle = computed(() => locale.value === 'en' ? 'Delivery eligibility' : 'Eligibilite livraison')
+const tourCityHelperLabel = computed(() => locale.value === 'en'
+  ? 'To check whether home delivery is available, enter your city. Suggestions only include cities served by the configured delivery slots.'
+  : 'Pour verifier l eligibilite de la livraison a domicile, rentrer votre ville. Les suggestions ne proposent que les villes desservies par les creneaux configures.')
 const paymentLabel = computed(() => locale.value === 'en' ? 'Payment method' : 'Mode de règlement')
 const messageLabel = computed(() => locale.value === 'en' ? 'Message' : 'Message')
 const submitLabel = computed(() => checkoutForm.value.paymentMode === 'stripe' && paymentCapabilities.value.allowOnline
@@ -394,9 +431,84 @@ const selectedPickupPoint = computed(() =>
   pickupPoints.value.find((point) => point.id === Number(checkoutForm.value.pickupPointId)) || null
 )
 
+const deliveryCitiesListId = 'delivery-city-suggestions'
+const deliveryPostalCodesListId = 'delivery-postalcode-suggestions'
+
+const availableDeliveryCities = computed(() => {
+  const seen = new Map<string, string>()
+  for (const city of deliveryOptions.value?.servedCities || []) {
+    const normalized = String(city || '').trim()
+    if (!normalized) continue
+    const key = normalized.toLowerCase()
+    if (!seen.has(key)) {
+      seen.set(key, normalized)
+    }
+  }
+  return Array.from(seen.values()).sort((left, right) => left.localeCompare(right, 'fr'))
+})
+
+const cityPostalCodesMap = computed(() => {
+  const map = new Map<string, string[]>()
+  for (const tour of deliveryTours.value) {
+    for (const entry of tour.cities) {
+      const cityKey = entry.city.trim().toLowerCase()
+      if (!cityKey) continue
+      if (!entry.postalCodes) {
+        map.set(cityKey, [])
+        continue
+      }
+      const codes = entry.postalCodes.split(',').map((c) => c.trim()).filter(Boolean)
+      if (!codes.length) {
+        map.set(cityKey, [])
+        continue
+      }
+      const existing = map.get(cityKey)
+      if (existing) {
+        for (const code of codes) {
+          if (!existing.includes(code)) existing.push(code)
+        }
+      } else {
+        map.set(cityKey, [...codes])
+      }
+    }
+  }
+  return map
+})
+
+const availableDeliveryPostalCodes = computed(() => {
+  const city = checkoutForm.value.deliveryCity.trim().toLowerCase()
+  if (!city) return []
+  const codes = cityPostalCodesMap.value.get(city)
+  return codes || []
+})
+
+const deliveryCityValid = computed(() => {
+  const city = checkoutForm.value.deliveryCity.trim()
+  if (!city) return false
+  return availableDeliveryCities.value.some(
+    (c) => c.toLowerCase() === city.toLowerCase()
+  )
+})
+
+const deliveryPostalCodeValid = computed(() => {
+  const postalCode = checkoutForm.value.deliveryPostalCode.trim()
+  if (!postalCode) return false
+  const city = checkoutForm.value.deliveryCity.trim().toLowerCase()
+  if (!city) return false
+  const matchingEntries = deliveryTours.value.flatMap((tour) =>
+    tour.cities.filter((entry) => entry.city.trim().toLowerCase() === city)
+  )
+  if (!matchingEntries.length) return false
+  if (matchingEntries.some((entry) => !entry.postalCodes)) return true
+  return matchingEntries.some((entry) => {
+    const allowedCodes = entry.postalCodes!.split(',').map((c) => c.trim())
+    return allowedCodes.includes(postalCode)
+  })
+})
+
 const filteredTours = computed(() => {
   const city = checkoutForm.value.deliveryCity.trim().toLowerCase()
-  if (!city) return deliveryTours.value
+  if (!city || !deliveryCityValid.value || !deliveryPostalCodeValid.value) return []
   return deliveryTours.value.filter((tour) =>
     tour.cities.some((entry) => entry.city.trim().toLowerCase() === city)
   )
@@ -451,6 +563,8 @@ const deliveryValid = computed(() => {
     return Number(checkoutForm.value.deliveryTourId) > 0
       && checkoutForm.value.deliveryAddress.trim().length > 0
       && checkoutForm.value.deliveryCity.trim().length > 0
+      && deliveryCityValid.value
+      && deliveryPostalCodeValid.value
   }
   return false
 })
@@ -488,6 +602,18 @@ watch(() => checkoutForm.value.deliveryType, (value) => {
 watch(filteredTours, (tours) => {
   if (!tours.some((tour) => tour.id === Number(checkoutForm.value.deliveryTourId))) {
     checkoutForm.value.deliveryTourId = 0
+  }
+})
+
+watch(() => checkoutForm.value.deliveryCity, (newCity, oldCity) => {
+  if (newCity.trim().toLowerCase() === oldCity?.trim().toLowerCase()) return
+  const codes = availableDeliveryPostalCodes.value
+  if (codes.length === 1 && codes[0]) {
+    checkoutForm.value.deliveryPostalCode = codes[0]
+  } else if (codes.length > 0 && !codes.includes(checkoutForm.value.deliveryPostalCode.trim())) {
+    checkoutForm.value.deliveryPostalCode = ''
+  } else if (codes.length === 0 && newCity.trim()) {
+    checkoutForm.value.deliveryPostalCode = ''
   }
 })
 
@@ -537,6 +663,10 @@ function formatRentalRange(startDate: string | null | undefined, endDate: string
     return locale.value === 'en' ? 'To be selected' : 'À sélectionner'
   }
   return `${$formatDate(startDate)} → ${$formatDate(endDate)}`
+}
+
+function requiredLabel(label: string) {
+  return `${label} *`
 }
 
 function resolveCartTaxCode(item: { paymentTaxCode?: string | null }) {

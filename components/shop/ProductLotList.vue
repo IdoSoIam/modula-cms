@@ -29,7 +29,7 @@
         </div>
         <ul v-if="lot.items.length && showComposition" class="space-y-2 rounded-2xl bg-base-200/70 p-4 text-sm">
           <li v-for="item in lot.items" :key="`${lot.id}-${item.productId}`" class="flex justify-between gap-3">
-            <span>{{ item.product?.name || '' }}</span>
+            <span>{{ getLocalizedNestedProductName(item) }}</span>
             <span class="opacity-70">x{{ item.quantity }}</span>
           </li>
         </ul>
@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import { pickCmsLocalizedText } from '#modula/shared/cms'
 import type { ProductLotPayload } from '#modula/server/utils/shop'
 
 defineProps<{
@@ -80,4 +81,8 @@ defineProps<{
 defineEmits<{
   add: [productLot: ProductLotPayload]
 }>()
+
+const { locale } = useI18n()
+const getLocalizedNestedProductName = (lot: ProductLotPayload['items'][number]) =>
+  pickCmsLocalizedText(locale.value, lot.product?.nameLocalized) || lot.product?.name || ''
 </script>

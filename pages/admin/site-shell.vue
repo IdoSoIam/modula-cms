@@ -3,7 +3,11 @@
 </template>
 
 <script setup lang="ts">
-const localePath = useLocalePath()
+import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
 
-await navigateTo(localePath('/admin/settings/global'), { replace: true })
+const localePath = useLocalePath()
+const { locale } = useI18n()
+const settingsGlobalPath = computed(() => getAdminRoutePath('settingsGlobal', normalizeAdminRouteLocale(locale.value)))
+
+await navigateTo(localePath(settingsGlobalPath.value), { replace: true })
 </script>

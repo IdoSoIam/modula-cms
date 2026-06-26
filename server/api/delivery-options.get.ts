@@ -48,8 +48,14 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // Get unique list of all served cities for client-side filtering
-  const allServedCities = [...new Set(tours.flatMap((t: any) => t.cities.map((c: any) => c.city.toLowerCase())))]
+  const allServedCities = Array.from(
+    new Map(
+      tours
+        .flatMap((tour: any) => tour.cities.map((city: any) => String(city.city || '').trim()))
+        .filter(Boolean)
+        .map((city: string) => [city.toLowerCase(), city])
+    ).values()
+  ).sort((left, right) => left.localeCompare(right, 'fr'))
 
   return {
     onSitePickup: {

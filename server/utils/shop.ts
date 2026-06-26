@@ -1,15 +1,20 @@
 import { db } from '#modula/server/data/client'
+import { createEmptyCmsLocalizedText, pickCmsLocalizedText, type CmsLocalizedText } from '#modula/shared/cms'
 import { slugify } from '#modula/server/utils/slug'
 
 export interface ProductPayload {
   id: number
   name: string
+  nameLocalized: CmsLocalizedText
   slug: string
   saleType: 'SALE' | 'RENTAL'
   categoryId: number | null
   category: ProductCategoryPayload | null
   excerpt: string | null
+  excerptLocalized: CmsLocalizedText
   description: string | null
+  descriptionLocalized: CmsLocalizedText
+  detailSections: ProductDetailSection[]
   imageUrl: string | null
   price: number
   vatRate: number
@@ -21,6 +26,7 @@ export interface ProductPayload {
   rentalMinDays: number
   rentalMaxDays: number | null
   unitLabel: string | null
+  unitLabelLocalized: CmsLocalizedText
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
   active: boolean
@@ -135,6 +141,21 @@ export interface ShopOrderPayload {
   }>
 }
 
+export interface ProductDetailField {
+  id: string
+  label: string
+  labelLocalized: CmsLocalizedText
+  value: string
+  valueLocalized: CmsLocalizedText
+}
+
+export interface ProductDetailSection {
+  id: string
+  title: string
+  titleLocalized: CmsLocalizedText
+  items: ProductDetailField[]
+}
+
 function toNumber(value: unknown) {
   return Number(value || 0)
 }
@@ -181,15 +202,24 @@ function computeProductLotStock(row: any) {
 }
 
 export function serializeProduct(row: any): ProductPayload {
+  const nameLocalized = normalizeProductLocalizedText(row.nameJson, String(row.name || ''))
+  const excerptLocalized = normalizeProductLocalizedText(row.excerptJson, row.excerpt ?? '')
+  const descriptionLocalized = normalizeProductLocalizedText(row.descriptionJson, row.description ?? '')
+  const unitLabelLocalized = normalizeProductLocalizedText(row.unitLabelJson, row.unitLabel ?? '')
+
   return {
     id: Number(row.id),
-    name: String(row.name),
+    name: resolveLocalizedProductText(nameLocalized, String(row.name || '')),
+    nameLocalized,
     slug: String(row.slug),
     saleType: row.saleType === 'RENTAL' ? 'RENTAL' : 'SALE',
     categoryId: row.categoryId == null ? null : Number(row.categoryId),
     category: row.category ? serializeProductCategory(row.category) : null,
-    excerpt: row.excerpt ?? null,
-    description: row.description ?? null,
+    excerpt: resolveNullableLocalizedProductText(excerptLocalized, row.excerpt ?? null),
+    excerptLocalized,
+    description: resolveNullableLocalizedProductText(descriptionLocalized, row.description ?? null),
+    descriptionLocalized,
+    detailSections: normalizeProductDetailSections(row.detailsJson),
     imageUrl: row.imageUrl ?? null,
     price: toNumber(row.price),
     vatRate: toNumber(row.vatRate),
@@ -200,7 +230,8 @@ export function serializeProduct(row: any): ProductPayload {
     rentalAvailableTo: row.rentalAvailableTo ? new Date(row.rentalAvailableTo).toISOString() : null,
     rentalMinDays: Math.max(1, Number(row.rentalMinDays || 1)),
     rentalMaxDays: row.rentalMaxDays == null ? null : Math.max(1, Number(row.rentalMaxDays)),
-    unitLabel: row.unitLabel ?? null,
+    unitLabel: resolveNullableLocalizedProductText(unitLabelLocalized, row.unitLabel ?? null),
+    unitLabelLocalized,
     allowOfflinePayment: toBoolean(row.allowOfflinePayment),
     allowOnlinePayment: toBoolean(row.allowOnlinePayment),
     active: toBoolean(row.active),
@@ -354,6 +385,118 @@ function safeParseJson(value: unknown) {
   } catch {
     return {}
   }
+}
+
+export function normalizeProductDetailSections(value: unknown): ProductDetailSection[] {
+  if (typeof value !== 'string' || !value.trim()) return []
+  try {
+    const parsed = JSON.parse(value)
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map((section) => normalizeProductDetailSection(section))
+      .filter((section): section is ProductDetailSection => Boolean(section))
+  } catch {
+    return []
+  }
+}
+
+export function normalizeProductDetailSectionsInput(value: unknown): ProductDetailSection[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((section) => normalizeProductDetailSection(section))
+    .filter((section): section is ProductDetailSection => Boolean(section))
+}
+
+function normalizeProductDetailSection(value: unknown): ProductDetailSection | null {
+  if (!value || typeof value !== 'object') return null
+  const entry = value as Record<string, unknown>
+  const titleLocalized = normalizeProductLocalizedText(entry.titleLocalized ?? entry.title, typeof entry.title === 'string' ? entry.title : '')
+  const items = Array.isArray(entry.items)
+    ? entry.items
+        .map((item) => normalizeProductDetailField(item))
+        .filter((item): item is ProductDetailField => Boolean(item))
+    : []
+
+  if (!hasLocalizedText(titleLocalized) && !items.length) return null
+
+  return {
+    id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : crypto.randomUUID(),
+    title: resolveLocalizedProductText(titleLocalized, 'Section'),
+    titleLocalized,
+    items
+  }
+}
+
+function normalizeProductDetailField(value: unknown): ProductDetailField | null {
+  if (!value || typeof value !== 'object') return null
+  const entry = value as Record<string, unknown>
+  const labelLocalized = normalizeProductLocalizedText(entry.labelLocalized ?? entry.label, typeof entry.label === 'string' ? entry.label : '')
+  const valueLocalized = normalizeProductLocalizedText(entry.valueLocalized ?? entry.value, typeof entry.value === 'string' ? entry.value : '')
+  if (!hasLocalizedText(labelLocalized) && !hasLocalizedText(valueLocalized)) return null
+  return {
+    id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : crypto.randomUUID(),
+    label: resolveLocalizedProductText(labelLocalized, 'Champ'),
+    labelLocalized,
+    value: resolveLocalizedProductText(valueLocalized, ''),
+    valueLocalized
+  }
+}
+
+export function normalizeProductLocalizedText(value: unknown, fallback = ''): CmsLocalizedText {
+  const normalized = createEmptyCmsLocalizedText()
+
+  if (typeof value === 'string') {
+    const text = value.trim()
+    if (text.startsWith('{') && text.endsWith('}')) {
+      try {
+        return normalizeProductLocalizedText(JSON.parse(text), fallback)
+      } catch {
+        // Ignore malformed JSON and keep legacy plain-text behavior.
+      }
+    }
+    return {
+      fr: text || fallback,
+      en: text || fallback
+    }
+  }
+
+  if (value && typeof value === 'object') {
+    const entry = value as Record<string, unknown>
+    normalized.fr = typeof entry.fr === 'string' ? entry.fr.trim() : ''
+    normalized.en = typeof entry.en === 'string' ? entry.en.trim() : ''
+  }
+
+  if (!normalized.fr && fallback) normalized.fr = fallback.trim()
+  if (!normalized.en && fallback) normalized.en = fallback.trim()
+
+  return normalized
+}
+
+export function hasLocalizedText(value: CmsLocalizedText | null | undefined) {
+  return Boolean(value?.fr?.trim() || value?.en?.trim())
+}
+
+export function resolveLocalizedProductText(value: CmsLocalizedText | null | undefined, fallback = '') {
+  if (!value) return fallback
+  return value.fr.trim() || value.en.trim() || fallback
+}
+
+export function resolveNullableLocalizedProductText(value: CmsLocalizedText | null | undefined, fallback: string | null = null) {
+  const resolved = resolveLocalizedProductText(value, fallback || '')
+  return resolved.trim() ? resolved : null
+}
+
+export function buildLocalizedProductTextPayload(value: CmsLocalizedText | null | undefined, fallback = '') {
+  const normalized = normalizeProductLocalizedText(value, fallback)
+  return {
+    text: resolveLocalizedProductText(normalized, fallback),
+    json: JSON.stringify(normalized)
+  }
+}
+
+export function pickProductLocalizedText(locale: string, value: CmsLocalizedText | null | undefined, fallback = '') {
+  const selected = pickCmsLocalizedText(locale, value)
+  return selected?.trim() || resolveLocalizedProductText(value, fallback)
 }
 
 export async function ensureUniqueSlug(

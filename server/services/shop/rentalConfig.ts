@@ -1,6 +1,6 @@
 interface RentalConfigInput {
-  rentalAvailableFrom?: string | null
-  rentalAvailableTo?: string | null
+  rentalAvailableFrom?: unknown
+  rentalAvailableTo?: unknown
   rentalMinDays?: number | null
   rentalMaxDays?: number | null
 }
@@ -44,9 +44,11 @@ export function normalizeRentalConfig(
   }
 }
 
-function normalizeOptionalDate(value: string | null | undefined, errorMessage: string) {
-  if (!value?.trim()) return null
-  const normalized = new Date(value)
+function normalizeOptionalDate(value: unknown, errorMessage: string) {
+  if (value == null) return null
+  const text = typeof value === "string" ? value.trim() : String(value).trim()
+  if (!text) return null
+  const normalized = new Date(text)
   if (Number.isNaN(normalized.getTime())) {
     throw createError({
       statusCode: 400,

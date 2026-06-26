@@ -9,7 +9,7 @@
       </div>
 
       <div class="flex gap-2">
-        <NuxtLink class="btn btn-outline" :to="localePath('/admin/content/pages')">{{ t('admin.pageEditorPage.back') }}</NuxtLink>
+        <NuxtLink class="btn btn-outline" :to="localePath(contentPagesPath)">{{ t('admin.pageEditorPage.back') }}</NuxtLink>
         <a
           v-if="liveEditAvailable"
           class="btn btn-outline"
@@ -183,7 +183,7 @@ import CmsPageContentBuilder from '#modula/components/admin/cms/CmsPageContentBu
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
 import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
 import ImageInput from '#modula/components/ImageInput.vue'
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
+import { ADMIN_I18N_PATHS, getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
 import type { CmsLocale, CmsNavigationItemPayload, CmsPagePayload, CmsSiteSettings } from '#modula/shared/cms'
 import { clonePageBuilderContent, type PageBuilderContent } from '#modula/shared/pageBuilder'
 
@@ -202,7 +202,8 @@ interface CmsPageEditor extends CmsPagePayload {
 const route = useRoute()
 const localePath = useLocalePath()
 const { $toast } = useNuxtApp() as any
-const { t } = useI18n()
+const { locale, t } = useI18n()
+const contentPagesPath = computed(() => getAdminRoutePath('contentPages', normalizeAdminRouteLocale(locale.value)))
 const activeLocale = ref<CmsLocale>('fr')
 const contentTab = ref<'editor' | 'preview'>('editor')
 const saving = ref(false)

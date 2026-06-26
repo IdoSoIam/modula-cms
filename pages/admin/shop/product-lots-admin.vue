@@ -244,16 +244,6 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
-
-definePageMeta({
-  layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.shopBaskets
-  }
-})
-
 interface Product {
   id: number
   name: string
