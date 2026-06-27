@@ -27,75 +27,6 @@ const imageSourceHostname = (() => {
   }
 })()
 
-const CONTENT_LOCALE_PARAM = ':contentLocale([a-zA-Z]{2}(?:-[a-zA-Z]{2})?)'
-const ROUTE_PREFIX_EXCLUSIONS = ['/admin', '/install']
-
-function isExcludedPublicRoute(pathname: string) {
-  return ROUTE_PREFIX_EXCLUSIONS.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`))
-}
-
-function isCatchAllRoute(pathname: string) {
-  return pathname.includes('(.*)*')
-}
-
-function cloneRouteBranchWithContentLocale(route: any, isRoot = true): any {
-  const clonedChildren = Array.isArray(route.children)
-    ? route.children.map((child: any) => cloneRouteBranchWithContentLocale(child, false))
-    : route.children
-
-  const originalPath = typeof route.path === 'string' && route.path.trim()
-    ? route.path.trim()
-    : '/'
-  const prefixedPath = isRoot
-    ? (originalPath === '/' ? `/${CONTENT_LOCALE_PARAM}` : `/${CONTENT_LOCALE_PARAM}${originalPath}`)
-    : originalPath
-
-  return {
-    ...route,
-    name: route.name ? `${route.name}__contentLocale` : route.name,
-    path: prefixedPath,
-    children: clonedChildren,
-  }
-}
-
-function extendRoutesWithContentLocales(routes: any[]) {
-  const prefixedRoutes: any[] = []
-  const deferredOriginalCatchAllRoutes: any[] = []
-  const deferredPrefixedCatchAllRoutes: any[] = []
-  const nextRoutes: any[] = []
-
-  for (const route of routes) {
-    const pathname = typeof route.path === 'string' && route.path.trim()
-      ? route.path.trim()
-      : '/'
-
-    const excluded = pathname.startsWith(`/${CONTENT_LOCALE_PARAM}`) || isExcludedPublicRoute(pathname)
-    if (!excluded) {
-      const clonedRoute = cloneRouteBranchWithContentLocale(route, true)
-      if (isCatchAllRoute(pathname)) {
-        deferredPrefixedCatchAllRoutes.push(clonedRoute)
-      } else {
-        prefixedRoutes.push(clonedRoute)
-      }
-    }
-
-    if (isCatchAllRoute(pathname)) {
-      deferredOriginalCatchAllRoutes.push(route)
-    } else {
-      nextRoutes.push(route)
-    }
-  }
-
-  routes.splice(
-    0,
-    routes.length,
-    ...nextRoutes,
-    ...prefixedRoutes,
-    ...deferredPrefixedCatchAllRoutes,
-    ...deferredOriginalCatchAllRoutes,
-  )
-}
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
@@ -105,11 +36,6 @@ export default defineNuxtConfig({
   },
   experimental: {
     appManifest: false
-  },
-  hooks: {
-    'pages:extend'(routes) {
-      extendRoutesWithContentLocales(routes)
-    }
   },
   features: {
     inlineStyles: true
@@ -215,6 +141,7 @@ export default defineNuxtConfig({
         '@tiptap/starter-kit',
         '@tiptap/extension-image',
         '@tiptap/extension-link',
+        'vue-i18n',
       ]
     }
   },
