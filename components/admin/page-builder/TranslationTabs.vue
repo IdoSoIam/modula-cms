@@ -18,7 +18,16 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <span v-if="translating" class="loading loading-spinner loading-xs text-primary" />
+        <button
+          v-if="showAutoTranslateButton"
+          type="button"
+          class="btn btn-xs btn-outline"
+          :disabled="translating"
+          @click="translateMissingLocales"
+        >
+          <span v-if="translating" class="loading loading-spinner loading-xs" />
+          <span v-else>Trad auto</span>
+        </button>
         <div class="tabs tabs-box tabs-xs">
           <button
             v-for="locale in resolvedLocales"
@@ -68,6 +77,7 @@ const emit = defineEmits<{
 }>()
 
 const { locales: siteLocales } = useSiteLocales()
+const { $toast } = useNuxtApp() as any
 const resolvedLocales = computed(() => props.locales?.length ? props.locales : (siteLocales.value.length ? siteLocales.value : ['fr', 'en']))
 const activeLang = ref<string>(resolvedLocales.value[0] || 'fr')
 
@@ -105,16 +115,63 @@ watch(localValue, (val) => {
   }
 }, { deep: true })
 
-// Auto-traduction LLM depuis la langue active vers les langues cibles vides
-const { translating } = useAutoTranslate({
-  value: localValue,
-  sourceLocale: activeLang,
-  availableLocales: resolvedLocales,
-  debounceMs: 1000,
-  context: props.label
+const translating = ref(false)
+
+const translationSourceLocale = computed(() => {
+  if (localValue.value[activeLang.value]?.trim()) return activeLang.value
+  return resolvedLocales.value.find((locale) => localValue.value[locale]?.trim()) || activeLang.value
 })
+
+const emptyTargetLocales = computed(() =>
+  resolvedLocales.value.filter((locale) =>
+    locale !== translationSourceLocale.value
+    && !localValue.value[locale]?.trim()
+  )
+)
+
+const showAutoTranslateButton = computed(() =>
+  Boolean(localValue.value[translationSourceLocale.value]?.trim())
+  && emptyTargetLocales.value.length > 0
+)
 
 function updateLocalizedValue(lang: string, value: string) {
   localValue.value = { ...localValue.value, [lang]: value }
+}
+
+async function translateMissingLocales() {
+  const sourceLocale = translationSourceLocale.value
+  const text = localValue.value[sourceLocale]?.trim()
+  if (!text || !emptyTargetLocales.value.length) return
+
+  translating.value = true
+  try {
+    const result = await $fetch<{ translations?: Record<string, string> }>('/api/admin/translate', {
+      method: 'POST',
+      body: {
+        text,
+        sourceLocale,
+        targetLocales: emptyTargetLocales.value,
+        context: props.label
+      }
+    })
+
+    const next = { ...localValue.value }
+    let changed = false
+    for (const locale of emptyTargetLocales.value) {
+      const translated = result?.translations?.[locale]?.trim()
+      if (translated && !next[locale]?.trim()) {
+        next[locale] = translated
+        changed = true
+      }
+    }
+
+    if (changed) {
+      localValue.value = next
+    }
+  } catch (error: any) {
+    $toast?.error(error?.data?.statusMessage || error?.statusMessage || 'Traduction impossible.')
+  } finally {
+    translating.value = false
+  }
 }
 </script>

@@ -836,22 +836,33 @@ function getCustomTemplateSettingKey(action: string) {
   return `${CUSTOM_TEMPLATE_PREFIX}${action}`
 }
 
-function getDefaultCustomTemplate(locale: 'fr' | 'en'): EmailTemplate {
-  return locale === 'en'
+function normalizeTemplateLocaleKey(locale: string | null | undefined) {
+  const normalized = String(locale || '').trim().toLowerCase()
+  return normalized || 'fr'
+}
+
+function getDefaultCustomTemplate(locale: string): EmailTemplate {
+  return normalizeTemplateLocaleKey(locale) === 'en'
     ? { subject: '', body: '' }
     : { subject: '', body: '' }
 }
 
-function getDefaultSystemTemplate(action: string, locale: 'fr' | 'en'): EmailTemplate {
-  return CUSTOM_TEMPLATE_DEFAULTS[action]?.[locale] ?? getDefaultCustomTemplate(locale)
+function getDefaultSystemTemplate(action: string, locale: string): EmailTemplate {
+  const normalizedLocale = normalizeTemplateLocaleKey(locale)
+  return CUSTOM_TEMPLATE_DEFAULTS[action]?.[normalizedLocale as 'fr' | 'en']
+    ?? CUSTOM_TEMPLATE_DEFAULTS[action]?.en
+    ?? CUSTOM_TEMPLATE_DEFAULTS[action]?.fr
+    ?? getDefaultCustomTemplate(normalizedLocale)
 }
 
-function resolveLocalizedTemplate(raw: string | null, locale: 'fr' | 'en', fallback: EmailTemplate): EmailTemplate {
+function resolveLocalizedTemplate(raw: string | null, locale: string, fallback: EmailTemplate): EmailTemplate {
   if (!raw) return fallback
 
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>
-    const candidate = parsed?.[locale]
+    const normalizedLocale = normalizeTemplateLocaleKey(locale)
+    const languageLocale = normalizedLocale.split('-')[0] || normalizedLocale
+    const candidate = parsed?.[normalizedLocale] ?? parsed?.[languageLocale]
     if (candidate && typeof candidate === 'object') {
       const subject = typeof (candidate as Record<string, unknown>).subject === 'string'
         ? (candidate as Record<string, unknown>).subject as string
@@ -903,7 +914,7 @@ export async function findAdminEmailTemplateDefinition(action: string) {
   return definitions.find(definition => definition.action === action) ?? null
 }
 
-export async function resolveAdminEmailTemplate(action: string, locale: 'fr' | 'en'): Promise<EmailTemplate> {
+export async function resolveAdminEmailTemplate(action: string, locale: string): Promise<EmailTemplate> {
   const definition = await findAdminEmailTemplateDefinition(action)
   if (!definition) {
     throw createError({

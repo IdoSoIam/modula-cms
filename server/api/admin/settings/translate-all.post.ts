@@ -1,8 +1,9 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { getSiteLocales, getSiteDefaultLocale } from '#modula/server/utils/settings'
+import { getSiteLocales, getSiteDefaultLocale, getSetting, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { db } from '#modula/server/data/client'
 import { translateRegistryTexts } from '#modula/server/utils/cmsRegistry'
 import { clonePageBuilderContent } from '#modula/shared/pageBuilder'
+import { getAllAdminEmailTemplateDefinitions, resolveAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
 
 interface PageTranslation {
   title?: string
@@ -22,8 +23,13 @@ interface NavigationLabelsData {
   [locale: string]: string | null | undefined
 }
 
+interface EmailTemplateTranslationData {
+  subject: string
+  body: string
+}
+
 interface TranslationTask {
-  kind: 'cmsPage' | 'event' | 'navigationItem'
+  kind: 'cmsPage' | 'event' | 'navigationItem' | 'cmsSettings' | 'emailTemplate'
   id: number
   sourceText: string
   sourceLocale: string
@@ -31,10 +37,12 @@ interface TranslationTask {
   fieldPath: string
   recordLabel: string
   contentPath?: Array<string | number>
+  settingKey?: string
+  action?: string
 }
 
 interface TranslationResultItem {
-  kind: 'cmsPage' | 'event' | 'navigationItem'
+  kind: 'cmsPage' | 'event' | 'navigationItem' | 'cmsSettings' | 'emailTemplate'
   id: number
   recordLabel: string
   fieldPath: string
@@ -150,6 +158,68 @@ export default defineEventHandler(async (event) => {
         targetLocale,
         fieldPath: 'label'
       })
+    }
+  }
+
+  const rawCmsSiteSettings = await getSetting(SETTING_KEYS.CMS_SITE_SETTINGS)
+  if (rawCmsSiteSettings) {
+    try {
+      const cmsSiteSettings = JSON.parse(rawCmsSiteSettings)
+      for (const targetLocale of targetLocales) {
+        collectLocalizedContentTasks({
+          tasks,
+          kind: 'cmsSettings',
+          id: 0,
+          recordLabel: 'cms_site_settings',
+          sourceLocale: defaultLocale,
+          targetLocale,
+          content: cmsSiteSettings,
+          settingKey: SETTING_KEYS.CMS_SITE_SETTINGS
+        })
+      }
+    } catch {}
+  }
+
+  const emailTemplateDefinitions = await getAllAdminEmailTemplateDefinitions()
+  for (const definition of emailTemplateDefinitions) {
+    const sourceTemplate = await resolveAdminEmailTemplate(definition.action, defaultLocale)
+    if (!sourceTemplate) continue
+    const rawTemplate = await getSetting(definition.settingKey)
+    let parsedRawTemplate: Record<string, EmailTemplateTranslationData> = {}
+    if (rawTemplate) {
+      try {
+        parsedRawTemplate = JSON.parse(rawTemplate)
+      } catch {}
+    }
+
+    for (const targetLocale of targetLocales) {
+      const currentTemplate = parsedRawTemplate[targetLocale]
+      if (sourceTemplate.subject && !currentTemplate?.subject?.trim()) {
+        tasks.push({
+          kind: 'emailTemplate',
+          id: 0,
+          recordLabel: definition.action,
+          sourceText: sourceTemplate.subject,
+          sourceLocale: defaultLocale,
+          targetLocale,
+          fieldPath: 'subject',
+          settingKey: definition.settingKey,
+          action: definition.action
+        })
+      }
+      if (sourceTemplate.body && !currentTemplate?.body?.trim()) {
+        tasks.push({
+          kind: 'emailTemplate',
+          id: 0,
+          recordLabel: definition.action,
+          sourceText: sourceTemplate.body,
+          sourceLocale: defaultLocale,
+          targetLocale,
+          fieldPath: 'body',
+          settingKey: definition.settingKey,
+          action: definition.action
+        })
+      }
     }
   }
 
@@ -277,6 +347,42 @@ async function writeTranslation(task: TranslationTask, translatedText: string) {
     return
   }
 
+  if (task.kind === 'cmsSettings') {
+    if (!task.settingKey) return
+    const raw = await getSetting(task.settingKey)
+    if (!raw) return
+    let settings: unknown
+    try {
+      settings = JSON.parse(raw)
+    } catch {
+      return
+    }
+    if (!task.contentPath?.length) return
+    const localizedNode = getNestedValue(settings, task.contentPath)
+    if (isLocalizedTextNode(localizedNode, task.sourceLocale)) {
+      localizedNode[task.targetLocale] = translatedText
+      await setSetting(task.settingKey, JSON.stringify(settings))
+    }
+    return
+  }
+
+  if (task.kind === 'emailTemplate') {
+    if (!task.settingKey) return
+    const raw = await getSetting(task.settingKey)
+    let templates: Record<string, EmailTemplateTranslationData> = {}
+    if (raw) {
+      try {
+        templates = JSON.parse(raw)
+      } catch {}
+    }
+    const target = templates[task.targetLocale] || { subject: '', body: '' }
+    if (task.fieldPath === 'subject') target.subject = translatedText
+    if (task.fieldPath === 'body') target.body = translatedText
+    templates[task.targetLocale] = target
+    await setSetting(task.settingKey, JSON.stringify(templates))
+    return
+  }
+
   const row = await db.event.findUnique({ where: { id: task.id } })
   if (!row) return
 
@@ -310,12 +416,13 @@ async function writeTranslation(task: TranslationTask, translatedText: string) {
 
 function collectLocalizedContentTasks(input: {
   tasks: TranslationTask[]
-  kind: 'cmsPage' | 'event'
+  kind: 'cmsPage' | 'event' | 'cmsSettings'
   id: number
   recordLabel: string
   sourceLocale: string
   targetLocale: string
   content: unknown
+  settingKey?: string
 }) {
   walkLocalizedContent(input.content, input.sourceLocale, (node, path) => {
     const sourceText = node[input.sourceLocale]?.trim()
@@ -331,7 +438,8 @@ function collectLocalizedContentTasks(input: {
       sourceLocale: input.sourceLocale,
       targetLocale: input.targetLocale,
       fieldPath: `content.${pathToFieldPath(path)}`,
-      contentPath: path
+      contentPath: path,
+      settingKey: input.settingKey
     })
   })
 }

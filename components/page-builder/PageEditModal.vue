@@ -226,8 +226,10 @@ const TranslationFields = defineComponent({
   emits: ['update:size'],
   setup(props, { emit }) {
     const { locales } = useSiteLocales()
+    const { $toast } = useNuxtApp() as any
     const resolvedLocales = computed(() => locales.value.length ? locales.value : ['fr', 'en'])
     const lang = ref<string>(resolvedLocales.value[0] || 'fr')
+    const translating = ref(false)
 
     watch(resolvedLocales, (value) => {
       const next = value[0] || 'fr'
@@ -242,6 +244,50 @@ const TranslationFields = defineComponent({
     }, { immediate: true })
 
     const tabLabel = (localeCode: string) => localeCode.toUpperCase()
+    const translationSourceLocale = computed(() => {
+      if (props.modelValue[lang.value]?.trim()) return lang.value
+      return resolvedLocales.value.find((localeCode) => props.modelValue[localeCode]?.trim()) || lang.value
+    })
+    const emptyTargetLocales = computed(() =>
+      resolvedLocales.value.filter((localeCode) =>
+        localeCode !== translationSourceLocale.value
+        && !props.modelValue[localeCode]?.trim()
+      )
+    )
+    const showAutoTranslateButton = computed(() =>
+      Boolean(props.modelValue[translationSourceLocale.value]?.trim())
+      && emptyTargetLocales.value.length > 0
+    )
+
+    const translateMissingLocales = async () => {
+      const sourceLocale = translationSourceLocale.value
+      const text = props.modelValue[sourceLocale]?.trim()
+      if (!text || !emptyTargetLocales.value.length) return
+
+      translating.value = true
+      try {
+        const result = await $fetch<{ translations?: Record<string, string> }>('/api/admin/translate', {
+          method: 'POST',
+          body: {
+            text,
+            sourceLocale,
+            targetLocales: emptyTargetLocales.value,
+            context: props.label
+          }
+        })
+
+        for (const localeCode of emptyTargetLocales.value) {
+          const translated = result?.translations?.[localeCode]?.trim()
+          if (translated && !props.modelValue[localeCode]?.trim()) {
+            props.modelValue[localeCode] = translated
+          }
+        }
+      } catch (error: any) {
+        $toast?.error(error?.data?.statusMessage || error?.statusMessage || 'Traduction impossible.')
+      } finally {
+        translating.value = false
+      }
+    }
 
     return () => h('div', { class: 'form-control' }, [
       h('div', { class: 'mb-2 flex items-center justify-between gap-2' }, [
@@ -257,13 +303,21 @@ const TranslationFields = defineComponent({
             }
           }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size]))) : null
         ]),
-        h('div', { class: 'tabs tabs-box tabs-xs' }, resolvedLocales.value.map(localeCode =>
-          h('button', {
+        h('div', { class: 'flex items-center gap-2' }, [
+          showAutoTranslateButton.value ? h('button', {
             type: 'button',
-            class: ['tab cursor-pointer', lang.value === localeCode ? 'tab-active' : 'border-0'],
-            onClick: () => { lang.value = localeCode }
-          }, tabLabel(localeCode))
-        ))
+            class: 'btn btn-xs btn-outline',
+            disabled: translating.value,
+            onClick: () => { void translateMissingLocales() }
+          }, translating.value ? '...' : 'Trad auto') : null,
+          h('div', { class: 'tabs tabs-box tabs-xs' }, resolvedLocales.value.map(localeCode =>
+            h('button', {
+              type: 'button',
+              class: ['tab cursor-pointer', lang.value === localeCode ? 'tab-active' : 'border-0'],
+              onClick: () => { lang.value = localeCode }
+            }, tabLabel(localeCode))
+          ))
+        ])
       ]),
       props.multiline
         ? h('textarea', { class: 'textarea textarea-bordered w-full', rows: 4, value: props.modelValue[lang.value], onInput: (e: Event) => { props.modelValue[lang.value] = (e.target as HTMLTextAreaElement).value } })

@@ -499,7 +499,8 @@ export function getReservationDateLocale(locale: string | null | undefined) {
 }
 
 export function getReservationEmailHtmlLang(locale: string | null | undefined) {
-  return normalizeReservationLocale(locale) === 'en' ? 'en' : 'fr'
+  const normalized = String(locale || '').trim().toLowerCase()
+  return normalized || 'fr'
 }
 
 export function getReservationLanguageLabel(locale: string | null | undefined) {
@@ -688,7 +689,11 @@ export function resolveReservationTemplate(
 
   try {
     const parsed = JSON.parse(raw)
-    const localized = parseTemplateObject((parsed as Record<string, unknown>)?.[normalized])
+    const exactLocale = String(locale || '').trim().toLowerCase()
+    const languageLocale = exactLocale.split('-')[0] || exactLocale
+    const localized = parseTemplateObject((parsed as Record<string, unknown>)?.[exactLocale])
+      || parseTemplateObject((parsed as Record<string, unknown>)?.[languageLocale])
+      || parseTemplateObject((parsed as Record<string, unknown>)?.[normalized])
     if (localized) return localized
 
     const legacy = parseTemplateObject(parsed)

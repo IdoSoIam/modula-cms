@@ -44,7 +44,7 @@ interface Body {
   siteDefaultLocale?: string
   siteLlmApiKey?: string
   localeLabels?: Record<string, { short: string; long: string }>
-  templates?: Record<string, { fr?: { subject: string; body: string }; en?: { subject: string; body: string } }>
+  templates?: Record<string, Record<string, { subject: string; body: string } | undefined>>
 }
 
 export default defineEventHandler(async (event) => {
@@ -185,10 +185,15 @@ export default defineEventHandler(async (event) => {
     for (const [action, locales] of Object.entries(body.templates)) {
       const templateDefinition = await findAdminEmailTemplateDefinition(action)
       if (!templateDefinition) continue
-      if (locales.fr || locales.en) {
-        const value: Record<string, { subject: string; body: string }> = {}
-        if (locales.fr) value.fr = locales.fr
-        if (locales.en) value.en = locales.en
+      const value: Record<string, { subject: string; body: string }> = {}
+      for (const [localeCode, template] of Object.entries(locales || {})) {
+        if (!template) continue
+        value[String(localeCode || '').trim().toLowerCase()] = {
+          subject: String(template.subject || ''),
+          body: String(template.body || '')
+        }
+      }
+      if (Object.keys(value).length) {
         await setSetting(templateDefinition.settingKey, JSON.stringify(value))
       }
     }
