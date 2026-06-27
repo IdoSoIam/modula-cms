@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -262,7 +262,7 @@
               <input v-model="selectedOccurrence.placeCityOverride" class="input input-bordered w-full" />
             </label>
           </div>
-          <AdminPageBuilderTranslationTabs :model-value="selectedOccurrence.internalParticipationInfoOverride || { fr: '', en: '' }" label="Message participation override" multiline @update:model-value="selectedOccurrence.internalParticipationInfoOverride = $event" />
+          <AdminPageBuilderTranslationTabs :model-value="selectedOccurrence.internalParticipationInfoOverride || { fr: '', en: '' } as Record<string, string>" label="Message participation override" multiline @update:model-value="selectedOccurrence.internalParticipationInfoOverride = $event" />
 
           <div class="modal-action justify-between">
             <div class="flex gap-2">
@@ -289,15 +289,10 @@ import OrdersCalendar from '#modula/components/admin/OrdersCalendar.vue'
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
 import cmsProjectConfig from '#modula/cms.project.config'
 import { createDefaultEventPayload, type AdminPlanningCalendarResponse, type EventOccurrenceEditorPayload, type EventPayload, type EventWeekdayValue } from '#modula/shared/events'
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.contentPlanning
-  }
-})
+  middleware: 'auth'})
 
 interface MemberRoleSummary {
   id: number
@@ -349,8 +344,8 @@ const calendar = computed(() => calendarData.value || {
 })
 
 const eventCreateForm = reactive({
-  title: { fr: '', en: '' },
-  subtitle: { fr: '', en: '' },
+  title: { fr: '', en: '' } as Record<string, string>,
+  subtitle: { fr: '', en: '' } as Record<string, string>,
   slug: '',
   visibility: 'PUBLIC' as 'PUBLIC' | 'PRIVATE',
   status: 'DRAFT' as 'DRAFT' | 'PUBLISHED',
@@ -363,8 +358,8 @@ const eventCreateForm = reactive({
 })
 
 const permanenceForm = reactive({
-  title: { fr: '', en: '' },
-  subtitle: { fr: '', en: '' },
+  title: { fr: '', en: '' } as Record<string, string>,
+  subtitle: { fr: '', en: '' } as Record<string, string>,
   slug: '',
   visibility: 'PRIVATE' as 'PUBLIC' | 'PRIVATE',
   status: 'DRAFT' as 'DRAFT' | 'PUBLISHED',
@@ -378,7 +373,7 @@ const permanenceForm = reactive({
   internalParticipationInfo: {
     fr: 'Précisez vos disponibilités et votre expérience éventuelle pour cette permanence.',
     en: 'Share your availability and any useful experience for this volunteer shift.'
-  },
+  } as Record<string, string>,
   audienceMemberRoleIds: [] as number[]
 })
 
@@ -478,10 +473,10 @@ async function createEventAndOpenLiveEdit() {
     payload.placeCity = eventCreateForm.placeCity.trim()
     payload.publicReservationEnabled = eventCreateForm.publicReservationEnabled
     payload.internalParticipationEnabled = eventCreateForm.internalParticipationEnabled
-    payload.translations.fr.title = eventCreateForm.title.fr.trim() || 'Événement à compléter'
-    payload.translations.en.title = eventCreateForm.title.en.trim() || 'Event to complete'
-    payload.translations.fr.subtitle = eventCreateForm.subtitle.fr.trim()
-    payload.translations.en.subtitle = eventCreateForm.subtitle.en.trim()
+    payload.translations.fr.title = (eventCreateForm.title['fr'] ?? '').trim() || 'Événement à compléter'
+    payload.translations.en.title = (eventCreateForm.title['en'] ?? '').trim() || 'Event to complete'
+    payload.translations.fr.subtitle = (eventCreateForm.subtitle['fr'] ?? '').trim()
+    payload.translations.en.subtitle = (eventCreateForm.subtitle['en'] ?? '').trim()
     payload.translations.fr.excerpt = 'Exemple d’événement public avec contenu CMS prêt à éditer.'
     payload.translations.en.excerpt = 'Sample public event with editable CMS content.'
     const created = await $fetch<{ id: number; slug: string }>('/api/admin/events', {
@@ -525,10 +520,10 @@ async function createPermanence() {
     payload.internalParticipationApprovalMode = 'MANUAL'
     payload.internalParticipationInfo = { ...permanenceForm.internalParticipationInfo }
     payload.audienceMemberRoleIds = associationRolesEnabled.value ? [...permanenceForm.audienceMemberRoleIds] : []
-    payload.translations.fr.title = permanenceForm.title.fr.trim() || 'Permanence à compléter'
-    payload.translations.en.title = permanenceForm.title.en.trim() || 'Shift to complete'
-    payload.translations.fr.subtitle = permanenceForm.subtitle.fr.trim()
-    payload.translations.en.subtitle = permanenceForm.subtitle.en.trim()
+    payload.translations.fr.title = (permanenceForm.title['fr'] ?? '').trim() || 'Permanence à compléter'
+    payload.translations.en.title = (permanenceForm.title['en'] ?? '').trim() || 'Shift to complete'
+    payload.translations.fr.subtitle = (permanenceForm.subtitle['fr'] ?? '').trim()
+    payload.translations.en.subtitle = (permanenceForm.subtitle['en'] ?? '').trim()
     payload.translations.fr.excerpt = 'Exemple de permanence récurrente hebdomadaire.'
     payload.translations.en.excerpt = 'Example of a weekly recurring volunteer shift.'
     await $fetch('/api/admin/events', {

@@ -81,16 +81,13 @@ import type { CmsCookieServiceCategory, CmsCookieServiceStorage } from '#modula/
 import { pickCmsLocalizedText } from '#modula/shared/cms'
 
 definePageMeta({
-  i18n: {
-    paths: {
-      fr: '/cookies',
-      en: '/cookies'
-    }
-  }
+  i18n: false,
 })
 
-const { locale, t } = useI18n()
-const localePath = useLocalePath()
+const { t } = useI18n()
+const { contentLocale } = useContentLocale()
+const locale = computed(() => contentLocale.value)
+const localePath = usePublicLocalePath()
 const siteConfigState = useSiteConfigState()
 
 if (process.server && !siteConfigState.value) {

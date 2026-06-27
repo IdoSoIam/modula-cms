@@ -359,7 +359,7 @@ async function sendTemplatedEventEmail(options: {
   replyTo?: string
   variables: Record<string, string>
 }) {
-  const template = await resolveAdminEmailTemplate(options.action, options.locale)
+  const template = await resolveAdminEmailTemplate(options.action, options.locale as 'fr' | 'en')
   const subject = replaceTemplateVariables(template.subject, options.variables)
   const body = replaceTemplateVariables(template.body, options.variables)
   await sendGmail({
@@ -625,7 +625,7 @@ export async function sendParticipationCall(options: {
       }))
   ]
 
-  const template = await resolveAdminEmailTemplate('event_call_for_participation', options.locale)
+  const template = await resolveAdminEmailTemplate('event_call_for_participation', options.locale as 'fr' | 'en')
   const subjectTemplate = options.subject?.trim() || template.subject
   const baseBodyTemplate = options.body?.trim() || template.body
   const eventLocation = [options.eventRow.placeName, options.eventRow.placeAddress, options.eventRow.placeCity].filter(Boolean).join(', ')

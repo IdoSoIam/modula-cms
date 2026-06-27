@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { normalizeFeatureFlags, normalizeVatRate, saveShopDefaultVatRate, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { normalizeFeatureFlags, normalizeVatRate, saveShopDefaultVatRate, saveSiteLocales, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { findAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
 
 interface Body {
@@ -40,6 +40,10 @@ interface Body {
   ordersClosedMessage?: string
   imagePersistVariants?: boolean
   shopDefaultVatRate?: number
+  siteLocales?: string[]
+  siteDefaultLocale?: string
+  siteLlmApiKey?: string
+  localeLabels?: Record<string, { short: string; long: string }>
   templates?: Record<string, { fr?: { subject: string; body: string }; en?: { subject: string; body: string } }>
 }
 
@@ -161,6 +165,15 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Taux de TVA invalide' })
     }
     await saveShopDefaultVatRate(normalizeVatRate(vatRate, 20))
+  }
+  if (body.siteLocales) {
+    await saveSiteLocales(body.siteLocales, body.siteDefaultLocale)
+  }
+  if (typeof body.siteLlmApiKey === 'string') {
+    await setSetting(SETTING_KEYS.SITE_LLM_API_KEY, body.siteLlmApiKey.trim())
+  }
+  if (body.localeLabels) {
+    await setSetting(SETTING_KEYS.SITE_LOCALE_LABELS, JSON.stringify(body.localeLabels))
   }
   if (body.templates) {
     for (const [action, locales] of Object.entries(body.templates)) {

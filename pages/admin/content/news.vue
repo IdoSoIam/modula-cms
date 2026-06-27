@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-3xl font-bold">{{ $t('admin.articlesPage.title') }}</h1>
@@ -106,15 +106,10 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.contentNews
-  }
-})
+  middleware: 'auth'})
 
 interface Article {
   id: number

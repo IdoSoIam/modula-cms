@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-8" v-if="ready">
     <div v-if="confirmModal" class="fixed inset-0 z-[1010] flex items-center justify-center bg-neutral/45 px-4">
       <div class="w-full max-w-2xl rounded-[1.5rem] border border-base-300 bg-base-100 p-6 shadow-2xl">
@@ -283,7 +283,6 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import type { CmsRegistryDeploymentJob, CmsRegistryPaginatedResult, CmsRegistryReleaseRecord, CmsRegistryRollbackCapabilities } from '#modula/shared/registry'
 
 type ReleaseActionKey = 'deploy' | 'rollback-fast' | 'rollback-full'
@@ -315,11 +314,7 @@ type ConfirmModalState = {
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.settingsUpdates
-  }
-})
+  middleware: 'auth'})
 
 const { t } = useI18n()
 const { $toast } = useNuxtApp() as any

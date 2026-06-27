@@ -11,7 +11,9 @@ import type {
   CmsCookieServiceCategory,
   CmsCookieServiceStorage,
   CmsFooterBlock,
+  CmsImageAsset,
   CmsLocale,
+  CmsLocalizedText,
   CmsNavigationItemPayload,
   CmsNavigationMenu,
   CmsNavigationItemType,
@@ -28,7 +30,6 @@ import type {
 } from '#modula/shared/cms'
 import type { FeatureFlags } from '#modula/server/utils/settings'
 import {
-  CMS_LOCALES,
   createDefaultCmsPagePayload,
   createDefaultCmsPageTranslation,
   createDefaultCmsFooterColumn,
@@ -99,15 +100,19 @@ function normalizeLocalizedText(value: unknown) {
   }
 }
 
-function normalizeLocalizedTextWithFallback(value: unknown, fallback: { fr: string, en: string }) {
+function normalizeLocalizedTextWithFallback(value: unknown, fallback: CmsLocalizedText) {
   const normalized = normalizeLocalizedText(value)
   return {
-    fr: normalized.fr || fallback.fr,
-    en: normalized.en || fallback.en
-  }
+    ...normalized,
+    ...Object.fromEntries(
+      Object.entries(fallback)
+        .filter(([key]) => !normalized[key]?.trim())
+        .map(([key, val]) => [key, val])
+    )
+  } as CmsLocalizedText
 }
 
-function normalizeImageAsset(value: unknown, fallback: { src: string; alt: { fr: string; en: string } }) {
+function normalizeImageAsset(value: unknown, fallback: CmsImageAsset) {
   const source = isObject(value) ? value : {}
   return {
     src: typeof source.src === 'string' && source.src.trim() ? source.src.trim() : fallback.src,
@@ -282,12 +287,14 @@ function isEmptyPageBuilderContent(content: PageBuilderContent | null | undefine
 }
 
 function pickSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
-  if (!isEmptyPageBuilderContent(translations.fr.content)) {
-    return clonePageBuilderContent(translations.fr.content)
+  const fr = translations['fr']
+  const en = translations['en']
+  if (fr && !isEmptyPageBuilderContent(fr.content)) {
+    return clonePageBuilderContent(fr.content)
   }
 
-  if (!isEmptyPageBuilderContent(translations.en.content)) {
-    return clonePageBuilderContent(translations.en.content)
+  if (en && !isEmptyPageBuilderContent(en.content)) {
+    return clonePageBuilderContent(en.content)
   }
 
   return createEmptyPageBuilderContent()
@@ -295,14 +302,16 @@ function pickSharedPageContent(translations: Record<CmsLocale, CmsPageTranslatio
 
 function synchronizeSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
   const sharedContent = pickSharedPageContent(translations)
+  const frBase = translations.fr ?? createDefaultCmsPageTranslation()
+  const enBase = translations.en ?? createDefaultCmsPageTranslation()
 
   return {
     fr: {
-      ...translations.fr,
+      ...frBase,
       content: clonePageBuilderContent(sharedContent)
     },
     en: {
-      ...translations.en,
+      ...enBase,
       content: clonePageBuilderContent(sharedContent)
     }
   }
@@ -361,13 +370,25 @@ async function ensureFormEmailTemplateActions(payload: CmsPagePayload) {
       }
     }
   }
+  const fr = payload.translations['fr']
+  const en = payload.translations['en']
+  const frTitle: string = fr?.title ?? ''
+  const frNav: string = fr?.navigationLabel ?? ''
+  const frSeo: CmsPageSeo = fr?.seo ?? createEmptyCmsPageSeo()
+  const enTitle: string = en?.title ?? ''
+  const enNav: string = en?.navigationLabel ?? ''
+  const enSeo: CmsPageSeo = en?.seo ?? createEmptyCmsPageSeo()
   payload.translations = synchronizeSharedPageContent({
     fr: {
-      ...payload.translations.fr,
+      title: frTitle,
+      navigationLabel: frNav,
+      seo: frSeo,
       content: clonePageBuilderContent(sharedContent)
     },
     en: {
-      ...payload.translations.en,
+      title: enTitle,
+      navigationLabel: enNav,
+      seo: enSeo,
       content: clonePageBuilderContent(sharedContent)
     }
   })
@@ -377,9 +398,21 @@ function normalizeTranslations(value: unknown, path = '/'): Record<CmsLocale, Cm
   const fallback = createDefaultCmsPagePayload(path).translations
   if (!isObject(value)) return fallback
 
+  const normFr = normalizeTranslation((value as Record<string, unknown>)['fr'])
+  const normEn = normalizeTranslation((value as Record<string, unknown>)['en'])
   return synchronizeSharedPageContent({
-    fr: normalizeTranslation(value.fr),
-    en: normalizeTranslation(value.en)
+    fr: {
+      title: normFr.title ?? '',
+      navigationLabel: normFr.navigationLabel ?? '',
+      seo: normFr.seo ?? createEmptyCmsPageSeo(),
+      content: normFr.content ?? createEmptyPageBuilderContent()
+    } satisfies CmsPageTranslation,
+    en: {
+      title: normEn.title ?? '',
+      navigationLabel: normEn.navigationLabel ?? '',
+      seo: normEn.seo ?? createEmptyCmsPageSeo(),
+      content: normEn.content ?? createEmptyPageBuilderContent()
+    } satisfies CmsPageTranslation
   })
 }
 
@@ -795,8 +828,8 @@ function pageRowToPayload(row: CmsPage): CmsPagePayload {
   }
 }
 
-function pickTranslation(locale: string, translations: Record<CmsLocale, CmsPageTranslation>) {
-  return locale === 'en' ? translations.en : translations.fr
+function pickTranslation(locale: string, translations: Record<CmsLocale, CmsPageTranslation>): CmsPageTranslation | undefined {
+  return locale === 'en' ? translations['en'] : translations['fr']
 }
 
 function navigationRowToPayload(row: CmsNavigationItem): CmsNavigationItemPayload {
@@ -822,7 +855,7 @@ function navigationPayloadToResolved(id: number, payload: CmsNavigationItemPaylo
     menu: payload.menu,
     itemType: payload.itemType,
     labels: payload.labels,
-    label: locale === 'en' ? payload.labels.en : payload.labels.fr,
+    label: locale === 'en' ? (payload.labels['en'] ?? '') : (payload.labels['fr'] ?? ''),
     navigationItemKey: payload.navigationItemKey,
     parentItemKey: payload.parentItemKey,
     href: payload.href,
@@ -1915,6 +1948,7 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
       return null
     }
     const localized = pickTranslation(locale, payload.translations)
+    const t = localized ?? createDefaultCmsPageTranslation()
 
     return {
       id: rowAny.id,
@@ -1926,10 +1960,10 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
       templateKey: payload.templateKey,
       rendererKey: payload.rendererKey,
       applicationPosition: payload.applicationPosition,
-      title: localized.title || payload.title,
-      navigationLabel: localized.navigationLabel || localized.title || payload.title,
-      seo: localized.seo,
-      content: localized.content
+      title: t.title || payload.title,
+      navigationLabel: t.navigationLabel || t.title || payload.title,
+      seo: t.seo,
+      content: t.content
     }
   }
 

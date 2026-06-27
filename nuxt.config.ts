@@ -82,10 +82,17 @@ export default defineNuxtConfig({
         scan: false,
       },
     }],
-    '@nuxtjs/i18n',
     '@pinia/nuxt',
     ...(isCloudflareRuntime ? ['nitro-cloudflare-dev'] : [])
   ],
+  imports: {
+    presets: [
+      {
+        from: 'vue-i18n',
+        imports: ['useI18n']
+      }
+    ]
+  },
   vite: {
     resolve: {
       alias: {}
@@ -134,6 +141,7 @@ export default defineNuxtConfig({
         '@tiptap/starter-kit',
         '@tiptap/extension-image',
         '@tiptap/extension-link',
+        'vue-i18n',
       ]
     }
   },
@@ -149,33 +157,6 @@ export default defineNuxtConfig({
     cloudflare: {
       baseURL: imageCloudflareBaseURL
     }
-  },
-  i18n: {
-    strategy: 'prefix_except_default',
-    customRoutes: 'meta',
-    defaultLocale: cmsProjectConfig.site.defaultLocale,
-    detectBrowserLanguage: {
-      useCookie: true,
-      cookieKey: 'i18n_redirected',
-      redirectOn: 'all',
-      fallbackLocale: cmsProjectConfig.site.defaultLocale
-    },
-    vueI18n: './i18n.config.ts',
-    locales: [
-      {
-        code: 'fr',
-        iso: 'fr-FR',
-        name: 'Français',
-        file: 'fr.json'
-      },
-      {
-        code: 'en',
-        iso: 'en-US',
-        name: 'English',
-        file: 'en.json'
-      }
-    ],
-    langDir: 'locales',
   },
 
   runtimeConfig: {

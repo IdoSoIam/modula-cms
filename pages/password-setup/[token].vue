@@ -101,6 +101,10 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  i18n: false,
+})
+
 interface PasswordSetupValidation {
   valid: boolean
   email: string
@@ -110,7 +114,7 @@ interface PasswordSetupValidation {
 }
 
 const route = useRoute()
-const localePath = useLocalePath()
+const localePath = usePublicLocalePath()
 
 useNoIndexSeo('Définir votre mot de passe', 'Page sécurisée de définition de mot de passe pour les comptes invités.')
 

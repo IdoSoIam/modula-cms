@@ -51,7 +51,7 @@
 
           <div class="flex items-center gap-0">
             <ThemeSelector />
-            <LanguageSelector />
+            <LanguageSelector context="admin" />
             <LayoutUserMenu />
           </div>
         </div>

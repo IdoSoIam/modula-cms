@@ -458,8 +458,32 @@
         "features": "Features",
         "users": "Users",
         "roles": "Roles",
-        "facebookSync": "Facebook sync"
+        "facebookSync": "Facebook sync",
+        "languages": "Languages"
       }
+    },
+    "settingsLanguagesPage": {
+      "title": "Languages",
+      "description": "Configure available languages and the LLM API key for automatic content translation.",
+      "languagesTitle": "Available languages",
+      "languagesDescription": "Add or remove language codes that the site will use for its multilingual content.",
+      "defaultLocaleLabel": "Default site language",
+      "addLocaleLabel": "Language code",
+      "addLocalePlaceholder": "e.g. de, es, it",
+      "addLocaleButton": "Add",
+      "localeLabelShort": "Short label",
+      "localeLabelShortPlaceholder": "e.g. DE",
+      "localeLabelLong": "Long label",
+      "localeLabelLongPlaceholder": "e.g. Deutsch",
+      "llmTitle": "Automatic translation (LLM)",
+      "llmDescription": "Google Gemini API key used for AI-powered automatic translation.",
+      "llmApiKeyLabel": "Gemini API key",
+      "translateAllButton": "Translate empty fields",
+      "translateAllStart": "Global translation in progress...",
+      "translateAllDone": "Global translation completed ({count} fields translated)",
+      "translateAllError": "Error during global translation",
+      "saved": "Languages saved",
+      "saveError": "Unable to save languages"
     },
     "ordersWindow": {
       "section": "Orders period",

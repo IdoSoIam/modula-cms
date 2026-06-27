@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -368,17 +368,13 @@
 <script setup lang="ts">
 import CmsPageContentBuilder from '#modula/components/admin/cms/CmsPageContentBuilder.vue'
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
+import type { LocalizedText } from '#modula/shared/pageBuilder'
 import cmsProjectConfig from '#modula/cms.project.config'
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import { createDefaultEventPayload, type EventListItem, type EventPayload, type EventWeekdayValue } from '#modula/shared/events'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.contentEvents
-  }
-})
+  middleware: 'auth'})
 
 interface MemberRoleSummary {
   id: number
@@ -433,8 +429,8 @@ const editor = ref<EventPayload | null>(null)
 const eligibleUsers = ref<EligibleUser[]>([])
 const cloneEventPayload = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 const createForm = reactive({
-  title: { fr: '', en: '' },
-  subtitle: { fr: '', en: '' },
+  title: { fr: '', en: '' } as Record<string, string>,
+  subtitle: { fr: '', en: '' } as Record<string, string>,
   slug: '',
   visibility: 'PUBLIC' as 'PUBLIC' | 'PRIVATE',
   status: 'DRAFT' as 'DRAFT' | 'PUBLISHED',
@@ -481,10 +477,10 @@ const createEvent = () => {
 const openCreateDialog = () => {
   const now = new Date()
   const inTwoHours = new Date(now.getTime() + 2 * 60 * 60 * 1000)
-  createForm.title.fr = ''
-  createForm.title.en = ''
-  createForm.subtitle.fr = ''
-  createForm.subtitle.en = ''
+  createForm.title['fr'] = ''
+  createForm.title['en'] = ''
+  createForm.subtitle['fr'] = ''
+  createForm.subtitle['en'] = ''
   createForm.slug = `evenement-${Date.now()}`
   createForm.visibility = 'PUBLIC'
   createForm.status = 'DRAFT'
@@ -498,14 +494,16 @@ const openCreateDialog = () => {
 }
 
 const localizedField = (key: 'title' | 'subtitle' | 'excerpt') => computed({
-  get: () => editor.value ? {
-    fr: editor.value.translations.fr[key],
-    en: editor.value.translations.en[key]
-  } : { fr: '', en: '' },
-  set: (value: { fr: string; en: string }) => {
+  get: (): LocalizedText => ({
+    fr: editor.value?.translations['fr']?.[key] ?? '',
+    en: editor.value?.translations['en']?.[key] ?? ''
+  }),
+  set: (value: LocalizedText) => {
     if (!editor.value) return
-    editor.value.translations.fr[key] = value.fr
-    editor.value.translations.en[key] = value.en
+    const fr = editor.value.translations['fr']
+    const en = editor.value.translations['en']
+    if (fr) fr[key] = value['fr'] ?? ''
+    if (en) en[key] = value['en'] ?? ''
   }
 })
 const titleTranslations = localizedField('title')
@@ -565,10 +563,10 @@ const createEventAndOpenLiveEdit = async () => {
     payload.placeCity = createForm.placeCity.trim()
     payload.publicReservationEnabled = createForm.publicReservationEnabled
     payload.internalParticipationEnabled = createForm.internalParticipationEnabled
-    payload.translations.fr.title = createForm.title.fr.trim() || 'Événement à compléter'
-    payload.translations.en.title = createForm.title.en.trim() || 'Event to complete'
-    payload.translations.fr.subtitle = createForm.subtitle.fr.trim()
-    payload.translations.en.subtitle = createForm.subtitle.en.trim()
+    payload.translations.fr.title = (createForm.title['fr'] ?? '').trim() || 'Événement à compléter'
+    payload.translations.en.title = (createForm.title['en'] ?? '').trim() || 'Event to complete'
+    payload.translations.fr.subtitle = (createForm.subtitle['fr'] ?? '').trim()
+    payload.translations.en.subtitle = (createForm.subtitle['en'] ?? '').trim()
     payload.translations.fr.excerpt = 'Exemple d’événement public avec contenu CMS prêt à éditer.'
     payload.translations.en.excerpt = 'Sample public event with editable CMS content.'
 

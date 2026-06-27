@@ -1,7 +1,4 @@
-export type LocalizedText = {
-  fr: string
-  en: string
-}
+export type LocalizedText = Record<string, string>
 
 export type ButtonTone = 'primary' | 'secondary' | 'accent' | 'neutral' | 'outline'
 export type SectionTone = 'base-100' | 'base-200' | 'neutral'
@@ -489,9 +486,12 @@ export const THEME_COLOR_LABELS: Record<ThemeColorToken, string> = {
 
 const ICONIFY_NAME_PATTERN = /^(?:@[a-z0-9]+:)?[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-export function pickLocalizedText(locale: string, value: LocalizedText | null | undefined) {
+export function pickLocalizedText(locale: string, value: LocalizedText | null | undefined, defaultLocale = 'fr') {
   if (!value) return ''
-  return locale === 'en' ? value.en : value.fr
+  if (value[locale]?.trim()) return value[locale]
+  if (value[defaultLocale]?.trim()) return value[defaultLocale]
+  const first = Object.values(value).find(v => v?.trim())
+  return first || ''
 }
 
 export function isValidIconifyName(value: string) {
@@ -519,8 +519,8 @@ function createBuilderId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export function createEmptyLocalizedText(): LocalizedText {
-  return { fr: '', en: '' }
+export function createEmptyLocalizedText(locales: string[] = ['fr', 'en']): LocalizedText {
+  return Object.fromEntries(locales.map(l => [l, ''])) as LocalizedText
 }
 
 export function createEmptyButton(): PageBuilderButton {

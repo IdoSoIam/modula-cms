@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
@@ -256,13 +256,7 @@ import type { ProductDetailField, ProductDetailSection, ProductPayload } from '#
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: {
-      fr: '/admin/shop/products/[id]',
-      en: '/admin/shop/products/[id]'
-    }
-  }
+  middleware: 'auth'
 })
 
 interface ProductCategory {

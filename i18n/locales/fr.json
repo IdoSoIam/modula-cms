@@ -458,8 +458,32 @@
         "features": "Fonctionnalités",
         "users": "Utilisateurs",
         "roles": "Rôles",
-        "facebookSync": "Synchronisation Facebook"
+        "facebookSync": "Synchronisation Facebook",
+        "languages": "Langues"
       }
+    },
+    "settingsLanguagesPage": {
+      "title": "Langues",
+      "description": "Configurez les langues disponibles et la clé API LLM pour la traduction automatique des contenus.",
+      "languagesTitle": "Langues disponibles",
+      "languagesDescription": "Ajoutez ou supprimez des codes de langue que le site utilisera pour ses contenus multilingues.",
+      "defaultLocaleLabel": "Langue par défaut du site",
+      "addLocaleLabel": "Code de la langue",
+      "addLocalePlaceholder": "Ex: de, es, it",
+      "addLocaleButton": "Ajouter",
+      "localeLabelShort": "Libellé court",
+      "localeLabelShortPlaceholder": "Ex: DE",
+      "localeLabelLong": "Libellé long",
+      "localeLabelLongPlaceholder": "Ex: Deutsch",
+      "llmTitle": "Traduction automatique (LLM)",
+      "llmDescription": "Clé API Google Gemini utilisée pour la traduction automatique via l'IA.",
+      "llmApiKeyLabel": "Clé API Gemini",
+      "translateAllButton": "Traduire les champs vides",
+      "translateAllStart": "Traduction globale en cours...",
+      "translateAllDone": "Traduction globale terminée ({count} champs traduits)",
+      "translateAllError": "Erreur pendant la traduction globale",
+      "saved": "Langues enregistrées",
+      "saveError": "Impossible d'enregistrer les langues"
     },
     "dashboardPage": {
       "title": "Tableau de bord",

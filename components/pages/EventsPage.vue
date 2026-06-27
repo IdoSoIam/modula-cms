@@ -51,7 +51,7 @@
             </div>
             <p v-if="effectiveSettings.showExcerpt && eventItem.excerpt" :class="excerptClass">{{ eventItem.excerpt }}</p>
             <div class="flex flex-wrap gap-3">
-              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm">{{ detailLabel }}</NuxtLink>
+              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm" active-class="" exact-active-class="">{{ detailLabel }}</NuxtLink>
               <span v-if="eventItem.publicReservationEnabled" class="badge badge-outline">{{ publicReservationLabel }}</span>
             </div>
           </div>
@@ -79,7 +79,7 @@
             </div>
             <p v-if="effectiveSettings.showExcerpt && eventItem.excerpt" :class="excerptClass">{{ eventItem.excerpt }}</p>
             <div class="flex flex-wrap gap-3">
-              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm">{{ detailLabel }}</NuxtLink>
+              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm" active-class="" exact-active-class="">{{ detailLabel }}</NuxtLink>
               <span v-if="eventItem.publicReservationEnabled" class="badge badge-outline">{{ publicReservationLabel }}</span>
             </div>
           </div>
@@ -114,8 +114,9 @@ const props = withDefaults(defineProps<{
   preview: false
 })
 
-const { locale } = useI18n()
-const localePath = useLocalePath()
+const { contentLocale } = useContentLocale()
+const locale = contentLocale
+const localePath = usePublicLocalePath()
 const siteConfig = await useSiteConfig()
 const defaultSettings = createDefaultCmsSiteSettings().eventsPage
 const effectiveSettings = computed(() => props.settings || siteConfig.value?.cms?.settings?.eventsPage || defaultSettings)

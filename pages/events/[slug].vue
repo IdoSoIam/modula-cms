@@ -143,29 +143,33 @@ import type { CmsLocale } from '#modula/shared/cms'
 import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
 import { useAuthStore } from '#modula/stores/auth'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({
+  layout: 'default',
+  i18n: false,
+})
 
 const PageEditModal = defineAsyncComponent(() => import('#modula/components/page-builder/PageEditModal.vue'))
 
 const route = useRoute()
 const router = useRouter()
-const localePath = useLocalePath()
-const { locale } = useI18n()
+const localePath = usePublicLocalePath()
+const { contentLocale } = useContentLocale()
+const locale = computed(() => contentLocale.value)
 const authStore = useAuthStore()
 const { $toast } = useNuxtApp() as any
 const slug = computed(() => String(route.params.slug || ''))
-const currentLocale = computed<CmsLocale>(() => locale.value === 'en' ? 'en' : 'fr')
+const currentLocale = computed<CmsLocale>(() => contentLocale.value)
 
 const cloneEventData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
 const { data: eventData } = await useFetch<EventPayload>(() => `/api/events/${slug.value}`, {
   query: computed(() => ({
-    locale: locale.value,
+    locale: contentLocale.value,
     previewDraft: route.query.previewDraft === '1' ? '1' : undefined,
     occurrenceId: typeof route.query.occurrenceId === 'string' ? route.query.occurrenceId : undefined
   })),
   onResponseError: () => {
-    throw createError({ statusCode: 404, statusMessage: locale.value === 'en' ? 'Event not found' : 'Événement introuvable' })
+    throw createError({ statusCode: 404, statusMessage: contentLocale.value === 'en' ? 'Event not found' : 'Événement introuvable' })
   }
 })
 
@@ -198,11 +202,11 @@ const translation = computed(() => {
   if (!item) {
     return { title: '', subtitle: '', excerpt: '', content: { version: 1, sections: [] } }
   }
-  return (locale.value === 'en' ? item.translations.en : item.translations.fr) || item.translations.fr
+  return (contentLocale.value === 'en' ? item.translations.en : item.translations.fr) || item.translations.fr
 })
 
 const formattedDate = computed(() => displayEvent.value
-  ? new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', {
+  ? new Intl.DateTimeFormat(contentLocale.value === 'en' ? 'en-GB' : 'fr-FR', {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
@@ -212,14 +216,14 @@ const formattedDate = computed(() => displayEvent.value
     }).format(new Date(displayEvent.value.startsAt))
   : '')
 
-const publicReservationLabel = computed(() => locale.value === 'en' ? 'Public reservation' : 'Réservation publique')
-const internalParticipationLabel = computed(() => locale.value === 'en' ? 'Internal participation' : 'Participation interne')
+const publicReservationLabel = computed(() => contentLocale.value === 'en' ? 'Public reservation' : 'Réservation publique')
+const internalParticipationLabel = computed(() => contentLocale.value === 'en' ? 'Internal participation' : 'Participation interne')
 const showParticipationForm = computed(() => {
   if (!authStore.isAuthenticated || !displayEvent.value?.internalParticipationEnabled) return false
   if (!displayEvent.value.audienceMemberRoleIds.length) return true
   return displayEvent.value.audienceMemberRoleIds.some(id => authStore.user?.memberRoleIds?.includes(id))
 })
-const participationInfo = computed(() => locale.value === 'en'
+const participationInfo = computed(() => contentLocale.value === 'en'
   ? displayEvent.value?.internalParticipationInfo.en || ''
   : displayEvent.value?.internalParticipationInfo.fr || '')
 
@@ -342,7 +346,7 @@ async function saveLiveEdit() {
     }
     const fresh = await $fetch<EventPayload>(`/api/events/${payload.slug}`, {
       query: {
-        locale: locale.value,
+        locale: contentLocale.value,
         previewDraft: route.query.previewDraft === '1' ? '1' : undefined,
         occurrenceId: typeof route.query.occurrenceId === 'string' ? route.query.occurrenceId : undefined
       }
@@ -366,17 +370,17 @@ const submitReservation = async () => {
       method: 'POST',
       body: {
         ...reservationForm,
-        locale: locale.value
+        locale: contentLocale.value
       }
     })
-    $toast?.success(locale.value === 'en' ? 'Reservation sent' : 'Réservation envoyée')
+    $toast?.success(contentLocale.value === 'en' ? 'Reservation sent' : 'Réservation envoyée')
     reservationForm.customerName = ''
     reservationForm.email = ''
     reservationForm.phone = ''
     reservationForm.seats = 1
     reservationForm.message = ''
   } catch (error: any) {
-    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || (locale.value === 'en' ? 'Unable to send reservation' : 'Impossible d’envoyer la réservation'))
+    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || (contentLocale.value === 'en' ? 'Unable to send reservation' : 'Impossible d’envoyer la réservation'))
   } finally {
     reservationSaving.value = false
   }
@@ -390,13 +394,13 @@ const submitParticipation = async () => {
       method: 'POST',
       body: {
         ...participationForm,
-        locale: locale.value
+        locale: contentLocale.value
       }
     })
-    $toast?.success(locale.value === 'en' ? 'Participation sent' : 'Participation envoyée')
+    $toast?.success(contentLocale.value === 'en' ? 'Participation sent' : 'Participation envoyée')
     participationForm.message = ''
   } catch (error: any) {
-    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || (locale.value === 'en' ? 'Unable to send participation' : 'Impossible d’envoyer la participation'))
+    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || (contentLocale.value === 'en' ? 'Unable to send participation' : 'Impossible d’envoyer la participation'))
   } finally {
     participationSaving.value = false
   }
@@ -411,7 +415,7 @@ onBeforeRouteLeave(() => {
 })
 
 usePageSeo({
-  title: computed(() => translation.value.title || (locale.value === 'en' ? 'Events' : 'Événements')),
+  title: computed(() => translation.value.title || (contentLocale.value === 'en' ? 'Events' : 'Événements')),
   description: computed(() => translation.value.excerpt || translation.value.subtitle || '')
 })
 </script>

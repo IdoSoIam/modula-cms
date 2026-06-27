@@ -68,9 +68,9 @@ defineEmits<{
   add: [product: ProductPayload]
 }>()
 
-const { locale } = useI18n()
+const { contentLocale } = useContentLocale()
 
-const getLocalizedName = (product: ProductPayload) => pickCmsLocalizedText(locale.value, product.nameLocalized) || product.name
-const getLocalizedExcerpt = (product: ProductPayload) => pickCmsLocalizedText(locale.value, product.excerptLocalized) || product.excerpt || ''
-const getLocalizedUnitLabel = (product: ProductPayload) => pickCmsLocalizedText(locale.value, product.unitLabelLocalized) || product.unitLabel || ''
+const getLocalizedName = (product: ProductPayload) => pickCmsLocalizedText(contentLocale.value, product.nameLocalized) || product.name
+const getLocalizedExcerpt = (product: ProductPayload) => pickCmsLocalizedText(contentLocale.value, product.excerptLocalized) || product.excerpt || ''
+const getLocalizedUnitLabel = (product: ProductPayload) => pickCmsLocalizedText(contentLocale.value, product.unitLabelLocalized) || product.unitLabel || ''
 </script>

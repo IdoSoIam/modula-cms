@@ -45,8 +45,10 @@
                       :to="resolveHref(child)"
                       :target="child.newTab ? '_blank' : undefined"
                       :rel="child.newTab ? 'noopener noreferrer' : undefined"
-                      :class="navLinkClass(child)"
+                      :class="[navLinkClass(child), isActiveItem(child) ? navActiveStateClass : '']"
                       :style="navChildLinkStyle(child)"
+                      active-class=""
+                      exact-active-class=""
                       @click="closeDrawer"
                     >
                       {{ resolveLabel(child) }}
@@ -61,8 +63,10 @@
                 :to="resolveHref(item)"
                 :target="item.newTab ? '_blank' : undefined"
                 :rel="item.newTab ? 'noopener noreferrer' : undefined"
-                :class="navLinkClass(item)"
+                :class="[navLinkClass(item), isActiveItem(item) ? navActiveStateClass : '']"
                 :style="navLinkStyle(item)"
+                active-class=""
+                exact-active-class=""
                 @click="closeDrawer"
               >
                 {{ resolveLabel(item) }}
@@ -144,7 +148,7 @@
               <span>{{ t('auth.orders') }}</span>
             </NuxtLink>
 
-            <NuxtLink v-if="authStore.canAccessAdmin" :to="localePath('/admin')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink v-if="authStore.canAccessAdmin" :to="adminLocalePath('/admin')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:shield-crown-outline" size="18" class="shrink-0" />
               <span>{{ t('admin.title') }}</span>
             </NuxtLink>
@@ -165,8 +169,7 @@
 import type { CmsHeaderNavigationStyle, CmsLocale, PublicSiteShell, ResolvedCmsNavigationItem } from '#modula/shared/cms'
 import { useAuthStore } from '#modula/stores/auth'
 
-type SupportedLocale = 'fr' | 'en'
-type LocaleOption = { code: SupportedLocale, name: string }
+type LocaleOption = { code: string, name: string }
 
 interface PreviewSiteConfig {
   inDevelopment?: boolean
@@ -184,14 +187,16 @@ const props = withDefaults(defineProps<{
   previewStatic: false
 })
 
-const localePath = useLocalePath()
-const { locale, locales, setLocale, t } = useI18n()
+const localePath = usePublicLocalePath()
+const adminLocalePath = useLocalePath()
+const { t } = useI18n()
+const { contentLocale, setContentLocale, availableLocales, localeLabels } = useContentLocale()
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const siteConfig = useSiteConfigState()
 const { theme, availableThemes, setTheme, themeControllerEnabled } = useTheme()
-const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
+const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (contentLocale.value as CmsLocale))
 const effectiveSiteConfig = computed(() => props.previewSiteConfig ?? siteConfig.value)
 const previewStatic = computed(() => props.previewStatic)
 const inDevelopment = computed(() => effectiveSiteConfig.value?.inDevelopment === true)
@@ -273,11 +278,21 @@ const submenuListStyle = computed(() => ({
   borderRadius: `${headerSettings.value.submenuRadiusPx}px`,
   backgroundColor: colorToCss(headerSettings.value.submenuBackgroundColor) || undefined
 }))
+const navActiveStateClass = computed(() => {
+  switch (headerSettings.value.navigationStyle) {
+    case 'underline':
+      return '[border-bottom-color:var(--nav-active-accent)]'
+    case 'outline':
+      return '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] border-transparent shadow-sm'
+    default:
+      return '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+  }
+})
 
 const localeOptions = computed<LocaleOption[]>(() =>
-  locales.value.map((item) => ({
-    code: item.code as SupportedLocale,
-    name: item.name || item.code
+  availableLocales.value.map((code) => ({
+    code,
+    name: localeLabels.value[code]?.long || code.toUpperCase(),
   }))
 )
 
@@ -287,75 +302,63 @@ const resolveLabel = (item: ResolvedCmsNavigationItem) =>
 const resolveHref = (item: ResolvedCmsNavigationItem) =>
   item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)
 
+const normalizeComparablePath = (value: string | null | undefined) => {
+  const source = String(value || '/').trim()
+  if (!source || source === '/') return '/'
+  return `/${source.replace(/^\/+|\/+$/g, '')}`
+}
+
 const isActiveItem = (item: ResolvedCmsNavigationItem): boolean => {
   if (item.children.length) {
     return item.children.some(child => isActiveItem(child))
   }
 
   if (item.itemType === 'EXTERNAL_URL') return false
-  const href = localePath(item.href)
-  return route.path === href || (item.href !== '/' && route.path.startsWith(`${href}/`))
+  const href = normalizeComparablePath(localePath(item.href))
+  const currentPath = normalizeComparablePath(route.path)
+  const localeRootPath = normalizeComparablePath(localePath('/'))
+  if (href === '/') {
+    return currentPath === '/'
+  }
+  if (href === localeRootPath) {
+    return currentPath === href
+  }
+  return currentPath === href || currentPath.startsWith(`${href}/`)
 }
 
 const navLinkClass = (item: ResolvedCmsNavigationItem) => {
-  const active = isActiveItem(item)
   const base = 'flex min-h-11 w-full items-center gap-3 px-4 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer'
   switch (headerSettings.value.navigationStyle) {
     case 'menu':
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'underline':
-      return `${base} rounded-none border-b-2 border-transparent px-2 ${active
-        ? '[border-bottom-color:var(--nav-active-accent)] [color:var(--nav-active-text)]'
-        : 'hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-none border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]`
     case 'soft':
-      return `${base} rounded-full ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-full border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'outline':
-      return `${base} rounded-full border ${active
-        ? '[border-color:var(--nav-active-accent)] [background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-full border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'solid':
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     default:
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
   }
 }
 
 const navGroupButtonClass = (item: ResolvedCmsNavigationItem) => {
-  const active = isActiveItem(item)
   const base = 'flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left text-sm font-semibold transition-colors duration-150 cursor-pointer'
   switch (headerSettings.value.navigationStyle) {
     case 'menu':
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'underline':
-      return `${base} rounded-none border-b-2 border-transparent px-2 ${active
-        ? '[border-bottom-color:var(--nav-active-accent)] [color:var(--nav-active-text)]'
-        : 'hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-none border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'soft':
-      return `${base} rounded-2xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'border border-base-300 bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-2xl border border-base-300 bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'outline':
-      return `${base} rounded-2xl border ${active
-        ? '[border-color:var(--nav-active-accent)] [background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-2xl border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'solid':
-      return `${base} rounded-2xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-2xl bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     default:
-      return `${base} rounded-2xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-2xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
   }
 }
 
@@ -407,14 +410,14 @@ const activeSelectorButtonClass = 'bg-primary text-primary-content shadow-sm'
 const themeButtonClass = (themeName: string) =>
   isHydrated.value && theme.value === themeName ? activeSelectorButtonClass : inactiveSelectorButtonClass
 
-const localeButtonClass = (localeCode: SupportedLocale) =>
-  isHydrated.value && locale.value === localeCode ? activeSelectorButtonClass : inactiveSelectorButtonClass
+const localeButtonClass = (localeCode: string) =>
+  isHydrated.value && contentLocale.value === localeCode ? activeSelectorButtonClass : inactiveSelectorButtonClass
 
 const showThemeCheck = (themeName: string) =>
   isHydrated.value && theme.value === themeName
 
-const showLocaleCheck = (localeCode: SupportedLocale) =>
-  isHydrated.value && locale.value === localeCode
+const showLocaleCheck = (localeCode: string) =>
+  isHydrated.value && contentLocale.value === localeCode
 
 const closeDrawer = () => {
   if (previewStatic.value) return
@@ -445,9 +448,9 @@ watch(
   { immediate: true, deep: true }
 )
 
-const changeLocale = async (nextLocale: SupportedLocale) => {
-  if (nextLocale === locale.value) return
-  await setLocale(nextLocale)
+const changeLocale = async (nextLocale: string) => {
+  if (nextLocale === contentLocale.value) return
+  await setContentLocale(nextLocale)
   closeDrawer()
 }
 

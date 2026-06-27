@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <h1 class="text-3xl font-bold mb-6">{{ $t('admin.deliveryPage.title') }}</h1>
 
@@ -233,15 +233,10 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.shopDelivery
-  }
-})
+  middleware: 'auth'})
 
 interface PickupPoint {
   id: number; name: string

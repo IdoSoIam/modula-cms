@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6" v-if="page">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -183,17 +183,13 @@ import CmsPageContentBuilder from '#modula/components/admin/cms/CmsPageContentBu
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
 import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
 import ImageInput from '#modula/components/ImageInput.vue'
-import { ADMIN_I18N_PATHS, getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
-import type { CmsLocale, CmsNavigationItemPayload, CmsPagePayload, CmsSiteSettings } from '#modula/shared/cms'
-import { clonePageBuilderContent, type PageBuilderContent } from '#modula/shared/pageBuilder'
+import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
+import { createEmptyPageBuilderContent, type CmsLocale, type CmsNavigationItemPayload, type CmsPagePayload, type CmsSiteSettings } from '#modula/shared/cms'
+import { clonePageBuilderContent, type PageBuilderContent, type LocalizedText } from '#modula/shared/pageBuilder'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.pageEditor
-  }
-})
+  middleware: 'auth'})
 
 interface CmsPageEditor extends CmsPagePayload {
   id: number
@@ -252,20 +248,22 @@ const isEmptyPageBuilderContent = (content: PageBuilderContent | null | undefine
   !content || !Array.isArray(content.sections) || content.sections.length === 0
 
 const resolveSharedContent = () => {
-  if (!isEmptyPageBuilderContent(page.translations.fr.content)) {
-    return clonePageBuilderContent(page.translations.fr.content)
+  const frContent = page.translations['fr']?.content
+  if (!isEmptyPageBuilderContent(frContent)) {
+    return clonePageBuilderContent(frContent!)
   }
 
-  if (!isEmptyPageBuilderContent(page.translations.en.content)) {
-    return clonePageBuilderContent(page.translations.en.content)
+  const enContent = page.translations['en']?.content
+  if (!isEmptyPageBuilderContent(enContent)) {
+    return clonePageBuilderContent(enContent!)
   }
 
-  return clonePageBuilderContent(page.translations.fr.content)
+  return clonePageBuilderContent(page.translations['fr']?.content ?? createEmptyPageBuilderContent())
 }
 
 const synchronizeSharedContent = (content: PageBuilderContent) => {
-  page.translations.fr.content = clonePageBuilderContent(content)
-  page.translations.en.content = clonePageBuilderContent(content)
+  if (page.translations['fr']) page.translations['fr'].content = clonePageBuilderContent(content)
+  if (page.translations['en']) page.translations['en'].content = clonePageBuilderContent(content)
 }
 
 synchronizeSharedContent(resolveSharedContent())
@@ -307,19 +305,19 @@ const selectedPageRendererLabel = computed(() =>
   pageRendererOptions.value.find(option => option.value === selectedPageRenderer.value)?.label || page.rendererKey || 'Page CMS'
 )
 
-const activeTranslation = computed(() => page.translations[activeLocale.value])
-const sharedContent = computed(() => page.translations.fr.content)
+const activeTranslation = computed(() => page.translations[activeLocale.value] ?? page.translations['fr']!)
+const sharedContent = computed(() => page.translations['fr']?.content ?? createEmptyPageBuilderContent())
 const localizedTitle = computed({
-  get: () => ({
-    fr: page.translations.fr.title,
-    en: page.translations.en.title
+  get: (): LocalizedText => ({
+    fr: page.translations['fr']?.title ?? '',
+    en: page.translations['en']?.title ?? ''
   }),
-  set: (value: { fr: string, en: string }) => {
-    page.translations.fr.title = value.fr
-    page.translations.en.title = value.en
+  set: (value: LocalizedText) => {
+    if (page.translations['fr']) page.translations['fr'].title = value['fr'] ?? ''
+    if (page.translations['en']) page.translations['en'].title = value['en'] ?? ''
   }
 })
-const applicationLocalizedTitle = computed<null | { fr: string, en: string }>(() => {
+const applicationLocalizedTitle = computed<null | LocalizedText>(() => {
   if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.title
   if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.title
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.title
@@ -327,7 +325,7 @@ const applicationLocalizedTitle = computed<null | { fr: string, en: string }>(()
   if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.title
   return null
 })
-const applicationLocalizedSubtitle = computed<null | { fr: string, en: string }>(() => {
+const applicationLocalizedSubtitle = computed<null | LocalizedText>(() => {
   if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.subtitle
   if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.subtitle
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.subtitle
@@ -336,23 +334,23 @@ const applicationLocalizedSubtitle = computed<null | { fr: string, en: string }>
   return null
 })
 const localizedMetaTitle = computed({
-  get: () => ({
-    fr: page.translations.fr.seo.metaTitle,
-    en: page.translations.en.seo.metaTitle
+  get: (): LocalizedText => ({
+    fr: page.translations['fr']?.seo.metaTitle ?? '',
+    en: page.translations['en']?.seo.metaTitle ?? ''
   }),
-  set: (value: { fr: string, en: string }) => {
-    page.translations.fr.seo.metaTitle = value.fr
-    page.translations.en.seo.metaTitle = value.en
+  set: (value: LocalizedText) => {
+    if (page.translations['fr']) page.translations['fr'].seo.metaTitle = value['fr'] ?? ''
+    if (page.translations['en']) page.translations['en'].seo.metaTitle = value['en'] ?? ''
   }
 })
 const localizedMetaDescription = computed({
-  get: () => ({
-    fr: page.translations.fr.seo.metaDescription,
-    en: page.translations.en.seo.metaDescription
+  get: (): LocalizedText => ({
+    fr: page.translations['fr']?.seo.metaDescription ?? '',
+    en: page.translations['en']?.seo.metaDescription ?? ''
   }),
-  set: (value: { fr: string, en: string }) => {
-    page.translations.fr.seo.metaDescription = value.fr
-    page.translations.en.seo.metaDescription = value.en
+  set: (value: LocalizedText) => {
+    if (page.translations['fr']) page.translations['fr'].seo.metaDescription = value['fr'] ?? ''
+    if (page.translations['en']) page.translations['en'].seo.metaDescription = value['en'] ?? ''
   }
 })
 
@@ -381,7 +379,7 @@ const togglePanel = (id: string) => {
   openPanelIds.value = [...openPanelIds.value, id]
 }
 
-const updateVisibleTitle = (value: { fr: string, en: string }) => {
+const updateVisibleTitle = (value: LocalizedText) => {
   if (selectedPageRenderer.value === 'baskets') {
     siteShellModel.settings.basketsPage.title = structuredClone(value)
     return
@@ -405,7 +403,7 @@ const updateVisibleTitle = (value: { fr: string, en: string }) => {
   localizedTitle.value = value
 }
 
-const updateVisibleSubtitle = (value: { fr: string, en: string }) => {
+const updateVisibleSubtitle = (value: LocalizedText) => {
   if (selectedPageRenderer.value === 'baskets') {
     siteShellModel.settings.basketsPage.subtitle = structuredClone(value)
     return

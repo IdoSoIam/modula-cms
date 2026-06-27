@@ -40,7 +40,7 @@
         </div>
         <template v-if="authStore.canAccessAdmin">
           <div class="px-3 py-2 hover:bg-base-200">
-            <NuxtLink :to="localePath('/admin')" class="inline-flex text-sm text-primary w-full h-full">{{ $t('admin.title') }}</NuxtLink>
+            <NuxtLink :to="adminLocalePath('/admin')" class="inline-flex text-sm text-primary w-full h-full">{{ $t('admin.title') }}</NuxtLink>
           </div>
         </template>
         <div class="px-3 py-2 hover:bg-base-200">
@@ -57,7 +57,8 @@ import { useShopCart } from '#modula/composables/useShopCart'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const localePath = useLocalePath()
+const localePath = usePublicLocalePath()
+const adminLocalePath = useLocalePath()
 const { count: cartCount } = useShopCart()
 
 const siteConfig = useSiteConfigState()

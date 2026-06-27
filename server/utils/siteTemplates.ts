@@ -184,59 +184,31 @@ function getTemplateAssetUrl(templateKey: CmsSiteTemplateKey, sourceName: string
 function getTemplateBrandAssets(templateKey: CmsSiteTemplateKey, current: CmsSiteSettings) {
   const fallback = createDefaultCmsSiteSettings()
 
+  const makeLogo = (src: string, altFr: string, altEn: string) => ({
+    src,
+    alt: { fr: altFr, en: altEn }
+  })
+
+  const siteNameFr = current.siteName?.fr ?? ''
+  const siteNameEn = current.siteName?.en ?? ''
+
   if (templateKey === 'farm') {
     return {
-      logo: {
-        src: getTemplateAssetUrl(templateKey, 'preview-farm.svg'),
-        alt: {
-          fr: current.siteName.fr || 'Logo du site',
-          en: current.siteName.en || 'Site logo'
-        }
-      },
-      favicon: {
-        src: getTemplateAssetUrl(templateKey, 'preview-farm.svg'),
-        alt: {
-          fr: current.siteName.fr || 'Icône du site',
-          en: current.siteName.en || 'Site icon'
-        }
-      }
+      logo: makeLogo(getTemplateAssetUrl(templateKey, 'preview-farm.svg'), siteNameFr || 'Logo du site', siteNameEn || 'Site logo'),
+      favicon: makeLogo(getTemplateAssetUrl(templateKey, 'preview-farm.svg'), siteNameFr || 'Icône du site', siteNameEn || 'Site icon')
     }
   }
 
   if (templateKey === 'association') {
     return {
-      logo: {
-        src: getTemplateAssetUrl(templateKey, 'preview-association.svg'),
-        alt: {
-          fr: current.siteName.fr || 'Logo du site',
-          en: current.siteName.en || 'Site logo'
-        }
-      },
-      favicon: {
-        src: getTemplateAssetUrl(templateKey, 'preview-association.svg'),
-        alt: {
-          fr: current.siteName.fr || 'Icône du site',
-          en: current.siteName.en || 'Site icon'
-        }
-      }
+      logo: makeLogo(getTemplateAssetUrl(templateKey, 'preview-association.svg'), siteNameFr || 'Logo du site', siteNameEn || 'Site logo'),
+      favicon: makeLogo(getTemplateAssetUrl(templateKey, 'preview-association.svg'), siteNameFr || 'Icône du site', siteNameEn || 'Site icon')
     }
   }
 
   return {
-    logo: {
-      src: getTemplateAssetUrl(templateKey, 'modula-mark.svg'),
-      alt: {
-        fr: current.siteName.fr || fallback.logo.alt.fr,
-        en: current.siteName.en || fallback.logo.alt.en
-      }
-    },
-    favicon: {
-      src: getTemplateAssetUrl(templateKey, 'modula-mark.svg'),
-      alt: {
-        fr: current.siteName.fr || fallback.favicon.alt.fr,
-        en: current.siteName.en || fallback.favicon.alt.en
-      }
-    }
+    logo: makeLogo(getTemplateAssetUrl(templateKey, 'modula-mark.svg'), siteNameFr || (fallback.logo.alt.fr ?? ''), siteNameEn || (fallback.logo.alt.en ?? '')),
+    favicon: makeLogo(getTemplateAssetUrl(templateKey, 'modula-mark.svg'), siteNameFr || (fallback.favicon.alt.fr ?? ''), siteNameEn || (fallback.favicon.alt.en ?? ''))
   }
 }
 
@@ -316,11 +288,11 @@ function createShowcaseContent(options: {
     Object.assign(createTextItem(`${options.sectionId}-text`), { size: 'lg', text: options.body }),
     createHeroButtons(
       options.primaryHref,
-      options.primaryLabel.fr,
-      options.primaryLabel.en,
+      options.primaryLabel.fr ?? '',
+      options.primaryLabel.en ?? '',
       options.secondaryHref,
-      options.secondaryLabel.fr,
-      options.secondaryLabel.en
+      options.secondaryLabel.fr ?? '',
+      options.secondaryLabel.en ?? ''
     )
   )
   hero.columns[1]!.items.push(
@@ -337,7 +309,7 @@ function createShowcaseContent(options: {
   features.containerWidth = 'wide'
   const cards = createCardsItem(`${options.sectionId}-cards`)
   cards.display = 'grid-3'
-  cards.cards = options.cards.map((card) => createFeatureCard(card.id, card.title.fr, card.title.en, card.body.fr, card.body.en, card.icon))
+  cards.cards = options.cards.map((card) => createFeatureCard(card.id, card.title.fr ?? '', card.title.en ?? '', card.body.fr ?? '', card.body.en ?? '', card.icon))
   features.columns[0]!.items.push(cards)
 
   return {
@@ -442,7 +414,7 @@ function createContactContent(options: {
   cards.display = 'stack'
   cards.cards = [
     {
-      ...createFeatureCard('contact-details-card', options.infoCardTitle.fr, options.infoCardTitle.en, '', '', 'mdi:map-marker-outline'),
+      ...createFeatureCard('contact-details-card', options.infoCardTitle.fr ?? '', options.infoCardTitle.en ?? '', '', '', 'mdi:map-marker-outline'),
       elements: [
         {
           ...createEmptyCardElement('contact-details-title', 'title'),
@@ -474,7 +446,7 @@ function createContactContent(options: {
       ]
     },
     {
-      ...createFeatureCard('contact-social-card', options.socialTitle.fr, options.socialTitle.en, '', '', 'mdi:share-variant-outline'),
+      ...createFeatureCard('contact-social-card', options.socialTitle.fr ?? '', options.socialTitle.en ?? '', '', '', 'mdi:share-variant-outline'),
       elements: [
         {
           ...createEmptyCardElement('contact-social-title', 'title'),
@@ -1057,6 +1029,7 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
       inDevelopment: false,
       registerEnabled: false,
       subscriptionsEnabled: false,
+      onlinePaymentsEnabled: true,
       shop: { enabled: true, basketsEnabled: true, vegetablesEnabled: true },
       associationRolesEnabled: false,
       eventsEnabled: true,
@@ -1067,6 +1040,7 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
         inDevelopment: false,
         registerEnabled: false,
         subscriptionsEnabled: false,
+        onlinePaymentsEnabled: false,
         shop: { enabled: false, basketsEnabled: false, vegetablesEnabled: false },
         associationRolesEnabled: true,
         eventsEnabled: true,
@@ -1076,6 +1050,7 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
         inDevelopment: false,
         registerEnabled: false,
         subscriptionsEnabled: false,
+        onlinePaymentsEnabled: false,
         shop: { enabled: false, basketsEnabled: false, vegetablesEnabled: false },
         associationRolesEnabled: false,
         eventsEnabled: false,

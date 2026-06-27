@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-3xl font-bold">{{ $t('admin.imagesPage.title') }}</h1>
@@ -221,15 +221,10 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.customizationImages
-  }
-})
+  middleware: 'auth'})
 
 interface ImageReferences {
   vegetables: number

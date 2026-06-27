@@ -34,8 +34,8 @@ import LayoutCookieBanner from '#modula/components/layout/CookieBanner.vue'
 import LayoutMobileMenu from '#modula/components/layout/MobileMenu.vue'
 import CmsShellEditModal from '#modula/components/cms/CmsShellEditModal.vue'
 
-const { locale } = useI18n();
-const switchLocalePath = useSwitchLocalePath();
+const { contentLocale, availableLocales, pathWithoutLocale, buildPublicLocalePath } = useContentLocale()
+const locale = computed(() => contentLocale.value)
 const requestUrl = useRequestURL()
 
 const toAbsoluteUrl = (path?: string | null) => {
@@ -43,20 +43,19 @@ const toAbsoluteUrl = (path?: string | null) => {
   return new URL(path, requestUrl).toString()
 }
 
-useHead({
+useHead(() => ({
   htmlAttrs: {
-    lang: locale,
+    lang: locale.value,
   },
   link: [
+    ...availableLocales.value.map((code) => ({
+      rel: 'alternate',
+      hreflang: code,
+      href: toAbsoluteUrl(buildPublicLocalePath(pathWithoutLocale.value, code)),
+    })),
     {
-      rel: "alternate",
-      hreflang: "fr",
-      href: toAbsoluteUrl(switchLocalePath("fr")),
-    },
-    {
-      rel: "alternate",
-      hreflang: "en",
-      href: toAbsoluteUrl(switchLocalePath("en")),
+      rel: 'canonical',
+      href: toAbsoluteUrl(buildPublicLocalePath(pathWithoutLocale.value, locale.value)),
     },
   ],
-});</script>
+}));</script>

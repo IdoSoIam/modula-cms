@@ -340,6 +340,14 @@ export function getAdminNavigationSections(
           getAdminRoutePaths("settingsRoles"),
           { requiredModule: "roles", requiredAction: "read" },
         ),
+        createAdminNavigationItem(
+          "settings-languages",
+          "admin.navigation.items.languages",
+          getAdminRoutePath("settingsLanguages", routeLocale),
+          "mdi:translate",
+          getAdminRoutePaths("settingsLanguages"),
+          { requiredModule: "settings", requiredAction: "read" },
+        ),
       ],
     },
   ];

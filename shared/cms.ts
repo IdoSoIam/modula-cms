@@ -4,9 +4,9 @@ import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '#modula/sha
 import { createDefaultEventsPageSettings, createDefaultPlanningPageSettings } from '#modula/shared/events'
 import cmsProjectConfig from '#modula/cms.project.config'
 
-export const CMS_LOCALES = ['fr', 'en'] as const
+export const CMS_FALLBACK_LOCALES = ['fr', 'en'] as const
 
-export type CmsLocale = typeof CMS_LOCALES[number]
+export type CmsLocale = string
 
 export type CmsPageType = 'CMS' | 'APPLICATION' | 'HYBRID'
 export type CmsPageStatus = 'DRAFT' | 'PUBLISHED'
@@ -29,10 +29,7 @@ export const CMS_HEADER_SUBMENU_TRIGGERS: CmsHeaderSubmenuTrigger[] = ['hover', 
 export const CMS_HEADER_SUBMENU_ANIMATIONS: CmsHeaderSubmenuAnimation[] = ['none', 'fade', 'scale', 'slide']
 export const CMS_HEADER_MOBILE_LOGO_POSITIONS: CmsHeaderMobileLogoPosition[] = ['left', 'right']
 
-export interface CmsLocalizedText {
-  fr: string
-  en: string
-}
+export type CmsLocalizedText = Record<string, string>
 
 export interface CmsImageAsset {
   src: string
@@ -279,8 +276,8 @@ export interface PublicSiteShell {
   }
 }
 
-export function createEmptyCmsLocalizedText(): CmsLocalizedText {
-  return { fr: '', en: '' }
+export function createEmptyCmsLocalizedText(locales: string[] = ['fr', 'en']): CmsLocalizedText {
+  return Object.fromEntries(locales.map(l => [l, ''])) as CmsLocalizedText
 }
 
 export function createEmptyCmsPageSeo(): CmsPageSeo {
@@ -757,9 +754,20 @@ export function createDefaultCmsPagePayload(path: string, title = ''): CmsPagePa
   }
 }
 
-export function pickCmsLocalizedText(locale: string, value: CmsLocalizedText | null | undefined) {
+export function pickCmsLocalizedText(locale: string, value: CmsLocalizedText | null | undefined, defaultLocale = 'en') {
   if (!value) return ''
-  return locale === 'en' ? value.en : value.fr
+  if (value[locale]?.trim()) return value[locale]
+  if (value[defaultLocale]?.trim()) return value[defaultLocale]
+  const first = Object.values(value).find(v => v?.trim())
+  return first || ''
+}
+
+export function resolveLocaleText(value: CmsLocalizedText | null | undefined, locales: string[], fallback = ''): string {
+  if (!value) return fallback
+  for (const locale of locales) {
+    if (value[locale]?.trim()) return value[locale]
+  }
+  return fallback
 }
 
 export const CMS_THEME_COLOR_TOKENS: ThemeColorToken[] = [

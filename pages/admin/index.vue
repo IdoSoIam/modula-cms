@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <h1 class="mb-6 flex items-center justify-center text-3xl font-bold">{{ t('admin.dashboardPage.title') }}</h1>
 
@@ -83,15 +83,11 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS, getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
+import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.dashboard
-  }
-})
+  middleware: 'auth'})
 
 interface Stats {
   subscriptionsEnabled?: boolean
