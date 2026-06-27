@@ -149,7 +149,7 @@
           <div v-else class="rounded-b-box rounded-tr-box border border-base-300 border-t-0 bg-base-200 p-5">
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div class="text-sm opacity-70">
-                {{ t('admin.pageEditorPage.previewLanguage', { locale: activeLocale === 'fr' ? 'FR' : 'EN' }) }}
+                {{ t('admin.pageEditorPage.previewLanguage', { locale: activeLocale.toUpperCase() }) }}
               </div>
             </div>
 
@@ -199,7 +199,9 @@ const route = useRoute()
 const localePath = useLocalePath()
 const { $toast } = useNuxtApp() as any
 const { locale, t } = useI18n()
+const { locales: siteLocales } = useSiteLocales()
 const contentPagesPath = computed(() => getAdminRoutePath('contentPages', normalizeAdminRouteLocale(locale.value)))
+const resolvedLocales = computed<CmsLocale[]>(() => siteLocales.value.length ? [...siteLocales.value] as CmsLocale[] : ['fr', 'en'])
 const activeLocale = ref<CmsLocale>('fr')
 const contentTab = ref<'editor' | 'preview'>('editor')
 const saving = ref(false)
@@ -248,22 +250,20 @@ const isEmptyPageBuilderContent = (content: PageBuilderContent | null | undefine
   !content || !Array.isArray(content.sections) || content.sections.length === 0
 
 const resolveSharedContent = () => {
-  const frContent = page.translations['fr']?.content
-  if (!isEmptyPageBuilderContent(frContent)) {
-    return clonePageBuilderContent(frContent!)
+  for (const locale of resolvedLocales.value) {
+    const content = page.translations[locale]?.content
+    if (!isEmptyPageBuilderContent(content)) {
+      return clonePageBuilderContent(content!)
+    }
   }
-
-  const enContent = page.translations['en']?.content
-  if (!isEmptyPageBuilderContent(enContent)) {
-    return clonePageBuilderContent(enContent!)
-  }
-
-  return clonePageBuilderContent(page.translations['fr']?.content ?? createEmptyPageBuilderContent())
+  return clonePageBuilderContent(page.translations[resolvedLocales.value[0] || 'fr']?.content ?? createEmptyPageBuilderContent())
 }
 
 const synchronizeSharedContent = (content: PageBuilderContent) => {
-  if (page.translations['fr']) page.translations['fr'].content = clonePageBuilderContent(content)
-  if (page.translations['en']) page.translations['en'].content = clonePageBuilderContent(content)
+  for (const locale of resolvedLocales.value) {
+    if (!page.translations[locale]) continue
+    page.translations[locale].content = clonePageBuilderContent(content)
+  }
 }
 
 synchronizeSharedContent(resolveSharedContent())
@@ -305,16 +305,17 @@ const selectedPageRendererLabel = computed(() =>
   pageRendererOptions.value.find(option => option.value === selectedPageRenderer.value)?.label || page.rendererKey || 'Page CMS'
 )
 
-const activeTranslation = computed(() => page.translations[activeLocale.value] ?? page.translations['fr']!)
-const sharedContent = computed(() => page.translations['fr']?.content ?? createEmptyPageBuilderContent())
+const activeTranslation = computed(() => page.translations[activeLocale.value] ?? page.translations[resolvedLocales.value[0] || 'fr']!)
+const sharedContent = computed(() => page.translations[resolvedLocales.value[0] || 'fr']?.content ?? createEmptyPageBuilderContent())
 const localizedTitle = computed({
-  get: (): LocalizedText => ({
-    fr: page.translations['fr']?.title ?? '',
-    en: page.translations['en']?.title ?? ''
-  }),
+  get: (): LocalizedText => Object.fromEntries(
+    resolvedLocales.value.map((localeCode) => [localeCode, page.translations[localeCode]?.title ?? ''])
+  ) as LocalizedText,
   set: (value: LocalizedText) => {
-    if (page.translations['fr']) page.translations['fr'].title = value['fr'] ?? ''
-    if (page.translations['en']) page.translations['en'].title = value['en'] ?? ''
+    for (const localeCode of resolvedLocales.value) {
+      if (!page.translations[localeCode]) continue
+      page.translations[localeCode].title = value[localeCode] ?? ''
+    }
   }
 })
 const applicationLocalizedTitle = computed<null | LocalizedText>(() => {
@@ -334,23 +335,25 @@ const applicationLocalizedSubtitle = computed<null | LocalizedText>(() => {
   return null
 })
 const localizedMetaTitle = computed({
-  get: (): LocalizedText => ({
-    fr: page.translations['fr']?.seo.metaTitle ?? '',
-    en: page.translations['en']?.seo.metaTitle ?? ''
-  }),
+  get: (): LocalizedText => Object.fromEntries(
+    resolvedLocales.value.map((localeCode) => [localeCode, page.translations[localeCode]?.seo.metaTitle ?? ''])
+  ) as LocalizedText,
   set: (value: LocalizedText) => {
-    if (page.translations['fr']) page.translations['fr'].seo.metaTitle = value['fr'] ?? ''
-    if (page.translations['en']) page.translations['en'].seo.metaTitle = value['en'] ?? ''
+    for (const localeCode of resolvedLocales.value) {
+      if (!page.translations[localeCode]) continue
+      page.translations[localeCode].seo.metaTitle = value[localeCode] ?? ''
+    }
   }
 })
 const localizedMetaDescription = computed({
-  get: (): LocalizedText => ({
-    fr: page.translations['fr']?.seo.metaDescription ?? '',
-    en: page.translations['en']?.seo.metaDescription ?? ''
-  }),
+  get: (): LocalizedText => Object.fromEntries(
+    resolvedLocales.value.map((localeCode) => [localeCode, page.translations[localeCode]?.seo.metaDescription ?? ''])
+  ) as LocalizedText,
   set: (value: LocalizedText) => {
-    if (page.translations['fr']) page.translations['fr'].seo.metaDescription = value['fr'] ?? ''
-    if (page.translations['en']) page.translations['en'].seo.metaDescription = value['en'] ?? ''
+    for (const localeCode of resolvedLocales.value) {
+      if (!page.translations[localeCode]) continue
+      page.translations[localeCode].seo.metaDescription = value[localeCode] ?? ''
+    }
   }
 })
 
@@ -450,6 +453,12 @@ const save = async () => {
 watch(selectedPageRenderer, () => {
   if (selectedPageRenderer.value !== 'cms' && contentTab.value !== 'editor') {
     contentTab.value = 'editor'
+  }
+}, { immediate: true })
+
+watch(resolvedLocales, (locales) => {
+  if (!locales.includes(activeLocale.value)) {
+    activeLocale.value = locales[0] || 'fr'
   }
 }, { immediate: true })
 </script>

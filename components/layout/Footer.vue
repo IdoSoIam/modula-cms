@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsFooterColumn, CmsLocalizedText, CmsLocale, CmsSocialLink, PublicSiteShell } from '#modula/shared/cms'
+import { pickCmsLocalizedText, type CmsFooterColumn, type CmsLocalizedText, type CmsLocale, type CmsSocialLink, type PublicSiteShell } from '#modula/shared/cms'
 import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
 import { useAuthStore } from '#modula/stores/auth'
 import { createDefaultCmsSiteSettings } from '#modula/shared/cms'
@@ -195,12 +195,8 @@ const formatFooterSchedule = (schedule?: SiteConfig['farmPickup'] | null) => {
     : `Tous les ${day} de ${schedule.startTime.replace(':', 'h')} à ${schedule.endTime.replace(':', 'h')}`
 }
 const farmScheduleText = computed(() => formatFooterSchedule(siteConfig.value?.farmPickup || null))
-const siteName = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings.siteName.en || 'Ferme du Campeyrigoux'
-  : cms.value?.settings.siteName.fr || 'Ferme du Campeyrigoux')
-const siteTagline = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings.siteTagline.en || ''
-  : cms.value?.settings.siteTagline.fr || '')
+const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteName, 'fr') || 'Site')
+const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteTagline, 'fr'))
 const logoSrc = computed(() => {
   const src = cms.value?.settings.logo.src?.trim()
   if (!src) return '/brand/modula-mark.svg'
@@ -209,7 +205,7 @@ const logoSrc = computed(() => {
 })
 const copyrightText = computed(() => {
   const value = footerSettings.value.copyright
-  return effectiveLocale.value === 'en' ? value?.en || '' : value?.fr || ''
+  return pickCmsLocalizedText(effectiveLocale.value, value, 'fr')
 })
 
 const tokenToCssVar = (token: string) => {
@@ -266,8 +262,7 @@ const columnLayoutStyle = (column: CmsFooterColumn) => ({
 })
 
 const pickText = (value: CmsLocalizedText | null | undefined) => {
-  if (!value) return ''
-  return effectiveLocale.value === 'en' ? value.en : value.fr
+  return pickCmsLocalizedText(effectiveLocale.value, value, 'fr')
 }
 
 const getNavigationItems = (menu: 'PRIMARY' | 'FOOTER') => {

@@ -19,6 +19,8 @@ import type {
   CmsRegistryPaginatedResult,
   CmsRegistryRollbackCapabilities,
   CmsRegistryReleaseRecord,
+  CmsRegistryTranslationBatchResult,
+  CmsRegistryTranslationRequestItem,
   CmsRegistryTemplateRecord,
   CmsRegistryTemplateSnapshot
 } from '#modula/shared/registry'
@@ -1342,4 +1344,12 @@ export async function getRegistryPaymentBySession(sessionId: string) {
 export async function getRegistryPaymentByOrder(orderId: string) {
   const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
   return await registryFetch<CmsRegistryPaymentRecord>(`/v1/payments/orders/${encodeURIComponent(orderId)}`, {}, scope)
+}
+
+export async function translateRegistryTexts(items: CmsRegistryTranslationRequestItem[]) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryTranslationBatchResult>('/v1/translations/text', {
+    method: 'POST',
+    body: { items }
+  }, scope)
 }

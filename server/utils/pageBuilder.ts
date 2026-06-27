@@ -43,10 +43,17 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function normalizeLocalizedText(value: unknown) {
   if (!isObject(value)) return null
-  return {
-    fr: typeof value.fr === 'string' ? value.fr : '',
-    en: typeof value.en === 'string' ? value.en : ''
-  }
+  const entries = Object.entries(value)
+    .filter(([key, entry]) => typeof key === 'string' && typeof entry === 'string')
+    .map(([key, entry]) => [key.trim().toLowerCase(), entry])
+    .filter(([key]) => key)
+
+  if (!entries.length) return null
+
+  const normalized = Object.fromEntries(entries)
+  if (typeof normalized.fr !== 'string') normalized.fr = ''
+  if (typeof normalized.en !== 'string') normalized.en = ''
+  return normalized
 }
 
 function sanitizeThemeColorToken(value: unknown, fallback: ThemeColorToken) {

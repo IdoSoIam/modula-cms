@@ -202,7 +202,11 @@ const translation = computed(() => {
   if (!item) {
     return { title: '', subtitle: '', excerpt: '', content: { version: 1, sections: [] } }
   }
-  return (contentLocale.value === 'en' ? item.translations.en : item.translations.fr) || item.translations.fr
+  return item.translations[contentLocale.value]
+    || item.translations.fr
+    || item.translations.en
+    || Object.values(item.translations)[0]
+    || { title: '', subtitle: '', excerpt: '', content: { version: 1, sections: [] } }
 })
 
 const formattedDate = computed(() => displayEvent.value
@@ -223,9 +227,12 @@ const showParticipationForm = computed(() => {
   if (!displayEvent.value.audienceMemberRoleIds.length) return true
   return displayEvent.value.audienceMemberRoleIds.some(id => authStore.user?.memberRoleIds?.includes(id))
 })
-const participationInfo = computed(() => contentLocale.value === 'en'
-  ? displayEvent.value?.internalParticipationInfo.en || ''
-  : displayEvent.value?.internalParticipationInfo.fr || '')
+const participationInfo = computed(() =>
+  displayEvent.value?.internalParticipationInfo[contentLocale.value]
+  || displayEvent.value?.internalParticipationInfo.fr
+  || displayEvent.value?.internalParticipationInfo.en
+  || ''
+)
 
 const reservationForm = reactive({
   customerName: '',

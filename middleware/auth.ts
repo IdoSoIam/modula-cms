@@ -49,7 +49,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   await authStore.ensureInitialized()
 
   if (!authStore.isAuthenticated) {
-    const siteConfig = await ensureSiteConfigState().catch(() => null)
+    const siteConfig = await ensureSiteConfigState({ path: to.path }).catch(() => null)
     const configuredLocales = normalizeLocales(siteConfig?.siteLocales)
     const defaultLocale = normalizeLocaleCode(siteConfig?.project?.defaultLocale) || configuredLocales[0] || 'fr'
     const availableLocales = configuredLocales.includes(defaultLocale)

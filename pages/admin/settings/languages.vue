@@ -103,6 +103,37 @@
           {{ t('admin.settingsLanguagesPage.translateAllButton') }}
         </button>
       </div>
+
+      <div v-if="lastTranslationRun" class="rounded-box border border-base-300 bg-base-200 p-4 space-y-3">
+        <div class="flex flex-wrap items-center gap-3 text-sm">
+          <span class="font-semibold">{{ t('admin.settingsLanguagesPage.translateAllSummaryTitle') }}</span>
+          <span>{{ t('admin.settingsLanguagesPage.translateAllSummaryCounts', { translated: lastTranslationRun.translated, cached: lastTranslationRun.cached, total: lastTranslationRun.totalTasks }) }}</span>
+        </div>
+
+        <div v-if="lastTranslationRun.items.length" class="space-y-2">
+          <div
+            v-for="(item, index) in lastTranslationRun.items"
+            :key="`${item.kind}-${item.id}-${item.fieldPath}-${item.targetLocale}-${index}`"
+            class="rounded-lg border border-base-300 bg-base-100 p-3 text-sm space-y-1"
+          >
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-medium">{{ item.recordLabel }}</span>
+              <span class="badge badge-outline">{{ item.kind === 'cmsPage' ? 'Page' : 'Event' }}</span>
+              <span class="badge" :class="item.status === 'cached' ? 'badge-ghost' : 'badge-success'">
+                {{ item.status === 'cached' ? t('admin.settingsLanguagesPage.translateStatusCached') : t('admin.settingsLanguagesPage.translateStatusTranslated') }}
+              </span>
+              <span class="opacity-70">{{ item.fieldPath }}</span>
+              <span class="opacity-70">{{ item.sourceLocale.toUpperCase() }} → {{ item.targetLocale.toUpperCase() }}</span>
+            </div>
+            <div class="opacity-70">
+              {{ item.sourceText }}
+            </div>
+            <div class="font-medium">
+              {{ item.translatedText }}
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -119,6 +150,25 @@ interface LocaleEntry {
   longLabel: string
 }
 
+interface TranslateAllResultItem {
+  kind: 'cmsPage' | 'event'
+  id: number
+  recordLabel: string
+  fieldPath: string
+  sourceLocale: string
+  targetLocale: string
+  sourceText: string
+  translatedText: string
+  status: 'translated' | 'cached'
+}
+
+interface TranslateAllResult {
+  translated: number
+  cached: number
+  totalTasks: number
+  items: TranslateAllResultItem[]
+}
+
 const { $toast } = useNuxtApp() as any
 const { t } = useI18n()
 const saving = ref(false)
@@ -128,6 +178,7 @@ const localeEntries = ref<LocaleEntry[]>([])
 const defaultLocale = ref('fr')
 const newLocale = ref('')
 const llmApiKey = ref('')
+const lastTranslationRun = ref<TranslateAllResult | null>(null)
 
 const { data } = await useFetch<{
   siteLocales: string[]
@@ -206,10 +257,11 @@ const save = async () => {
 const translateAll = async () => {
   translatingAll.value = true
   try {
-    const result = await $fetch<{ translated: number }>('/api/admin/settings/translate-all', {
+    const result = await $fetch<TranslateAllResult>('/api/admin/settings/translate-all', {
       method: 'POST'
     })
-    $toast?.success(t('admin.settingsLanguagesPage.translateAllDone', { count: result.translated }))
+    lastTranslationRun.value = result
+    $toast?.success(t('admin.settingsLanguagesPage.translateAllDone', { count: result.translated, cached: result.cached, total: result.totalTasks }))
   } catch (error: any) {
     $toast?.error(error.statusMessage || t('admin.settingsLanguagesPage.translateAllError'))
   } finally {

@@ -47,6 +47,20 @@ function localized(value?: Partial<CmsLocalizedText> | null): CmsLocalizedText {
   }
 }
 
+function normalizeEventTranslationsMap(value: unknown): Record<CmsLocale, EventTranslation> {
+  const source = typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}
+  const normalized: Record<CmsLocale, EventTranslation> = {}
+
+  for (const [locale, localeValue] of Object.entries(source)) {
+    normalized[locale] = normalizeEventTranslation(localeValue)
+  }
+
+  if (!normalized.fr) normalized.fr = createDefaultEventTranslation()
+  if (!normalized.en) normalized.en = createDefaultEventTranslation()
+
+  return normalized
+}
+
 function normalizeWeekdayValues(value: unknown): EventWeekdayValue[] {
   if (!Array.isArray(value)) return []
   return Array.from(new Set(
@@ -69,7 +83,7 @@ function isRecurringPermanence(input: Pick<EventPayload, 'kind' | 'recurrenceTyp
 export function normalizeEventPayload(value: unknown): EventPayload {
   const fallback = createDefaultEventPayload()
   const source = typeof value === 'object' && value !== null ? value as Record<string, any> : {}
-  const translations = source.translations && typeof source.translations === 'object' ? source.translations : {}
+  const translations = normalizeEventTranslationsMap(source.translations)
 
   const normalized: EventPayload = {
     id: typeof source.id === 'number' ? source.id : undefined,
@@ -102,10 +116,7 @@ export function normalizeEventPayload(value: unknown): EventPayload {
       ? (source.audienceMemberRoleIds ?? source.audienceRoleIds).map((entry: unknown) => Number(entry)).filter((entry: number) => Number.isInteger(entry) && entry > 0)
       : [],
     occurrence: source.occurrence && typeof source.occurrence === 'object' ? source.occurrence as EventOccurrencePayload : null,
-    translations: {
-      fr: normalizeEventTranslation(translations.fr),
-      en: normalizeEventTranslation(translations.en)
-    }
+    translations
   }
 
   if (!normalized.slug) {
@@ -144,11 +155,11 @@ function normalizeEventTranslation(value: unknown): EventTranslation {
 }
 
 export function resolveEventTranslation(event: EventWithRelations | Event, locale: CmsLocale) {
-  const translations = parseJson<Record<CmsLocale, EventTranslation>>(event.translationsJson, {
+  const translations = normalizeEventTranslationsMap(parseJson<Record<CmsLocale, EventTranslation>>(event.translationsJson, {
     fr: createDefaultEventTranslation(),
     en: createDefaultEventTranslation()
-  })
-  return translations[locale] || translations.fr || createDefaultEventTranslation()
+  }))
+  return translations[locale] || translations.fr || translations.en || Object.values(translations)[0] || createDefaultEventTranslation()
 }
 
 export function serializeEventPayload(input: EventPayload) {
@@ -183,10 +194,10 @@ export function serializeEventPayload(input: EventPayload) {
 }
 
 export function eventToPayload(event: EventWithRelations | Event): EventPayload {
-  const base = parseJson<Record<CmsLocale, EventTranslation>>(event.translationsJson, {
+  const base = normalizeEventTranslationsMap(parseJson<Record<CmsLocale, EventTranslation>>(event.translationsJson, {
     fr: createDefaultEventTranslation(),
     en: createDefaultEventTranslation()
-  })
+  }))
 
   return {
     id: event.id,
@@ -217,10 +228,7 @@ export function eventToPayload(event: EventWithRelations | Event): EventPayload 
     notifyAdminOnInternalParticipation: event.notifyAdminOnInternalParticipation,
     audienceMemberRoleIds: 'audienceMemberRoles' in event ? event.audienceMemberRoles.map(entry => entry.memberRoleId) : [],
     occurrence: null,
-    translations: {
-      fr: base.fr || createDefaultEventTranslation(),
-      en: base.en || createDefaultEventTranslation()
-    }
+    translations: base
   }
 }
 

@@ -204,3 +204,23 @@ export interface CmsRegistryPaymentRecord {
   createdAt: string
   updatedAt: string
 }
+
+export interface CmsRegistryTranslationRequestItem {
+  text: string
+  sourceLocale: string
+  targetLocale: string
+}
+
+export interface CmsRegistryTranslationResultItem {
+  sourceLocale: string
+  targetLocale: string
+  sourceText: string
+  translatedText: string
+  cached: boolean
+}
+
+export interface CmsRegistryTranslationBatchResult {
+  items: CmsRegistryTranslationResultItem[]
+  translated: number
+  cached: number
+}

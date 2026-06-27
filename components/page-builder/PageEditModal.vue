@@ -218,14 +218,31 @@ const itemAlignLabel = (align: string) => {
 
 const TranslationFields = defineComponent({
   props: {
-    modelValue: { type: Object as PropType<{ fr: string; en: string }>, required: true },
+    modelValue: { type: Object as PropType<Record<string, string>>, required: true },
     label: { type: String, required: true },
     size: { type: [String, Object] as PropType<any>, default: undefined },
     multiline: { type: Boolean, default: false }
   },
   emits: ['update:size'],
   setup(props, { emit }) {
-    const lang = ref<'fr' | 'en'>('fr')
+    const { locales } = useSiteLocales()
+    const resolvedLocales = computed(() => locales.value.length ? locales.value : ['fr', 'en'])
+    const lang = ref<string>(resolvedLocales.value[0] || 'fr')
+
+    watch(resolvedLocales, (value) => {
+      const next = value[0] || 'fr'
+      if (!value.includes(lang.value)) {
+        lang.value = next
+      }
+      for (const localeCode of value) {
+        if (typeof props.modelValue[localeCode] !== 'string') {
+          props.modelValue[localeCode] = ''
+        }
+      }
+    }, { immediate: true })
+
+    const tabLabel = (localeCode: string) => localeCode.toUpperCase()
+
     return () => h('div', { class: 'form-control' }, [
       h('div', { class: 'mb-2 flex items-center justify-between gap-2' }, [
         h('div', { class: 'flex items-center gap-2' }, [
@@ -240,10 +257,13 @@ const TranslationFields = defineComponent({
             }
           }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size]))) : null
         ]),
-        h('div', { class: 'tabs tabs-box tabs-xs' }, [
-          h('button', { type: 'button', class: ['tab cursor-pointer', lang.value === 'fr' ? 'tab-active' : 'border-0'], onClick: () => { lang.value = 'fr' } }, 'FR'),
-          h('button', { type: 'button', class: ['tab cursor-pointer', lang.value === 'en' ? 'tab-active' : 'border-0'], onClick: () => { lang.value = 'en' } }, 'EN')
-        ])
+        h('div', { class: 'tabs tabs-box tabs-xs' }, resolvedLocales.value.map(localeCode =>
+          h('button', {
+            type: 'button',
+            class: ['tab cursor-pointer', lang.value === localeCode ? 'tab-active' : 'border-0'],
+            onClick: () => { lang.value = localeCode }
+          }, tabLabel(localeCode))
+        ))
       ]),
       props.multiline
         ? h('textarea', { class: 'textarea textarea-bordered w-full', rows: 4, value: props.modelValue[lang.value], onInput: (e: Event) => { props.modelValue[lang.value] = (e.target as HTMLTextAreaElement).value } })

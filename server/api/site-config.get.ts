@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const installStatus = await getCmsInstallStatus()
   const installRequired = !installStatus.installed
+  const requestedLocale = normalizeRequestedLocale(getQuery(event).locale)
 
   if (!installStatus.databaseReady || !installStatus.installed) {
     const siteTemplates = await listSiteTemplates().catch(() => [])
@@ -74,6 +75,7 @@ export default defineEventHandler(async (event) => {
       themes: await getPublicDaisyUiThemeConfig(),
       constructionPagePath: '/construction',
       siteLocales: defaultLocales,
+      siteDefaultLocale: defaultLocale,
       localeLabels: defaultLabels
     }
   }
@@ -84,7 +86,7 @@ export default defineEventHandler(async (event) => {
     getFarmPickupConfig(),
     getContactEmail(),
     getAdminPhone(),
-    getPublicSiteShell('fr', featureFlags),
+    getPublicSiteShell(requestedLocale || 'fr', featureFlags),
     getPublicDaisyUiThemeConfig(),
     getCmsSpecialPagePath('construction'),
     getSiteLocales().catch(() => ['fr', 'en']),
@@ -120,6 +122,12 @@ export default defineEventHandler(async (event) => {
     themes,
     constructionPagePath,
     siteLocales,
+    siteDefaultLocale: defaultLocale,
     localeLabels
   }
 })
+
+function normalizeRequestedLocale(value: unknown) {
+  const normalized = String(value || '').trim().toLowerCase()
+  return /^[a-z]{2}(?:-[a-z]{2})?$/.test(normalized) ? normalized : null
+}

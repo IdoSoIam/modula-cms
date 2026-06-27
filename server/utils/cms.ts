@@ -40,7 +40,8 @@ import {
   createDefaultCmsSiteSettings,
   createEmptyCmsPageSeo,
   createEmptyPageBuilderContent,
-  createEmptyCmsLocalizedText
+  createEmptyCmsLocalizedText,
+  pickCmsLocalizedText
 } from '#modula/shared/cms'
 import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '#modula/shared/events'
 import type { PageBuilderContent, ThemeColorSelection } from '#modula/shared/pageBuilder'
@@ -94,10 +95,15 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function normalizeLocalizedText(value: unknown) {
   if (!isObject(value)) return createEmptyCmsLocalizedText()
-  return {
-    fr: typeof value.fr === 'string' ? value.fr : '',
-    en: typeof value.en === 'string' ? value.en : ''
-  }
+  const entries = Object.entries(value)
+    .filter(([key, entry]) => typeof key === 'string' && typeof entry === 'string')
+    .map(([key, entry]) => [key.trim().toLowerCase(), entry])
+    .filter(([key]) => key)
+
+  const normalized = Object.fromEntries(entries) as CmsLocalizedText
+  if (typeof normalized.fr !== 'string') normalized.fr = ''
+  if (typeof normalized.en !== 'string') normalized.en = ''
+  return normalized
 }
 
 function normalizeLocalizedTextWithFallback(value: unknown, fallback: CmsLocalizedText) {
@@ -287,14 +293,17 @@ function isEmptyPageBuilderContent(content: PageBuilderContent | null | undefine
 }
 
 function pickSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
-  const fr = translations['fr']
-  const en = translations['en']
-  if (fr && !isEmptyPageBuilderContent(fr.content)) {
-    return clonePageBuilderContent(fr.content)
+  for (const locale of ['fr', 'en']) {
+    const translation = translations[locale]
+    if (translation && !isEmptyPageBuilderContent(translation.content)) {
+      return clonePageBuilderContent(translation.content)
+    }
   }
 
-  if (en && !isEmptyPageBuilderContent(en.content)) {
-    return clonePageBuilderContent(en.content)
+  for (const translation of Object.values(translations)) {
+    if (translation && !isEmptyPageBuilderContent(translation.content)) {
+      return clonePageBuilderContent(translation.content)
+    }
   }
 
   return createEmptyPageBuilderContent()
@@ -302,19 +311,18 @@ function pickSharedPageContent(translations: Record<CmsLocale, CmsPageTranslatio
 
 function synchronizeSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
   const sharedContent = pickSharedPageContent(translations)
-  const frBase = translations.fr ?? createDefaultCmsPageTranslation()
-  const enBase = translations.en ?? createDefaultCmsPageTranslation()
+  const locales = new Set<CmsLocale>(['fr', 'en', ...Object.keys(translations)])
+  const synchronized: Record<CmsLocale, CmsPageTranslation> = {}
 
-  return {
-    fr: {
-      ...frBase,
-      content: clonePageBuilderContent(sharedContent)
-    },
-    en: {
-      ...enBase,
+  for (const locale of locales) {
+    const base = translations[locale] ?? createDefaultCmsPageTranslation()
+    synchronized[locale] = {
+      ...base,
       content: clonePageBuilderContent(sharedContent)
     }
   }
+
+  return synchronized
 }
 
 async function ensureFormEmailTemplateActions(payload: CmsPagePayload) {
@@ -398,22 +406,28 @@ function normalizeTranslations(value: unknown, path = '/'): Record<CmsLocale, Cm
   const fallback = createDefaultCmsPagePayload(path).translations
   if (!isObject(value)) return fallback
 
-  const normFr = normalizeTranslation((value as Record<string, unknown>)['fr'])
-  const normEn = normalizeTranslation((value as Record<string, unknown>)['en'])
-  return synchronizeSharedPageContent({
-    fr: {
-      title: normFr.title ?? '',
-      navigationLabel: normFr.navigationLabel ?? '',
-      seo: normFr.seo ?? createEmptyCmsPageSeo(),
-      content: normFr.content ?? createEmptyPageBuilderContent()
-    } satisfies CmsPageTranslation,
-    en: {
-      title: normEn.title ?? '',
-      navigationLabel: normEn.navigationLabel ?? '',
-      seo: normEn.seo ?? createEmptyCmsPageSeo(),
-      content: normEn.content ?? createEmptyPageBuilderContent()
-    } satisfies CmsPageTranslation
-  })
+  const normalized: Record<CmsLocale, CmsPageTranslation> = {}
+  const entries = Object.entries(value as Record<string, unknown>)
+
+  for (const [locale, localeValue] of entries) {
+    const next = normalizeTranslation(localeValue)
+    normalized[locale] = {
+      title: next.title ?? '',
+      navigationLabel: next.navigationLabel ?? '',
+      seo: next.seo ?? createEmptyCmsPageSeo(),
+      content: next.content ?? createEmptyPageBuilderContent()
+    }
+  }
+
+  if (!normalized.fr) {
+    normalized.fr = fallback.fr
+  }
+
+  if (!normalized.en) {
+    normalized.en = fallback.en
+  }
+
+  return synchronizeSharedPageContent(normalized)
 }
 
 function parseJson<T>(value: string | null | undefined): T | null {
@@ -829,7 +843,29 @@ function pageRowToPayload(row: CmsPage): CmsPagePayload {
 }
 
 function pickTranslation(locale: string, translations: Record<CmsLocale, CmsPageTranslation>): CmsPageTranslation | undefined {
-  return locale === 'en' ? translations['en'] : translations['fr']
+  return translations[locale] || translations['fr'] || translations['en'] || Object.values(translations)[0]
+}
+
+function cloneCmsTranslationValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+function mergePageTranslation(
+  primary: CmsPageTranslation | undefined,
+  fallback: CmsPageTranslation | undefined
+): CmsPageTranslation {
+  const resolvedPrimary = primary ?? createDefaultCmsPageTranslation()
+  const resolvedFallback = fallback ?? createDefaultCmsPageTranslation()
+
+  return {
+    title: resolvedPrimary.title || resolvedFallback.title,
+    navigationLabel: resolvedPrimary.navigationLabel || resolvedFallback.navigationLabel,
+    seo: {
+      ...cloneCmsTranslationValue(resolvedFallback.seo),
+      ...cloneCmsTranslationValue(resolvedPrimary.seo)
+    },
+    content: cloneCmsTranslationValue(resolvedPrimary.content ?? resolvedFallback.content)
+  }
 }
 
 function navigationRowToPayload(row: CmsNavigationItem): CmsNavigationItemPayload {
@@ -855,7 +891,7 @@ function navigationPayloadToResolved(id: number, payload: CmsNavigationItemPaylo
     menu: payload.menu,
     itemType: payload.itemType,
     labels: payload.labels,
-    label: locale === 'en' ? (payload.labels['en'] ?? '') : (payload.labels['fr'] ?? ''),
+    label: pickCmsLocalizedText(locale, payload.labels, 'fr'),
     navigationItemKey: payload.navigationItemKey,
     parentItemKey: payload.parentItemKey,
     href: payload.href,
@@ -1947,8 +1983,9 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
     if (!isRendererEnabled(payload.rendererKey, featureFlags)) {
       return null
     }
-    const localized = pickTranslation(locale, payload.translations)
-    const t = localized ?? createDefaultCmsPageTranslation()
+    const localized = payload.translations[locale]
+    const fallbackTranslation = payload.translations['fr'] || payload.translations['en'] || Object.values(payload.translations)[0]
+    const t = mergePageTranslation(localized, fallbackTranslation)
 
     return {
       id: rowAny.id,

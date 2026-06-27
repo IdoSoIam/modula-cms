@@ -996,16 +996,19 @@ const toggleItemPanel = (id: string) => {
   openPanel(id)
 }
 
+const firstLocalizedValue = (value: Record<string, string> | null | undefined) =>
+  Object.values(value || {}).find(entry => entry?.trim()) || ''
+
 const itemSummary = (item: PageBuilderColumnItem) => {
   switch (item.type) {
     case 'badge':
     case 'title':
     case 'text':
-      return item.text.fr || item.text.en || 'Sans contenu'
+      return firstLocalizedValue(item.text) || 'Sans contenu'
     case 'buttons':
       return [
-        item.primaryButton?.label.fr || item.primaryButton?.label.en || '',
-        item.secondaryButton?.label.fr || item.secondaryButton?.label.en || ''
+        firstLocalizedValue(item.primaryButton?.label),
+        firstLocalizedValue(item.secondaryButton?.label)
       ].filter(Boolean).join(' • ') || 'Aucun bouton'
     case 'image':
       return item.imageUrl || 'Image vide'
@@ -1019,11 +1022,11 @@ const itemSummary = (item: PageBuilderColumnItem) => {
 }
 
 const cardSummary = (card: PageBuilderCard) =>
-  card.elements?.find(element => element.title['fr'] || element.title['en'] || element.text['fr'] || element.text['en'])?.title['fr']
-  || card.elements?.find(element => element.title['fr'] || element.title['en'] || element.text['fr'] || element.text['en'])?.title['en']
-  || card.elements?.find(element => element.title['fr'] || element.title['en'] || element.text['fr'] || element.text['en'])?.text['fr']
-  || card.elements?.find(element => element.title['fr'] || element.title['en'] || element.text['fr'] || element.text['en'])?.text['en']
-  || card.title['fr'] || card.title['en'] || card.text['fr'] || card.text['en'] || 'Carte sans contenu'
+  firstLocalizedValue(card.elements?.find(element => firstLocalizedValue(element.title) || firstLocalizedValue(element.text))?.title)
+  || firstLocalizedValue(card.elements?.find(element => firstLocalizedValue(element.title) || firstLocalizedValue(element.text))?.text)
+  || firstLocalizedValue(card.title)
+  || firstLocalizedValue(card.text)
+  || 'Carte sans contenu'
 
 const addCard = (cards: PageBuilderCard[]) => {
   const newId = createId('card')

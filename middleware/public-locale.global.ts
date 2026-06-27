@@ -35,7 +35,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return
   }
 
-  const siteConfig = await ensureSiteConfigState()
+  const siteConfig = await ensureSiteConfigState({ path: to.path })
   const configuredLocales = normalizeLocales(siteConfig?.siteLocales)
   const defaultLocale = String(siteConfig?.project?.defaultLocale || configuredLocales[0] || 'fr').trim().toLowerCase()
   const availableLocales = configuredLocales.includes(defaultLocale)

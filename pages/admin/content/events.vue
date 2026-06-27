@@ -231,9 +231,17 @@
               <p class="text-sm opacity-70">Ce contenu s’affiche sous les métadonnées de l’événement.</p>
             </div>
           </div>
-          <div class="tabs tabs-box">
-            <button type="button" class="tab" :class="{ 'tab-active': contentLocale === 'fr' }" @click="contentLocale = 'fr'">FR</button>
-            <button type="button" class="tab" :class="{ 'tab-active': contentLocale === 'en' }" @click="contentLocale = 'en'">EN</button>
+          <div class="tabs tabs-box flex-wrap">
+            <button
+              v-for="localeCode in resolvedLocales"
+              :key="localeCode"
+              type="button"
+              class="tab"
+              :class="{ 'tab-active': contentLocale === localeCode }"
+              @click="contentLocale = localeCode"
+            >
+              {{ localeCode.toUpperCase() }}
+            </button>
           </div>
           <CmsPageContentBuilder :content="editor.translations[contentLocale].content" />
         </section>
@@ -405,12 +413,14 @@ const { $toast } = useNuxtApp() as any
 const route = useRoute()
 const localePath = useLocalePath()
 const siteConfig = await useSiteConfig()
+const { locales: siteLocales } = useSiteLocales()
 const statusFilter = ref('')
 const selectedId = ref<number | null>(null)
 const saving = ref(false)
 const sendingCall = ref(false)
 const creating = ref(false)
-const contentLocale = ref<'fr' | 'en'>('fr')
+const resolvedLocales = computed<string[]>(() => siteLocales.value.length ? [...siteLocales.value] : ['fr', 'en'])
+const contentLocale = ref<string>('fr')
 const createDialogRef = ref<HTMLDialogElement | null>(null)
 
 const { data: eventsData, pending, refresh } = await useFetch<EventListItem[]>('/api/admin/events', {
@@ -494,16 +504,16 @@ const openCreateDialog = () => {
 }
 
 const localizedField = (key: 'title' | 'subtitle' | 'excerpt') => computed({
-  get: (): LocalizedText => ({
-    fr: editor.value?.translations['fr']?.[key] ?? '',
-    en: editor.value?.translations['en']?.[key] ?? ''
-  }),
+  get: (): LocalizedText => Object.fromEntries(
+    resolvedLocales.value.map((localeCode) => [localeCode, editor.value?.translations[localeCode]?.[key] ?? ''])
+  ) as LocalizedText,
   set: (value: LocalizedText) => {
     if (!editor.value) return
-    const fr = editor.value.translations['fr']
-    const en = editor.value.translations['en']
-    if (fr) fr[key] = value['fr'] ?? ''
-    if (en) en[key] = value['en'] ?? ''
+    for (const localeCode of resolvedLocales.value) {
+      const translation = editor.value.translations[localeCode]
+      if (!translation) continue
+      translation[key] = value[localeCode] ?? ''
+    }
   }
 })
 const titleTranslations = localizedField('title')
@@ -648,6 +658,12 @@ watch(() => [editor.value?.audienceMemberRoleIds.join(','), allUsers.value.lengt
     loadEligibleUsers()
   }
 })
+
+watch(resolvedLocales, (locales) => {
+  if (!locales.includes(contentLocale.value)) {
+    contentLocale.value = locales[0] || 'fr'
+  }
+}, { immediate: true })
 
 watch(() => route.query.open, async (value) => {
   if (!value) return

@@ -55,7 +55,7 @@ export function useContentLocale() {
   );
 
   const defaultLocale = computed(() => {
-    const configured = normalizeLocaleCode(siteConfig.value?.project?.defaultLocale);
+    const configured = normalizeLocaleCode(siteConfig.value?.siteDefaultLocale || siteConfig.value?.project?.defaultLocale || siteConfig.value?.siteLocales?.[0]);
     if (configured && availableLocales.value.includes(configured)) return configured;
     return availableLocales.value[0] ?? "fr";
   });

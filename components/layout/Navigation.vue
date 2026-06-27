@@ -191,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsHeaderNavigationStyle, CmsLocale, PublicSiteShell, ResolvedCmsNavigationItem } from '#modula/shared/cms'
+import { pickCmsLocalizedText, type CmsHeaderNavigationStyle, type CmsLocale, type PublicSiteShell, type ResolvedCmsNavigationItem } from '#modula/shared/cms'
 import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
 import { useAuthStore } from '#modula/stores/auth'
 
@@ -277,12 +277,8 @@ const showMobileHeaderSiteName = computed(() => headerSettings.value.mobileHeade
 const showMobileHeaderSiteTagline = computed(() => headerSettings.value.mobileHeaderShowSiteTagline && Boolean(siteTagline.value))
 const showMobileHeaderBrand = computed(() => showMobileHeaderSiteName.value || showMobileHeaderSiteTagline.value)
 
-const siteName = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings?.siteName?.en || 'Site name'
-  : cms.value?.settings?.siteName?.fr || 'Nom du site')
-const siteTagline = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings?.siteTagline?.en || ''
-  : cms.value?.settings?.siteTagline?.fr || '')
+const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteName, 'fr') || 'Site name')
+const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteTagline, 'fr'))
 
 const normalizeLogoSrc = (value?: string | null) => {
   const src = value?.trim()
@@ -292,9 +288,7 @@ const normalizeLogoSrc = (value?: string | null) => {
 }
 
 const logoSrc = computed(() => normalizeLogoSrc(cms.value?.settings.logo.src))
-const logoAlt = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings?.logo?.alt?.en || 'Logo'
-  : cms.value?.settings?.logo?.alt?.fr || 'Logo')
+const logoAlt = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.logo?.alt, 'fr') || 'Logo')
 
 const menuItems = computed(() => cms.value?.navigation?.primary ?? [])
 
@@ -393,7 +387,7 @@ const navActiveStateClass = computed(() => {
 })
 
 const resolveLabel = (item: ResolvedCmsNavigationItem) =>
-  effectiveLocale.value === 'en' ? item.labels.en || item.label : item.labels.fr || item.label
+  pickCmsLocalizedText(effectiveLocale.value, item.labels, 'fr') || item.label
 
 const resolveHref = (item: ResolvedCmsNavigationItem) =>
   item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)

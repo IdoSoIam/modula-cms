@@ -17,30 +17,33 @@
         </select>
       </div>
 
-      <div class="tabs tabs-box tabs-xs">
-        <button
-          v-for="locale in resolvedLocales"
-          :key="locale"
-          type="button"
-          class="tab"
-          :class="activeLang === locale ? 'tab-active' : ''"
-          @click="activeLang = locale"
-        >
-          {{ locale.toUpperCase() }}
-        </button>
+      <div class="flex items-center gap-2">
+        <span v-if="translating" class="loading loading-spinner loading-xs text-primary" />
+        <div class="tabs tabs-box tabs-xs">
+          <button
+            v-for="locale in resolvedLocales"
+            :key="locale"
+            type="button"
+            class="tab"
+            :class="activeLang === locale ? 'tab-active' : ''"
+            @click="activeLang = locale"
+          >
+            {{ locale.toUpperCase() }}
+          </button>
+        </div>
       </div>
     </div>
 
     <textarea
       v-if="multiline"
-      :value="modelValue[activeLang]"
+      :value="localValue[activeLang]"
       class="textarea textarea-bordered w-full"
       rows="3"
       @input="updateLocalizedValue(activeLang, ($event.target as HTMLTextAreaElement).value)"
     />
     <input
       v-else
-      :value="modelValue[activeLang]"
+      :value="localValue[activeLang]"
       class="input input-bordered w-full"
       @input="updateLocalizedValue(activeLang, ($event.target as HTMLInputElement).value)"
     >
@@ -74,11 +77,44 @@ watch(resolvedLocales, (newLocales) => {
   }
 })
 
-const updateLocalizedValue = (lang: string, value: string) => {
-  props.modelValue[lang] = value
-  emit('update:modelValue', {
-    ...props.modelValue,
-    [lang]: value
-  })
+/* ---- Réf locale synchro + auto-traduction ---- */
+
+// Ref locale éditable qui sert de source de vérité pour le contenu
+const localValue = ref<LocalizedText>({ ...props.modelValue })
+
+// Évite les boucles : on ne ré-écrit localValue depuis la prop que si les valeurs diffèrent
+function deepEqual(a: Record<string, string>, b: Record<string, string>): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)])
+  for (const k of keys) {
+    if ((a[k] ?? '') !== (b[k] ?? '')) return false
+  }
+  return true
+}
+
+// Synchro prop → localValue (changements externes)
+watch(() => props.modelValue, (val) => {
+  if (!deepEqual(localValue.value, val)) {
+    localValue.value = { ...val }
+  }
+}, { deep: true, immediate: true })
+
+// Synchro localValue → parent (via emit)
+watch(localValue, (val) => {
+  if (!deepEqual(val, props.modelValue)) {
+    emit('update:modelValue', { ...val })
+  }
+}, { deep: true })
+
+// Auto-traduction LLM depuis la langue active vers les langues cibles vides
+const { translating } = useAutoTranslate({
+  value: localValue,
+  sourceLocale: activeLang,
+  availableLocales: resolvedLocales,
+  debounceMs: 1000,
+  context: props.label
+})
+
+function updateLocalizedValue(lang: string, value: string) {
+  localValue.value = { ...localValue.value, [lang]: value }
 }
 </script>

@@ -100,7 +100,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   try {
     // Skip site config check if no Nuxt app context (edge case during SSR)
     if (tryUseNuxtApp()) {
-      const siteConfig = await ensureSiteConfigState()
+      const siteConfig = await ensureSiteConfigState({ path: to.path })
       inDevelopment = siteConfig?.inDevelopment === true
       constructionPath = siteConfig?.constructionPagePath || '/construction'
       const configuredLocales = normalizeLocales(siteConfig?.siteLocales)
