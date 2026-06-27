@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { getSiteLocales, getLlmApiKey } from '#modula/server/utils/settings'
+import { getSiteLocales, getSiteDefaultLocale, getLlmApiKey } from '#modula/server/utils/settings'
 import { db } from '#modula/server/data/client'
 
 const translationCache = new Map<string, string>()
@@ -80,8 +80,9 @@ interface PageTranslation {
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const [siteLocales, apiKey] = await Promise.all([
+  const [siteLocales, siteDefaultLocale, apiKey] = await Promise.all([
     getSiteLocales(),
+    getSiteDefaultLocale(),
     getLlmApiKey()
   ])
 
@@ -93,12 +94,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'At least 2 locales required for translation' })
   }
 
-  const defaultLocale = siteLocales[0]!
+  const defaultLocale = siteDefaultLocale || siteLocales[0]!
   if (!defaultLocale) {
     throw createError({ statusCode: 400, statusMessage: 'No default locale configured' })
   }
   const targetLocales = siteLocales.filter(l => l !== defaultLocale)
 
+  let translated = 0
+
+  translated += await translateCmsPages(defaultLocale, targetLocales, apiKey)
+  translated += await translateEvents(defaultLocale, targetLocales, apiKey)
+
+  return { translated }
+})
+
+async function translateCmsPages(defaultLocale: string, targetLocales: string[], apiKey: string): Promise<number> {
   const rows = await db.cmsPage.findMany()
   let translated = 0
 
@@ -113,7 +123,7 @@ export default defineEventHandler(async (event) => {
     const source = translations[defaultLocale]
     if (!source) continue
 
-    let pageUpdated = false
+    let updated = false
 
     for (const targetLocale of targetLocales) {
       const target = translations[targetLocale] || { title: '', navigationLabel: '', seo: { metaTitle: '', metaDescription: '', ogImage: '', noindex: false }, content: undefined }
@@ -122,7 +132,7 @@ export default defineEventHandler(async (event) => {
       if (source.title && !target.title) {
         try {
           target.title = await translateSingle(source.title, defaultLocale, targetLocale, apiKey)
-          if (target.title) pageUpdated = true
+          if (target.title) updated = true
         } catch { /* skip field */ }
       }
 
@@ -130,7 +140,7 @@ export default defineEventHandler(async (event) => {
       if (source.navigationLabel && !target.navigationLabel) {
         try {
           target.navigationLabel = await translateSingle(source.navigationLabel, defaultLocale, targetLocale, apiKey)
-          if (target.navigationLabel) pageUpdated = true
+          if (target.navigationLabel) updated = true
         } catch { /* skip field */ }
       }
 
@@ -140,7 +150,7 @@ export default defineEventHandler(async (event) => {
         try {
           if (!target.seo) target.seo = { metaTitle: '', metaDescription: '', ogImage: '', noindex: false }
           target.seo.metaTitle = await translateSingle(sourceSeoTitle, defaultLocale, targetLocale, apiKey)
-          if (target.seo.metaTitle) pageUpdated = true
+          if (target.seo.metaTitle) updated = true
         } catch { /* skip field */ }
       }
 
@@ -150,16 +160,16 @@ export default defineEventHandler(async (event) => {
         try {
           if (!target.seo) target.seo = { metaTitle: '', metaDescription: '', ogImage: '', noindex: false }
           target.seo.metaDescription = await translateSingle(sourceSeoDesc, defaultLocale, targetLocale, apiKey)
-          if (target.seo.metaDescription) pageUpdated = true
+          if (target.seo.metaDescription) updated = true
         } catch { /* skip field */ }
       }
 
-      if (pageUpdated) {
+      if (updated) {
         translations[targetLocale] = target
       }
     }
 
-    if (pageUpdated) {
+    if (updated) {
       translated++
       await db.cmsPage.update({
         where: { id: row.id },
@@ -168,5 +178,70 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return { translated }
-})
+  return translated
+}
+
+interface EventTranslationData {
+  title?: string
+  subtitle?: string
+  excerpt?: string
+  content?: unknown
+}
+
+async function translateEvents(defaultLocale: string, targetLocales: string[], apiKey: string): Promise<number> {
+  const rows = await db.event.findMany()
+  let translated = 0
+
+  for (const row of rows) {
+    let translations: Record<string, EventTranslationData>
+    try {
+      translations = JSON.parse(row.translationsJson)
+    } catch {
+      continue
+    }
+
+    const source = translations[defaultLocale]
+    if (!source) continue
+
+    let updated = false
+
+    for (const targetLocale of targetLocales) {
+      const target = translations[targetLocale] || { title: '', subtitle: '', excerpt: '', content: undefined }
+
+      if (source.title && !target.title) {
+        try {
+          target.title = await translateSingle(source.title, defaultLocale, targetLocale, apiKey)
+          if (target.title) updated = true
+        } catch { /* skip field */ }
+      }
+
+      if (source.subtitle && !target.subtitle) {
+        try {
+          target.subtitle = await translateSingle(source.subtitle, defaultLocale, targetLocale, apiKey)
+          if (target.subtitle) updated = true
+        } catch { /* skip field */ }
+      }
+
+      if (source.excerpt && !target.excerpt) {
+        try {
+          target.excerpt = await translateSingle(source.excerpt, defaultLocale, targetLocale, apiKey)
+          if (target.excerpt) updated = true
+        } catch { /* skip field */ }
+      }
+
+      if (updated) {
+        translations[targetLocale] = target
+      }
+    }
+
+    if (updated) {
+      translated++
+      await db.event.update({
+        where: { id: row.id },
+        data: { translationsJson: JSON.stringify(translations) }
+      })
+    }
+  }
+
+  return translated
+}

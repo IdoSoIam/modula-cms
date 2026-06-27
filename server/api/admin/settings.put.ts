@@ -167,6 +167,12 @@ export default defineEventHandler(async (event) => {
     await saveShopDefaultVatRate(normalizeVatRate(vatRate, 20))
   }
   if (body.siteLocales) {
+    const normalizedLocales = body.siteLocales
+      .map(l => String(l || '').trim().toLowerCase())
+      .filter((l, i, arr) => l && arr.indexOf(l) === i)
+    if (normalizedLocales.length < 1) {
+      throw createError({ statusCode: 400, statusMessage: 'Le site doit avoir au moins une langue active.' })
+    }
     await saveSiteLocales(body.siteLocales, body.siteDefaultLocale)
   }
   if (typeof body.siteLlmApiKey === 'string') {

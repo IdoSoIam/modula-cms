@@ -483,7 +483,9 @@
       "translateAllDone": "Global translation completed ({count} fields translated)",
       "translateAllError": "Error during global translation",
       "saved": "Languages saved",
-      "saveError": "Unable to save languages"
+      "saveError": "Unable to save languages",
+      "removeLocaleConfirm": "Are you sure you want to remove {code}? All associated translations will be permanently deleted.",
+      "removeLastLocaleError": "Cannot remove the last active language. The site must have at least one language."
     },
     "ordersWindow": {
       "section": "Orders period",

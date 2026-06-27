@@ -483,7 +483,9 @@
       "translateAllDone": "Traduction globale terminée ({count} champs traduits)",
       "translateAllError": "Erreur pendant la traduction globale",
       "saved": "Langues enregistrées",
-      "saveError": "Impossible d'enregistrer les langues"
+      "saveError": "Impossible d'enregistrer les langues",
+      "removeLocaleConfirm": "Êtes-vous sûr de vouloir supprimer la langue {code} ? Toutes les traductions associées seront définitivement supprimées.",
+      "removeLastLocaleError": "Impossible de supprimer la dernière langue active. Le site doit avoir au moins une langue."
     },
     "dashboardPage": {
       "title": "Tableau de bord",
