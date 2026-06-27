@@ -1,4 +1,4 @@
-export const ADMIN_I18N_PATHS = {
+export const ADMIN_ROUTE_PATHS = {
   dashboard: {
     fr: "/admin",
     en: "/admin",
@@ -119,28 +119,32 @@ export const ADMIN_I18N_PATHS = {
     fr: "/admin/settings/roles",
     en: "/admin/settings/roles",
   },
+  settingsLanguages: {
+    fr: "/admin/settings/languages",
+    en: "/admin/settings/languages",
+  },
   pageEditor: {
     fr: "/admin/pages/[id]",
     en: "/admin/pages/[id]",
   },
 } as const;
 
-export type AdminRouteKey = keyof typeof ADMIN_I18N_PATHS;
-export type AdminRouteLocale = keyof (typeof ADMIN_I18N_PATHS)[AdminRouteKey];
+export type AdminRouteKey = keyof typeof ADMIN_ROUTE_PATHS;
+export type AdminRouteLocale = keyof (typeof ADMIN_ROUTE_PATHS)[AdminRouteKey];
 
 export const normalizeAdminRouteLocale = (
   locale?: string | null,
 ): AdminRouteLocale => (locale === "fr" ? "fr" : "en");
 
 export const getAdminRoutePaths = (routeKey: AdminRouteKey) => {
-  const paths = ADMIN_I18N_PATHS[routeKey];
+  const paths = ADMIN_ROUTE_PATHS[routeKey];
   return Array.from(new Set([paths.fr, paths.en]));
 };
 
 export const getAdminRoutePath = (
   routeKey: AdminRouteKey,
   locale: AdminRouteLocale = "en",
-) => ADMIN_I18N_PATHS[routeKey][locale];
+) => ADMIN_ROUTE_PATHS[routeKey][locale];
 
 export const interpolateAdminRoutePath = (
   path: string,

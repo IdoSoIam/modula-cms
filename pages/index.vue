@@ -3,16 +3,22 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  i18n: false,
+})
+
 import type { ResolvedCmsPage } from '#modula/shared/cms'
 import CmsResolvedPageView from '#modula/components/cms/CmsResolvedPageView.vue'
 
-const { locale } = useI18n()
+const { contentLocale, pathWithoutLocale } = useContentLocale()
 
 const { data: resolvedPage, error } = await useFetch<ResolvedCmsPage>('/api/cms/resolve', {
+  key: computed(() => `cms-entry:${pathWithoutLocale.value}:${contentLocale.value}`),
   query: computed(() => ({
-    path: '/',
-    locale: locale.value
-  }))
+    path: pathWithoutLocale.value,
+    locale: contentLocale.value
+  })),
+  watch: [contentLocale, pathWithoutLocale]
 })
 
 if (error.value) {

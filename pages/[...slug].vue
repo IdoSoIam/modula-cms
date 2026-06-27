@@ -16,6 +16,10 @@ import type { CmsNewsPageSettings } from '#modula/shared/cms'
 import CmsResolvedPageView from '#modula/components/cms/CmsResolvedPageView.vue'
 import NewsListPage from '#modula/components/pages/NewsListPage.vue'
 
+definePageMeta({
+  i18n: false,
+})
+
 const route = useRoute()
 const segments = computed(() => {
   const value = route.params.slug
@@ -23,16 +27,18 @@ const segments = computed(() => {
   if (typeof value === 'string') return [value]
   return []
 })
-const cmsPath = computed(() => `/${segments.value.join('/')}`.replace(/\/+/g, '/'))
-const { locale } = useI18n()
+const { contentLocale, pathWithoutLocale } = useContentLocale()
+const cmsPath = computed(() => pathWithoutLocale.value)
 
 const siteConfig = await ensureSiteConfigState()
 
 const { data: resolvedPage, error } = await useFetch<ResolvedCmsPage>('/api/cms/resolve', {
+  key: computed(() => `cms-resolve:${cmsPath.value}:${contentLocale.value}`),
   query: computed(() => ({
     path: cmsPath.value,
-    locale: locale.value
-  }))
+    locale: contentLocale.value
+  })),
+  watch: [cmsPath, contentLocale]
 })
 
 if (error.value) {

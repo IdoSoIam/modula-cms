@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="card bg-base-100 p-6">
     <div class="mb-6 flex items-center justify-between gap-4">
       <div>
@@ -90,16 +90,11 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import type { ProductCategoryPayload } from '#modula/server/utils/shop'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.shopProductCategories
-  }
-})
+  middleware: 'auth'})
 
 const { t } = useI18n()
 const { $toast } = useNuxtApp() as any

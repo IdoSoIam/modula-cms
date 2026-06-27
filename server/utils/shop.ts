@@ -478,7 +478,7 @@ export function hasLocalizedText(value: CmsLocalizedText | null | undefined) {
 
 export function resolveLocalizedProductText(value: CmsLocalizedText | null | undefined, fallback = '') {
   if (!value) return fallback
-  return value.fr.trim() || value.en.trim() || fallback
+  return (value['fr'] ?? '').trim() || (value['en'] ?? '').trim() || fallback
 }
 
 export function resolveNullableLocalizedProductText(value: CmsLocalizedText | null | undefined, fallback: string | null = null) {
@@ -486,7 +486,7 @@ export function resolveNullableLocalizedProductText(value: CmsLocalizedText | nu
   return resolved.trim() ? resolved : null
 }
 
-export function buildLocalizedProductTextPayload(value: CmsLocalizedText | null | undefined, fallback = '') {
+export function buildLocalizedProductTextPayload(value: unknown, fallback = '') {
   const normalized = normalizeProductLocalizedText(value, fallback)
   return {
     text: resolveLocalizedProductText(normalized, fallback),

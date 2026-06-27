@@ -148,16 +148,18 @@
                 :style="desktopSubmenuStyle"
               >
                 <li v-for="child in item.children" :key="child.navigationItemKey">
-                  <NuxtLink
-                    :to="resolveHref(child)"
-                    :target="child.newTab ? '_blank' : undefined"
-                    :rel="child.newTab ? 'noopener noreferrer' : undefined"
-                    :class="navChildLinkClass(child)"
-                    :style="navChildLinkStyle(child)"
-                    @click="handleNavItemClick($event, child, 'PRIMARY')"
-                  >
-                    {{ resolveLabel(child) }}
-                  </NuxtLink>
+                <NuxtLink
+                  :to="resolveHref(child)"
+                  :target="child.newTab ? '_blank' : undefined"
+                  :rel="child.newTab ? 'noopener noreferrer' : undefined"
+                  :class="[navChildLinkClass(child), isActiveItem(child) ? navActiveStateClass : '']"
+                  :style="navChildLinkStyle(child)"
+                  active-class=""
+                  exact-active-class=""
+                  @click="handleNavItemClick($event, child, 'PRIMARY')"
+                >
+                  {{ resolveLabel(child) }}
+                </NuxtLink>
                 </li>
               </ul>
             </Transition>
@@ -168,8 +170,10 @@
             :to="resolveHref(item)"
             :target="item.newTab ? '_blank' : undefined"
             :rel="item.newTab ? 'noopener noreferrer' : undefined"
-            :class="navLinkClass(item)"
+            :class="[navLinkClass(item), isActiveItem(item) ? navActiveStateClass : '']"
             :style="navLinkStyle(item)"
+            active-class=""
+            exact-active-class=""
             @click="handleNavItemClick($event, item, 'PRIMARY')"
           >
             {{ resolveLabel(item) }}
@@ -211,15 +215,15 @@ const props = withDefaults(defineProps<{
   previewForceMobile: false
 })
 
-const localePath = useLocalePath()
-const { locale } = useI18n()
+const localePath = usePublicLocalePath()
+const { contentLocale } = useContentLocale()
 const route = useRoute()
 const authStore = useAuthStore()
 const { openShellEditor } = useCmsLiveEdit()
 const headerRef = ref<HTMLElement | null>(null)
 const liveEditHydrated = ref(false)
 const siteConfig = useSiteConfigState()
-const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
+const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (contentLocale.value as CmsLocale))
 const effectiveSiteConfig = computed(() => props.previewSiteConfig ?? siteConfig.value)
 const inDevelopment = computed(() => effectiveSiteConfig.value?.inDevelopment === true)
 const cms = computed(() => effectiveSiteConfig.value?.cms)
@@ -377,12 +381,28 @@ const desktopSubmenuStyle = computed(() => ({
   backgroundColor: colorToCss(headerSettings.value.submenuBackgroundColor ?? null) || 'var(--color-base-100)',
   color: colorToCss(headerSettings.value.submenuTextColor ?? null) || 'var(--color-base-content)'
 }))
+const navActiveStateClass = computed(() => {
+  switch (headerSettings.value.navigationStyle) {
+    case 'underline':
+      return '[border-bottom-color:var(--nav-active-accent)]'
+    case 'outline':
+      return '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] border-transparent shadow-sm'
+    default:
+      return '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+  }
+})
 
 const resolveLabel = (item: ResolvedCmsNavigationItem) =>
   effectiveLocale.value === 'en' ? item.labels.en || item.label : item.labels.fr || item.label
 
 const resolveHref = (item: ResolvedCmsNavigationItem) =>
   item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)
+
+const normalizeComparablePath = (value: string | null | undefined) => {
+  const source = String(value || '/').trim()
+  if (!source || source === '/') return '/'
+  return `/${source.replace(/^\/+|\/+$/g, '')}`
+}
 
 const isDesktopGroupOpen = (key: string) => desktopOpenGroupKeys.value.includes(key)
 
@@ -415,48 +435,40 @@ const isActiveItem = (item: ResolvedCmsNavigationItem): boolean => {
   }
 
   if (item.itemType === 'EXTERNAL_URL') return false
-  const href = localePath(item.href)
-  return route.path === href || (item.href !== '/' && route.path.startsWith(`${href}/`))
+  const href = normalizeComparablePath(localePath(item.href))
+  const currentPath = normalizeComparablePath(route.path)
+  const localeRootPath = normalizeComparablePath(localePath('/'))
+  if (href === '/') {
+    return currentPath === '/'
+  }
+  if (href === localeRootPath) {
+    return currentPath === href
+  }
+  return currentPath === href || currentPath.startsWith(`${href}/`)
 }
 
 const navLinkClass = (item: ResolvedCmsNavigationItem) => {
-  const active = isActiveItem(item)
   const base = 'inline-flex min-h-11 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer'
   switch (headerSettings.value.navigationStyle) {
     case 'menu':
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'underline':
-      return `${base} rounded-none border-b-2 border-transparent px-2 ${active
-        ? '[border-bottom-color:var(--nav-active-accent)] [color:var(--nav-active-text)]'
-        : 'hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-none border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]`
     case 'soft':
-      return `${base} rounded-full ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-full border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'outline':
-      return `${base} rounded-full border ${active
-        ? '[border-color:var(--nav-active-accent)] [background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-full border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'solid':
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     default:
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
   }
 }
 
 const navChildLinkClass = (item: ResolvedCmsNavigationItem) => {
-  const active = isActiveItem(item)
   return [
     'block rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150',
-    active
-      ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-      : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'
+    'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'
   ]
 }
 

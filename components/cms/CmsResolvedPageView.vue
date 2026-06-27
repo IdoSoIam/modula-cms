@@ -87,10 +87,13 @@ const PageEditModal = defineAsyncComponent(() => import('#modula/components/page
 
 const route = useRoute()
 const router = useRouter()
-const { locale } = useI18n()
+const { contentLocale } = useContentLocale()
 const authStore = useAuthStore()
 const { $toast } = useNuxtApp() as any
 const cloneCmsData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+
+const locale = computed(() => contentLocale.value)
+const currentLocale = computed<CmsLocale>(() => contentLocale.value)
 
 const editableResolvedPage = ref<ResolvedCmsPage>(cloneCmsData(props.resolvedPage))
 const editorPage = ref<CmsPageEditor | null>(null)
@@ -102,8 +105,6 @@ const liveEditHydrated = ref(false)
 const savedEditorSnapshot = ref('')
 const savedResolvedPageState = ref<ResolvedCmsPage | null>(null)
 const savedEditorPageState = ref<CmsPageEditor | null>(null)
-
-const currentLocale = computed<CmsLocale>(() => locale.value === 'en' ? 'en' : 'fr')
 const wantsLiveEdit = computed(() => route.query.liveEdit === '1')
 const liveEditEnabled = computed(() =>
   liveEditHydrated.value

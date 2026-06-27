@@ -141,9 +141,15 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  i18n: false,
+})
+
 import { formatLocalizedDate } from '#modula/shared/date'
-const localePath = useLocalePath()
-const { t, locale } = useI18n()
+const localePath = usePublicLocalePath()
+const { t } = useI18n()
+const { contentLocale } = useContentLocale()
+const locale = computed(() => contentLocale.value)
 
 useNoIndexSeo(
   computed(() => t('pages.reservationManage.title')),
@@ -225,7 +231,7 @@ const introText = computed(() => {
 })
 
 const formatDate = (value: string) =>
-  formatLocalizedDate(value, locale.value, {
+  formatLocalizedDate(value, contentLocale.value, {
     weekday: 'long',
     day: '2-digit',
     month: 'long',

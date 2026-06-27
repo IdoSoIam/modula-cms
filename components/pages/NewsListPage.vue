@@ -112,8 +112,10 @@ const props = defineProps<{
   preview?: boolean
 }>()
 
-const { locale, t } = useI18n()
-const localePath = useLocalePath()
+const { t } = useI18n()
+const { contentLocale } = useContentLocale()
+const locale = contentLocale
+const localePath = usePublicLocalePath()
 const router = useRouter()
 
 const showArticles = true

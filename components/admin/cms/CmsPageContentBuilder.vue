@@ -1018,14 +1018,14 @@ const itemSummary = (item: PageBuilderColumnItem) => {
   }
 }
 
-const cardSummary = (card: { elements?: Array<{ title: { fr: string, en: string }, text: { fr: string, en: string } }>, title: { fr: string, en: string }, text: { fr: string, en: string } }) =>
-  card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.title.fr
-  || card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.title.en
-  || card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.text.fr
-  || card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.text.en
-  || card.title.fr || card.title.en || card.text.fr || card.text.en || 'Carte sans contenu'
+const cardSummary = (card: PageBuilderCard) =>
+  card.elements?.find(element => element.title['fr'] || element.title['en'] || element.text['fr'] || element.text['en'])?.title['fr']
+  || card.elements?.find(element => element.title['fr'] || element.title['en'] || element.text['fr'] || element.text['en'])?.title['en']
+  || card.elements?.find(element => element.title['fr'] || element.title['en'] || element.text['fr'] || element.text['en'])?.text['fr']
+  || card.elements?.find(element => element.title['fr'] || element.title['en'] || element.text['fr'] || element.text['en'])?.text['en']
+  || card.title['fr'] || card.title['en'] || card.text['fr'] || card.text['en'] || 'Carte sans contenu'
 
-const addCard = (cards: Array<{ id: string, elements: Array<{ id: string, source: string, title: { fr: string, en: string }, text: { fr: string, en: string } }> }>) => {
+const addCard = (cards: PageBuilderCard[]) => {
   const newId = createId('card')
   cards.push({
     ...createEmptyCard(newId),

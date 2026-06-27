@@ -50,9 +50,15 @@
 </template>
 
 <script setup lang="ts">
-const { locale, t } = useI18n()
+definePageMeta({
+  i18n: false,
+})
+
+const { t } = useI18n()
+const { contentLocale } = useContentLocale()
+const locale = computed(() => contentLocale.value)
 const router = useRouter()
-const localePath = useLocalePath()
+const localePath = usePublicLocalePath()
 const authStore = useAuthStore()
 const siteConfig = useSiteConfigState()
 const { $toast } = useNuxtApp() as any
@@ -92,12 +98,12 @@ async function submit() {
       password: form.password,
       firstName: form.firstName,
       lastName: form.lastName,
-      language: locale.value
+      language: contentLocale.value
     })
-    $toast.success(locale.value === 'en' ? 'Account created successfully.' : 'Compte créé avec succès.')
+    $toast.success(contentLocale.value === 'en' ? 'Account created successfully.' : 'Compte créé avec succès.')
     await router.push(localePath('/profile'))
   } catch (error: any) {
-    $toast.error(error?.data?.statusMessage || error?.statusMessage || (locale.value === 'en' ? 'Unable to create account.' : 'Impossible de créer le compte.'))
+    $toast.error(error?.data?.statusMessage || error?.statusMessage || (contentLocale.value === 'en' ? 'Unable to create account.' : 'Impossible de créer le compte.'))
   } finally {
     pending.value = false
   }

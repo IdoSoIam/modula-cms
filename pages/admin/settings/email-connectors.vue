@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <h1 class="mb-6 text-3xl font-bold">{{ t('admin.emailConnectorsPage.title') }}</h1>
 
@@ -355,15 +355,10 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.settingsEmailConnectors
-  }
-})
+  middleware: 'auth'})
 
 interface Template {
   subject: string

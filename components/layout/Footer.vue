@@ -136,14 +136,14 @@ const siteConfigState = useSiteConfigState()
 const route = useRoute()
 const authStore = useAuthStore()
 const { openShellEditor } = useCmsLiveEdit()
-const { locale } = useI18n()
+const { contentLocale } = useContentLocale()
 const liveEditHydrated = ref(false)
 
 if (process.server && !siteConfigState.value) {
   await ensureSiteConfigState()
 }
 
-const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
+const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (contentLocale.value as CmsLocale))
 const siteConfig = computed(() => (props.previewSiteConfig ?? siteConfigState.value) as SiteConfig | null)
 const cms = computed(() => siteConfig.value?.cms)
 const defaultSettings = createDefaultCmsSiteSettings()
@@ -276,7 +276,7 @@ const getNavigationItems = (menu: 'PRIMARY' | 'FOOTER') => {
     : (cms.value?.navigation.footer || [])
 }
 
-const localePath = useLocalePath()
+const localePath = usePublicLocalePath()
 
 const handleFooterNavClick = (event: Event, key: string) => {
   if (!shellLiveEditEnabled.value) return

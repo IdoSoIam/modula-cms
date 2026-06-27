@@ -34,8 +34,12 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  i18n: false,
+})
+
 const route = useRoute()
-const localePath = useLocalePath()
+const localePath = usePublicLocalePath()
 const { clear } = useShopCart()
 const orderId = computed(() => typeof route.query.order === 'string' ? route.query.order : '')
 const sessionId = computed(() => typeof route.query.session_id === 'string' ? route.query.session_id : '')

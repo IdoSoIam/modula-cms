@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -117,16 +117,11 @@
 import AdminUserEditModal from '#modula/components/admin/AdminUserEditModal.vue'
 import DataTable from '#modula/components/admin/DataTable.vue'
 import MemberRoleMultiSelect from '#modula/components/admin/MemberRoleMultiSelect.vue'
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import { useAuthStore } from '#modula/stores/auth'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.settingsUsers
-  }
-})
+  middleware: 'auth'})
 
 interface Column {
   key: string

@@ -36,7 +36,9 @@ function formatTimeForLocale(value: string | null | undefined, locale: string) {
 }
 
 export function useSalesInfo() {
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
+  const { contentLocale } = useContentLocale()
+  const locale = computed(() => contentLocale.value)
 
   const getDayLabel = (dayOfWeek?: number | null) => {
     if (typeof dayOfWeek !== 'number' || dayOfWeek < 0 || dayOfWeek > 6) return ''

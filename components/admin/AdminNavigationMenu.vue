@@ -3,7 +3,7 @@
     <template v-for="section in sections" :key="section.id">
       <NuxtLink
         v-if="section.items.length === 1"
-        :to="localePath(section.items[0]!.path)"
+        :to="section.items[0]!.path"
         class="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition"
         :class="linkClass(section.items[0]!)"
       >
@@ -32,7 +32,7 @@
           <NuxtLink
             v-for="item in section.items"
             :key="item.id"
-            :to="localePath(item.path)"
+            :to="item.path"
             class="flex min-h-10 cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition"
             :class="linkClass(item)"
           >
@@ -53,7 +53,7 @@
         <NuxtLink
           v-for="item in section.items"
           :key="item.id"
-          :to="localePath(item.path)"
+          :to="item.path"
           class="block cursor-pointer rounded-lg px-3 py-2 text-sm transition hover:bg-base-200"
           :class="isActive(item) ? 'bg-base-200 font-medium text-primary' : ''"
         >
@@ -76,17 +76,23 @@ const props = withDefaults(defineProps<{
   collapsed: false
 })
 
-const localePath = useLocalePath()
 const route = useRoute()
 const { t } = useI18n()
 const openSectionIds = ref<string[]>([])
 
+const normalizePath = (value: string) => {
+  const source = String(value || '/').trim()
+  if (!source || source === '/') return '/'
+  return `/${source.replace(/^\/+|\/+$/g, '')}`
+}
+
 const matchesPath = (path: string) => {
-  const localizedPath = localePath(path)
-  if (localizedPath === localePath('/admin')) {
-    return route.path === localizedPath
+  const candidatePath = normalizePath(path)
+  const currentPath = normalizePath(route.path)
+  if (candidatePath === '/admin') {
+    return currentPath === candidatePath
   }
-  return route.path === localizedPath || route.path.startsWith(`${localizedPath}/`)
+  return currentPath === candidatePath || currentPath.startsWith(`${candidatePath}/`)
 }
 
 const isActive = (item: AdminNavigationItem) => {

@@ -5,7 +5,7 @@ interface PublicSiteConfigState {
   project?: {
     key: string
     displayName: string
-    defaultLocale: 'fr' | 'en'
+    defaultLocale: string
   }
   installRequired?: boolean
   runtimeCompatible?: boolean
@@ -46,6 +46,8 @@ interface PublicSiteConfigState {
   cms?: PublicSiteShell | null
   themes?: PublicDaisyUiThemeConfig | null
   constructionPagePath?: string | null
+  siteLocales?: string[]
+  localeLabels?: Record<string, { short: string; long: string }>
 }
 
 interface SiteConfigNuxtApp {

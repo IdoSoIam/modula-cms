@@ -19,7 +19,10 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
+definePageMeta({
+  layout: 'default',
+  i18n: false,
+})
 import { formatLocalizedDate } from '#modula/shared/date'
 
 interface Article {
@@ -33,8 +36,10 @@ interface Article {
 }
 
 const route = useRoute()
-const { locale, t } = useI18n()
-const localePath = useLocalePath()
+const { t } = useI18n()
+const { contentLocale } = useContentLocale()
+const locale = computed(() => contentLocale.value)
+const localePath = usePublicLocalePath()
 const slug = computed(() => String(route.params.slug))
 
 const { data: article } = await useFetch<Article>(() => `/api/articles/${slug.value}`, {
@@ -44,7 +49,7 @@ const { data: article } = await useFetch<Article>(() => `/api/articles/${slug.va
 })
 
 const formatDate = (s: string) =>
-  formatLocalizedDate(s, locale.value, { day: '2-digit', month: 'long', year: 'numeric' })
+  formatLocalizedDate(s, contentLocale.value, { day: '2-digit', month: 'long', year: 'numeric' })
 
 const articleDescription = computed(() => {
   if (!article.value) return ''

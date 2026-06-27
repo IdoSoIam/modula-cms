@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div v-if="model" class="min-w-0 space-y-8">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
@@ -517,7 +517,6 @@ import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-build
 import Footer from '#modula/components/layout/Footer.vue'
 import MobileMenu from '#modula/components/layout/MobileMenu.vue'
 import Navigation from '#modula/components/layout/Navigation.vue'
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import {
   CMS_FOOTER_ALIGN_LABELS,
   CMS_FOOTER_CONTAINER_ALIGN_LABELS,
@@ -541,11 +540,7 @@ import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS, VERTICAL_ALIG
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.customizationLayout
-  }
-})
+  middleware: 'auth'})
 
 interface SiteShellModel {
   settings: CmsSiteSettings

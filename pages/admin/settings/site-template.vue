@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div v-if="ready" class="space-y-8">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
@@ -254,7 +254,7 @@
                 </button>
 
                 <button
-                  class="btn btn-secondary"
+                  class="btn btn-secondary text-primary-content"
                   :disabled="creatingTemplate || !canCreateSelectedTemplate"
                   @click="openCreateTemplateModal"
                 >
@@ -364,7 +364,6 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import type { CmsLocalizedText } from '#modula/shared/cms'
 import type {
   CmsRegistryCapabilities,
@@ -381,11 +380,7 @@ import {
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.settingsSiteTemplate
-  }
-})
+  middleware: 'auth'})
 
 interface SiteTemplatePageModel {
   currentTemplateKey: CmsSiteTemplateKey | null
@@ -685,12 +680,12 @@ function buildTemplatePayload() {
     icon: templateForm.icon.trim() || 'mdi:view-dashboard-edit-outline',
     previewImage: templateForm.previewImage.trim(),
     label: {
-      fr: templateForm.label.fr.trim() || effectiveSlug.value,
-      en: templateForm.label.en.trim() || effectiveSlug.value
+      fr: (templateForm.label.fr?.trim() || effectiveSlug.value) ?? '',
+      en: (templateForm.label.en?.trim() || effectiveSlug.value) ?? ''
     },
     description: {
-      fr: templateForm.description.fr.trim(),
-      en: templateForm.description.en.trim()
+      fr: templateForm.description.fr?.trim() ?? '',
+      en: templateForm.description.en?.trim() ?? ''
     }
   }
 }
@@ -727,10 +722,10 @@ function buildUniqueTemplateSlug(baseValue: string) {
 function buildCreateTemplatePayload() {
   const requestedSlug = createTemplateForm.slug.trim()
   const generatedSlug = buildUniqueTemplateSlug(
-    createTemplateForm.label.fr.trim()
-    || createTemplateForm.label.en.trim()
-    || templateForm.label.fr.trim()
-    || templateForm.label.en.trim()
+    createTemplateForm.label.fr?.trim()
+    || createTemplateForm.label.en?.trim()
+    || templateForm.label.fr?.trim()
+    || templateForm.label.en?.trim()
     || selectedTemplateDefinition.value?.key
     || 'site-template'
   )
@@ -742,12 +737,12 @@ function buildCreateTemplatePayload() {
     icon: createTemplateForm.icon.trim() || 'mdi:view-dashboard-edit-outline',
     previewImage: createTemplateForm.previewImage.trim(),
     label: {
-      fr: createTemplateForm.label.fr.trim() || finalSlug,
-      en: createTemplateForm.label.en.trim() || finalSlug
+      fr: createTemplateForm.label.fr?.trim() || finalSlug,
+      en: createTemplateForm.label.en?.trim() || finalSlug
     },
     description: {
-      fr: createTemplateForm.description.fr.trim(),
-      en: createTemplateForm.description.en.trim()
+      fr: createTemplateForm.description.fr?.trim() ?? '',
+      en: createTemplateForm.description.en?.trim() ?? ''
     },
     scope: createTemplateForm.scope
   }
@@ -757,10 +752,10 @@ function openCreateTemplateModal() {
   createTemplateForm.slug = ''
   createTemplateForm.icon = templateForm.icon.trim() || 'mdi:view-dashboard-edit-outline'
   createTemplateForm.previewImage = templateForm.previewImage.trim()
-  createTemplateForm.label.fr = templateForm.label.fr.trim() || selectedTemplateDefinition.value?.label.fr || ''
-  createTemplateForm.label.en = templateForm.label.en.trim() || selectedTemplateDefinition.value?.label.en || ''
-  createTemplateForm.description.fr = templateForm.description.fr.trim()
-  createTemplateForm.description.en = templateForm.description.en.trim()
+  createTemplateForm.label.fr = templateForm.label.fr?.trim() || selectedTemplateDefinition.value?.label.fr || ''
+  createTemplateForm.label.en = templateForm.label.en?.trim() || selectedTemplateDefinition.value?.label.en || ''
+  createTemplateForm.description.fr = templateForm.description.fr?.trim() ?? ''
+  createTemplateForm.description.en = templateForm.description.en?.trim() ?? ''
   createTemplateForm.scope = capabilities.canManageCustomTemplates ? 'custom' : 'system'
   createTemplateDialogRef.value?.showModal()
 }

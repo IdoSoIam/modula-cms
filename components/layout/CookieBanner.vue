@@ -88,8 +88,10 @@ import type { CmsCookieServiceCategory } from '#modula/shared/cms'
 import { pickCmsLocalizedText } from '#modula/shared/cms'
 import { serializeCookieConsent, useCookieConsentCookie } from '#modula/composables/useCookieConsent'
 
-const { locale, t } = useI18n()
-const localePath = useLocalePath()
+const { t } = useI18n()
+const { contentLocale } = useContentLocale()
+const locale = computed(() => contentLocale.value)
+const localePath = usePublicLocalePath()
 const siteConfigState = useSiteConfigState()
 
 if (process.server && !siteConfigState.value) {

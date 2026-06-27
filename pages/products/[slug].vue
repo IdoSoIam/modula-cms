@@ -215,11 +215,15 @@ import type { ProductDetailField, ProductDetailSection, ProductPayload } from '#
 import { useShopCart } from '#modula/composables/useShopCart'
 import RentalAvailabilityModal from '#modula/components/shop/RentalAvailabilityModal.vue'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({
+  layout: 'default',
+  i18n: false,
+})
 
 const route = useRoute()
-const localePath = useLocalePath()
-const { locale } = useI18n()
+const localePath = usePublicLocalePath()
+const { contentLocale } = useContentLocale()
+const locale = computed(() => contentLocale.value)
 const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
 const { add } = useShopCart()
 const slug = computed(() => String(route.params.slug || ''))
@@ -231,7 +235,7 @@ const { data } = await useFetch<{
   onResponseError: () => {
     throw createError({
       statusCode: 404,
-      statusMessage: locale.value === 'en' ? 'Product not found' : 'Produit introuvable'
+      statusMessage: contentLocale.value === 'en' ? 'Product not found' : 'Produit introuvable'
     })
   }
 })
@@ -243,82 +247,82 @@ const rentalModalOpen = ref(false)
 const selectedRentalStartDate = ref('')
 const selectedRentalEndDate = ref('')
 
-const backLabel = computed(() => locale.value === 'en' ? 'Back to shop' : 'Retour à la boutique')
-const saleLabel = computed(() => locale.value === 'en' ? 'Sale' : 'Vente')
-const rentalLabel = computed(() => locale.value === 'en' ? 'Rental' : 'Location')
-const offlineLabel = computed(() => locale.value === 'en' ? 'Offline payment' : 'Paiement hors ligne')
-const onlineLabel = computed(() => locale.value === 'en' ? 'Online payment' : 'Paiement en ligne')
-const priceLabel = computed(() => locale.value === 'en' ? 'Price' : 'Prix')
-const descriptionTitle = computed(() => locale.value === 'en' ? 'Description' : 'Description')
-const noDescriptionLabel = computed(() => locale.value === 'en' ? 'No detailed description available yet.' : 'Aucune description détaillée n’est encore renseignée.')
-const detailsTitle = computed(() => locale.value === 'en' ? 'Product details' : 'Détails du produit')
-const categoryLabel = computed(() => locale.value === 'en' ? 'Category' : 'Catégorie')
-const stockLabel = computed(() => locale.value === 'en' ? 'Available stock' : 'Stock disponible')
-const vatLabel = computed(() => locale.value === 'en' ? 'VAT' : 'TVA')
-const typeLabel = computed(() => locale.value === 'en' ? 'Offer type' : 'Type d’offre')
-const paymentLabel = computed(() => locale.value === 'en' ? 'Payment' : 'Paiement')
-const noneLabel = computed(() => locale.value === 'en' ? 'None' : 'Aucun')
-const moreDetailsTitle = computed(() => locale.value === 'en' ? 'More details' : 'Informations detaillees')
-const rentalConditionsTitle = computed(() => locale.value === 'en' ? 'Rental conditions' : 'Conditions de location')
-const rentalAvailabilityLabel = computed(() => locale.value === 'en' ? 'Availability' : 'Disponibilité')
-const rentalMinLabel = computed(() => locale.value === 'en' ? 'Minimum duration' : 'Durée minimale')
-const rentalMaxLabel = computed(() => locale.value === 'en' ? 'Maximum duration' : 'Durée maximale')
-const relatedTitle = computed(() => locale.value === 'en' ? 'You may also like' : 'Autres produits liés')
-const browseLabel = computed(() => locale.value === 'en' ? 'Browse shop' : 'Voir la boutique')
-const actionTitle = computed(() => locale.value === 'en' ? 'Order' : 'Commander')
+const backLabel = computed(() => contentLocale.value === 'en' ? 'Back to shop' : 'Retour à la boutique')
+const saleLabel = computed(() => contentLocale.value === 'en' ? 'Sale' : 'Vente')
+const rentalLabel = computed(() => contentLocale.value === 'en' ? 'Rental' : 'Location')
+const offlineLabel = computed(() => contentLocale.value === 'en' ? 'Offline payment' : 'Paiement hors ligne')
+const onlineLabel = computed(() => contentLocale.value === 'en' ? 'Online payment' : 'Paiement en ligne')
+const priceLabel = computed(() => contentLocale.value === 'en' ? 'Price' : 'Prix')
+const descriptionTitle = computed(() => contentLocale.value === 'en' ? 'Description' : 'Description')
+const noDescriptionLabel = computed(() => contentLocale.value === 'en' ? 'No detailed description available yet.' : 'Aucune description détaillée n’est encore renseignée.')
+const detailsTitle = computed(() => contentLocale.value === 'en' ? 'Product details' : 'Détails du produit')
+const categoryLabel = computed(() => contentLocale.value === 'en' ? 'Category' : 'Catégorie')
+const stockLabel = computed(() => contentLocale.value === 'en' ? 'Available stock' : 'Stock disponible')
+const vatLabel = computed(() => contentLocale.value === 'en' ? 'VAT' : 'TVA')
+const typeLabel = computed(() => contentLocale.value === 'en' ? 'Offer type' : 'Type d’offre')
+const paymentLabel = computed(() => contentLocale.value === 'en' ? 'Payment' : 'Paiement')
+const noneLabel = computed(() => contentLocale.value === 'en' ? 'None' : 'Aucun')
+const moreDetailsTitle = computed(() => contentLocale.value === 'en' ? 'More details' : 'Informations detaillees')
+const rentalConditionsTitle = computed(() => contentLocale.value === 'en' ? 'Rental conditions' : 'Conditions de location')
+const rentalAvailabilityLabel = computed(() => contentLocale.value === 'en' ? 'Availability' : 'Disponibilité')
+const rentalMinLabel = computed(() => contentLocale.value === 'en' ? 'Minimum duration' : 'Durée minimale')
+const rentalMaxLabel = computed(() => contentLocale.value === 'en' ? 'Maximum duration' : 'Durée maximale')
+const relatedTitle = computed(() => contentLocale.value === 'en' ? 'You may also like' : 'Autres produits liés')
+const browseLabel = computed(() => contentLocale.value === 'en' ? 'Browse shop' : 'Voir la boutique')
+const actionTitle = computed(() => contentLocale.value === 'en' ? 'Order' : 'Commander')
 const actionIntro = computed(() => {
   if (!product.value) return ''
   return product.value.saleType === 'RENTAL'
-    ? (locale.value === 'en' ? 'Choose a rental period, then add this product to the cart.' : 'Choisissez une période de location puis ajoutez ce produit au panier.')
-    : (locale.value === 'en' ? 'Adjust the quantity, then add this product to the cart.' : 'Ajustez la quantité puis ajoutez ce produit au panier.')
+    ? (contentLocale.value === 'en' ? 'Choose a rental period, then add this product to the cart.' : 'Choisissez une période de location puis ajoutez ce produit au panier.')
+    : (contentLocale.value === 'en' ? 'Adjust the quantity, then add this product to the cart.' : 'Ajustez la quantité puis ajoutez ce produit au panier.')
 })
-const quantityLabel = computed(() => locale.value === 'en' ? 'Quantity' : 'Quantité')
-const selectedPeriodTitle = computed(() => locale.value === 'en' ? 'Selected rental period' : 'Période de location choisie')
-const chooseRentalPeriodLabel = computed(() => locale.value === 'en' ? 'Choose rental period' : 'Choisir la période')
+const quantityLabel = computed(() => contentLocale.value === 'en' ? 'Quantity' : 'Quantité')
+const selectedPeriodTitle = computed(() => contentLocale.value === 'en' ? 'Selected rental period' : 'Période de location choisie')
+const chooseRentalPeriodLabel = computed(() => contentLocale.value === 'en' ? 'Choose rental period' : 'Choisir la période')
 const selectedPeriodSummary = computed(() => {
   if (!selectedRentalStartDate.value || !selectedRentalEndDate.value) {
-    return locale.value === 'en' ? 'No rental period selected yet.' : 'Aucune période de location sélectionnée pour le moment.'
+    return contentLocale.value === 'en' ? 'No rental period selected yet.' : 'Aucune période de location sélectionnée pour le moment.'
   }
   return `${$formatDate(selectedRentalStartDate.value)} → ${$formatDate(selectedRentalEndDate.value)}`
 })
-const addRentalLabel = computed(() => locale.value === 'en' ? 'Add rental to cart' : 'Ajouter la location au panier')
-const addToCartLabel = computed(() => locale.value === 'en' ? 'Add to cart' : 'Ajouter au panier')
-const soldOutLabel = computed(() => locale.value === 'en' ? 'Sold out' : 'Épuisé')
-const cartLabel = computed(() => locale.value === 'en' ? 'View cart' : 'Voir le panier')
+const addRentalLabel = computed(() => contentLocale.value === 'en' ? 'Add rental to cart' : 'Ajouter la location au panier')
+const addToCartLabel = computed(() => contentLocale.value === 'en' ? 'Add to cart' : 'Ajouter au panier')
+const soldOutLabel = computed(() => contentLocale.value === 'en' ? 'Sold out' : 'Épuisé')
+const cartLabel = computed(() => contentLocale.value === 'en' ? 'View cart' : 'Voir le panier')
 
 function getLocalizedProductName(entry: ProductPayload | null | undefined) {
   if (!entry) return ''
-  return pickCmsLocalizedText(locale.value, entry.nameLocalized) || entry.name || ''
+  return pickCmsLocalizedText(contentLocale.value, entry.nameLocalized) || entry.name || ''
 }
 
 function getLocalizedProductExcerpt(entry: ProductPayload | null | undefined) {
   if (!entry) return ''
-  return pickCmsLocalizedText(locale.value, entry.excerptLocalized) || entry.excerpt || ''
+  return pickCmsLocalizedText(contentLocale.value, entry.excerptLocalized) || entry.excerpt || ''
 }
 
 function getLocalizedProductDescription(entry: ProductPayload | null | undefined) {
   if (!entry) return ''
-  return pickCmsLocalizedText(locale.value, entry.descriptionLocalized) || entry.description || ''
+  return pickCmsLocalizedText(contentLocale.value, entry.descriptionLocalized) || entry.description || ''
 }
 
 function getLocalizedProductUnitLabel(entry: ProductPayload | null | undefined) {
   if (!entry) return ''
-  return pickCmsLocalizedText(locale.value, entry.unitLabelLocalized) || entry.unitLabel || ''
+  return pickCmsLocalizedText(contentLocale.value, entry.unitLabelLocalized) || entry.unitLabel || ''
 }
 
 function getLocalizedSectionTitle(section: ProductDetailSection | null | undefined) {
   if (!section) return ''
-  return pickCmsLocalizedText(locale.value, section.titleLocalized) || section.title || ''
+  return pickCmsLocalizedText(contentLocale.value, section.titleLocalized) || section.title || ''
 }
 
 function getLocalizedDetailLabel(item: ProductDetailField | null | undefined) {
   if (!item) return ''
-  return pickCmsLocalizedText(locale.value, item.labelLocalized) || item.label || ''
+  return pickCmsLocalizedText(contentLocale.value, item.labelLocalized) || item.label || ''
 }
 
 function getLocalizedDetailValue(item: ProductDetailField | null | undefined) {
   if (!item) return ''
-  return pickCmsLocalizedText(locale.value, item.valueLocalized) || item.value || ''
+  return pickCmsLocalizedText(contentLocale.value, item.valueLocalized) || item.value || ''
 }
 
 const maxQuantity = computed(() => {
@@ -329,7 +333,7 @@ const maxQuantity = computed(() => {
 const paymentModesSummary = computed(() => {
   if (!product.value) return ''
   if (product.value.allowOfflinePayment && product.value.allowOnlinePayment) {
-    return locale.value === 'en' ? 'Offline or online' : 'Sur place ou en ligne'
+    return contentLocale.value === 'en' ? 'Offline or online' : 'Sur place ou en ligne'
   }
   if (product.value.allowOnlinePayment) return onlineLabel.value
   if (product.value.allowOfflinePayment) return offlineLabel.value
@@ -342,20 +346,20 @@ const rentalAvailabilitySummary = computed(() => {
   if (product.value.rentalAvailableFrom) parts.push($formatDate(product.value.rentalAvailableFrom))
   if (product.value.rentalAvailableTo) parts.push($formatDate(product.value.rentalAvailableTo))
   if (!parts.length) {
-    return locale.value === 'en' ? 'No date restriction' : 'Pas de restriction de dates'
+    return contentLocale.value === 'en' ? 'No date restriction' : 'Pas de restriction de dates'
   }
   return parts.join(' → ')
 })
 
 const rentalMinSummary = computed(() => {
   const value = Number(product.value?.rentalMinDays || 1)
-  return locale.value === 'en' ? `${value} day(s)` : `${value} jour(s)`
+  return contentLocale.value === 'en' ? `${value} day(s)` : `${value} jour(s)`
 })
 
 const rentalMaxSummary = computed(() => {
   const value = product.value?.rentalMaxDays
-  if (value == null) return locale.value === 'en' ? 'No maximum' : 'Aucun maximum'
-  return locale.value === 'en' ? `${value} day(s)` : `${value} jour(s)`
+  if (value == null) return contentLocale.value === 'en' ? 'No maximum' : 'Aucun maximum'
+  return contentLocale.value === 'en' ? `${value} day(s)` : `${value} jour(s)`
 })
 
 const canAddRentalToCart = computed(() =>
@@ -372,7 +376,7 @@ watch(product, (value) => {
 }, { immediate: true })
 
 usePageSeo({
-  title: computed(() => getLocalizedProductName(product.value) || (locale.value === 'en' ? 'Product' : 'Produit')),
+  title: computed(() => getLocalizedProductName(product.value) || (contentLocale.value === 'en' ? 'Product' : 'Produit')),
   description: computed(() => getLocalizedProductExcerpt(product.value) || getLocalizedProductDescription(product.value) || '')
 })
 
@@ -407,7 +411,7 @@ function addSaleToCart() {
     unitPrice: product.value.price,
     totalPrice: product.value.price * quantity.value
   })
-  $toast.success(locale.value === 'en' ? 'Added to cart' : 'Ajouté au panier')
+  $toast.success(contentLocale.value === 'en' ? 'Added to cart' : 'Ajouté au panier')
 }
 
 function addRentalToCart() {
@@ -433,6 +437,6 @@ function addRentalToCart() {
     unitPrice: product.value.price,
     totalPrice: product.value.price * quantity.value
   })
-  $toast.success(locale.value === 'en' ? 'Rental added to cart' : 'Location ajoutée au panier')
+  $toast.success(contentLocale.value === 'en' ? 'Rental added to cart' : 'Location ajoutée au panier')
 }
 </script>

@@ -19,8 +19,12 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  i18n: false,
+})
+
 const router = useRouter()
-const localePath = useLocalePath()
+const localePath = usePublicLocalePath()
 const siteConfig = useSiteConfigState()
 const registerEnabled = computed(() => siteConfig.value?.registerEnabled === true)
 

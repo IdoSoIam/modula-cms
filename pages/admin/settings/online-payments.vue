@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -187,15 +187,11 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from "#modula/shared/adminRoutes";
 import type { CmsRegistryPaymentConfig } from "#modula/shared/registry";
 
 definePageMeta({
   layout: "admin",
   middleware: "auth",
-  i18n: {
-    paths: ADMIN_I18N_PATHS.settingsOnlinePayments,
-  },
 });
 
 interface SettingsData {

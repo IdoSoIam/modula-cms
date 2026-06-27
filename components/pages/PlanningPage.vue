@@ -142,8 +142,9 @@ const props = withDefaults(defineProps<{
   preview: false
 })
 
-const { locale } = useI18n()
-const localePath = useLocalePath()
+const { contentLocale } = useContentLocale()
+const locale = contentLocale
+const localePath = usePublicLocalePath()
 const siteConfig = await useSiteConfig()
 const authStore = useAuthStore()
 const defaultSettings = createDefaultCmsSiteSettings().planningPage

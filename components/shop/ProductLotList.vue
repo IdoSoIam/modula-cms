@@ -82,7 +82,7 @@ defineEmits<{
   add: [productLot: ProductLotPayload]
 }>()
 
-const { locale } = useI18n()
+const { contentLocale } = useContentLocale()
 const getLocalizedNestedProductName = (lot: ProductLotPayload['items'][number]) =>
-  pickCmsLocalizedText(locale.value, lot.product?.nameLocalized) || lot.product?.name || ''
+  pickCmsLocalizedText(contentLocale.value, lot.product?.nameLocalized) || lot.product?.name || ''
 </script>

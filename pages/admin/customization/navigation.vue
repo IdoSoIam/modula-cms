@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div v-if="model" class="space-y-8">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
@@ -120,16 +120,11 @@
 
 <script setup lang="ts">
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import { createDefaultCmsNavigationItems, type CmsLocalizedText, type CmsNavigationItemPayload, type CmsSiteSettings } from '#modula/shared/cms'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.customizationNavigation
-  }
-})
+  middleware: 'auth'})
 
 interface SiteShellModel {
   settings: CmsSiteSettings

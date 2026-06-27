@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-8">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
@@ -189,17 +189,12 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import type { DaisyUiThemeColors, DaisyUiThemeConfig, DaisyUiThemeDefinition, DaisyUiThemeTokens } from '#modula/shared/themes'
 import { createEmptyDaisyUiThemeDefinition, renderDaisyUiThemeCss } from '#modula/shared/themes'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.customizationThemes
-  }
-})
+  middleware: 'auth'})
 
 type ColorFieldKey = keyof DaisyUiThemeColors
 type TokenFieldKey = keyof DaisyUiThemeTokens

@@ -89,7 +89,8 @@ const emit = defineEmits<{
   confirm: [{ rentalStartDate: string, rentalEndDate: string }]
 }>()
 
-const { locale } = useI18n()
+const { contentLocale } = useContentLocale()
+const locale = computed(() => contentLocale.value)
 const { $toast } = useNuxtApp() as any
 const dialogRef = ref<HTMLDialogElement | null>(null)
 const currentMonth = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1))

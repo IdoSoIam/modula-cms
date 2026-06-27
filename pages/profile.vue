@@ -407,10 +407,11 @@
 import { useAuthStore } from '#modula/stores/auth'
 
 definePageMeta({
-  middleware: 'auth'
+  i18n: false,
+  middleware: 'auth',
 })
 
-const localePath = useLocalePath()
+const localePath = usePublicLocalePath()
 const route = useRoute()
 const authStore = useAuthStore()
 const { $toast } = useNuxtApp() as any

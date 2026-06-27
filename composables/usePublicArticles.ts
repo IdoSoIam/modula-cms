@@ -8,11 +8,11 @@ export interface NewsArticleSummary {
 }
 
 export function usePublicArticles() {
-  const { locale } = useI18n()
+  const { contentLocale } = useContentLocale()
 
   return useFetch<NewsArticleSummary[]>('/api/articles', {
-    key: () => `public-articles:${locale.value}`,
-    watch: [locale],
+    key: () => `public-articles:${contentLocale.value}`,
+    watch: [contentLocale],
     default: () => []
   })
 }

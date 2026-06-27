@@ -83,7 +83,11 @@ export const SETTING_KEYS = {
   FARM_PICKUP_DAY_OF_WEEK: 'farm_pickup_day_of_week',
   FARM_PICKUP_START_TIME: 'farm_pickup_start_time',
   FARM_PICKUP_END_TIME: 'farm_pickup_end_time',
-  FARM_PICKUP_TIME: 'farm_pickup_time'
+  FARM_PICKUP_TIME: 'farm_pickup_time',
+  SITE_LOCALES: 'site_locales',
+  SITE_DEFAULT_LOCALE: 'site_default_locale',
+  SITE_LOCALE_LABELS: 'site_locale_labels',
+  SITE_LLM_API_KEY: 'site_llm_api_key'
 } as const
 
 export async function getGmailSenderEmail(): Promise<string | null> {
@@ -597,4 +601,63 @@ export type OnSitePickupConfig = FarmPickupConfig
 
 export async function getOnSitePickupConfig(): Promise<OnSitePickupConfig> {
   return getFarmPickupConfig()
+}
+
+export async function getSiteLocales(): Promise<string[]> {
+  const raw = await getSetting(SETTING_KEYS.SITE_LOCALES)
+  if (!raw) return ['fr', 'en']
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed
+  } catch { /* fall through */ }
+  return ['fr', 'en']
+}
+
+export async function getSiteDefaultLocale(): Promise<string> {
+  const [rawDefaultLocale, locales] = await Promise.all([
+    getSetting(SETTING_KEYS.SITE_DEFAULT_LOCALE),
+    getSiteLocales()
+  ])
+
+  const normalizedDefaultLocale = rawDefaultLocale?.trim().toLowerCase()
+  if (normalizedDefaultLocale && locales.includes(normalizedDefaultLocale)) {
+    return normalizedDefaultLocale
+  }
+
+  return locales[0] || cmsProjectConfig.site.defaultLocale
+}
+
+export async function saveSiteLocales(locales: string[], defaultLocale?: string | null) {
+  const normalizedLocales = locales
+    .map(locale => String(locale || '').trim().toLowerCase())
+    .filter((locale, index, list) => locale && list.indexOf(locale) === index)
+
+  const safeLocales = normalizedLocales.length > 0 ? normalizedLocales : ['fr', 'en']
+  const normalizedDefaultLocale = String(defaultLocale || '').trim().toLowerCase()
+  const resolvedDefaultLocale = safeLocales.includes(normalizedDefaultLocale)
+    ? normalizedDefaultLocale
+    : safeLocales[0]!
+
+  await setSetting(SETTING_KEYS.SITE_LOCALES, JSON.stringify(safeLocales))
+  await setSetting(SETTING_KEYS.SITE_DEFAULT_LOCALE, resolvedDefaultLocale)
+}
+
+export async function getLlmApiKey(): Promise<string | null> {
+  const raw = await getSetting(SETTING_KEYS.SITE_LLM_API_KEY)
+  return raw?.trim() || null
+}
+
+export interface LocaleLabel {
+  short: string
+  long: string
+}
+
+export async function getSiteLocaleLabels(): Promise<Record<string, LocaleLabel>> {
+  const raw = await getSetting(SETTING_KEYS.SITE_LOCALE_LABELS)
+  if (!raw) return {}
+  try {
+    const parsed = JSON.parse(raw)
+    if (typeof parsed === 'object' && parsed !== null) return parsed as Record<string, LocaleLabel>
+  } catch { /* fall through */ }
+  return {}
 }

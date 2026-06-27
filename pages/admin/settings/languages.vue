@@ -1,0 +1,219 @@
+﻿<template>
+  <div class="space-y-8">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-bold">{{ t('admin.settingsLanguagesPage.title') }}</h1>
+        <p class="mt-2 max-w-3xl text-sm opacity-70">
+          {{ t('admin.settingsLanguagesPage.description') }}
+        </p>
+      </div>
+
+      <button class="btn btn-primary" :disabled="saving" @click="save">
+        <span v-if="saving" class="loading loading-spinner loading-sm" />
+        {{ t('admin.common.save') }}
+      </button>
+    </div>
+
+    <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5">
+      <div>
+        <h2 class="text-xl font-semibold">{{ t('admin.settingsLanguagesPage.languagesTitle') }}</h2>
+        <p class="mt-1 text-sm opacity-70">{{ t('admin.settingsLanguagesPage.languagesDescription') }}</p>
+      </div>
+
+      <label class="form-control flex flex-col gap-2 max-w-xs">
+        <span class="label"><span class="label-text">{{ t('admin.settingsLanguagesPage.defaultLocaleLabel') }}</span></span>
+        <select v-model="defaultLocale" class="select select-bordered w-full">
+          <option v-for="entry in localeEntries" :key="entry.code" :value="entry.code">
+            {{ entry.code.toUpperCase() }}
+          </option>
+        </select>
+      </label>
+
+      <div class="flex flex-wrap gap-3">
+        <div
+          v-for="(entry, index) in localeEntries"
+          :key="entry.code"
+          class="flex flex-col gap-2 rounded-lg border border-base-300 bg-base-200 p-4 min-w-[240px]"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold">{{ entry.code.toUpperCase() }}</span>
+            <button
+              v-if="localeEntries.length > 1"
+              class="btn btn-ghost btn-xs text-error"
+              @click="removeLocale(index)"
+            >
+              &times;
+            </button>
+          </div>
+
+          <label class="form-control gap-1">
+            <span class="label py-0"><span class="label-text text-xs">{{ t('admin.settingsLanguagesPage.localeLabelShort') }}</span></span>
+            <input
+              v-model="entry.shortLabel"
+              class="input input-bordered input-sm w-full"
+              :placeholder="t('admin.settingsLanguagesPage.localeLabelShortPlaceholder')"
+            />
+          </label>
+
+          <label class="form-control gap-1">
+            <span class="label py-0"><span class="label-text text-xs">{{ t('admin.settingsLanguagesPage.localeLabelLong') }}</span></span>
+            <input
+              v-model="entry.longLabel"
+              class="input input-bordered input-sm w-full"
+              :placeholder="t('admin.settingsLanguagesPage.localeLabelLongPlaceholder')"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div class="flex items-end gap-3">
+        <label class="form-control gap-2 flex-1 max-w-xs">
+          <span class="label"><span class="label-text">{{ t('admin.settingsLanguagesPage.addLocaleLabel') }}</span></span>
+          <input
+            v-model="newLocale"
+            class="input input-bordered w-full"
+            :placeholder="t('admin.settingsLanguagesPage.addLocalePlaceholder')"
+            @keydown.enter.prevent="addLocale"
+          />
+        </label>
+        <button class="btn btn-outline" :disabled="!newLocale.trim() || localeEntries.some(e => e.code === newLocale.trim())" @click="addLocale">
+          {{ t('admin.settingsLanguagesPage.addLocaleButton') }}
+        </button>
+      </div>
+    </section>
+
+    <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5 flex flex-col">
+      <div>
+        <h2 class="text-xl font-semibold">{{ t('admin.settingsLanguagesPage.llmTitle') }}</h2>
+        <p class="mt-1 text-sm opacity-70">{{ t('admin.settingsLanguagesPage.llmDescription') }}</p>
+      </div>
+
+      <label class="form-control gap-2 max-w-lg">
+        <span class="label"><span class="label-text">{{ t('admin.settingsLanguagesPage.llmApiKeyLabel') }}</span></span>
+        <input v-model="llmApiKey" type="password" class="input input-bordered w-full" />
+      </label>
+
+      <div v-if="llmApiKey.trim()">
+        <button
+          class="btn btn-secondary text-primary-content"
+          :disabled="translatingAll"
+          @click="translateAll"
+        >
+          <span v-if="translatingAll" class="loading loading-spinner loading-sm" />
+          {{ t('admin.settingsLanguagesPage.translateAllButton') }}
+        </button>
+      </div>
+    </section>
+  </div>
+</template>
+
+<script setup lang="ts">
+
+definePageMeta({
+  layout: 'admin',
+  middleware: 'auth'})
+
+interface LocaleEntry {
+  code: string
+  shortLabel: string
+  longLabel: string
+}
+
+const { $toast } = useNuxtApp() as any
+const { t } = useI18n()
+const saving = ref(false)
+const translatingAll = ref(false)
+
+const localeEntries = ref<LocaleEntry[]>([])
+const defaultLocale = ref('fr')
+const newLocale = ref('')
+const llmApiKey = ref('')
+
+const { data } = await useFetch<{
+  siteLocales: string[]
+  siteDefaultLocale: string
+  siteLlmApiKey: string | null
+  localeLabels: Record<string, { short: string; long: string }>
+}>('/api/admin/settings/languages')
+
+if (data.value) {
+  const labels = data.value.localeLabels ?? {}
+  const codes = data.value.siteLocales ?? ['fr', 'en']
+  localeEntries.value = codes.map(code => ({
+    code,
+    shortLabel: labels[code]?.short ?? '',
+    longLabel: labels[code]?.long ?? ''
+  }))
+  defaultLocale.value = data.value.siteDefaultLocale && codes.includes(data.value.siteDefaultLocale)
+    ? data.value.siteDefaultLocale
+    : codes[0] || 'fr'
+  llmApiKey.value = data.value.siteLlmApiKey ?? ''
+}
+
+const addLocale = () => {
+  const val = newLocale.value.trim().toLowerCase()
+  if (!val || localeEntries.value.some(e => e.code === val)) return
+  localeEntries.value.push({ code: val, shortLabel: '', longLabel: '' })
+  newLocale.value = ''
+}
+
+const removeLocale = (index: number) => {
+  if (localeEntries.value.length <= 1) {
+    $toast?.error(t('admin.settingsLanguagesPage.removeLastLocaleError'))
+    return
+  }
+  const removed = localeEntries.value[index]?.code
+  if (!removed) return
+  const confirmed = import.meta.client
+    ? window.confirm(t('admin.settingsLanguagesPage.removeLocaleConfirm', { code: removed.toUpperCase() }))
+    : true
+  if (!confirmed) return
+  localeEntries.value.splice(index, 1)
+  if (removed === defaultLocale.value) {
+    defaultLocale.value = localeEntries.value[0]?.code || 'fr'
+  }
+}
+
+const save = async () => {
+  saving.value = true
+  try {
+    if (localeEntries.value.length === 0) {
+      throw createError({ statusCode: 400, statusMessage: t('admin.settingsLanguagesPage.removeLastLocaleError') })
+    }
+    const labels: Record<string, { short: string; long: string }> = {}
+    for (const entry of localeEntries.value) {
+      if (entry.shortLabel || entry.longLabel) {
+        labels[entry.code] = { short: entry.shortLabel, long: entry.longLabel }
+      }
+    }
+    await $fetch('/api/admin/settings', {
+      method: 'PUT',
+      body: {
+        siteLocales: localeEntries.value.map(e => e.code),
+        siteDefaultLocale: defaultLocale.value,
+        siteLlmApiKey: llmApiKey.value.trim() || '',
+        localeLabels: labels
+      }
+    })
+    $toast?.success(t('admin.settingsLanguagesPage.saved'))
+  } catch (error: any) {
+    $toast?.error(error.statusMessage || t('admin.settingsLanguagesPage.saveError'))
+  } finally {
+    saving.value = false
+  }
+}
+
+const translateAll = async () => {
+  translatingAll.value = true
+  try {
+    const result = await $fetch<{ translated: number }>('/api/admin/settings/translate-all', {
+      method: 'POST'
+    })
+    $toast?.success(t('admin.settingsLanguagesPage.translateAllDone', { count: result.translated }))
+  } catch (error: any) {
+    $toast?.error(error.statusMessage || t('admin.settingsLanguagesPage.translateAllError'))
+  } finally {
+    translatingAll.value = false
+  }
+}
+</script>

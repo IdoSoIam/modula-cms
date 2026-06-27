@@ -2,13 +2,13 @@
   <div class="dropdown dropdown-end">
     <label tabindex="0" class="btn btn-ghost btn-sm gap-2">
       <Icon name="mdi:translate" size="20" />
-      {{ currentLocale?.name ?? locale.toUpperCase() }}
+      {{ currentLabel }}
       <Icon name="mdi:chevron-down" size="20" />
     </label>
     <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-200 rounded-box w-52">
-      <li v-for="availableLocale in availableLocales" :key="availableLocale.code">
-        <button type="button" class="text-left text-base-content" @click="changeLocale(availableLocale.code)">
-          {{ availableLocale.name }}
+      <li v-for="item in availableLocales" :key="item.code">
+        <button type="button" class="text-left text-base-content" @click="handleChange(item.code)">
+          {{ item.label }}
         </button>
       </li>
     </ul>
@@ -16,31 +16,54 @@
 </template>
 
 <script setup lang="ts">
-type SupportedLocale = 'fr' | 'en'
-type LocaleOption = { code: SupportedLocale; name: string }
+const props = withDefaults(defineProps<{
+  /** 'admin' → utilise i18n (fr/en). 'public' → utilise le système de locale de contenu (dynamique). */
+  context?: 'admin' | 'public'
+}>(), {
+  context: 'public'
+})
 
-const { locale, locales, setLocale } = useI18n()
+/* ---------- i18n (admin) ---------- */
+const { locale: i18nLocale } = useI18n()
 
-const changeLocale = async (nextLocale: SupportedLocale) => {
-  if (nextLocale === locale.value) return
-  await setLocale(nextLocale)
+/* ---------- Contenu (public) ---------- */
+const { contentLocale, setContentLocale, availableLocales: cmsLocales, localeLabels } = useContentLocale()
+
+function getLocaleLabel(code: string): string {
+  if (localeLabels.value[code]?.long) return localeLabels.value[code].long
+  return code.toUpperCase()
 }
 
-const availableLocales = computed<LocaleOption[]>(() => {
-  return locales.value
-    .map((item) => ({
-      code: item.code as SupportedLocale,
-      name: item.name || item.code
-    }))
-    .filter(item => item.code !== locale.value)
+function getLocaleShortLabel(code: string): string {
+  if (localeLabels.value[code]?.short) return localeLabels.value[code].short
+  return getLocaleLabel(code)
+}
+
+/* ---------- Locales disponibles ---------- */
+const availableLocales = computed(() => {
+  if (props.context === 'admin') {
+    // Admin : seulement fr/en via i18n
+    return ['fr', 'en']
+      .filter((code) => code !== i18nLocale.value)
+      .map((code) => ({ code, label: getLocaleLabel(code) }))
+  }
+  // Public : toutes les langues configurées
+  return cmsLocales.value
+    .filter((code: string) => code !== contentLocale.value)
+    .map((code: string) => ({ code, label: getLocaleLabel(code) }))
 })
 
-const currentLocale = computed<LocaleOption | undefined>(() => {
-  return locales.value
-    .map((item) => ({
-      code: item.code as SupportedLocale,
-      name: item.name || item.code
-    }))
-    .find(item => item.code === locale.value)
+const currentLabel = computed(() => {
+  const code = props.context === 'admin' ? i18nLocale.value : contentLocale.value
+  return getLocaleShortLabel(code)
 })
+
+/* ---------- Changement de langue ---------- */
+function handleChange(code: string) {
+  if (props.context === 'admin') {
+    i18nLocale.value = code as 'fr' | 'en'
+  } else {
+    void setContentLocale(code)
+  }
+}
 </script>

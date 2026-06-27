@@ -18,8 +18,16 @@
       </div>
 
       <div class="tabs tabs-box tabs-xs">
-        <button type="button" class="tab" :class="activeLang === 'fr' ? 'tab-active' : ''" @click="activeLang = 'fr'">FR</button>
-        <button type="button" class="tab" :class="activeLang === 'en' ? 'tab-active' : ''" @click="activeLang = 'en'">EN</button>
+        <button
+          v-for="locale in resolvedLocales"
+          :key="locale"
+          type="button"
+          class="tab"
+          :class="activeLang === locale ? 'tab-active' : ''"
+          @click="activeLang = locale"
+        >
+          {{ locale.toUpperCase() }}
+        </button>
       </div>
     </div>
 
@@ -48,6 +56,7 @@ const props = defineProps<{
   label: string
   size?: TypographySize
   multiline?: boolean
+  locales?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -55,9 +64,17 @@ const emit = defineEmits<{
   'update:modelValue': [value: LocalizedText]
 }>()
 
-const activeLang = ref<'fr' | 'en'>('fr')
+const { locales: siteLocales } = useSiteLocales()
+const resolvedLocales = computed(() => props.locales?.length ? props.locales : (siteLocales.value.length ? siteLocales.value : ['fr', 'en']))
+const activeLang = ref<string>(resolvedLocales.value[0] || 'fr')
 
-const updateLocalizedValue = (lang: 'fr' | 'en', value: string) => {
+watch(resolvedLocales, (newLocales) => {
+  if (!activeLang.value || !newLocales.includes(activeLang.value)) {
+    activeLang.value = newLocales[0] || 'fr'
+  }
+})
+
+const updateLocalizedValue = (lang: string, value: string) => {
   props.modelValue[lang] = value
   emit('update:modelValue', {
     ...props.modelValue,

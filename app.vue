@@ -90,9 +90,6 @@ useHead(() => ({
         (function() {
           const DEFAULT_THEME = ${JSON.stringify(initialThemeConfig.defaultTheme || 'modula-studio')};
           const VALID_THEMES = ${JSON.stringify(initialThemeConfig.allThemeNames?.length ? initialThemeConfig.allThemeNames : ['modula-studio', 'modula-ocean', 'modula-noir', 'modula-sunset'])};
-          const DEFAULT_LOCALE = ${JSON.stringify(initialDefaultLocale)};
-          const VALID_LOCALES = ['fr', 'en'];
-          const LOCALE_STORAGE_KEY = 'preferred-locale';
           try {
             const cookieMatch = document.cookie.match(/(?:^|; )theme=([^;]+)/);
             const cookieTheme = cookieMatch ? decodeURIComponent(cookieMatch[1]) : '';
@@ -100,17 +97,6 @@ useHead(() => ({
             const candidateTheme = cookieTheme && VALID_THEMES.includes(cookieTheme) ? cookieTheme : storedTheme;
             const nextTheme = candidateTheme && VALID_THEMES.includes(candidateTheme) ? candidateTheme : DEFAULT_THEME;
             document.documentElement.setAttribute('data-theme', nextTheme);
-          } catch (e) {}
-          try {
-            const storedLocale = localStorage.getItem(LOCALE_STORAGE_KEY);
-            const localeCookieMatch = document.cookie.match(/(?:^|; )i18n_redirected=([^;]+)/);
-            const cookieLocale = localeCookieMatch ? decodeURIComponent(localeCookieMatch[1]).toLowerCase().split('-')[0] : '';
-            const browserLocale = (navigator.language || '').toLowerCase().split('-')[0];
-            const nextLocale = VALID_LOCALES.includes(storedLocale)
-              ? storedLocale
-              : (VALID_LOCALES.includes(cookieLocale) ? cookieLocale : (VALID_LOCALES.includes(browserLocale) ? browserLocale : DEFAULT_LOCALE));
-            document.cookie = 'i18n_redirected=' + nextLocale + '; path=/; max-age=31536000; samesite=lax';
-            document.documentElement.setAttribute('lang', nextLocale);
           } catch (e) {}
         })();
       `,

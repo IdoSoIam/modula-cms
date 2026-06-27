@@ -67,10 +67,11 @@ const props = defineProps<{
   settings?: CmsBasketsPageSettings | null
 }>()
 
-const { locale } = useI18n()
+const { contentLocale } = useContentLocale()
+const locale = contentLocale
 const route = useRoute()
 const router = useRouter()
-const localePath = useLocalePath()
+const localePath = usePublicLocalePath()
 const { count } = useShopCart()
 
 const selectedCategorySlug = ref(typeof route.query.category === 'string' ? route.query.category : '')
