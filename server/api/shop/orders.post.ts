@@ -470,7 +470,7 @@ export default defineEventHandler(async (event) => {
     const requestUrl = getRequestURL(event);
     const localePrefix = language === 'fr' ? '' : `/${language}`;
     const successUrl = `${requestUrl.origin}${localePrefix}/payment/success?order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${requestUrl.origin}${localePrefix}/panier?checkout=cancel&order=${order.id}`;
+    const cancelUrl = `${requestUrl.origin}${localePrefix}/panier?checkout=cancel&order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
     const session = await createStripeCheckoutSession({
       orderId: String(order.id),
       orderNumber,

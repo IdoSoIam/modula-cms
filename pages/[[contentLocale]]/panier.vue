@@ -625,6 +625,10 @@ watch(() => authStore.user, (user) => {
 
 onMounted(() => {
   if (route.query.checkout === 'cancel') {
+    const orderId = typeof route.query.order === 'string' ? route.query.order : ''
+    if (orderId) {
+      $fetch(`/api/shop/orders/${orderId}/cancel`, { method: 'POST' }).catch(() => {})
+    }
     $toast.warning(publicText('checkout.cart.paymentCancelledToast', 'Le paiement Stripe a été annulé. Vous pouvez revoir votre panier et réessayer.'))
   }
 })
