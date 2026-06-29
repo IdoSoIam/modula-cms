@@ -631,19 +631,6 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
     {
       menu: 'PRIMARY',
       itemType: 'APPLICATION_ROUTE',
-      title: 'Lots de produits',
-      labels: { fr: 'Lots de produits', en: 'Product lots' },
-      navigationItemKey: 'nav-baskets',
-      parentItemKey: null,
-      href: '/lots-produits',
-      pageId: null,
-      newTab: false,
-      visible: true,
-      position: 3
-    },
-    {
-      menu: 'PRIMARY',
-      itemType: 'APPLICATION_ROUTE',
       title: 'Contact',
       labels: { fr: 'Contact', en: 'Contact' },
       navigationItemKey: 'nav-contact',
@@ -652,7 +639,7 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       pageId: null,
       newTab: false,
       visible: true,
-      position: 4
+      position: 3
     },
     {
       menu: 'FOOTER',

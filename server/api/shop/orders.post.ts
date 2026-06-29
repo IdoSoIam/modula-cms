@@ -13,7 +13,6 @@ import {
 import {
   createOrderNumber,
   serializeProduct,
-  serializeProductLot,
   serializeShopOrder,
 } from "#modula/server/utils/shop";
 import {
@@ -22,9 +21,8 @@ import {
 } from "#modula/server/services/shop/rentalAvailability";
 
 interface OrderLineInput {
-  kind: "product" | "productLot";
+  kind: "product";
   productId?: number;
-  productLotId?: number;
   quantity?: number;
   saleType?: "SALE" | "RENTAL";
   rentalStartDate?: string | null;
@@ -78,27 +76,10 @@ export default defineEventHandler(async (event) => {
         .map((line) => Number(line.productId)),
     ),
   );
-  const productLotIds = Array.from(
-    new Set(
-      lines
-        .filter(
-          (line) => line.kind === "productLot" && Number(line.productLotId) > 0,
-        )
-        .map((line) => Number(line.productLotId)),
-    ),
-  );
 
-  const [directProducts, productLots] = await Promise.all([
-    productIds.length
-      ? db.product.findMany({ where: { id: { in: productIds }, active: true } })
-      : [],
-    productLotIds.length
-      ? db.productLot.findMany({
-          where: { id: { in: productLotIds }, active: true },
-          include: { items: { include: { product: true } } },
-        })
-      : [],
-  ]);
+  const directProducts = productIds.length
+    ? await db.product.findMany({ where: { id: { in: productIds }, active: true } })
+    : [];
 
   const productMapSource = new Map<
     number,
@@ -110,122 +91,52 @@ export default defineEventHandler(async (event) => {
     productMapSource.set(serialized.id, serialized);
   }
 
-  for (const lotRow of productLots) {
-    for (const item of lotRow.items || []) {
-      if (item?.product) {
-        const serialized = serializeProduct(item.product);
-        productMapSource.set(serialized.id, serialized);
-      }
-    }
-  }
-
   const productById = productMapSource;
-  const lotById = new Map<number, ReturnType<typeof serializeProductLot>>(
-    productLots.map((row: any) => [Number(row.id), serializeProductLot(row)]),
-  );
 
   const normalizedLines = lines.map((line) => {
     const quantity = Math.max(1, Math.round(Number(line.quantity || 1)));
-
-    if (line.kind === "product") {
-      const product = productById.get(Number(line.productId));
-      if (!product) {
-        throw createError({
-          statusCode: 400,
-          statusMessage: "Produit introuvable dans le panier",
-        });
-      }
-
-      return {
-        kind: "product" as const,
-        quantity,
-        title: product.name,
-        productId: product.id,
-        productLotId: null,
-        unitPrice: product.price,
-        totalPrice: product.price * quantity,
-        vatRate: product.vatRate,
-        stock: product.stock,
-        allowOfflinePayment: product.allowOfflinePayment,
-        allowOnlinePayment: product.allowOnlinePayment,
-        saleType: product.saleType,
-        imageUrl: product.imageUrl,
-        description: product.excerpt || product.description || undefined,
-        metaJson: JSON.stringify({
-          slug: product.slug,
-          saleType: product.saleType,
-          unitLabel: product.unitLabel,
-          vatRate: product.vatRate,
-          paymentTaxCode: product.paymentTaxCode,
-          paymentTaxBehavior: product.paymentTaxBehavior,
-        }),
-        paymentTaxCode: product.paymentTaxCode,
-        paymentTaxBehavior: product.paymentTaxBehavior,
-        rentalAvailableFrom: product.rentalAvailableFrom,
-        rentalAvailableTo: product.rentalAvailableTo,
-        rentalMinDays: product.rentalMinDays,
-        rentalMaxDays: product.rentalMaxDays,
-        rentalWindow:
-          product.saleType === "RENTAL"
-            ? resolveRentalWindow(line.rentalStartDate, line.rentalEndDate)
-            : null,
-      };
-    }
-
-    const productLot = lotById.get(Number(line.productLotId));
-    if (!productLot) {
+    const product = productById.get(Number(line.productId));
+    if (!product) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Lot introuvable dans le panier",
-      });
-    }
-
-    if (productLot.stock >= 0 && productLot.stock < quantity) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: `Stock insuffisant pour ${productLot.name}`,
+        statusMessage: "Produit introuvable dans le panier",
       });
     }
 
     return {
-      kind: "productLot" as const,
+      kind: "product" as const,
       quantity,
-      title: productLot.name,
-      productId: null,
-      productLotId: productLot.id,
-      unitPrice: productLot.price,
-      totalPrice: productLot.price * quantity,
-      vatRate: productLot.vatRate,
-      stock: productLot.stock,
-      allowOfflinePayment: productLot.allowOfflinePayment,
-      allowOnlinePayment: productLot.allowOnlinePayment,
-      saleType: productLot.saleType,
-      imageUrl: productLot.imageUrl,
-      description: productLot.description || undefined,
-        metaJson: JSON.stringify({
-          slug: productLot.slug,
-          kind: productLot.kind,
-          saleType: productLot.saleType,
-          vatRate: productLot.vatRate,
-          paymentTaxCode: productLot.paymentTaxCode,
-          paymentTaxBehavior: productLot.paymentTaxBehavior,
-          items: productLot.items.map((item) => ({
-            productId: item.productId,
-            productName: item.product?.name || "",
-            quantity: item.quantity,
-          })),
-        }),
-        paymentTaxCode: productLot.paymentTaxCode,
-        paymentTaxBehavior: productLot.paymentTaxBehavior,
-        rentalAvailableFrom: productLot.rentalAvailableFrom,
-        rentalAvailableTo: productLot.rentalAvailableTo,
-        rentalMinDays: productLot.rentalMinDays,
-        rentalMaxDays: productLot.rentalMaxDays,
-        rentalWindow:
-          productLot.saleType === "RENTAL"
-            ? resolveRentalWindow(line.rentalStartDate, line.rentalEndDate)
-            : null,
-      };
+      title: product.name,
+      productId: product.id,
+      productLotId: null,
+      unitPrice: product.price,
+      totalPrice: product.price * quantity,
+      vatRate: product.vatRate,
+      stock: product.stock,
+      allowOfflinePayment: product.allowOfflinePayment,
+      allowOnlinePayment: product.allowOnlinePayment,
+      saleType: product.saleType,
+      imageUrl: product.imageUrl,
+      description: product.excerpt || product.description || undefined,
+      metaJson: JSON.stringify({
+        slug: product.slug,
+        saleType: product.saleType,
+        unitLabel: product.unitLabel,
+        vatRate: product.vatRate,
+        paymentTaxCode: product.paymentTaxCode,
+        paymentTaxBehavior: product.paymentTaxBehavior,
+      }),
+      paymentTaxCode: product.paymentTaxCode,
+      paymentTaxBehavior: product.paymentTaxBehavior,
+      rentalAvailableFrom: product.rentalAvailableFrom,
+      rentalAvailableTo: product.rentalAvailableTo,
+      rentalMinDays: product.rentalMinDays,
+      rentalMaxDays: product.rentalMaxDays,
+      rentalWindow:
+        product.saleType === "RENTAL"
+          ? resolveRentalWindow(line.rentalStartDate, line.rentalEndDate)
+          : null,
+    };
   });
 
   const rentalLines = normalizedLines.filter((line) => line.saleType === "RENTAL");
@@ -234,7 +145,7 @@ export default defineEventHandler(async (event) => {
     await ensureRentalAvailability(
       rentalLines.map((line) => ({
         kind: line.kind,
-        id: line.productId ?? line.productLotId ?? 0,
+        id: line.productId ?? 0,
         title: line.title,
         quantity: line.quantity,
         stock: line.stock,
@@ -287,31 +198,11 @@ export default defineEventHandler(async (event) => {
     if (line.saleType === "RENTAL") {
       continue;
     }
-    if (line.productId) {
-      requiredStocks.set(
-        line.productId,
-        (requiredStocks.get(line.productId) || 0) + line.quantity,
-      );
-      continue;
-    }
-
-    if (line.productLotId) {
-      const lot = lotById.get(line.productLotId);
-      if (!lot) continue;
-      if (lot.stock < line.quantity) {
-        throw createError({
-          statusCode: 400,
-          statusMessage: `Stock insuffisant pour ${lot.name}`,
-        });
-      }
-      for (const item of lot.items) {
-        requiredStocks.set(
-          item.productId,
-          (requiredStocks.get(item.productId) || 0) +
-            Math.ceil(line.quantity * item.quantity),
-        );
-      }
-    }
+    if (!line.productId) continue;
+    requiredStocks.set(
+      line.productId,
+      (requiredStocks.get(line.productId) || 0) + line.quantity,
+    );
   }
 
   for (const [productId, requiredQuantity] of requiredStocks.entries()) {

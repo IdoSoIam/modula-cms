@@ -26,7 +26,6 @@ interface Body {
     onlinePaymentsEnabled?: boolean
     shop?: {
       enabled?: boolean
-      basketsEnabled?: boolean
       vegetablesEnabled?: boolean
     }
     associationRolesEnabled?: boolean
@@ -71,7 +70,6 @@ export default defineEventHandler(async (event) => {
     onlinePaymentsEnabled: resolvedOnlinePaymentsEnabled,
     shop: {
       enabled: body.featureFlags?.shop?.enabled ?? false,
-      basketsEnabled: body.featureFlags?.shop?.basketsEnabled ?? false,
       vegetablesEnabled: body.featureFlags?.shop?.vegetablesEnabled ?? false
     },
     associationRolesEnabled: body.featureFlags?.associationRolesEnabled ?? false,
@@ -123,9 +121,9 @@ export default defineEventHandler(async (event) => {
   if (typeof body.onlinePaymentsEnabled === 'boolean' || typeof body.featureFlags?.onlinePaymentsEnabled === 'boolean') {
     await setSetting(SETTING_KEYS.PAYMENTS_ENABLED, featureFlags.onlinePaymentsEnabled ? 'true' : 'false')
   }
-  if (typeof body.featureFlags?.shop?.enabled === 'boolean' || typeof body.featureFlags?.shop?.basketsEnabled === 'boolean' || typeof body.featureFlags?.shop?.vegetablesEnabled === 'boolean') {
+  if (typeof body.featureFlags?.shop?.enabled === 'boolean' || typeof body.featureFlags?.shop?.vegetablesEnabled === 'boolean') {
     await setSetting(SETTING_KEYS.SHOP_ENABLED, featureFlags.shop.enabled ? 'true' : 'false')
-    await setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, featureFlags.shop.basketsEnabled ? 'true' : 'false')
+    await setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, 'false')
     await setSetting(SETTING_KEYS.SHOP_VEGETABLES_ENABLED, featureFlags.shop.vegetablesEnabled ? 'true' : 'false')
   }
   if (typeof body.featureFlags?.associationRolesEnabled === 'boolean') {

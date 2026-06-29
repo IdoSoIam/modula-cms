@@ -147,6 +147,8 @@ export interface ProductDetailField {
   labelLocalized: CmsLocalizedText
   value: string
   valueLocalized: CmsLocalizedText
+  mediaKind: 'image' | 'pdf' | null
+  mediaUrl: string | null
 }
 
 export interface ProductDetailSection {
@@ -432,18 +434,22 @@ function normalizeProductDetailField(value: unknown): ProductDetailField | null 
   const entry = value as Record<string, unknown>
   const labelLocalized = normalizeProductLocalizedText(entry.labelLocalized ?? entry.label, typeof entry.label === 'string' ? entry.label : '')
   const valueLocalized = normalizeProductLocalizedText(entry.valueLocalized ?? entry.value, typeof entry.value === 'string' ? entry.value : '')
-  if (!hasLocalizedText(labelLocalized) && !hasLocalizedText(valueLocalized)) return null
+  const mediaKind = entry.mediaKind === 'image' || entry.mediaKind === 'pdf' ? entry.mediaKind : null
+  const mediaUrl = typeof entry.mediaUrl === 'string' && entry.mediaUrl.trim() ? entry.mediaUrl.trim() : null
+  if (!hasLocalizedText(labelLocalized) && !hasLocalizedText(valueLocalized) && !mediaUrl) return null
   return {
     id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : crypto.randomUUID(),
     label: resolveLocalizedProductText(labelLocalized, 'Champ'),
     labelLocalized,
     value: resolveLocalizedProductText(valueLocalized, ''),
-    valueLocalized
+    valueLocalized,
+    mediaKind,
+    mediaUrl
   }
 }
 
 export function normalizeProductLocalizedText(value: unknown, fallback = ''): CmsLocalizedText {
-  const normalized = createEmptyCmsLocalizedText()
+  const normalized: CmsLocalizedText = {}
 
   if (typeof value === 'string') {
     const text = value.trim()
@@ -462,8 +468,11 @@ export function normalizeProductLocalizedText(value: unknown, fallback = ''): Cm
 
   if (value && typeof value === 'object') {
     const entry = value as Record<string, unknown>
-    normalized.fr = typeof entry.fr === 'string' ? entry.fr.trim() : ''
-    normalized.en = typeof entry.en === 'string' ? entry.en.trim() : ''
+    for (const [locale, localeValue] of Object.entries(entry)) {
+      const normalizedLocale = String(locale || '').trim().toLowerCase()
+      if (!normalizedLocale) continue
+      normalized[normalizedLocale] = typeof localeValue === 'string' ? localeValue.trim() : ''
+    }
   }
 
   if (!normalized.fr && fallback) normalized.fr = fallback.trim()
@@ -473,12 +482,15 @@ export function normalizeProductLocalizedText(value: unknown, fallback = ''): Cm
 }
 
 export function hasLocalizedText(value: CmsLocalizedText | null | undefined) {
-  return Boolean(value?.fr?.trim() || value?.en?.trim())
+  return Boolean(
+    value
+    && Object.values(value).some((entry) => typeof entry === 'string' && entry.trim())
+  )
 }
 
 export function resolveLocalizedProductText(value: CmsLocalizedText | null | undefined, fallback = '') {
   if (!value) return fallback
-  return (value['fr'] ?? '').trim() || (value['en'] ?? '').trim() || fallback
+  return pickCmsLocalizedText('fr', value, 'en') || fallback
 }
 
 export function resolveNullableLocalizedProductText(value: CmsLocalizedText | null | undefined, fallback: string | null = null) {

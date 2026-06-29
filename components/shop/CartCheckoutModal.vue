@@ -16,7 +16,7 @@
           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <div class="font-medium">{{ item.title }}</div>
-              <div class="text-sm opacity-70">{{ item.kind === 'productLot' ? productLotLabel : productLabel }}</div>
+              <div class="text-sm opacity-70">{{ productLabel }}</div>
             </div>
             <div class="flex items-center gap-3">
               <button class="btn btn-sm btn-ghost" @click="$emit('quantity', item.key, item.quantity - 1)">
@@ -103,7 +103,6 @@ const props = defineProps<{
   totalLabel: string
   submitLabel: string
   productLabel: string
-  productLotLabel: string
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
 }>()

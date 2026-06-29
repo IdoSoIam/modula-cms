@@ -9,7 +9,6 @@
         </div>
         <div class="flex flex-wrap gap-3">
           <NuxtLink class="btn btn-ghost" :to="localePath('/boutique')">{{ productsLinkLabel }}</NuxtLink>
-          <NuxtLink class="btn btn-ghost" :to="localePath('/lots-produits')">{{ lotsLinkLabel }}</NuxtLink>
         </div>
       </div>
 
@@ -32,14 +31,14 @@
                 <div class="space-y-2">
                   <div class="flex flex-wrap items-center gap-2">
                     <h2 class="text-xl font-semibold">{{ item.title }}</h2>
-                    <span class="badge badge-outline">{{ item.kind === 'productLot' ? lotBadgeLabel : productBadgeLabel }}</span>
+                    <span class="badge badge-outline">{{ productBadgeLabel }}</span>
                   </div>
                   <p v-if="item.description" class="text-sm opacity-75">{{ item.description }}</p>
                   <div class="flex flex-wrap gap-2">
                     <span class="badge badge-soft">{{ stockLabel }}: {{ item.availableQuantity ?? '-' }}</span>
                     <span v-if="item.allowOfflinePayment" class="badge badge-soft">{{ offlineLabel }}</span>
                     <span v-if="item.allowOnlinePayment && stripeEnabled" class="badge badge-outline">{{ onlineLabel }}</span>
-                    <span class="badge badge-ghost">TVA {{ formatVatRate(item.vatRate) }}</span>
+                    <span class="badge badge-ghost">{{ formatVatBadge(item.vatRate) }}</span>
                     <span v-if="!stripeTaxEnabled" class="badge badge-soft">{{ taxIncludedLabel }}</span>
                     <span v-else-if="resolveCartTaxCode(item)" class="badge badge-outline">
                       {{ taxCodeLabel }}: {{ resolveCartTaxCode(item) }}
@@ -255,7 +254,6 @@
           <p class="mt-3 opacity-75">{{ emptyHelpLabel }}</p>
           <div class="mt-6 flex flex-wrap justify-center gap-3">
             <NuxtLink class="btn btn-primary" :to="localePath('/boutique')">{{ productsLinkLabel }}</NuxtLink>
-            <NuxtLink class="btn btn-ghost" :to="localePath('/lots-produits')">{{ lotsLinkLabel }}</NuxtLink>
           </div>
         </div>
       </div>
@@ -368,11 +366,9 @@ const savingOrder = ref(false)
 
 const eyebrowLabel = computed(() => publicText('checkout.cart.eyebrow', 'Commande'))
 const titleLabel = computed(() => publicText('checkout.cart.title', 'Panier d’achat'))
-const introLabel = computed(() => publicText('checkout.cart.intro', 'Vérifiez les produits et lots sélectionnés, puis confirmez la commande avec les informations de livraison et de règlement.'))
+const introLabel = computed(() => publicText('checkout.cart.intro', 'Vérifiez les produits sélectionnés, puis confirmez la commande avec les informations de livraison et de règlement.'))
 const productsLinkLabel = computed(() => publicText('checkout.cart.productsLink', 'Voir les produits'))
-const lotsLinkLabel = computed(() => publicText('checkout.cart.lotsLink', 'Voir les lots de produits'))
 const productBadgeLabel = computed(() => publicText('checkout.cart.productBadge', 'Produit'))
-const lotBadgeLabel = computed(() => publicText('checkout.cart.lotBadge', 'Lot produit'))
 const stockLabel = computed(() => publicText('checkout.cart.stockLabel', 'Disponible'))
 const offlineLabel = computed(() => publicText('checkout.cart.offlineLabel', 'Paiement sur place'))
 const onlineLabel = computed(() => publicText('checkout.cart.onlineLabel', 'Paiement en ligne'))
@@ -408,11 +404,12 @@ const submitLabel = computed(() => checkoutForm.value.paymentMode === 'stripe' &
   : publicText('checkout.cart.confirmOrder', 'Confirmer la commande'))
 const unavailablePaymentLabel = computed(() => publicText('checkout.cart.unavailablePayment', 'Aucun mode de règlement valide n’est actuellement disponible pour ce panier.'))
 const emptyLabel = computed(() => publicText('checkout.cart.emptyTitle', 'Votre panier est vide.'))
-const emptyHelpLabel = computed(() => publicText('checkout.cart.emptyHelp', 'Ajoutez un produit ou un lot de produits pour continuer.'))
+const emptyHelpLabel = computed(() => publicText('checkout.cart.emptyHelp', 'Ajoutez un produit pour continuer.'))
 const noAddressLabel = computed(() => publicText('checkout.cart.noAddress', 'Adresse à confirmer'))
 const unavailableCityLabel = computed(() => publicText('checkout.cart.cityUnavailable', 'La livraison à domicile n’est pas actuellement disponible dans cette ville.'))
 const postalCodeMismatchLabel = computed(() => publicText('checkout.cart.postalCodeMismatch', 'Le code postal ne correspond pas à la ville sélectionnée.'))
 const taxIncludedLabel = computed(() => publicText('checkout.cart.vatIncluded', 'TVA incluse'))
+const vatNotApplicableLabel = computed(() => publicText('checkout.cart.vatNotApplicable', 'TVA non applicable'))
 const taxCodeLabel = computed(() => publicText('checkout.cart.taxCode', 'Code taxe'))
 
 const resolvedPaymentLabel = computed(() =>
@@ -640,7 +637,14 @@ function deliveryTourSummary(tour: DeliveryOptionTour) {
 }
 
 function formatVatRate(value: number) {
-  return `${Number(value || 0).toFixed(2)}%`
+  const normalized = Number(value || 0)
+  return `${normalized.toFixed(2)}%`
+}
+
+function formatVatBadge(value: number) {
+  const normalized = Number(value || 0)
+  if (normalized <= 0) return vatNotApplicableLabel.value
+  return `TVA ${formatVatRate(normalized)}`
 }
 
 function formatRentalRange(startDate: string | null | undefined, endDate: string | null | undefined) {
@@ -713,7 +717,6 @@ async function submitOrder() {
         lines: items.value.map((item) => ({
           kind: item.kind,
           productId: item.productId || undefined,
-          productLotId: item.productLotId || undefined,
           quantity: item.quantity,
           saleType: item.saleType,
           rentalStartDate: item.saleType === 'RENTAL' ? item.rentalStartDate : undefined,

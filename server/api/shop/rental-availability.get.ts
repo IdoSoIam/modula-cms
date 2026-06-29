@@ -7,7 +7,7 @@ import {
   toIsoDate,
 } from '#modula/server/services/shop/rentalAvailability'
 import { formatLocalizedDateValue } from '#modula/shared/date'
-import { serializeProduct, serializeProductLot } from '#modula/server/utils/shop'
+import { serializeProduct } from '#modula/server/utils/shop'
 
 function parseMonth(value: string | undefined) {
   const source = value && /^\d{4}-\d{2}$/.test(value) ? value : toIsoDate(new Date()).slice(0, 7)
@@ -32,7 +32,7 @@ function buildCalendarDays(monthDate: Date) {
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const locale = typeof query.locale === 'string' && query.locale.trim() ? query.locale : 'fr'
-  const kind = query.kind === 'productLot' ? 'productLot' : query.kind === 'product' ? 'product' : ''
+  const kind = query.kind === 'product' ? 'product' : ''
   const id = Number(query.id || 0)
   if (!kind || !id) {
     throw createError({
@@ -68,34 +68,7 @@ export default defineEventHandler(async (event) => {
     return buildResponse(monthDate, gridDays, availability, product, locale)
   }
 
-  const row = await db.productLot.findUnique({
-    where: { id, active: true },
-    include: {
-      category: true,
-      items: {
-        include: {
-          product: {
-            include: { category: true },
-          },
-        },
-      },
-    },
-  })
-  if (!row) {
-    throw createError({ statusCode: 404, statusMessage: 'Lot introuvable' })
-  }
-  const lot = serializeProductLot(row)
-  const availability = await computeAvailabilityForSource({
-    kind,
-    id: lot.id,
-    title: lot.name,
-    stock: lot.stock,
-    rentalAvailableFrom: lot.rentalAvailableFrom,
-    rentalAvailableTo: lot.rentalAvailableTo,
-    rentalMinDays: lot.rentalMinDays,
-    rentalMaxDays: lot.rentalMaxDays,
-  }, gridStart, gridEnd)
-  return buildResponse(monthDate, gridDays, availability, lot, locale)
+  throw createError({ statusCode: 400, statusMessage: 'Source de location invalide' })
 })
 
 function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<ReturnType<typeof computeAvailabilityForSource>>, source: any, locale: string) {

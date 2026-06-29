@@ -103,20 +103,6 @@
             :class="!form.featureFlags.shop.enabled ? 'opacity-50' : ''"
           >
             <input
-              v-model="form.featureFlags.shop.basketsEnabled"
-              type="checkbox"
-              class="toggle toggle-primary"
-              :disabled="!form.featureFlags.shop.enabled"
-            />
-            <span class="label-text">{{
-              t("admin.settingsFeaturesPage.shopBasketsEnabled")
-            }}</span>
-          </label>
-          <label
-            class="flex label cursor-pointer justify-start gap-3"
-            :class="!form.featureFlags.shop.enabled ? 'opacity-50' : ''"
-          >
-            <input
               v-model="form.featureFlags.shop.vegetablesEnabled"
               type="checkbox"
               class="toggle toggle-primary"
@@ -198,7 +184,6 @@ interface SettingsData {
     onlinePaymentsEnabled: boolean;
     shop: {
       enabled: boolean;
-      basketsEnabled: boolean;
       vegetablesEnabled: boolean;
     };
     associationRolesEnabled: boolean;
@@ -227,7 +212,6 @@ const form = reactive({
     onlinePaymentsEnabled: true,
     shop: {
       enabled: true,
-      basketsEnabled: true,
       vegetablesEnabled: true,
     },
     associationRolesEnabled: true,
@@ -249,7 +233,6 @@ watch(
   () => form.featureFlags.shop.enabled,
   (enabled) => {
     if (!enabled) {
-      form.featureFlags.shop.basketsEnabled = false;
       form.featureFlags.shop.vegetablesEnabled = false;
     }
   },

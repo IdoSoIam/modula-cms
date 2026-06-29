@@ -79,7 +79,7 @@ import OrdersCalendar from '#modula/components/admin/OrdersCalendar.vue'
 
 const props = defineProps<{
   open: boolean
-  sourceKind: 'product' | 'productLot'
+  sourceKind: 'product'
   sourceId: number | null
   sourceName: string
 }>()

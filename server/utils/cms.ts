@@ -931,7 +931,7 @@ function buildResolvedNavigationTree(items: ResolvedCmsNavigationItem[]) {
 function isFeatureEnabledForHref(href: string, featureFlags: FeatureFlags) {
   const normalizedHref = href.split('?')[0]?.split('#')[0] || href
   if (normalizedHref === '/paniers' || normalizedHref.startsWith('/paniers/') || normalizedHref === '/lots-produits' || normalizedHref.startsWith('/lots-produits/')) {
-    return featureFlags.shop.enabled && featureFlags.shop.basketsEnabled
+    return false
   }
   if (normalizedHref === '/boutique' || normalizedHref.startsWith('/boutique/')) {
     return featureFlags.shop.enabled && featureFlags.shop.vegetablesEnabled
@@ -1429,6 +1429,30 @@ async function ensureCmsApplicationPage(path: string, slug: string, titleFr: str
     async () => null
   )
 
+  if (existing) {
+    const payload = pageRowToPayload(existing)
+    if (payload.pageType === 'APPLICATION' && payload.rendererKey === rendererKey) {
+      return existing.id
+    }
+
+    const normalizedExistingPath = payload.path?.trim() ? payload.path : path
+    const normalizedExistingSlug = payload.slug?.trim() ? payload.slug : slug
+    const normalizedTitle = payload.title?.trim() ? payload.title : titleFr
+    const created = await saveCmsPage(existing.id, {
+      ...payload,
+      path: normalizedExistingPath,
+      slug: normalizedExistingSlug,
+      pageType: 'APPLICATION',
+      status: payload.status || 'PUBLISHED',
+      rendererKey,
+      title: normalizedTitle,
+      templateKey: payload.templateKey || 'default',
+      applicationPosition: payload.applicationPosition || 'AFTER_CONTENT'
+    })
+
+    return created?.id ?? existing.id
+  }
+
   const applicationPayload: CmsPagePayload = {
     ...createDefaultCmsPagePayload(path, titleFr),
     path,
@@ -1450,18 +1474,6 @@ async function ensureCmsApplicationPage(path: string, slug: string, titleFr: str
         seo: createEmptyCmsPageSeo(),
         content: createEmptyPageBuilderContent()
       }
-    }
-  }
-
-  if (existing) {
-    const payload = pageRowToPayload(existing)
-    if (
-      payload.path === path
-      && payload.slug === slug
-      && payload.pageType === 'APPLICATION'
-      && payload.rendererKey === rendererKey
-    ) {
-      return existing.id
     }
   }
 
@@ -1529,7 +1541,6 @@ async function ensureCmsStandardPage(options: {
 export async function ensureCmsSystemPages() {
   await ensureCmsRootPage()
   await ensureCmsApplicationPage('/boutique', 'boutique', 'Boutique', 'Shop', 'shop')
-  await ensureCmsApplicationPage('/lots-produits', 'lots-produits', 'Lots de produits', 'Product lots', 'baskets')
   await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
   await ensureCmsApplicationPage('/events', 'events', 'Événements', 'Events', 'events')
   await ensureCmsApplicationPage('/planning', 'planning', 'Planning', 'Schedule', 'planning')
@@ -1649,7 +1660,7 @@ export async function ensureCmsSystemPages() {
 }
 
 export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCmsPage, locale: CmsLocale) {
-  if (resolvedPage.path === '/' || resolvedPage.path === '/boutique' || resolvedPage.path === '/lots-produits' || resolvedPage.path === '/paniers' || resolvedPage.path === '/news' || resolvedPage.path === '/events' || resolvedPage.path === '/planning' || resolvedPage.path === '/construction' || resolvedPage.path === '/contact' || resolvedPage.path === '/terms' || resolvedPage.path === '/privacy') {
+  if (resolvedPage.path === '/' || resolvedPage.path === '/boutique' || resolvedPage.path === '/news' || resolvedPage.path === '/events' || resolvedPage.path === '/planning' || resolvedPage.path === '/construction' || resolvedPage.path === '/contact' || resolvedPage.path === '/terms' || resolvedPage.path === '/privacy') {
     await ensureCmsSystemPages()
     return await getCmsPageByPath(resolvedPage.path)
   }
@@ -1950,7 +1961,7 @@ export async function getPublicSiteShell(locale: string, featureFlags: FeatureFl
 
 function isRendererEnabled(rendererKey: string, featureFlags: FeatureFlags) {
   if (rendererKey === 'baskets') {
-    return featureFlags.shop.enabled && featureFlags.shop.basketsEnabled
+    return false
   }
   if (rendererKey === 'news') {
     return featureFlags.newsEnabled
@@ -1959,7 +1970,7 @@ function isRendererEnabled(rendererKey: string, featureFlags: FeatureFlags) {
     return featureFlags.eventsEnabled
   }
   if (rendererKey === 'shop') {
-    return featureFlags.shop.enabled && (featureFlags.shop.basketsEnabled || featureFlags.shop.vegetablesEnabled)
+    return featureFlags.shop.enabled && featureFlags.shop.vegetablesEnabled
   }
   return true
 }
@@ -2013,13 +2024,6 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
       return null
     }
     return createLegacyShopResolvedPage(locale)
-  }
-
-  if (normalizedPath === '/lots-produits' || normalizedPath === '/paniers') {
-    if (!isRendererEnabled('baskets', featureFlags)) {
-      return null
-    }
-    return createLegacyBasketsResolvedPage(locale)
   }
 
   if (normalizedPath === '/news') {

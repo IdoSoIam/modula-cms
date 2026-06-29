@@ -1,6 +1,6 @@
 import { db } from '#modula/server/data/client'
 
-export type RentalSourceKind = 'product' | 'productLot'
+export type RentalSourceKind = 'product'
 
 export type RentalSource = {
   kind: RentalSourceKind
@@ -141,9 +141,7 @@ export async function computeAvailabilityForSource(
     ? await db.shopOrderLine.findMany({
         where: {
           orderId: { in: orderIds },
-          ...(source.kind === 'product'
-            ? { productId: source.id }
-            : { productLotId: source.id }),
+          productId: source.id,
           rentalStartDate: { lte: toIsoDate(rangeEnd) },
           rentalEndDate: { gte: toIsoDate(rangeStart) },
         },

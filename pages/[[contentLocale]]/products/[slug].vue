@@ -113,9 +113,30 @@
               >
                 <h3 class="text-xl font-semibold">{{ getLocalizedSectionTitle(section) }}</h3>
                 <dl class="mt-4 space-y-4 text-sm">
-                  <div v-for="item in section.items" :key="item.id" class="flex items-start justify-between gap-4">
-                    <dt class="font-medium">{{ getLocalizedDetailLabel(item) }}</dt>
-                    <dd class="text-right opacity-75 whitespace-pre-line">{{ getLocalizedDetailValue(item) }}</dd>
+                  <div v-for="item in section.items" :key="item.id" class="space-y-3">
+                    <div class="flex items-start justify-between gap-4">
+                      <dt class="font-medium">{{ getLocalizedDetailLabel(item) }}</dt>
+                      <dd class="text-right opacity-75 whitespace-pre-line">{{ getLocalizedDetailValue(item) }}</dd>
+                    </div>
+                    <div v-if="item.mediaUrl" class="flex justify-end">
+                      <AppImage
+                        v-if="item.mediaKind === 'image'"
+                        :src="item.mediaUrl"
+                        :alt="getLocalizedDetailLabel(item)"
+                        class="max-h-52 w-full max-w-sm rounded-2xl object-cover"
+                        sizes="(min-width: 1024px) 20vw, 100vw"
+                      />
+                      <a
+                        v-else-if="item.mediaKind === 'pdf'"
+                        :href="item.mediaUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-sm btn-outline"
+                      >
+                        <Icon name="mdi:file-pdf-box" size="18" />
+                        {{ openPdfLabel }}
+                      </a>
+                    </div>
                   </div>
                 </dl>
               </article>
@@ -260,10 +281,12 @@ const detailsTitle = computed(() => publicText('shop.product.detailsTitle', 'Dé
 const categoryLabel = computed(() => publicText('shop.product.category', 'Catégorie'))
 const stockLabel = computed(() => publicText('shop.product.availableStock', 'Stock disponible'))
 const vatLabel = computed(() => publicText('shop.product.vat', 'TVA'))
+const vatNotApplicableLabel = computed(() => publicText('shop.product.vatNotApplicable', 'TVA non applicable'))
 const typeLabel = computed(() => publicText('shop.product.offerType', 'Type d’offre'))
 const paymentLabel = computed(() => publicText('shop.product.payment', 'Paiement'))
 const noneLabel = computed(() => publicText('shop.product.none', 'Aucun'))
 const moreDetailsTitle = computed(() => publicText('shop.product.moreDetails', 'Informations détaillées'))
+const openPdfLabel = computed(() => publicText('shop.product.openPdf', 'Ouvrir le PDF'))
 const rentalConditionsTitle = computed(() => publicText('shop.product.rentalConditions', 'Conditions de location'))
 const rentalAvailabilityLabel = computed(() => publicText('shop.product.availability', 'Disponibilité'))
 const rentalMinLabel = computed(() => publicText('shop.product.minimumDuration', 'Durée minimale'))
@@ -382,7 +405,9 @@ usePageSeo({
 })
 
 function formatVatRate(value: number) {
-  return `${Number(value || 0).toFixed(2)}%`
+  const normalized = Number(value || 0)
+  if (normalized <= 0) return vatNotApplicableLabel.value
+  return `${normalized.toFixed(2)}%`
 }
 
 function onRentalDatesSelected(payload: { rentalStartDate: string, rentalEndDate: string }) {
@@ -397,7 +422,6 @@ function addSaleToCart() {
     key: `product-${product.value.id}`,
     kind: 'product',
     productId: product.value.id,
-    productLotId: null,
     title: getLocalizedProductName(product.value),
     imageUrl: product.value.imageUrl,
     description: getLocalizedProductExcerpt(product.value) || getLocalizedProductDescription(product.value),
@@ -421,7 +445,6 @@ function addRentalToCart() {
     key: `product-${product.value.id}-${selectedRentalStartDate.value}-${selectedRentalEndDate.value}`,
     kind: 'product',
     productId: product.value.id,
-    productLotId: null,
     title: getLocalizedProductName(product.value),
     imageUrl: product.value.imageUrl,
     description: getLocalizedProductExcerpt(product.value) || getLocalizedProductDescription(product.value),
