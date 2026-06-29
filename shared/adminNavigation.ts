@@ -148,6 +148,14 @@ export function getAdminNavigationSections(
           { requiredModule: "shop_orders", requiredAction: "read" },
         ),
         createAdminNavigationItem(
+          "shop-billing-documents",
+          "admin.navigation.items.billingDocuments",
+          getAdminRoutePath("shopBillingDocuments", routeLocale),
+          "mdi:invoice",
+          getAdminRoutePaths("shopBillingDocuments"),
+          { requiredModule: "shop_orders", requiredAction: "read" },
+        ),
+        createAdminNavigationItem(
           "shop-delivery",
           "admin.navigation.items.delivery",
           getAdminRoutePath("shopDelivery", routeLocale),
@@ -361,6 +369,7 @@ export function getAdminNavigationSections(
         if (
           item.id === "shop-product-categories" ||
           item.id === "shop-orders" ||
+          item.id === "shop-billing-documents" ||
           item.id === "shop-delivery"
         )
           return shopEnabled;

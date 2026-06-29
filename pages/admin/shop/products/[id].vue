@@ -205,6 +205,7 @@
                           <option :value="null">{{ t('admin.productEditorPage.fieldMediaNone') }}</option>
                           <option value="image">{{ t('admin.productEditorPage.fieldMediaImage') }}</option>
                           <option value="pdf">{{ t('admin.productEditorPage.fieldMediaPdf') }}</option>
+                          <option value="billingDocument">{{ t('admin.productEditorPage.fieldMediaBillingDocument') }}</option>
                         </select>
                       </div>
                       <div v-if="item.mediaKind === 'image'" class="form-control flex flex-col gap-3">
@@ -214,6 +215,19 @@
                       <div v-else-if="item.mediaKind === 'pdf'" class="form-control flex flex-col gap-3">
                         <label class="label"><span class="label-text">{{ t('admin.productEditorPage.fieldMediaFile') }}</span></label>
                         <input v-model="item.mediaUrl" type="url" class="input input-bordered" :placeholder="t('admin.productEditorPage.fieldMediaPdfPlaceholder')" />
+                      </div>
+                      <div v-else-if="item.mediaKind === 'billingDocument'" class="form-control flex flex-col gap-3">
+                        <label class="label"><span class="label-text">{{ t('admin.productEditorPage.fieldMediaBillingDocument') }}</span></label>
+                        <select v-model.number="item.mediaDocumentId" class="select select-bordered">
+                          <option :value="0">{{ t('admin.productEditorPage.fieldMediaBillingDocumentPlaceholder') }}</option>
+                          <option
+                            v-for="document in availableBillingDocuments"
+                            :key="document.id"
+                            :value="document.id"
+                          >
+                            {{ document.name }} · {{ billingDocumentKindLabel(document.kind) }}
+                          </option>
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -285,6 +299,14 @@ interface ProductCategory {
   slug: string
 }
 
+interface BillingDocumentOption {
+  id: number
+  kind: 'INVOICE' | 'CONTRACT' | 'ASSURANCE'
+  name: string
+  slug: string
+  active: boolean
+}
+
 interface ProductEditorState {
   id?: number
   nameLocalized: CmsLocalizedText
@@ -325,8 +347,12 @@ const deleting = ref(false)
 
 const { data: categories } = await useFetch<ProductCategory[]>('/api/admin/product-categories')
 const { data: settingsData } = await useFetch<{ shopDefaultVatRate: number }>('/api/admin/settings')
+const { data: billingDocumentsData } = await useFetch<BillingDocumentOption[]>('/api/admin/billing-documents')
 
 const defaultVatRate = computed(() => Number(settingsData.value?.shopDefaultVatRate ?? 20))
+const availableBillingDocuments = computed(() =>
+  (billingDocumentsData.value || []).filter((entry) => entry.kind === 'CONTRACT' || entry.kind === 'ASSURANCE')
+)
 
 const editing = reactive<ProductEditorState>(createEmptyEditorState(defaultVatRate.value, t, editorLocales.value))
 const localizedName = computed(() => pickCmsLocalizedText(locale.value, editing.nameLocalized) || editing.slug || '')
@@ -379,6 +405,14 @@ function addSectionItem(sectionIndex: number) {
 
 function removeSectionItem(sectionIndex: number, itemIndex: number) {
   editing.detailSections[sectionIndex]?.items.splice(itemIndex, 1)
+}
+
+function billingDocumentKindLabel(kind: BillingDocumentOption['kind']) {
+  return kind === 'ASSURANCE'
+    ? t('admin.billingDocumentsPage.kindAssurance')
+    : kind === 'INVOICE'
+      ? t('admin.billingDocumentsPage.kindInvoice')
+      : t('admin.billingDocumentsPage.kindContract')
 }
 
 async function save() {
@@ -515,7 +549,10 @@ function mapProductToEditor(product: ProductPayload): ProductEditorState {
             value: item.value,
             valueLocalized: structuredClone(item.valueLocalized),
             mediaKind: item.mediaKind ?? null,
-            mediaUrl: item.mediaUrl ?? null
+            mediaUrl: item.mediaUrl ?? null,
+            mediaDocumentId: item.mediaDocumentId ?? null,
+            mediaDocumentName: item.mediaDocumentName ?? null,
+            mediaDocumentKind: item.mediaDocumentKind ?? null
           }))
         }))
       : [
@@ -544,7 +581,10 @@ function createDetailField(locales: string[]): ProductDetailField {
     value: '',
     valueLocalized: createEmptyCmsLocalizedText(locales),
     mediaKind: null,
-    mediaUrl: null
+    mediaUrl: null,
+    mediaDocumentId: null,
+    mediaDocumentName: null,
+    mediaDocumentKind: null
   }
 }
 
@@ -578,17 +618,30 @@ function normalizeDetailSectionsForSave(value: ProductDetailSection[], locales: 
       id: section.id || crypto.randomUUID(),
       titleLocalized: normalizeLocalizedTextForSave(section.titleLocalized, locales),
       items: section.items
-        .map((item) => ({
-          id: item.id || crypto.randomUUID(),
-          labelLocalized: normalizeLocalizedTextForSave(item.labelLocalized, locales),
-          valueLocalized: normalizeLocalizedTextForSave(item.valueLocalized, locales),
-          mediaKind: item.mediaKind === 'image' || item.mediaKind === 'pdf' ? item.mediaKind : null,
-          mediaUrl: item.mediaUrl?.trim() ? item.mediaUrl.trim() : null
-        }))
+        .map((item) => {
+          const linkedDocument = item.mediaKind === 'billingDocument'
+            ? availableBillingDocuments.value.find((entry) => entry.id === Number(item.mediaDocumentId))
+            : null
+          return {
+            id: item.id || crypto.randomUUID(),
+            labelLocalized: normalizeLocalizedTextForSave(item.labelLocalized, locales),
+            valueLocalized: normalizeLocalizedTextForSave(item.valueLocalized, locales),
+            mediaKind: item.mediaKind === 'image' || item.mediaKind === 'pdf' || item.mediaKind === 'billingDocument'
+              ? item.mediaKind
+              : null,
+            mediaUrl: item.mediaKind === 'image' || item.mediaKind === 'pdf'
+              ? (item.mediaUrl?.trim() ? item.mediaUrl.trim() : null)
+              : null,
+            mediaDocumentId: linkedDocument?.id ?? null,
+            mediaDocumentName: linkedDocument?.name ?? null,
+            mediaDocumentKind: linkedDocument?.kind ?? null
+          }
+        })
         .filter((item) =>
           Object.values(item.labelLocalized).some((entry) => entry)
           || Object.values(item.valueLocalized).some((entry) => entry)
           || Boolean(item.mediaUrl)
+          || Boolean(item.mediaDocumentId)
         )
     }))
     .filter((section) =>

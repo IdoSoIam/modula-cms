@@ -1,5 +1,10 @@
 import { db } from '#modula/server/data/client'
 import { resolveAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
+import {
+  createInvoicePdfAttachmentForOrder,
+  createProductLinkedDocumentAttachmentsForOrder,
+  type PdfAttachment,
+} from '#modula/server/utils/billingDocumentPdf'
 import { formatDateLabel } from '#modula/server/utils/dateFormat'
 import { sendGmail, getSiteOrigin } from '#modula/server/utils/gmail'
 import { buildGenericEmail } from '#modula/server/utils/orderEmails'
@@ -54,16 +59,18 @@ export async function sendShopOrderTransitionNotifications(
   const locale = normalizeShopOrderLocale(order.language)
 
   if (transition.previousPaymentStatus !== 'PAID' && order.paymentStatus === 'PAID') {
+    const attachments = await getPaidOrderAttachments(order.id)
     await sendShopOrderEmail({
       action: 'shop_order_payment_confirmed',
       order,
       to: order.email,
       locale,
       accent: '#16a34a',
+      attachments,
     })
 
     if (order.paymentProvider === 'STRIPE') {
-      await sendShopOrderValidatedAdminEmail(order)
+      await sendShopOrderValidatedAdminEmail(order, attachments)
     }
   }
 
@@ -88,7 +95,7 @@ export async function sendShopOrderTransitionNotifications(
   }
 }
 
-async function sendShopOrderValidatedAdminEmail(order: ShopOrderPayload) {
+async function sendShopOrderValidatedAdminEmail(order: ShopOrderPayload, attachments: PdfAttachment[] = []) {
   const notificationEmail = await getReservationNotificationEmail()
   if (!notificationEmail) return
 
@@ -98,6 +105,7 @@ async function sendShopOrderValidatedAdminEmail(order: ShopOrderPayload) {
     to: notificationEmail,
     locale: 'fr',
     accent: '#4b56d2',
+    attachments,
   })
 }
 
@@ -107,6 +115,7 @@ async function sendShopOrderEmail(options: {
   to: string
   locale: ShopOrderEmailLocale
   accent: string
+  attachments?: PdfAttachment[]
 }) {
   try {
     const template = await resolveAdminEmailTemplate(options.action, options.locale)
@@ -122,6 +131,7 @@ async function sendShopOrderEmail(options: {
         accent: options.accent,
         lang: options.locale,
       }),
+      attachments: options.attachments || [],
     })
   } catch (error) {
     console.error('[shop-order-email] Unable to send shop order email', {
@@ -131,6 +141,18 @@ async function sendShopOrderEmail(options: {
       error,
     })
   }
+}
+
+async function getPaidOrderAttachments(orderId: number) {
+  const [invoice, linkedDocuments] = await Promise.all([
+    createInvoicePdfAttachmentForOrder(orderId),
+    createProductLinkedDocumentAttachmentsForOrder(orderId),
+  ])
+
+  return [
+    ...(invoice ? [invoice] : []),
+    ...linkedDocuments,
+  ]
 }
 
 async function getShopOrderForEmail(orderId: number) {

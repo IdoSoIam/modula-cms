@@ -35,6 +35,10 @@ export const ADMIN_ROUTE_PATHS = {
     fr: "/admin/shop/orders",
     en: "/admin/shop/orders",
   },
+  shopBillingDocuments: {
+    fr: "/admin/shop/billing-documents",
+    en: "/admin/shop/billing-documents",
+  },
   shopDelivery: {
     fr: "/admin/shop/delivery",
     en: "/admin/shop/delivery",

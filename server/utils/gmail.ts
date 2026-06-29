@@ -158,6 +158,7 @@ interface GmailAttachment {
   filename: string
   mimeType: string
   content: string
+  contentBase64?: string
 }
 
 export interface GmailCalendarInvite {
@@ -273,7 +274,7 @@ function buildMimeMessage(options: {
       'Content-Transfer-Encoding: base64',
       `Content-Disposition: attachment; filename="${attachment.filename}"`,
       '',
-      base64EncodeUtf8(attachment.content)
+      attachment.contentBase64 || base64EncodeUtf8(attachment.content)
     )
   }
 

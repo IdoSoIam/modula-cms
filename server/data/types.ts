@@ -1,6 +1,7 @@
 import type {
   ArticleRecord,
   BasketItemRecord,
+  BillingDocumentTemplateRecord,
   BasketRecord,
   CmsNavigationItemRecord,
   CmsPageRecord,
@@ -45,6 +46,7 @@ export type UserMemberRole = UserMemberRoleRecord
 export type Vegetable = VegetableRecord
 export type Basket = BasketRecord
 export type BasketItem = BasketItemRecord
+export type BillingDocumentTemplate = BillingDocumentTemplateRecord
 export type Reservation = ReservationRecord
 export type ReservationScheduleProposal = ReservationScheduleProposalRecord
 export type ReservationOccurrence = ReservationOccurrenceRecord

@@ -130,6 +130,14 @@ export default defineEventHandler(async (event) => {
         vatRate: product.vatRate,
         paymentTaxCode: product.paymentTaxCode,
         paymentTaxBehavior: product.paymentTaxBehavior,
+        linkedBillingDocuments: product.detailSections
+          .flatMap((section) => section.items)
+          .filter((item) => item.mediaKind === "billingDocument" && item.mediaDocumentId)
+          .map((item) => ({
+            id: item.mediaDocumentId,
+            name: item.mediaDocumentName,
+            kind: item.mediaDocumentKind,
+          })),
       }),
       paymentTaxCode: product.paymentTaxCode,
       paymentTaxBehavior: product.paymentTaxBehavior,

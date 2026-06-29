@@ -41,6 +41,7 @@ const MODEL_NAMES = [
   'ProductCategory',
   'ProductLot',
   'ProductLotItem',
+  'BillingDocumentTemplate',
   'ShopOrder',
   'ShopOrderLine',
   'Article',
@@ -102,6 +103,7 @@ const MANUAL_RELATIONS: Record<ModelName, Record<string, { type: 'hasMany'; targ
     items: { type: 'hasMany', target: 'ProductLotItem', foreignKey: 'productLotId' }
   },
   ProductLotItem: {},
+  BillingDocumentTemplate: {},
   ShopOrder: {
     lines: { type: 'hasMany', target: 'ShopOrderLine', foreignKey: 'orderId' }
   },

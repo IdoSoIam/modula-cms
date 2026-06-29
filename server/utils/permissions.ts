@@ -271,6 +271,7 @@ function inferRoutePermission(event: H3Event): RoutePermissionMatch | null {
     { pattern: /^\/api\/admin\/baskets/, modules: ['shop_orders'] },
     { pattern: /^\/api\/admin\/products/, modules: ['shop_orders'] },
     { pattern: /^\/api\/admin\/product-categories/, modules: ['shop_orders'] },
+    { pattern: /^\/api\/admin\/billing-documents/, modules: ['shop_orders'] },
     { pattern: /^\/api\/admin\/orders/, modules: ['shop_orders'] },
     { pattern: /^\/api\/admin\/order-occurrences/, modules: ['shop_orders'] },
     { pattern: /^\/api\/admin\/pickup-points/, modules: ['shop_orders'] },

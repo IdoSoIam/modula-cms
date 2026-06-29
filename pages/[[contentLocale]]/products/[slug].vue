@@ -136,6 +136,16 @@
                         <Icon name="mdi:file-pdf-box" size="18" />
                         {{ openPdfLabel }}
                       </a>
+                      <a
+                        v-else-if="item.mediaKind === 'billingDocument' && item.mediaDocumentId"
+                        :href="buildBillingDocumentPreviewUrl(item.mediaDocumentId)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-sm btn-outline"
+                      >
+                        <Icon name="mdi:file-document-outline" size="18" />
+                        {{ item.mediaDocumentName || openDocumentLabel }}
+                      </a>
                     </div>
                   </div>
                 </dl>
@@ -287,6 +297,7 @@ const paymentLabel = computed(() => publicText('shop.product.payment', 'Paiement
 const noneLabel = computed(() => publicText('shop.product.none', 'Aucun'))
 const moreDetailsTitle = computed(() => publicText('shop.product.moreDetails', 'Informations détaillées'))
 const openPdfLabel = computed(() => publicText('shop.product.openPdf', 'Ouvrir le PDF'))
+const openDocumentLabel = computed(() => publicText('shop.product.openDocument', 'Ouvrir le document'))
 const rentalConditionsTitle = computed(() => publicText('shop.product.rentalConditions', 'Conditions de location'))
 const rentalAvailabilityLabel = computed(() => publicText('shop.product.availability', 'Disponibilité'))
 const rentalMinLabel = computed(() => publicText('shop.product.minimumDuration', 'Durée minimale'))
@@ -347,6 +358,12 @@ function getLocalizedDetailLabel(item: ProductDetailField | null | undefined) {
 function getLocalizedDetailValue(item: ProductDetailField | null | undefined) {
   if (!item) return ''
   return pickCmsLocalizedText(contentLocale.value, item.valueLocalized) || item.value || ''
+}
+
+function buildBillingDocumentPreviewUrl(documentId: number) {
+  const localeQuery = encodeURIComponent(contentLocale.value || 'fr')
+  const productId = encodeURIComponent(String(product.value?.id || ''))
+  return `/api/shop/billing-documents/${documentId}/preview?productId=${productId}&locale=${localeQuery}`
 }
 
 const maxQuantity = computed(() => {

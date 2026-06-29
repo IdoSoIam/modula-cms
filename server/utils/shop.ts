@@ -1,6 +1,7 @@
 import { db } from '#modula/server/data/client'
 import { createEmptyCmsLocalizedText, pickCmsLocalizedText, type CmsLocalizedText } from '#modula/shared/cms'
 import { slugify } from '#modula/server/utils/slug'
+import type { BillingDocumentKind } from '#modula/server/utils/billingDocuments'
 
 export interface ProductPayload {
   id: number
@@ -147,8 +148,11 @@ export interface ProductDetailField {
   labelLocalized: CmsLocalizedText
   value: string
   valueLocalized: CmsLocalizedText
-  mediaKind: 'image' | 'pdf' | null
+  mediaKind: 'image' | 'pdf' | 'billingDocument' | null
   mediaUrl: string | null
+  mediaDocumentId: number | null
+  mediaDocumentName: string | null
+  mediaDocumentKind: BillingDocumentKind | null
 }
 
 export interface ProductDetailSection {
@@ -434,9 +438,20 @@ function normalizeProductDetailField(value: unknown): ProductDetailField | null 
   const entry = value as Record<string, unknown>
   const labelLocalized = normalizeProductLocalizedText(entry.labelLocalized ?? entry.label, typeof entry.label === 'string' ? entry.label : '')
   const valueLocalized = normalizeProductLocalizedText(entry.valueLocalized ?? entry.value, typeof entry.value === 'string' ? entry.value : '')
-  const mediaKind = entry.mediaKind === 'image' || entry.mediaKind === 'pdf' ? entry.mediaKind : null
+  const mediaKind = entry.mediaKind === 'image' || entry.mediaKind === 'pdf' || entry.mediaKind === 'billingDocument'
+    ? entry.mediaKind
+    : null
   const mediaUrl = typeof entry.mediaUrl === 'string' && entry.mediaUrl.trim() ? entry.mediaUrl.trim() : null
-  if (!hasLocalizedText(labelLocalized) && !hasLocalizedText(valueLocalized) && !mediaUrl) return null
+  const mediaDocumentId = Number.isInteger(Number(entry.mediaDocumentId)) && Number(entry.mediaDocumentId) > 0
+    ? Number(entry.mediaDocumentId)
+    : null
+  const mediaDocumentName = typeof entry.mediaDocumentName === 'string' && entry.mediaDocumentName.trim()
+    ? entry.mediaDocumentName.trim()
+    : null
+  const mediaDocumentKind = entry.mediaDocumentKind === 'INVOICE' || entry.mediaDocumentKind === 'CONTRACT' || entry.mediaDocumentKind === 'ASSURANCE'
+    ? entry.mediaDocumentKind
+    : null
+  if (!hasLocalizedText(labelLocalized) && !hasLocalizedText(valueLocalized) && !mediaUrl && !mediaDocumentId) return null
   return {
     id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : crypto.randomUUID(),
     label: resolveLocalizedProductText(labelLocalized, 'Champ'),
@@ -444,7 +459,10 @@ function normalizeProductDetailField(value: unknown): ProductDetailField | null 
     value: resolveLocalizedProductText(valueLocalized, ''),
     valueLocalized,
     mediaKind,
-    mediaUrl
+    mediaUrl,
+    mediaDocumentId,
+    mediaDocumentName,
+    mediaDocumentKind
   }
 }
 

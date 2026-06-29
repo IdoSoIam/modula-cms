@@ -7,6 +7,7 @@ const deliveryTypes = ['ONSITE', 'PICKUP', 'TOUR']
 const reservationScheduleProposalSources = ['CUSTOMER', 'ADMIN']
 const productLotKinds = ['SINGLE', 'LOT']
 const productSaleTypes = ['SALE', 'RENTAL']
+const billingDocumentKinds = ['INVOICE', 'CONTRACT', 'ASSURANCE']
 const shopOrderStatuses = ['DRAFT', 'PENDING', 'PAID', 'CANCELLED']
 const shopPaymentProviders = ['OFFLINE', 'STRIPE']
 const shopPaymentStatuses = ['UNPAID', 'PENDING', 'PAID', 'FAILED', 'REFUNDED']
@@ -514,6 +515,34 @@ export const cmsDataSchema = defineSchema({
         unique(['productLotId', 'productId'], 'ProductLotItem_productLotId_productId_key'),
         index(['productLotId'], 'ProductLotItem_productLotId_idx'),
         index(['productId'], 'ProductLotItem_productId_idx')
+      ]
+    }),
+    BillingDocumentTemplate: defineModel({
+      tableName: 'BillingDocumentTemplate',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        kind: field.enum(billingDocumentKinds, { default: 'CONTRACT' }),
+        slug: field.string({ unique: true }),
+        name: field.string(),
+        description: field.string({ nullable: true }),
+        brandName: field.string({ nullable: true }),
+        logoUrl: field.string({ nullable: true }),
+        accentColor: field.string({ nullable: true }),
+        sourcePdfUrl: field.string({ nullable: true }),
+        titleJson: field.string({ default: '{"fr":"","en":""}' }),
+        contentJson: field.string({ default: '{"fr":"","en":""}' }),
+        footerJson: field.string({ default: '{"fr":"","en":""}' }),
+        active: field.boolean({ default: true }),
+        isDefault: field.boolean({ default: false }),
+        position: field.int({ default: 0 }),
+        createdAt: field.datetime({ default: 'now' }),
+        updatedAt: field.datetime()
+      },
+      indexes: [
+        unique(['slug'], 'BillingDocumentTemplate_slug_key'),
+        index(['kind', 'active', 'position'], 'BillingDocumentTemplate_kind_active_position_idx'),
+        index(['kind', 'isDefault'], 'BillingDocumentTemplate_kind_isDefault_idx')
       ]
     }),
     ShopOrder: defineModel({
