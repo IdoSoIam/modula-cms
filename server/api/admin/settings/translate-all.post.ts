@@ -4,6 +4,8 @@ import { db } from '#modula/server/data/client'
 import { translateRegistryTexts } from '#modula/server/utils/cmsRegistry'
 import { clonePageBuilderContent } from '#modula/shared/pageBuilder'
 import { getAllAdminEmailTemplateDefinitions, resolveAdminEmailTemplate } from '#modula/server/utils/adminEmailTemplates'
+import { getAdminPublicDictionary, savePublicDictionary } from '#modula/server/utils/publicDictionary'
+import type { CmsLocalizedText } from '#modula/shared/cms'
 
 interface PageTranslation {
   title?: string
@@ -29,7 +31,7 @@ interface EmailTemplateTranslationData {
 }
 
 interface TranslationTask {
-  kind: 'cmsPage' | 'event' | 'navigationItem' | 'cmsSettings' | 'emailTemplate'
+  kind: 'cmsPage' | 'event' | 'navigationItem' | 'cmsSettings' | 'emailTemplate' | 'publicDictionary'
   id: number
   sourceText: string
   sourceLocale: string
@@ -42,7 +44,7 @@ interface TranslationTask {
 }
 
 interface TranslationResultItem {
-  kind: 'cmsPage' | 'event' | 'navigationItem' | 'cmsSettings' | 'emailTemplate'
+  kind: 'cmsPage' | 'event' | 'navigationItem' | 'cmsSettings' | 'emailTemplate' | 'publicDictionary'
   id: number
   recordLabel: string
   fieldPath: string
@@ -223,6 +225,27 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const publicDictionary = await getAdminPublicDictionary(siteLocales)
+  for (const entry of publicDictionary) {
+    const sourceText = entry.values[defaultLocale]?.trim()
+    if (!sourceText) continue
+
+    for (const targetLocale of targetLocales) {
+      const targetText = entry.values[targetLocale]?.trim()
+      if (targetText) continue
+      tasks.push({
+        kind: 'publicDictionary',
+        id: 0,
+        recordLabel: entry.label[defaultLocale] || entry.label.fr || entry.key,
+        sourceText,
+        sourceLocale: defaultLocale,
+        targetLocale,
+        fieldPath: entry.key,
+        settingKey: SETTING_KEYS.PUBLIC_LOCALE_DICTIONARY,
+      })
+    }
+  }
+
   if (!tasks.length) {
     return {
       translated: 0,
@@ -380,6 +403,19 @@ async function writeTranslation(task: TranslationTask, translatedText: string) {
     if (task.fieldPath === 'body') target.body = translatedText
     templates[task.targetLocale] = target
     await setSetting(task.settingKey, JSON.stringify(templates))
+    return
+  }
+
+  if (task.kind === 'publicDictionary') {
+    const dictionary = await getAdminPublicDictionary([task.sourceLocale, task.targetLocale])
+    const current = Object.fromEntries(
+      dictionary.map((entry) => [entry.key, { ...(entry.values || {}) }])
+    ) as Record<string, CmsLocalizedText>
+    if (!current[task.fieldPath]) {
+      current[task.fieldPath] = {}
+    }
+    current[task.fieldPath]![task.targetLocale] = translatedText
+    await savePublicDictionary(current)
     return
   }
 

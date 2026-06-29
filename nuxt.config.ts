@@ -193,6 +193,31 @@ export default defineNuxtConfig({
       imageSourceBaseURL,
       stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY?.trim() || ''
     }
+  },
+  hooks: {
+    'pages:extend'(pages) {
+      const localePrefix = '/:contentLocale([a-zA-Z-]{2,10})'
+      const prefixedRoutes = [
+        { name: 'public-locale-home', path: `${localePrefix}`, file: path.resolve(layerRoot, 'pages/index.vue') },
+        { name: 'public-locale-login', path: `${localePrefix}/login`, file: path.resolve(layerRoot, 'pages/login.vue') },
+        { name: 'public-locale-register', path: `${localePrefix}/register`, file: path.resolve(layerRoot, 'pages/register.vue') },
+        { name: 'public-locale-profile', path: `${localePrefix}/profile`, file: path.resolve(layerRoot, 'pages/profile.vue') },
+        { name: 'public-locale-cart', path: `${localePrefix}/panier`, file: path.resolve(layerRoot, 'pages/panier.vue') },
+        { name: 'public-locale-cookies', path: `${localePrefix}/cookies`, file: path.resolve(layerRoot, 'pages/cookies.vue') },
+        { name: 'public-locale-payment-success', path: `${localePrefix}/payment/success`, file: path.resolve(layerRoot, 'pages/payment/success.vue') },
+        { name: 'public-locale-payment-cancel', path: `${localePrefix}/payment/cancel`, file: path.resolve(layerRoot, 'pages/payment/cancel.vue') },
+        { name: 'public-locale-password-setup', path: `${localePrefix}/password-setup/:token`, file: path.resolve(layerRoot, 'pages/password-setup/[token].vue') },
+        { name: 'public-locale-order-manage', path: `${localePrefix}/orders/manage/:token`, file: path.resolve(layerRoot, 'pages/orders/manage/[token].vue') },
+        { name: 'public-locale-product-detail', path: `${localePrefix}/products/:slug`, file: path.resolve(layerRoot, 'pages/products/[slug].vue') },
+        { name: 'public-locale-event-detail', path: `${localePrefix}/events/:slug`, file: path.resolve(layerRoot, 'pages/events/[slug].vue') },
+        { name: 'public-locale-news-detail', path: `${localePrefix}/news/:slug`, file: path.resolve(layerRoot, 'pages/news/[slug].vue') },
+        { name: 'public-locale-cms-catchall', path: `${localePrefix}/:slug(.*)*`, file: path.resolve(layerRoot, 'pages/[...slug].vue') },
+      ]
+
+      for (const route of prefixedRoutes) {
+        pages.push(route as any)
+      }
+    }
   }
 
 

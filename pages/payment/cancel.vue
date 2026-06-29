@@ -4,15 +4,15 @@
       <div class="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-warning/15 text-warning">
         <Icon name="mdi:arrow-u-left-top-bold" size="28" />
       </div>
-      <p class="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-warning">Paiement interrompu</p>
-      <h1 class="text-3xl font-bold">Le paiement n'a pas été finalisé.</h1>
+      <p class="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-warning">{{ badgeLabel }}</p>
+      <h1 class="text-3xl font-bold">{{ titleLabel }}</h1>
       <p class="mt-3 max-w-2xl opacity-70">
-        Aucune transaction n'a été validée. Vous pouvez reprendre votre parcours ou revenir à l'accueil.
+        {{ descriptionLabel }}
       </p>
 
       <div class="mt-8 flex flex-wrap gap-3">
-        <NuxtLink to="/" class="btn btn-primary">Retour au site</NuxtLink>
-        <button type="button" class="btn btn-outline" @click="goBack">Revenir en arrière</button>
+        <NuxtLink to="/" class="btn btn-primary">{{ backHomeLabel }}</NuxtLink>
+        <button type="button" class="btn btn-outline" @click="goBack">{{ backLabel }}</button>
       </div>
     </div>
   </section>
@@ -20,6 +20,12 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const { publicText } = usePublicDictionary()
+const badgeLabel = computed(() => publicText('pages.payment.cancel.badge', 'Paiement interrompu'))
+const titleLabel = computed(() => publicText('pages.payment.cancel.title', 'Le paiement n\'a pas été finalisé.'))
+const descriptionLabel = computed(() => publicText('pages.payment.cancel.description', 'Aucune transaction n\'a été validée. Vous pouvez reprendre votre parcours ou revenir à l\'accueil.'))
+const backHomeLabel = computed(() => publicText('pages.payment.cancel.backHome', 'Retour au site'))
+const backLabel = computed(() => publicText('pages.payment.cancel.back', 'Revenir en arrière'))
 
 const goBack = () => {
   if (window.history.length > 1) {
@@ -30,7 +36,7 @@ const goBack = () => {
 }
 
 usePageSeo({
-  title: 'Paiement annulé',
-  description: 'Le paiement Stripe a été annulé.'
+  title: computed(() => publicText('pages.payment.cancel.seoTitle', 'Paiement annulé')),
+  description: computed(() => publicText('pages.payment.cancel.seoDescription', 'Le paiement Stripe a été annulé.'))
 })
 </script>

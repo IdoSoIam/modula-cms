@@ -30,7 +30,7 @@
     </div>
 
     <div v-else-if="isEmpty" class="rounded-3xl border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
-      {{ locale === 'en' ? 'No public schedule published yet.' : 'Aucun élément de planning public pour le moment.' }}
+      {{ publicText('planning.page.empty', 'Aucun élément de planning public pour le moment.') }}
     </div>
 
     <template v-else-if="viewMode === 'week'">
@@ -44,7 +44,7 @@
             <Icon name="mdi:chevron-right" size="18" />
           </button>
         </div>
-        <button type="button" class="btn btn-sm btn-outline" @click="goCurrentWeek">{{ locale === 'en' ? 'Current week' : 'Semaine en cours' }}</button>
+        <button type="button" class="btn btn-sm btn-outline" @click="goCurrentWeek">{{ publicText('planning.page.currentWeek', 'Semaine en cours') }}</button>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
@@ -89,7 +89,7 @@
           </div>
 
           <div v-else class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 px-3 py-6 text-center text-xs opacity-65">
-            {{ locale === 'en' ? 'Nothing planned.' : 'Rien de prévu.' }}
+            {{ publicText('planning.page.nothingPlanned', 'Rien de prévu.') }}
           </div>
         </section>
       </div>
@@ -102,8 +102,8 @@
         :month-input="calendarMonthInput"
         :show-month-picker="showMonthPicker"
         :day-names="calendarDayNames"
-        :today-label="locale === 'en' ? 'Current month' : 'Mois en cours'"
-        :month-picker-label="locale === 'en' ? 'Choose a month' : 'Choisir un mois'"
+        :today-label="publicText('planning.page.currentMonth', 'Mois en cours')"
+        :month-picker-label="publicText('planning.page.monthPicker', 'Choisir un mois')"
         :item-class="calendarItemClass"
         :item-title="calendarItemTitle"
         :item-subtitle="calendarItemSubtitle"
@@ -132,6 +132,7 @@ import type {
   PlanningWeekResponse
 } from '#modula/shared/events'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
+import { resolveIntlLocale } from '#modula/shared/date'
 import { useAuthStore } from '#modula/stores/auth'
 
 const props = withDefaults(defineProps<{
@@ -145,6 +146,7 @@ const props = withDefaults(defineProps<{
 const { contentLocale } = useContentLocale()
 const locale = contentLocale
 const localePath = usePublicLocalePath()
+const { publicText } = usePublicDictionary()
 const siteConfig = await useSiteConfig()
 const authStore = useAuthStore()
 const defaultSettings = createDefaultCmsSiteSettings().planningPage
@@ -226,8 +228,8 @@ const previewWeekResponse = computed<PlanningWeekResponse>(() => {
     const items = previewItems.value.filter(item => formatIsoDate(new Date(item.startsAt)) === iso)
     return {
       iso,
-      label: new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'long', day: '2-digit', month: 'long' }).format(day),
-      shortLabel: new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'short' }).format(day),
+      label: new Intl.DateTimeFormat(resolveIntlLocale(locale.value), { weekday: 'long', day: '2-digit', month: 'long' }).format(day),
+      shortLabel: new Intl.DateTimeFormat(resolveIntlLocale(locale.value), { weekday: 'short' }).format(day),
       dayNumber: day.getDate(),
       page: 1,
       total: items.length,
@@ -263,9 +265,9 @@ const previewCalendarResponse = computed<PlanningCalendarResponse>(() => {
   return {
     view: 'calendar',
     month: formatMonth(monthStart),
-    monthLabel: new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { month: 'long', year: 'numeric' }).format(monthStart),
+    monthLabel: new Intl.DateTimeFormat(resolveIntlLocale(locale.value), { month: 'long', year: 'numeric' }).format(monthStart),
     monthInput: formatMonth(monthStart),
-    dayNames: Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'short' }).format(addDays(firstGridDay, index))),
+    dayNames: Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(resolveIntlLocale(locale.value), { weekday: 'short' }).format(addDays(firstGridDay, index))),
     days
   }
 })
@@ -285,7 +287,7 @@ const currentCalendarResponse = computed<PlanningCalendarResponse | null>(() => 
 const weekColumns = computed(() => currentWeekResponse.value?.columns || [])
 const calendarDays = computed(() => currentCalendarResponse.value?.days || [])
 const calendarDayNames = computed(() => currentCalendarResponse.value?.dayNames || [])
-const calendarMonthLabel = computed(() => currentCalendarResponse.value?.monthLabel || new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { month: 'long', year: 'numeric' }).format(calendarMonth.value))
+const calendarMonthLabel = computed(() => currentCalendarResponse.value?.monthLabel || new Intl.DateTimeFormat(resolveIntlLocale(locale.value), { month: 'long', year: 'numeric' }).format(calendarMonth.value))
 const calendarMonthInput = computed(() => currentCalendarResponse.value?.monthInput || formatMonth(calendarMonth.value))
 const isEmpty = computed(() => viewMode.value === 'week'
   ? weekColumns.value.every(column => column.total === 0)
@@ -319,7 +321,7 @@ const cardStyle = computed(() => ({
 const weekRangeLabel = computed(() => {
   const start = weekStart.value
   const end = addDays(start, 6)
-  const localeCode = locale.value === 'en' ? 'en-GB' : 'fr-FR'
+  const localeCode = resolveIntlLocale(locale.value)
   return `${new Intl.DateTimeFormat(localeCode, { day: '2-digit', month: 'long' }).format(start)} - ${new Intl.DateTimeFormat(localeCode, { day: '2-digit', month: 'long' }).format(end)}`
 })
 
@@ -417,8 +419,10 @@ const detailHref = (slug: string, occurrenceId?: number | null) => localePath({
   path: `/events/${slug}`,
   query: occurrenceId ? { occurrenceId: String(occurrenceId) } : {}
 })
-const modeLabel = (mode: PlanningPageViewMode) => mode === 'week' ? (locale.value === 'en' ? 'Week' : 'Semaine') : (locale.value === 'en' ? 'Calendar' : 'Calendrier')
-const formatTime = (value: string) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', {
+const modeLabel = (mode: PlanningPageViewMode) => mode === 'week'
+  ? publicText('planning.page.weekMode', 'Semaine')
+  : publicText('planning.page.calendarMode', 'Calendrier')
+const formatTime = (value: string) => new Intl.DateTimeFormat(resolveIntlLocale(locale.value), {
   hour: '2-digit',
   minute: '2-digit'
 }).format(new Date(value))

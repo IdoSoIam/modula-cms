@@ -81,6 +81,7 @@ const props = defineProps<{
 }>()
 
 const { contentLocale } = useContentLocale()
+const { publicText } = usePublicDictionary()
 const locale = contentLocale
 const route = useRoute()
 const router = useRouter()
@@ -98,23 +99,23 @@ const { data, pending, refresh } = await useFetch<{ categories: ProductCategoryP
 const categories = computed(() => data.value?.categories || [])
 const productLots = computed(() => data.value?.productLots || [])
 
-const pageTitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.title) || (locale.value === 'en' ? 'Product lots' : 'Lots de produits'))
-const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.subtitle) || (locale.value === 'en' ? 'Browse curated product lots for sale or rental.' : 'Parcourez les lots de produits à vendre ou à louer.'))
-const shopLabel = computed(() => locale.value === 'en' ? 'Product lots' : 'Lots de produits')
-const cartButtonLabel = computed(() => locale.value === 'en' ? `Cart (${count.value})` : `Panier (${count.value})`)
-const addLotLabel = computed(() => locale.value === 'en' ? 'Add lot to cart' : 'Ajouter le lot')
-const soldOutLabel = computed(() => locale.value === 'en' ? 'Sold out' : 'Épuisé')
-const saleLabel = computed(() => locale.value === 'en' ? 'Sale' : 'Vente')
-const rentalLabel = computed(() => locale.value === 'en' ? 'Rental' : 'Location')
-const onlineLabel = computed(() => locale.value === 'en' ? 'Online payment' : 'Paiement en ligne')
-const singleLabel = computed(() => locale.value === 'en' ? 'Single' : 'Simple')
-const lotLabel = computed(() => locale.value === 'en' ? 'Lot' : 'Lot')
-const stockLabel = computed(() => locale.value === 'en' ? 'Stock' : 'Stock')
-const priceLabel = computed(() => locale.value === 'en' ? 'Price' : 'Prix')
-const allCategoriesLabel = computed(() => locale.value === 'en' ? 'All categories' : 'Toutes les catégories')
-const emptyLabel = computed(() => locale.value === 'en' ? 'No product lot is currently published.' : 'Aucun lot de produits n’est publié pour le moment.')
-const offlineLabel = computed(() => locale.value === 'en' ? 'Offline payment' : 'Paiement hors ligne')
-const chooseRentalPeriodLabel = computed(() => locale.value === 'en' ? 'Choose rental period' : 'Choisir la période')
+const pageTitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.title) || publicText('shop.lots.title', 'Lots de produits'))
+const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.subtitle) || publicText('shop.lots.subtitle', 'Parcourez les lots de produits à vendre ou à louer.'))
+const shopLabel = computed(() => publicText('shop.lots.eyebrow', 'Lots de produits'))
+const cartButtonLabel = computed(() => publicText('shop.lots.cartButton', 'Panier ({count})', { count: count.value }))
+const addLotLabel = computed(() => publicText('shop.lots.addLot', 'Ajouter le lot'))
+const soldOutLabel = computed(() => publicText('shop.lots.soldOut', 'Épuisé'))
+const saleLabel = computed(() => publicText('shop.lots.sale', 'Vente'))
+const rentalLabel = computed(() => publicText('shop.lots.rental', 'Location'))
+const onlineLabel = computed(() => publicText('shop.lots.onlinePayment', 'Paiement en ligne'))
+const singleLabel = computed(() => publicText('shop.lots.single', 'Simple'))
+const lotLabel = computed(() => publicText('shop.lots.lot', 'Lot'))
+const stockLabel = computed(() => publicText('shop.lots.stock', 'Stock'))
+const priceLabel = computed(() => publicText('shop.lots.price', 'Prix'))
+const allCategoriesLabel = computed(() => publicText('shop.lots.allCategories', 'Toutes les catégories'))
+const emptyLabel = computed(() => publicText('shop.lots.empty', 'Aucun lot de produits n’est publié pour le moment.'))
+const offlineLabel = computed(() => publicText('shop.lots.offlinePayment', 'Paiement hors ligne'))
+const chooseRentalPeriodLabel = computed(() => publicText('shop.lots.chooseRentalPeriod', 'Choisir la période'))
 const cardBackgroundColor = computed(() => 'var(--fallback-b1,oklch(var(--b1)/1))')
 const rentalModalOpen = ref(false)
 const selectedRentalLot = ref<ProductLotPayload | null>(null)
@@ -156,7 +157,7 @@ const addLotToCart = (lot: ProductLotPayload) => {
     unitPrice: lot.price,
     totalPrice: lot.price
   })
-  $toast.success(locale.value === 'en' ? 'Added to cart' : 'Ajouté au panier')
+  $toast.success(publicText('shop.lots.addSuccess', 'Ajouté au panier'))
 }
 
 const closeRentalModal = () => {
@@ -189,7 +190,7 @@ const confirmRentalSelection = ({ rentalStartDate, rentalEndDate }: { rentalStar
     unitPrice: lot.price,
     totalPrice: lot.price
   })
-  $toast.success(locale.value === 'en' ? 'Rental added to cart' : 'Location ajoutée au panier')
+  $toast.success(publicText('shop.lots.rentalAddSuccess', 'Location ajoutée au panier'))
   closeRentalModal()
 }
 

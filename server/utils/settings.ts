@@ -87,7 +87,8 @@ export const SETTING_KEYS = {
   SITE_LOCALES: 'site_locales',
   SITE_DEFAULT_LOCALE: 'site_default_locale',
   SITE_LOCALE_LABELS: 'site_locale_labels',
-  SITE_LLM_API_KEY: 'site_llm_api_key'
+  SITE_LLM_API_KEY: 'site_llm_api_key',
+  PUBLIC_LOCALE_DICTIONARY: 'public_locale_dictionary_v1'
 } as const
 
 export async function getGmailSenderEmail(): Promise<string | null> {

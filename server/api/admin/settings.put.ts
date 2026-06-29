@@ -1,6 +1,8 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { normalizeFeatureFlags, normalizeVatRate, saveShopDefaultVatRate, saveSiteLocales, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { findAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
+import { savePublicDictionary } from '#modula/server/utils/publicDictionary'
+import type { CmsLocalizedText } from '#modula/shared/cms'
 
 interface Body {
   gmailSenderEmail?: string
@@ -42,8 +44,8 @@ interface Body {
   shopDefaultVatRate?: number
   siteLocales?: string[]
   siteDefaultLocale?: string
-  siteLlmApiKey?: string
   localeLabels?: Record<string, { short: string; long: string }>
+  publicDictionary?: Record<string, CmsLocalizedText>
   templates?: Record<string, Record<string, { subject: string; body: string } | undefined>>
 }
 
@@ -175,11 +177,11 @@ export default defineEventHandler(async (event) => {
     }
     await saveSiteLocales(body.siteLocales, body.siteDefaultLocale)
   }
-  if (typeof body.siteLlmApiKey === 'string') {
-    await setSetting(SETTING_KEYS.SITE_LLM_API_KEY, body.siteLlmApiKey.trim())
-  }
   if (body.localeLabels) {
     await setSetting(SETTING_KEYS.SITE_LOCALE_LABELS, JSON.stringify(body.localeLabels))
+  }
+  if (body.publicDictionary) {
+    await savePublicDictionary(body.publicDictionary)
   }
   if (body.templates) {
     for (const [action, locales] of Object.entries(body.templates)) {

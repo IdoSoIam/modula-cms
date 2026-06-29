@@ -2,7 +2,17 @@ const DEFAULT_TIME_ZONE = 'Europe/Paris'
 
 const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
 
-const toIntlLocale = (locale: string) => (locale === 'en' ? 'en-US' : 'fr-FR')
+export const resolveIntlLocale = (locale: string) => {
+  const normalized = String(locale || '').trim().toLowerCase()
+  if (!normalized) return 'fr-FR'
+  if (normalized.includes('-')) return normalized
+  if (normalized === 'en') return 'en-US'
+  if (normalized === 'fr') return 'fr-FR'
+  if (normalized === 'de') return 'de-DE'
+  if (normalized === 'es') return 'es-ES'
+  if (normalized === 'it') return 'it-IT'
+  return normalized
+}
 
 const parseDateValue = (value: string) => {
   const trimmed = value.trim()
@@ -29,7 +39,7 @@ export const formatLocalizedDate = (
   const date = parseDateValue(value)
   if (!date) return ''
 
-  return new Intl.DateTimeFormat(toIntlLocale(locale), {
+  return new Intl.DateTimeFormat(resolveIntlLocale(locale), {
     ...options,
     timeZone
   }).format(date)
