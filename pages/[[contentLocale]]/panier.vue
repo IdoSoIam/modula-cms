@@ -9,7 +9,6 @@
         </div>
         <div class="flex flex-wrap gap-3">
           <NuxtLink class="btn btn-ghost" :to="localePath('/boutique')">{{ productsLinkLabel }}</NuxtLink>
-          <NuxtLink class="btn btn-ghost" :to="localePath('/lots-produits')">{{ lotsLinkLabel }}</NuxtLink>
         </div>
       </div>
 
@@ -32,14 +31,14 @@
                 <div class="space-y-2">
                   <div class="flex flex-wrap items-center gap-2">
                     <h2 class="text-xl font-semibold">{{ item.title }}</h2>
-                    <span class="badge badge-outline">{{ item.kind === 'productLot' ? lotBadgeLabel : productBadgeLabel }}</span>
+                    <span class="badge badge-outline">{{ productBadgeLabel }}</span>
                   </div>
                   <p v-if="item.description" class="text-sm opacity-75">{{ item.description }}</p>
                   <div class="flex flex-wrap gap-2">
                     <span class="badge badge-soft">{{ stockLabel }}: {{ item.availableQuantity ?? '-' }}</span>
                     <span v-if="item.allowOfflinePayment" class="badge badge-soft">{{ offlineLabel }}</span>
                     <span v-if="item.allowOnlinePayment && stripeEnabled" class="badge badge-outline">{{ onlineLabel }}</span>
-                    <span class="badge badge-ghost">TVA {{ formatVatRate(item.vatRate) }}</span>
+                    <span class="badge badge-ghost">{{ formatVatBadge(item.vatRate) }}</span>
                     <span v-if="!stripeTaxEnabled" class="badge badge-soft">{{ taxIncludedLabel }}</span>
                     <span v-else-if="resolveCartTaxCode(item)" class="badge badge-outline">
                       {{ taxCodeLabel }}: {{ resolveCartTaxCode(item) }}
@@ -97,7 +96,7 @@
               <input v-model="checkoutForm.customerName" class="input input-bordered" />
             </div>
             <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ requiredLabel('Email') }}</span></label>
+              <label class="label"><span class="label-text">{{ requiredLabel(emailLabel) }}</span></label>
               <input v-model="checkoutForm.email" type="email" class="input input-bordered" />
             </div>
             <div class="form-control flex flex-col gap-3">
@@ -204,7 +203,7 @@
                 v-if="deliveryCityValid && checkoutForm.deliveryPostalCode.trim() && !deliveryPostalCodeValid"
                 class="text-sm text-warning"
               >
-                {{ locale === 'en' ? 'The postal code does not match the selected city.' : 'Le code postal ne correspond pas à la ville sélectionnée.' }}
+                {{ postalCodeMismatchLabel }}
               </p>
               <div v-if="selectedDeliveryTour" class="rounded-2xl bg-base-200 p-4 text-sm">
                 <div class="font-medium">{{ selectedDeliveryTour.name }}</div>
@@ -255,7 +254,6 @@
           <p class="mt-3 opacity-75">{{ emptyHelpLabel }}</p>
           <div class="mt-6 flex flex-wrap justify-center gap-3">
             <NuxtLink class="btn btn-primary" :to="localePath('/boutique')">{{ productsLinkLabel }}</NuxtLink>
-            <NuxtLink class="btn btn-ghost" :to="localePath('/lots-produits')">{{ lotsLinkLabel }}</NuxtLink>
           </div>
         </div>
       </div>
@@ -309,11 +307,12 @@ interface DeliveryOptionsPayload {
 type DeliveryType = '' | 'ONSITE' | 'PICKUP' | 'TOUR'
 
 const { contentLocale } = useContentLocale()
+const { publicText } = usePublicDictionary()
 const locale = computed(() => contentLocale.value)
 const localePath = usePublicLocalePath()
 const route = useRoute()
 const authStore = useAuthStore()
-const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
+const { $toast, $formatPrice, $formatDate, $formatTime } = useNuxtApp() as any
 const { items, count, total, updateQuantity, remove, clear } = useShopCart()
 
 await authStore.ensureInitialized()
@@ -365,66 +364,53 @@ const checkoutForm = ref({
 
 const savingOrder = ref(false)
 
-const eyebrowLabel = computed(() => contentLocale.value === 'en' ? 'Checkout' : 'Commande')
-const titleLabel = computed(() => contentLocale.value === 'en' ? 'Shopping cart' : 'Panier d’achat')
-const introLabel = computed(() => contentLocale.value === 'en'
-  ? 'Review the selected products and lots, then confirm the order with delivery and payment details.'
-  : 'Vérifiez les produits et lots sélectionnés, puis confirmez la commande avec les informations de livraison et de règlement.')
-const productsLinkLabel = computed(() => contentLocale.value === 'en' ? 'Browse products' : 'Voir les produits')
-const lotsLinkLabel = computed(() => contentLocale.value === 'en' ? 'Browse product lots' : 'Voir les lots de produits')
-const productBadgeLabel = computed(() => contentLocale.value === 'en' ? 'Product' : 'Produit')
-const lotBadgeLabel = computed(() => contentLocale.value === 'en' ? 'Product lot' : 'Lot produit')
-const stockLabel = computed(() => contentLocale.value === 'en' ? 'Available' : 'Disponible')
-const offlineLabel = computed(() => contentLocale.value === 'en' ? 'On-site payment' : 'Paiement sur place')
-const onlineLabel = computed(() => contentLocale.value === 'en' ? 'Online payment' : 'Paiement en ligne')
-const unitPriceLabel = computed(() => contentLocale.value === 'en' ? 'Unit price' : 'Prix unitaire')
-const totalLabel = computed(() => contentLocale.value === 'en' ? 'Total' : 'Total')
-const removeLabel = computed(() => contentLocale.value === 'en' ? 'Remove' : 'Supprimer')
-const checkoutTitleLabel = computed(() => contentLocale.value === 'en' ? 'Checkout details' : 'Validation de commande')
-const checkoutIntroLabel = computed(() => contentLocale.value === 'en'
-  ? 'Delivery and payment options adapt to the selected offers.'
-  : 'Les options de livraison et de règlement s’adaptent aux offres sélectionnées.')
-const countLabel = computed(() => contentLocale.value === 'en' ? `${count.value} item(s)` : `${count.value} article(s)`)
-const fullNameLabel = computed(() => contentLocale.value === 'en' ? 'Full name' : 'Nom complet')
-const phoneLabel = computed(() => contentLocale.value === 'en' ? 'Phone' : 'Téléphone')
-const rentalHelpLabel = computed(() => contentLocale.value === 'en'
-  ? 'Rental dates are selected before adding each rental to the cart. Availability is checked again when the order is created.'
-  : 'Les dates de location sont choisies avant l’ajout de chaque location au panier. La disponibilité est revérifiée lors de la création de la commande.')
-const rentalPeriodLabel = computed(() => contentLocale.value === 'en' ? 'Rental period' : 'Période de location')
-const deliveryLabel = computed(() => contentLocale.value === 'en' ? 'Delivery method' : 'Mode de livraison')
-const deliveryPlaceholderLabel = computed(() => contentLocale.value === 'en' ? 'Select a delivery method' : 'Choisir un mode de livraison')
-const onSiteDeliveryLabel = computed(() => deliveryOptions.value?.onSitePickup?.label || (contentLocale.value === 'en' ? 'On-site pickup' : 'Retrait sur place'))
-const pickupDeliveryLabel = computed(() => contentLocale.value === 'en' ? 'Pickup point' : 'Point relais')
-const tourDeliveryLabel = computed(() => contentLocale.value === 'en' ? 'Home delivery' : 'Livraison à domicile')
-const pickupPointLabel = computed(() => contentLocale.value === 'en' ? 'Pickup point' : 'Point relais')
-const pickupPlaceholderLabel = computed(() => contentLocale.value === 'en' ? 'Select a pickup point' : 'Choisir un point relais')
-const deliveryTourLabel = computed(() => contentLocale.value === 'en' ? 'Delivery slot' : 'Créneau de livraison')
-const tourPlaceholderLabel = computed(() => contentLocale.value === 'en' ? 'Select a delivery slot' : 'Choisir un créneau')
-const addressLabel = computed(() => contentLocale.value === 'en' ? 'Address' : 'Adresse')
-const cityLabel = computed(() => contentLocale.value === 'en' ? 'City' : 'Ville')
-const postalCodeLabel = computed(() => contentLocale.value === 'en' ? 'Postal code' : 'Code postal')
-const tourCityHelperTitle = computed(() => contentLocale.value === 'en' ? 'Delivery eligibility' : 'Eligibilite livraison')
-const tourCityHelperLabel = computed(() => contentLocale.value === 'en'
-  ? 'To check whether home delivery is available, enter your city. Suggestions only include cities served by the configured delivery slots.'
-  : 'Pour verifier l eligibilite de la livraison a domicile, rentrer votre ville. Les suggestions ne proposent que les villes desservies par les creneaux configures.')
-const paymentLabel = computed(() => contentLocale.value === 'en' ? 'Payment method' : 'Mode de règlement')
-const messageLabel = computed(() => contentLocale.value === 'en' ? 'Message' : 'Message')
+const eyebrowLabel = computed(() => publicText('checkout.cart.eyebrow', 'Commande'))
+const titleLabel = computed(() => publicText('checkout.cart.title', 'Panier d’achat'))
+const introLabel = computed(() => publicText('checkout.cart.intro', 'Vérifiez les produits sélectionnés, puis confirmez la commande avec les informations de livraison et de règlement.'))
+const productsLinkLabel = computed(() => publicText('checkout.cart.productsLink', 'Voir les produits'))
+const productBadgeLabel = computed(() => publicText('checkout.cart.productBadge', 'Produit'))
+const stockLabel = computed(() => publicText('checkout.cart.stockLabel', 'Disponible'))
+const offlineLabel = computed(() => publicText('checkout.cart.offlineLabel', 'Paiement sur place'))
+const onlineLabel = computed(() => publicText('checkout.cart.onlineLabel', 'Paiement en ligne'))
+const unitPriceLabel = computed(() => publicText('checkout.cart.unitPrice', 'Prix unitaire'))
+const totalLabel = computed(() => publicText('checkout.cart.total', 'Total'))
+const removeLabel = computed(() => publicText('checkout.cart.remove', 'Supprimer'))
+const checkoutTitleLabel = computed(() => publicText('checkout.cart.detailsTitle', 'Validation de commande'))
+const checkoutIntroLabel = computed(() => publicText('checkout.cart.detailsIntro', 'Les options de livraison et de règlement s’adaptent aux offres sélectionnées.'))
+const countLabel = computed(() => publicText('checkout.cart.count', '{count} article(s)', { count: count.value }))
+const fullNameLabel = computed(() => publicText('checkout.cart.fullName', 'Nom complet'))
+const emailLabel = computed(() => publicText('checkout.cart.email', 'Email'))
+const phoneLabel = computed(() => publicText('checkout.cart.phone', 'Téléphone'))
+const rentalHelpLabel = computed(() => publicText('checkout.cart.rentalHelp', 'Les dates de location sont choisies avant l’ajout de chaque location au panier. La disponibilité est revérifiée lors de la création de la commande.'))
+const rentalPeriodLabel = computed(() => publicText('checkout.cart.rentalPeriod', 'Période de location'))
+const deliveryLabel = computed(() => publicText('checkout.cart.deliveryMethod', 'Mode de livraison'))
+const deliveryPlaceholderLabel = computed(() => publicText('checkout.cart.deliveryPlaceholder', 'Choisir un mode de livraison'))
+const onSiteDeliveryLabel = computed(() => publicText('checkout.cart.onSiteDelivery', 'Retrait sur place'))
+const pickupDeliveryLabel = computed(() => publicText('checkout.cart.pickupDelivery', 'Point relais'))
+const tourDeliveryLabel = computed(() => publicText('checkout.cart.homeDelivery', 'Livraison à domicile'))
+const pickupPointLabel = computed(() => publicText('checkout.cart.pickupDelivery', 'Point relais'))
+const pickupPlaceholderLabel = computed(() => publicText('checkout.cart.pickupPlaceholder', 'Choisir un point relais'))
+const deliveryTourLabel = computed(() => publicText('checkout.cart.deliverySlot', 'Créneau de livraison'))
+const tourPlaceholderLabel = computed(() => publicText('checkout.cart.deliverySlotPlaceholder', 'Choisir un créneau'))
+const addressLabel = computed(() => publicText('checkout.cart.address', 'Adresse'))
+const cityLabel = computed(() => publicText('checkout.cart.city', 'Ville'))
+const postalCodeLabel = computed(() => publicText('checkout.cart.postalCode', 'Code postal'))
+const tourCityHelperTitle = computed(() => publicText('checkout.cart.deliveryEligibilityTitle', 'Éligibilité livraison'))
+const tourCityHelperLabel = computed(() => publicText('checkout.cart.deliveryEligibilityHelp', 'Pour vérifier l’éligibilité de la livraison à domicile, rentrez votre ville. Les suggestions ne proposent que les villes desservies par les créneaux configurés.'))
+const paymentLabel = computed(() => publicText('checkout.cart.paymentMethod', 'Mode de règlement'))
+const messageLabel = computed(() => publicText('checkout.cart.message', 'Message'))
 const submitLabel = computed(() => checkoutForm.value.paymentMode === 'stripe' && paymentCapabilities.value.allowOnline
-  ? (contentLocale.value === 'en' ? 'Continue to Stripe' : 'Continuer vers Stripe')
-  : (contentLocale.value === 'en' ? 'Confirm order' : 'Confirmer la commande'))
-const unavailablePaymentLabel = computed(() => contentLocale.value === 'en'
-  ? 'No valid payment method is currently available for this cart.'
-  : 'Aucun mode de règlement valide n’est actuellement disponible pour ce panier.')
-const emptyLabel = computed(() => contentLocale.value === 'en' ? 'Your cart is empty.' : 'Votre panier est vide.')
-const emptyHelpLabel = computed(() => contentLocale.value === 'en'
-  ? 'Add a product or a product lot to continue.'
-  : 'Ajoutez un produit ou un lot de produits pour continuer.')
-const noAddressLabel = computed(() => contentLocale.value === 'en' ? 'Address to be confirmed' : 'Adresse à confirmer')
-const unavailableCityLabel = computed(() => contentLocale.value === 'en'
-  ? 'Home delivery is not currently available in this city.'
-  : 'La livraison à domicile n’est pas actuellement disponible dans cette ville.')
-const taxIncludedLabel = computed(() => contentLocale.value === 'en' ? 'VAT included' : 'TVA incluse')
-const taxCodeLabel = computed(() => contentLocale.value === 'en' ? 'Tax code' : 'Code taxe')
+  ? publicText('checkout.cart.continueStripe', 'Continuer vers Stripe')
+  : publicText('checkout.cart.confirmOrder', 'Confirmer la commande'))
+const unavailablePaymentLabel = computed(() => publicText('checkout.cart.unavailablePayment', 'Aucun mode de règlement valide n’est actuellement disponible pour ce panier.'))
+const emptyLabel = computed(() => publicText('checkout.cart.emptyTitle', 'Votre panier est vide.'))
+const emptyHelpLabel = computed(() => publicText('checkout.cart.emptyHelp', 'Ajoutez un produit pour continuer.'))
+const noAddressLabel = computed(() => publicText('checkout.cart.noAddress', 'Adresse à confirmer'))
+const unavailableCityLabel = computed(() => publicText('checkout.cart.cityUnavailable', 'La livraison à domicile n’est pas actuellement disponible dans cette ville.'))
+const postalCodeMismatchLabel = computed(() => publicText('checkout.cart.postalCodeMismatch', 'Le code postal ne correspond pas à la ville sélectionnée.'))
+const taxIncludedLabel = computed(() => publicText('checkout.cart.vatIncluded', 'TVA incluse'))
+const vatNotApplicableLabel = computed(() => publicText('checkout.cart.vatNotApplicable', 'TVA non applicable'))
+const taxCodeLabel = computed(() => publicText('checkout.cart.taxCode', 'Code taxe'))
 
 const resolvedPaymentLabel = computed(() =>
   paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline
@@ -528,35 +514,28 @@ const selectedDeliveryTour = computed(() =>
 const onSitePickupSummary = computed(() => {
   const onSitePickup = deliveryOptions.value?.onSitePickup
   if (!onSitePickup) return ''
-  return [onSitePickup.address, `${$formatDate(onSitePickup.nextDate)} · ${onSitePickup.slotLabel}`].filter(Boolean).join(' — ')
+  const timeRange = [$formatTime(onSitePickup.startTime), $formatTime(onSitePickup.endTime)].filter(Boolean).join(' - ')
+  return [onSitePickup.address, `${$formatDate(onSitePickup.nextDate)} - ${timeRange}`].filter(Boolean).join(' - ')
 })
 
 const paymentConstraintNotice = computed(() => {
   if (paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline) {
-    return contentLocale.value === 'en'
-      ? 'At least one line in the cart is only available with online payment. The whole cart must be paid online.'
-      : 'Au moins une ligne du panier est uniquement payable en ligne. Le panier entier doit donc être payé en ligne.'
+    return publicText('checkout.cart.onlineRequiredNotice', 'Au moins une ligne du panier est uniquement payable en ligne. Le panier entier doit donc être payé en ligne.')
   }
   if (paymentCapabilities.value.allowOffline && !paymentCapabilities.value.allowOnline) {
-    return contentLocale.value === 'en'
-      ? 'At least one line in the cart does not support online payment. The whole cart must therefore be paid on site.'
-      : 'Au moins une ligne du panier ne prend pas en charge le paiement en ligne. Le panier entier doit donc être réglé sur place.'
+    return publicText('checkout.cart.offlineRequiredNotice', 'Au moins une ligne du panier ne prend pas en charge le paiement en ligne. Le panier entier doit donc être réglé sur place.')
   }
   return ''
 })
 
 const checkoutTaxNotice = computed(() => {
   if (!stripeEnabled.value || checkoutForm.value.paymentMode !== 'stripe') {
-    return taxIncludedLabel.value
+    return publicText('checkout.cart.taxNoticeOffline', 'TVA incluse')
   }
   if (!stripeTaxEnabled.value) {
-    return contentLocale.value === 'en'
-      ? 'VAT is included in the displayed prices. Stripe will not add extra tax during checkout.'
-      : 'La TVA est incluse dans les prix affichés. Stripe n’ajoutera pas de taxe supplémentaire au checkout.'
+    return publicText('checkout.cart.taxNoticeNoAutomatic', 'La TVA est incluse dans les prix affichés. Stripe n’ajoutera pas de taxe supplémentaire au checkout.')
   }
-  return contentLocale.value === 'en'
-    ? 'Stripe Tax is enabled. Taxes and tax codes configured for this order will be applied during checkout.'
-    : 'Stripe Tax est activé. Les règles fiscales et codes taxe configurés pour cette commande seront appliqués au checkout.'
+  return publicText('checkout.cart.taxNoticeAutomatic', 'Stripe Tax est activé. Les règles fiscales et codes taxe configurés pour cette commande seront appliqués au checkout.')
 })
 
 const deliveryValid = computed(() => {
@@ -646,9 +625,7 @@ watch(() => authStore.user, (user) => {
 
 onMounted(() => {
   if (route.query.checkout === 'cancel') {
-    $toast.warning(contentLocale.value === 'en'
-      ? 'Stripe payment was cancelled. You can review your cart and try again.'
-      : 'Le paiement Stripe a été annulé. Vous pouvez revoir votre panier et réessayer.')
+    $toast.warning(publicText('checkout.cart.paymentCancelledToast', 'Le paiement Stripe a été annulé. Vous pouvez revoir votre panier et réessayer.'))
   }
 })
 
@@ -656,18 +633,25 @@ const updateItemQuantity = (key: string, quantity: number) => updateQuantity(key
 const removeItem = (key: string) => remove(key)
 
 function deliveryTourSummary(tour: DeliveryOptionTour) {
-  return `${$formatDate(tour.nextDate)} · ${tour.startTime} - ${tour.endTime}`
+  return `${$formatDate(tour.nextDate)} - ${$formatTime(tour.startTime)} - ${$formatTime(tour.endTime)}`
 }
 
 function formatVatRate(value: number) {
-  return `${Number(value || 0).toFixed(2)}%`
+  const normalized = Number(value || 0)
+  return `${normalized.toFixed(2)}%`
+}
+
+function formatVatBadge(value: number) {
+  const normalized = Number(value || 0)
+  if (normalized <= 0) return vatNotApplicableLabel.value
+  return `TVA ${formatVatRate(normalized)}`
 }
 
 function formatRentalRange(startDate: string | null | undefined, endDate: string | null | undefined) {
   if (!startDate || !endDate) {
-    return contentLocale.value === 'en' ? 'To be selected' : 'À sélectionner'
+    return publicText('checkout.cart.rentalToSelect', 'À sélectionner')
   }
-  return `${$formatDate(startDate)} → ${$formatDate(endDate)}`
+  return `${$formatDate(startDate)} -> ${$formatDate(endDate)}`
 }
 
 function requiredLabel(label: string) {
@@ -689,17 +673,17 @@ function resetCheckoutForm() {
 
 async function submitOrder() {
   if (!checkoutForm.value.customerName.trim() || !checkoutForm.value.email.trim()) {
-    $toast.error(contentLocale.value === 'en' ? 'Name and email are required.' : 'Le nom et l’email sont requis.')
+    $toast.error(publicText('checkout.cart.requiredNameEmail', 'Le nom et l’email sont requis.'))
     return
   }
 
   if (!deliveryValid.value) {
-    $toast.error(contentLocale.value === 'en' ? 'Please complete the delivery information.' : 'Veuillez compléter les informations de livraison.')
+    $toast.error(publicText('checkout.cart.requiredDelivery', 'Veuillez compléter les informations de livraison.'))
     return
   }
 
   if (!rentalLinesValid.value) {
-    $toast.error(contentLocale.value === 'en' ? 'Please select rental dates for each rental line.' : 'Veuillez renseigner les dates pour chaque ligne de location.')
+    $toast.error(publicText('checkout.cart.requiredRentalDates', 'Veuillez renseigner les dates pour chaque ligne de location.'))
     return
   }
 
@@ -733,7 +717,6 @@ async function submitOrder() {
         lines: items.value.map((item) => ({
           kind: item.kind,
           productId: item.productId || undefined,
-          productLotId: item.productLotId || undefined,
           quantity: item.quantity,
           saleType: item.saleType,
           rentalStartDate: item.saleType === 'RENTAL' ? item.rentalStartDate : undefined,
@@ -750,13 +733,11 @@ async function submitOrder() {
     clear()
     resetCheckoutForm()
     if (response.accountProvisioning?.invitationSent) {
-      $toast.info(contentLocale.value === 'en'
-        ? 'An email was sent so you can activate your account and track this order later.'
-        : 'Un email vous a Ã©tÃ© envoyÃ© pour activer votre compte et retrouver cette commande plus tard.')
+      $toast.info(publicText('checkout.cart.accountProvisioningInfo', 'Un email vous a été envoyé pour activer votre compte et retrouver cette commande plus tard.'))
     }
-    $toast.success(contentLocale.value === 'en' ? 'Order sent successfully.' : 'Commande envoyée avec succès.')
+    $toast.success(publicText('checkout.cart.orderSuccess', 'Commande envoyée avec succès.'))
   } catch (error: any) {
-    $toast.error(error?.statusMessage || error?.data?.statusMessage || (contentLocale.value === 'en' ? 'Unable to create order.' : 'Impossible de créer la commande.'))
+    $toast.error(error?.statusMessage || error?.data?.statusMessage || publicText('checkout.cart.orderError', 'Impossible de créer la commande.'))
   } finally {
     savingOrder.value = false
   }

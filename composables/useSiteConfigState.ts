@@ -49,6 +49,7 @@ interface PublicSiteConfigState {
   siteLocales?: string[]
   siteDefaultLocale?: string
   localeLabels?: Record<string, { short: string; long: string }>
+  publicDictionary?: Record<string, string>
   shellLocale?: string
 }
 
@@ -139,14 +140,14 @@ function resolveRequestedSiteShellLocale(options: EnsureSiteConfigStateOptions =
     return 'fr'
   }
 
-  const route = useRoute()
   const localeCookie = useCookie<string>('cms_content_locale', {
     default: () => 'fr',
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 365
   })
 
-  const firstSegment = String(route.path || '/').split('?')[0]?.split('/').filter(Boolean)[0] ?? ''
+  const clientPath = typeof window !== 'undefined' ? window.location.pathname || '/' : '/'
+  const firstSegment = String(clientPath).split('?')[0]?.split('/').filter(Boolean)[0] ?? ''
   const routeLocale = normalizeLocaleCode(firstSegment)
   if (/^[a-z]{2}(?:-[a-z]{2})?$/.test(routeLocale)) {
     return routeLocale

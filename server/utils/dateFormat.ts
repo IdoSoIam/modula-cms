@@ -1,4 +1,4 @@
-const DEFAULT_TIME_ZONE = 'Europe/Paris'
+import { DEFAULT_TIME_ZONE, formatLocalizedDateTimeValue, formatLocalizedDateValue, resolveIntlLocale } from '#modula/shared/date'
 
 type DateInput = Date | string | number
 
@@ -11,7 +11,7 @@ export function formatDateForTimeZone(
   locale = 'fr-FR',
   options: Intl.DateTimeFormatOptions = {}
 ) {
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(resolveIntlLocale(locale), {
     timeZone: DEFAULT_TIME_ZONE,
     ...options
   }).format(normalizeDate(value))
@@ -21,7 +21,7 @@ export function formatDateLabel(
   value: DateInput,
   locale = 'fr-FR'
 ) {
-  return formatDateForTimeZone(value, locale, {
+  return formatLocalizedDateValue(normalizeDate(value), locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
@@ -32,7 +32,7 @@ export function formatDateTimeLabel(
   value: DateInput,
   locale = 'fr-FR'
 ) {
-  return formatDateForTimeZone(value, locale, {
+  return formatLocalizedDateTimeValue(normalizeDate(value), locale, {
     dateStyle: 'medium',
     timeStyle: 'short'
   })

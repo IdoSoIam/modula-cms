@@ -106,6 +106,7 @@
 
 <script setup lang="ts">
 import { pickCmsLocalizedText, type CmsFooterColumn, type CmsLocalizedText, type CmsLocale, type CmsSocialLink, type PublicSiteShell } from '#modula/shared/cms'
+import { formatLocalizedTimeValue, formatLocalizedWeekday } from '#modula/shared/date'
 import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
 import { useAuthStore } from '#modula/stores/auth'
 import { createDefaultCmsSiteSettings } from '#modula/shared/cms'
@@ -137,6 +138,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const { openShellEditor } = useCmsLiveEdit()
 const { contentLocale } = useContentLocale()
+const { publicText } = usePublicDictionary()
 const liveEditHydrated = ref(false)
 
 if (process.server && !siteConfigState.value) {
@@ -182,17 +184,13 @@ const footerContainerAlignClass = computed(() => {
     default: return 'justify-between'
   }
 })
-const dayLabels = {
-  fr: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
-  en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-}
 const formatFooterSchedule = (schedule?: SiteConfig['farmPickup'] | null) => {
   if (!schedule) return ''
-  const day = dayLabels[effectiveLocale.value === 'en' ? 'en' : 'fr'][schedule.dayOfWeek] || ''
-  if (!day || !schedule.startTime || !schedule.endTime) return ''
-  return effectiveLocale.value === 'en'
-    ? `Every ${day} from ${schedule.startTime.replace(':', 'h')} to ${schedule.endTime.replace(':', 'h')}`
-    : `Tous les ${day} de ${schedule.startTime.replace(':', 'h')} à ${schedule.endTime.replace(':', 'h')}`
+  const day = formatLocalizedWeekday(schedule.dayOfWeek, effectiveLocale.value)
+  const start = formatLocalizedTimeValue(schedule.startTime, effectiveLocale.value)
+  const end = formatLocalizedTimeValue(schedule.endTime, effectiveLocale.value)
+  if (!day || !start || !end) return ''
+  return publicText('navigation.footer.recurringSchedule', 'Tous les {day} de {start} à {end}', { day, start, end })
 }
 const farmScheduleText = computed(() => formatFooterSchedule(siteConfig.value?.farmPickup || null))
 const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteName, 'fr') || 'Site')

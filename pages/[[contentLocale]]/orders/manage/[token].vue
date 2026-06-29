@@ -2,7 +2,7 @@
   <div class="mx-auto min-h-[calc(100vh-280px)] w-full max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
     <div class="card border border-base-300 bg-base-100 shadow-sm">
       <div class="card-body">
-        <h1 class="text-3xl font-bold">{{ t('pages.reservationManage.title') }}</h1>
+        <h1 class="text-3xl font-bold">{{ publicText('orders.manage.title', 'Gérer ma commande') }}</h1>
 
         <div v-if="pending" class="py-10 text-center">
           <span class="loading loading-spinner loading-lg" />
@@ -14,48 +14,48 @@
           </p>
 
           <div class="mt-6 rounded-2xl bg-base-200 p-5 text-sm">
-            <div><strong>{{ t('pages.reservationManage.summaryBasket') }}</strong> {{ reservation.basket.name }}</div>
-            <div><strong>{{ t('pages.reservationManage.summaryName') }}</strong> {{ reservation.customerName }}</div>
-            <div><strong>{{ t('pages.reservationManage.summaryStatus') }}</strong> {{ statusLabel(reservation.status) }}</div>
-            <div v-if="reservation.fulfillmentDate"><strong>{{ t('pages.reservationManage.summaryDate') }}</strong> {{ formatDate(reservation.fulfillmentDate) }}</div>
-            <div v-if="reservation.fulfillmentTime"><strong>{{ t('pages.reservationManage.summaryTime') }}</strong> {{ reservation.fulfillmentTime }}</div>
-            <div v-if="reservation.fulfillmentLocation"><strong>{{ t('pages.reservationManage.summaryLocation') }}</strong> {{ reservation.fulfillmentLocation }}</div>
+            <div><strong>{{ publicText('orders.manage.summaryBasket', 'Panier') }}</strong> {{ reservation.basket.name }}</div>
+            <div><strong>{{ publicText('orders.manage.summaryName', 'Nom') }}</strong> {{ reservation.customerName }}</div>
+            <div><strong>{{ publicText('orders.manage.summaryStatus', 'Statut') }}</strong> {{ statusLabel(reservation.status) }}</div>
+            <div v-if="reservation.fulfillmentDate"><strong>{{ publicText('orders.manage.summaryDate', 'Date') }}</strong> {{ formatDate(reservation.fulfillmentDate) }}</div>
+            <div v-if="reservation.fulfillmentTime"><strong>{{ publicText('orders.manage.summaryTime', 'Heure') }}</strong> {{ reservation.fulfillmentTime }}</div>
+            <div v-if="reservation.fulfillmentLocation"><strong>{{ publicText('orders.manage.summaryLocation', 'Lieu') }}</strong> {{ reservation.fulfillmentLocation }}</div>
           </div>
 
           <div v-if="reservation.status === 'CANCELLED'" class="alert alert-info mt-6">
             {{ subscriptionsEnabled && reservation.monthlySubscription
-              ? t('pages.reservationManage.subscriptionStopped')
-              : t('pages.reservationManage.reservationCancelled') }}
+              ? publicText('orders.manage.subscriptionStopped', 'L’abonnement a été arrêté.')
+              : publicText('orders.manage.reservationCancelled', 'La commande a été annulée.') }}
           </div>
 
           <div v-else-if="subscriptionsEnabled && reservation.monthlySubscription && !reservation.subscriptionActive" class="alert alert-info mt-6">
-            {{ t('pages.reservationManage.subscriptionInactive') }}
+            {{ publicText('orders.manage.subscriptionInactive', 'L’abonnement est inactif.') }}
           </div>
 
           <div v-else-if="reservation.deliveryType === 'ONSITE' && reservation.scheduleProposalPendingBy === 'CUSTOMER'" class="mt-6 space-y-4">
             <div class="alert alert-info">
-              {{ t('pages.reservationManage.pendingProposal') }}
+              {{ publicText('orders.manage.pendingProposal', 'Une proposition de créneau attend votre validation.') }}
             </div>
             <div class="flex flex-wrap gap-3">
               <button class="btn btn-success" :disabled="submitting" @click="acceptProposal">
                 <span v-if="submitting" class="loading loading-spinner loading-sm" />
-                {{ t('pages.reservationManage.acceptSlot') }}
+                {{ publicText('orders.manage.acceptSlot', 'Accepter le créneau') }}
               </button>
             </div>
             <div class="rounded-2xl border border-base-300 bg-base-100 p-4">
-              <h2 class="text-lg font-semibold">{{ t('pages.reservationManage.counterProposalTitle') }}</h2>
+              <h2 class="text-lg font-semibold">{{ publicText('orders.manage.counterProposalTitle', 'Proposer un autre créneau') }}</h2>
               <div class="mt-4 grid gap-3 md:grid-cols-2">
                 <div class="form-control gap-3 flex">
-                  <label class="label"><span class="label-text">{{ t('pages.reservationManage.dateLabel') }}</span></label>
+                  <label class="label"><span class="label-text">{{ publicText('orders.manage.dateLabel', 'Date') }}</span></label>
                   <input v-model="proposalForm.date" type="date" class="input input-bordered" />
                 </div>
                 <div class="form-control gap-3 flex">
-                  <label class="label"><span class="label-text">{{ t('pages.reservationManage.timeLabel') }}</span></label>
+                  <label class="label"><span class="label-text">{{ publicText('orders.manage.timeLabel', 'Heure') }}</span></label>
                   <input v-model="proposalForm.time" type="time" class="input input-bordered" />
                 </div>
               </div>
               <div class="mt-4">
-                <button class="btn btn-outline" :disabled="submitting" @click="submitProposal">{{ t('pages.reservationManage.sendCounterProposal') }}</button>
+                <button class="btn btn-outline" :disabled="submitting" @click="submitProposal">{{ publicText('orders.manage.sendCounterProposal', 'Envoyer la contre-proposition') }}</button>
               </div>
             </div>
           </div>
@@ -68,7 +68,7 @@
               @click="cancelReservation"
             >
               <span v-if="submitting" class="loading loading-spinner loading-sm" />
-              {{ t('pages.reservationManage.cancelReservation') }}
+              {{ publicText('orders.manage.cancelReservation', 'Annuler la commande') }}
             </button>
             <button
               v-if="subscriptionsEnabled && reservation.monthlySubscription"
@@ -77,29 +77,29 @@
               @click="stopSubscription"
             >
               <span v-if="submitting" class="loading loading-spinner loading-sm" />
-              {{ t('pages.reservationManage.stopSubscription') }}
+              {{ publicText('orders.manage.stopSubscription', 'Arrêter l’abonnement') }}
             </button>
-            <NuxtLink :to="localePath('/')" class="btn btn-ghost">{{ t('pages.reservationManage.backHome') }}</NuxtLink>
+            <NuxtLink :to="localePath('/')" class="btn btn-ghost">{{ publicText('orders.manage.backHome', 'Retour au site') }}</NuxtLink>
           </div>
 
           <div v-if="reservation.deliveryType === 'ONSITE' && reservation.scheduleProposals?.length" class="mt-8">
-            <h2 class="text-xl font-semibold">{{ t('pages.reservationManage.proposalsHistory') }}</h2>
+            <h2 class="text-xl font-semibold">{{ publicText('orders.manage.proposalsHistory', 'Historique des propositions') }}</h2>
             <div class="mt-4 space-y-3">
               <div
                 v-for="proposal in reservation.scheduleProposals"
                 :key="proposal.id"
                 class="rounded-2xl border border-base-300 bg-base-100 p-4 text-sm"
               >
-                <div><strong>{{ proposal.proposedBy === 'ADMIN' ? t('pages.reservationManage.farmLabel') : t('pages.reservationManage.youLabel') }}</strong></div>
-                <div class="mt-1">{{ formatDate(proposal.proposalDate) }} {{ t('pages.reservationManage.atLabel') }} {{ proposal.proposalTime }}</div>
+                <div><strong>{{ proposal.proposedBy === 'ADMIN' ? publicText('orders.manage.adminLabel', 'Administration') : publicText('orders.manage.youLabel', 'Vous') }}</strong></div>
+                <div class="mt-1">{{ formatDate(proposal.proposalDate) }} {{ publicText('orders.manage.atLabel', 'à') }} {{ proposal.proposalTime }}</div>
                 <div v-if="proposal.proposalLocation" class="opacity-70">{{ proposal.proposalLocation }}</div>
-                <div v-if="proposal.acceptedAt" class="mt-2 text-success">{{ t('pages.reservationManage.slotAccepted') }}</div>
+                <div v-if="proposal.acceptedAt" class="mt-2 text-success">{{ publicText('orders.manage.slotAccepted', 'Créneau accepté') }}</div>
               </div>
             </div>
           </div>
 
           <div v-if="subscriptionsEnabled && reservation.monthlySubscription && reservation.occurrences?.length" class="mt-8">
-            <h2 class="text-xl font-semibold">{{ t('pages.reservationManage.upcomingWeeks') }}</h2>
+            <h2 class="text-xl font-semibold">{{ publicText('orders.manage.upcomingWeeks', 'Semaines à venir') }}</h2>
             <div class="mt-4 space-y-3">
               <div
                 v-for="occurrence in reservation.occurrences"
@@ -108,12 +108,12 @@
               >
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div class="text-sm">
-                    <div><strong>{{ t('pages.reservationManage.summaryDate') }}</strong> {{ formatDate(occurrence.occurrenceDate) }}</div>
-                    <div v-if="occurrence.occurrenceTime"><strong>{{ t('pages.reservationManage.summaryTime') }}</strong> {{ occurrence.occurrenceTime }}</div>
-                    <div v-if="occurrence.occurrenceLocation"><strong>{{ t('pages.reservationManage.summaryLocation') }}</strong> {{ occurrence.occurrenceLocation }}</div>
+                    <div><strong>{{ publicText('orders.manage.summaryDate', 'Date') }}</strong> {{ formatDate(occurrence.occurrenceDate) }}</div>
+                    <div v-if="occurrence.occurrenceTime"><strong>{{ publicText('orders.manage.summaryTime', 'Heure') }}</strong> {{ occurrence.occurrenceTime }}</div>
+                    <div v-if="occurrence.occurrenceLocation"><strong>{{ publicText('orders.manage.summaryLocation', 'Lieu') }}</strong> {{ occurrence.occurrenceLocation }}</div>
                   </div>
                   <button class="btn btn-sm btn-warning btn-outline" :disabled="submitting" @click="cancelOccurrence(occurrence.id)">
-                    {{ t('pages.reservationManage.cancelThisWeek') }}
+                    {{ publicText('orders.manage.cancelThisWeek', 'Annuler cette semaine') }}
                   </button>
                 </div>
               </div>
@@ -123,7 +123,7 @@
                 <Icon name="mdi:chevron-left" size="18" />
               </button>
               <button class="btn join-item btn-sm no-animation">
-                {{ t('pages.reservationManage.pagination', { page: occurrencePage, total: reservation.occurrencePagination.totalPages }) }}
+                {{ publicText('orders.manage.pagination', 'Page {page} sur {total}', { page: occurrencePage, total: reservation.occurrencePagination.totalPages }) }}
               </button>
               <button
                 class="btn join-item btn-sm"
@@ -147,13 +147,13 @@ definePageMeta({
 
 import { formatLocalizedDate } from '#modula/shared/date'
 const localePath = usePublicLocalePath()
-const { t } = useI18n()
 const { contentLocale } = useContentLocale()
+const { publicText } = usePublicDictionary()
 const locale = computed(() => contentLocale.value)
 
 useNoIndexSeo(
-  computed(() => t('pages.reservationManage.title')),
-  computed(() => t('pages.reservationManage.seoDescription'))
+  computed(() => publicText('orders.manage.title', 'Gérer ma commande')),
+  computed(() => publicText('orders.manage.seoDescription', 'Espace public de gestion de commande et de créneaux associés.'))
 )
 
 interface ManagedReservation {
@@ -222,12 +222,12 @@ const subscriptionsEnabled = computed(() => reservation.value?.subscriptionsEnab
 const introText = computed(() => {
   if (!reservation.value) return ''
   if (subscriptionsEnabled.value && reservation.value.monthlySubscription) {
-    return t('pages.reservationManage.introSubscription')
+    return publicText('orders.manage.introSubscription', 'Cet écran vous permet de suivre votre abonnement et les créneaux planifiés.')
   }
   if (reservation.value.deliveryType === 'ONSITE') {
-    return t('pages.reservationManage.introFarm')
+    return publicText('orders.manage.introOnSite', 'Cet écran vous permet de confirmer ou proposer un créneau de retrait.')
   }
-  return t('pages.reservationManage.introDefault')
+  return publicText('orders.manage.introDefault', 'Cet écran vous permet de suivre et gérer votre commande.')
 })
 
 const formatDate = (value: string) =>
@@ -240,17 +240,17 @@ const formatDate = (value: string) =>
 
 const statusLabel = (value: ManagedReservation['status']) => {
   const key = value.toLowerCase() as 'pending' | 'confirmed' | 'rejected' | 'cancelled'
-  return t(`pages.reservationManage.status.${key}`)
+  return publicText(`orders.manage.status.${key}`, key)
 }
 
 const cancelReservation = async () => {
   submitting.value = true
   try {
     await $fetch(`/api/orders/manage/${token}/cancel`, { method: 'POST' })
-    $toast.success(t('pages.reservationManage.toastCancelSuccess'))
+    $toast.success(publicText('orders.manage.toastCancelSuccess', 'Commande annulée.'))
     await refresh()
   } catch (e: any) {
-    $toast.error(e.statusMessage || t('pages.reservationManage.toastCancelError'))
+    $toast.error(e.statusMessage || publicText('orders.manage.toastCancelError', 'Impossible d’annuler la commande.'))
   } finally {
     submitting.value = false
   }
@@ -260,10 +260,10 @@ const stopSubscription = async () => {
   submitting.value = true
   try {
     await $fetch(`/api/orders/manage/${token}/stop`, { method: 'POST' })
-    $toast.success(t('pages.reservationManage.toastStopSuccess'))
+    $toast.success(publicText('orders.manage.toastStopSuccess', 'Abonnement arrêté.'))
     await refresh()
   } catch (e: any) {
-    $toast.error(e.statusMessage || t('pages.reservationManage.toastStopError'))
+    $toast.error(e.statusMessage || publicText('orders.manage.toastStopError', 'Impossible d’arrêter l’abonnement.'))
   } finally {
     submitting.value = false
   }
@@ -273,10 +273,10 @@ const cancelOccurrence = async (occurrenceId: number) => {
   submitting.value = true
   try {
     await $fetch(`/api/orders/manage/${token}/occurrences/${occurrenceId}/cancel`, { method: 'POST' })
-    $toast.success(t('pages.reservationManage.toastOccurrenceSuccess'))
+    $toast.success(publicText('orders.manage.toastOccurrenceSuccess', 'La semaine a été annulée.'))
     await refresh()
   } catch (e: any) {
-    $toast.error(e.statusMessage || t('pages.reservationManage.toastOccurrenceError'))
+    $toast.error(e.statusMessage || publicText('orders.manage.toastOccurrenceError', 'Impossible d’annuler cette semaine.'))
   } finally {
     submitting.value = false
   }
@@ -286,10 +286,10 @@ const acceptProposal = async () => {
   submitting.value = true
   try {
     await $fetch(`/api/orders/manage/${token}/accept-proposal`, { method: 'POST' })
-    $toast.success(t('pages.reservationManage.toastAcceptSuccess'))
+    $toast.success(publicText('orders.manage.toastAcceptSuccess', 'Créneau accepté.'))
     await refresh()
   } catch (e: any) {
-    $toast.error(e.statusMessage || t('pages.reservationManage.toastAcceptError'))
+    $toast.error(e.statusMessage || publicText('orders.manage.toastAcceptError', 'Impossible d’accepter ce créneau.'))
   } finally {
     submitting.value = false
   }
@@ -305,12 +305,12 @@ const submitProposal = async () => {
         proposalTime: proposalForm.time
       }
     })
-    $toast.success(t('pages.reservationManage.toastCounterProposalSuccess'))
+    $toast.success(publicText('orders.manage.toastCounterProposalSuccess', 'Contre-proposition envoyée.'))
     proposalForm.date = ''
     proposalForm.time = ''
     await refresh()
   } catch (e: any) {
-    $toast.error(e.statusMessage || t('pages.reservationManage.toastCounterProposalError'))
+    $toast.error(e.statusMessage || publicText('orders.manage.toastCounterProposalError', 'Impossible d’envoyer la contre-proposition.'))
   } finally {
     submitting.value = false
   }

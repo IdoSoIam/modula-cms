@@ -118,17 +118,17 @@
 
       <section v-if="authStore.isAuthenticated || registerEnabled" class="space-y-2">
         <div class="px-1 text-xs font-semibold uppercase tracking-[0.14em] opacity-60">
-          {{ t('layout.mobileMenu.accountGroup') }}
+          {{ publicText('auth.userMenu.accountGroup', 'Mon compte') }}
         </div>
         <div class="space-y-2">
           <template v-if="!authStore.isAuthenticated">
             <NuxtLink :to="localePath('/login')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:login" size="18" class="shrink-0" />
-              <span>{{ t('auth.login') }}</span>
+              <span>{{ publicText('auth.userMenu.login', 'Connexion') }}</span>
             </NuxtLink>
             <NuxtLink v-if="registerEnabled" :to="localePath('/register')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:account-multiple-outline" size="18" class="shrink-0" />
-              <span>{{ t('auth.register') }}</span>
+              <span>{{ publicText('auth.userMenu.register', 'Inscription') }}</span>
             </NuxtLink>
           </template>
 
@@ -140,12 +140,12 @@
 
             <NuxtLink :to="localePath('/profile')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:account-outline" size="18" class="shrink-0" />
-              <span>{{ t('auth.profile') }}</span>
+              <span>{{ publicText('auth.userMenu.profile', 'Profil') }}</span>
             </NuxtLink>
 
             <NuxtLink v-if="shopEnabled && !authStore.isAdmin" :to="ordersProfileLink" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:invoice" size="18" class="shrink-0" />
-              <span>{{ t('auth.orders') }}</span>
+              <span>{{ publicText('auth.userMenu.orders', 'Commandes') }}</span>
             </NuxtLink>
 
             <NuxtLink v-if="authStore.canAccessAdmin" :to="adminLocalePath('/admin')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
@@ -155,7 +155,7 @@
 
             <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="handleLogout">
               <Icon name="mdi:logout" size="18" class="shrink-0" />
-              <span>{{ t('auth.logout') }}</span>
+              <span>{{ publicText('auth.userMenu.logout', 'Déconnexion') }}</span>
             </button>
           </template>
         </div>
@@ -190,6 +190,7 @@ const props = withDefaults(defineProps<{
 const localePath = usePublicLocalePath()
 const adminLocalePath = useLocalePath()
 const { t } = useI18n()
+const { publicText } = usePublicDictionary()
 const { contentLocale, setContentLocale, availableLocales, localeLabels } = useContentLocale()
 const route = useRoute()
 const router = useRouter()
@@ -451,7 +452,7 @@ const changeLocale = async (nextLocale: string) => {
 const handleLogout = async () => {
   await authStore.logout()
   const { $toast } = useNuxtApp() as any
-  $toast?.success(t('layout.logoutSuccess'))
+  $toast?.success(publicText('auth.userMenu.logoutSuccess', 'Vous avez été déconnecté.'))
   closeDrawer()
   await router.push(localePath('/'))
 }

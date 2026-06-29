@@ -61,15 +61,15 @@
             <label class="label"><span class="label-text">{{ t('admin.productCategoriesPage.fieldSlug') }}</span></label>
             <input v-model="editing.slug" class="input input-bordered" />
           </div>
-          <div class="form-control gap-3 md:col-span-2">
+          <div class="form-control gap-3 md:col-span-2 flex flex-col">
             <label class="label"><span class="label-text">{{ t('admin.productCategoriesPage.fieldDescription') }}</span></label>
             <textarea v-model="editing.description" class="textarea textarea-bordered min-h-24" />
           </div>
-          <div class="form-control gap-3">
+          <div class="form-control gap-3 flex flex-col">
             <label class="label"><span class="label-text">{{ t('admin.productCategoriesPage.fieldPosition') }}</span></label>
             <input v-model.number="editing.position" type="number" min="0" step="1" class="input input-bordered" />
           </div>
-          <div class="form-control gap-3">
+          <div class="form-control gap-3 flex flex-col">
             <label class="label cursor-pointer justify-start gap-3">
               <input v-model="editing.active" type="checkbox" class="checkbox" />
               <span class="label-text">{{ t('admin.productCategoriesPage.fieldActive') }}</span>

@@ -185,17 +185,37 @@
                   <div
                     v-for="(item, itemIndex) in section.items"
                     :key="item.id"
-                    class="grid grid-cols-1 gap-3 rounded-2xl border border-base-300 bg-base-100 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+                    class="grid grid-cols-1 gap-3 rounded-2xl border border-base-300 bg-base-100 p-3"
                   >
-                    <div class="form-control flex flex-col gap-3">
-                      <AdminPageBuilderTranslationTabs v-model="item.labelLocalized" :label="t('admin.productEditorPage.fieldLabel')" />
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                      <div class="form-control flex flex-col gap-3">
+                        <AdminPageBuilderTranslationTabs v-model="item.labelLocalized" :label="t('admin.productEditorPage.fieldLabel')" />
+                      </div>
+                      <div class="form-control flex flex-col gap-3">
+                        <AdminPageBuilderTranslationTabs v-model="item.valueLocalized" :label="t('admin.productEditorPage.fieldValue')" multiline />
+                      </div>
+                      <button class="btn btn-ghost btn-sm text-error md:self-end" @click="removeSectionItem(sectionIndex, itemIndex)">
+                        <Icon name="mdi:close" size="16" />
+                      </button>
                     </div>
-                    <div class="form-control flex flex-col gap-3">
-                      <AdminPageBuilderTranslationTabs v-model="item.valueLocalized" :label="t('admin.productEditorPage.fieldValue')" multiline />
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-[12rem_minmax(0,1fr)]">
+                      <div class="form-control flex flex-col gap-3">
+                        <label class="label"><span class="label-text">{{ t('admin.productEditorPage.fieldMediaType') }}</span></label>
+                        <select v-model="item.mediaKind" class="select select-bordered">
+                          <option :value="null">{{ t('admin.productEditorPage.fieldMediaNone') }}</option>
+                          <option value="image">{{ t('admin.productEditorPage.fieldMediaImage') }}</option>
+                          <option value="pdf">{{ t('admin.productEditorPage.fieldMediaPdf') }}</option>
+                        </select>
+                      </div>
+                      <div v-if="item.mediaKind === 'image'" class="form-control flex flex-col gap-3">
+                        <label class="label"><span class="label-text">{{ t('admin.productEditorPage.fieldMediaFile') }}</span></label>
+                        <ImageInput v-model="item.mediaUrl" />
+                      </div>
+                      <div v-else-if="item.mediaKind === 'pdf'" class="form-control flex flex-col gap-3">
+                        <label class="label"><span class="label-text">{{ t('admin.productEditorPage.fieldMediaFile') }}</span></label>
+                        <input v-model="item.mediaUrl" type="url" class="input input-bordered" :placeholder="t('admin.productEditorPage.fieldMediaPdfPlaceholder')" />
+                      </div>
                     </div>
-                    <button class="btn btn-ghost btn-sm text-error md:self-end" @click="removeSectionItem(sectionIndex, itemIndex)">
-                      <Icon name="mdi:close" size="16" />
-                    </button>
                   </div>
                 </div>
 
@@ -292,8 +312,10 @@ interface ProductEditorState {
 const route = useRoute()
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
+const { locales: siteLocales } = useSiteLocales()
 const { $toast } = useNuxtApp() as any
 const productsBasePath = computed(() => getAdminRoutePath('shopVegetables', normalizeAdminRouteLocale(locale.value)))
+const editorLocales = computed(() => siteLocales.value.length ? [...siteLocales.value] : ['fr', 'en'])
 
 const routeId = computed(() => String(route.params.id || ''))
 const isCreateMode = computed(() => routeId.value === 'new')
@@ -306,7 +328,7 @@ const { data: settingsData } = await useFetch<{ shopDefaultVatRate: number }>('/
 
 const defaultVatRate = computed(() => Number(settingsData.value?.shopDefaultVatRate ?? 20))
 
-const editing = reactive<ProductEditorState>(createEmptyEditorState(defaultVatRate.value, t))
+const editing = reactive<ProductEditorState>(createEmptyEditorState(defaultVatRate.value, t, editorLocales.value))
 const localizedName = computed(() => pickCmsLocalizedText(locale.value, editing.nameLocalized) || editing.slug || '')
 
 const previewPath = computed(() => {
@@ -326,7 +348,7 @@ watch(() => routeId.value, async () => {
 
 async function loadProduct() {
   if (isCreateMode.value) {
-    Object.assign(editing, createEmptyEditorState(defaultVatRate.value, t))
+    Object.assign(editing, createEmptyEditorState(defaultVatRate.value, t, editorLocales.value))
     return
   }
 
@@ -344,7 +366,7 @@ function goBack() {
 }
 
 function addSection() {
-  editing.detailSections.push(createDetailSection(t('admin.productEditorPage.newSectionTitle')))
+  editing.detailSections.push(createDetailSection(t('admin.productEditorPage.newSectionTitle'), editorLocales.value))
 }
 
 function removeSection(index: number) {
@@ -352,7 +374,7 @@ function removeSection(index: number) {
 }
 
 function addSectionItem(sectionIndex: number) {
-  editing.detailSections[sectionIndex]?.items.push(createDetailField())
+  editing.detailSections[sectionIndex]?.items.push(createDetailField(editorLocales.value))
 }
 
 function removeSectionItem(sectionIndex: number, itemIndex: number) {
@@ -391,7 +413,7 @@ async function save() {
       allowOnlinePayment: editing.allowOnlinePayment,
       active: editing.active,
       position: editing.position,
-      detailSections: normalizeDetailSectionsForSave(editing.detailSections)
+      detailSections: normalizeDetailSectionsForSave(editing.detailSections, editorLocales.value)
     }
 
     const response = isCreateMode.value
@@ -429,15 +451,15 @@ async function removeProduct() {
   }
 }
 
-function createEmptyEditorState(vatRate: number, translate: (key: string) => string): ProductEditorState {
+function createEmptyEditorState(vatRate: number, translate: (key: string) => string, locales: string[]): ProductEditorState {
   return {
     id: undefined,
-    nameLocalized: createEmptyCmsLocalizedText(),
+    nameLocalized: createEmptyCmsLocalizedText(locales),
     slug: '',
     saleType: 'SALE',
     categoryId: 0,
-    excerptLocalized: createEmptyCmsLocalizedText(),
-    descriptionLocalized: createEmptyCmsLocalizedText(),
+    excerptLocalized: createEmptyCmsLocalizedText(locales),
+    descriptionLocalized: createEmptyCmsLocalizedText(locales),
     imageUrl: '',
     price: 0,
     vatRate,
@@ -446,15 +468,15 @@ function createEmptyEditorState(vatRate: number, translate: (key: string) => str
     rentalAvailableTo: '',
     rentalMinDays: 1,
     rentalMaxDays: null,
-    unitLabelLocalized: createEmptyCmsLocalizedText(),
+    unitLabelLocalized: createEmptyCmsLocalizedText(locales),
     allowOfflinePayment: true,
     allowOnlinePayment: false,
     active: true,
     position: 0,
     detailSections: [
-      createDetailSection(translate('admin.productEditorPage.defaultSectionGeneral')),
-      createDetailSection(translate('admin.productEditorPage.defaultSectionTechnical')),
-      createDetailSection(translate('admin.productEditorPage.defaultSectionPractical'))
+      createDetailSection(translate('admin.productEditorPage.defaultSectionGeneral'), locales),
+      createDetailSection(translate('admin.productEditorPage.defaultSectionTechnical'), locales),
+      createDetailSection(translate('admin.productEditorPage.defaultSectionPractical'), locales)
     ]
   }
 }
@@ -491,63 +513,88 @@ function mapProductToEditor(product: ProductPayload): ProductEditorState {
             label: item.label,
             labelLocalized: structuredClone(item.labelLocalized),
             value: item.value,
-            valueLocalized: structuredClone(item.valueLocalized)
+            valueLocalized: structuredClone(item.valueLocalized),
+            mediaKind: item.mediaKind ?? null,
+            mediaUrl: item.mediaUrl ?? null
           }))
         }))
       : [
-          createDetailSection(t('admin.productEditorPage.defaultSectionGeneral')),
-          createDetailSection(t('admin.productEditorPage.defaultSectionTechnical')),
-          createDetailSection(t('admin.productEditorPage.defaultSectionPractical'))
+          createDetailSection(t('admin.productEditorPage.defaultSectionGeneral'), editorLocales.value),
+          createDetailSection(t('admin.productEditorPage.defaultSectionTechnical'), editorLocales.value),
+          createDetailSection(t('admin.productEditorPage.defaultSectionPractical'), editorLocales.value)
         ]
   }
 }
 
-function createDetailSection(title: string): ProductDetailSection {
-  const titleLocalized = {
-    fr: title,
-    en: title
-  }
+function createDetailSection(title: string, locales: string[]): ProductDetailSection {
+  const titleLocalized = createFilledLocalizedText(locales, title)
   return {
     id: crypto.randomUUID(),
     title,
     titleLocalized,
-    items: [createDetailField()]
+    items: [createDetailField(locales)]
   }
 }
 
-function createDetailField(): ProductDetailField {
+function createDetailField(locales: string[]): ProductDetailField {
   return {
     id: crypto.randomUUID(),
     label: '',
-    labelLocalized: createEmptyCmsLocalizedText(),
+    labelLocalized: createEmptyCmsLocalizedText(locales),
     value: '',
-    valueLocalized: createEmptyCmsLocalizedText()
+    valueLocalized: createEmptyCmsLocalizedText(locales),
+    mediaKind: null,
+    mediaUrl: null
   }
 }
 
-function normalizeDetailSectionsForSave(value: ProductDetailSection[]) {
+function createFilledLocalizedText(locales: string[], value: string) {
+  const normalizedValue = String(value || '').trim()
+  const entries = locales.length ? locales : ['fr', 'en']
+  return Object.fromEntries(
+    entries.map((localeCode, index) => [
+      localeCode,
+      index === 0 || localeCode === 'fr' || localeCode === 'en' ? normalizedValue : ''
+    ])
+  ) as CmsLocalizedText
+}
+
+function normalizeLocalizedTextForSave(value: CmsLocalizedText | null | undefined, locales: string[]) {
+  const normalized = createEmptyCmsLocalizedText(locales)
+  for (const localeCode of locales) {
+    normalized[localeCode] = String(value?.[localeCode] || '').trim()
+  }
+  for (const [localeCode, localeValue] of Object.entries(value || {})) {
+    if (!locales.includes(localeCode)) {
+      normalized[localeCode] = String(localeValue || '').trim()
+    }
+  }
+  return normalized
+}
+
+function normalizeDetailSectionsForSave(value: ProductDetailSection[], locales: string[]) {
   return value
     .map((section) => ({
       id: section.id || crypto.randomUUID(),
-      titleLocalized: {
-        fr: String(section.titleLocalized?.fr || '').trim(),
-        en: String(section.titleLocalized?.en || '').trim()
-      },
+      titleLocalized: normalizeLocalizedTextForSave(section.titleLocalized, locales),
       items: section.items
         .map((item) => ({
           id: item.id || crypto.randomUUID(),
-          labelLocalized: {
-            fr: String(item.labelLocalized?.fr || '').trim(),
-            en: String(item.labelLocalized?.en || '').trim()
-          },
-          valueLocalized: {
-            fr: String(item.valueLocalized?.fr || '').trim(),
-            en: String(item.valueLocalized?.en || '').trim()
-          }
+          labelLocalized: normalizeLocalizedTextForSave(item.labelLocalized, locales),
+          valueLocalized: normalizeLocalizedTextForSave(item.valueLocalized, locales),
+          mediaKind: item.mediaKind === 'image' || item.mediaKind === 'pdf' ? item.mediaKind : null,
+          mediaUrl: item.mediaUrl?.trim() ? item.mediaUrl.trim() : null
         }))
-        .filter((item) => item.labelLocalized.fr || item.labelLocalized.en || item.valueLocalized.fr || item.valueLocalized.en)
+        .filter((item) =>
+          Object.values(item.labelLocalized).some((entry) => entry)
+          || Object.values(item.valueLocalized).some((entry) => entry)
+          || Boolean(item.mediaUrl)
+        )
     }))
-    .filter((section) => section.titleLocalized.fr || section.titleLocalized.en || section.items.length)
+    .filter((section) =>
+      Object.values(section.titleLocalized).some((entry) => entry)
+      || section.items.length
+    )
 }
 
 function toDateInputValue(value: string | null | undefined) {

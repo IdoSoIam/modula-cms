@@ -1,6 +1,7 @@
 import cmsProjectConfig from '#modula/cms.project.config'
 import { getCmsSpecialPagePath, getPublicSiteShell } from '#modula/server/utils/cms'
 import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getDefaultFeatureFlags, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSiteDefaultLocale, getSiteLocales, getSiteLocaleLabels } from '#modula/server/utils/settings'
+import { getResolvedPublicDictionary } from '#modula/server/utils/publicDictionary'
 import { getPublicDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import { getCmsInstallStatus } from '#modula/server/utils/install'
 import { listSiteTemplates } from '#modula/server/utils/siteTemplates'
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
       getSiteDefaultLocale().catch(() => cmsProjectConfig.site.defaultLocale),
       getSiteLocaleLabels().catch(() => ({}))
     ])
+    const publicDictionary = await getResolvedPublicDictionary(requestedLocale || defaultLocale || 'fr', defaultLocales, defaultLocale || 'fr')
     const preInstallShell = {
       settings: {
         ...defaultSettings,
@@ -76,7 +78,8 @@ export default defineEventHandler(async (event) => {
       constructionPagePath: '/construction',
       siteLocales: defaultLocales,
       siteDefaultLocale: defaultLocale,
-      localeLabels: defaultLabels
+      localeLabels: defaultLabels,
+      publicDictionary
     }
   }
 
@@ -93,6 +96,7 @@ export default defineEventHandler(async (event) => {
     getSiteDefaultLocale().catch(() => cmsProjectConfig.site.defaultLocale),
     getSiteLocaleLabels().catch(() => ({}))
   ])
+  const publicDictionary = await getResolvedPublicDictionary(requestedLocale || defaultLocale || 'fr', siteLocales, defaultLocale || 'fr')
   const configuredSiteName =
     (defaultLocale === 'en' ? siteShell?.settings?.siteName?.en : siteShell?.settings?.siteName?.fr)
     || siteShell?.settings?.siteName?.fr
@@ -123,7 +127,8 @@ export default defineEventHandler(async (event) => {
     constructionPagePath,
     siteLocales,
     siteDefaultLocale: defaultLocale,
-    localeLabels
+    localeLabels,
+    publicDictionary
   }
 })
 

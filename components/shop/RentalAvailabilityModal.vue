@@ -79,7 +79,7 @@ import OrdersCalendar from '#modula/components/admin/OrdersCalendar.vue'
 
 const props = defineProps<{
   open: boolean
-  sourceKind: 'product' | 'productLot'
+  sourceKind: 'product'
   sourceId: number | null
   sourceName: string
 }>()
@@ -90,6 +90,7 @@ const emit = defineEmits<{
 }>()
 
 const { contentLocale } = useContentLocale()
+const { publicText } = usePublicDictionary()
 const locale = computed(() => contentLocale.value)
 const { $toast } = useNuxtApp() as any
 const dialogRef = ref<HTMLDialogElement | null>(null)
@@ -138,30 +139,24 @@ watch(() => props.sourceId, async () => {
   }
 })
 
-const titleLabel = computed(() => locale.value === 'en'
-  ? `Choose rental dates - ${props.sourceName}`
-  : `Choisir la période de location - ${props.sourceName}`)
-const helpLabel = computed(() => locale.value === 'en'
-  ? 'Pick a start and end date from the availability calendar before adding this rental to the cart.'
-  : 'Choisissez une date de début et de fin depuis le calendrier de disponibilité avant d’ajouter cette location au panier.')
-const rentalLabel = computed(() => locale.value === 'en' ? 'Rental' : 'Location')
-const saleLabel = computed(() => locale.value === 'en' ? 'Sale' : 'Vente')
-const stockLabel = computed(() => locale.value === 'en' ? 'Stock' : 'Stock')
-const minDurationLabel = computed(() => locale.value === 'en' ? 'Minimum' : 'Minimum')
-const maxDurationLabel = computed(() => locale.value === 'en' ? 'Maximum' : 'Maximum')
-const todayLabel = computed(() => locale.value === 'en' ? 'Today' : 'Aujourd’hui')
-const monthPickerLabel = computed(() => locale.value === 'en' ? 'Month' : 'Mois')
-const rentalStartLabel = computed(() => locale.value === 'en' ? 'Rental start date' : 'Début de location')
-const rentalEndLabel = computed(() => locale.value === 'en' ? 'Rental end date' : 'Fin de location')
-const selectedSummaryLabel = computed(() => locale.value === 'en' ? 'Selected period' : 'Période sélectionnée')
-const closeLabel = computed(() => locale.value === 'en' ? 'Close' : 'Fermer')
-const confirmLabel = computed(() => locale.value === 'en' ? 'Add to cart' : 'Ajouter au panier')
+const titleLabel = computed(() => publicText('shop.rentalModal.title', 'Choisir la période de location - {name}', { name: props.sourceName }))
+const helpLabel = computed(() => publicText('shop.rentalModal.help', 'Choisissez une date de début et de fin depuis le calendrier de disponibilité avant d’ajouter cette location au panier.'))
+const rentalLabel = computed(() => publicText('shop.rentalModal.rental', 'Location'))
+const saleLabel = computed(() => publicText('shop.rentalModal.sale', 'Vente'))
+const stockLabel = computed(() => publicText('shop.rentalModal.stock', 'Stock'))
+const minDurationLabel = computed(() => publicText('shop.rentalModal.minimum', 'Minimum'))
+const maxDurationLabel = computed(() => publicText('shop.rentalModal.maximum', 'Maximum'))
+const todayLabel = computed(() => publicText('shop.rentalModal.today', 'Aujourd’hui'))
+const monthPickerLabel = computed(() => publicText('shop.rentalModal.month', 'Mois'))
+const rentalStartLabel = computed(() => publicText('shop.rentalModal.startDate', 'Début de location'))
+const rentalEndLabel = computed(() => publicText('shop.rentalModal.endDate', 'Fin de location'))
+const selectedSummaryLabel = computed(() => publicText('shop.rentalModal.selectedPeriod', 'Période sélectionnée'))
+const closeLabel = computed(() => publicText('shop.rentalModal.close', 'Fermer'))
+const confirmLabel = computed(() => publicText('shop.rentalModal.confirm', 'Ajouter au panier'))
 
 const selectedSummaryText = computed(() => {
   if (!selectedStartDate.value || !selectedEndDate.value) {
-    return locale.value === 'en'
-      ? 'Select two dates in the calendar or using the fields below.'
-      : 'Sélectionnez deux dates dans le calendrier ou via les champs ci-dessous.'
+    return publicText('shop.rentalModal.selectDates', 'Sélectionnez deux dates dans le calendrier ou via les champs ci-dessous.')
   }
   return `${selectedStartDate.value} → ${selectedEndDate.value}`
 })
@@ -242,8 +237,8 @@ function selectDay(day: any) {
   const selectionValid = isRangeSelectable(selectedStartDate.value, iso)
   if (!selectionValid) {
     $toast.error(locale.value === 'en'
-      ? 'This range contains unavailable days.'
-      : 'Cette période contient des jours indisponibles.')
+      ? publicText('shop.rentalModal.unavailableRange', 'Cette période contient des jours indisponibles.')
+      : publicText('shop.rentalModal.unavailableRange', 'Cette période contient des jours indisponibles.'))
     return
   }
 
@@ -261,8 +256,8 @@ function confirmSelection() {
   if (!canConfirm.value) return
   if (!isRangeSelectable(selectedStartDate.value, selectedEndDate.value)) {
     $toast.error(locale.value === 'en'
-      ? 'This range contains unavailable days.'
-      : 'Cette période contient des jours indisponibles.')
+      ? publicText('shop.rentalModal.unavailableRange', 'Cette période contient des jours indisponibles.')
+      : publicText('shop.rentalModal.unavailableRange', 'Cette période contient des jours indisponibles.'))
     return
   }
   emit('confirm', {

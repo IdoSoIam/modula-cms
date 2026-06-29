@@ -2,7 +2,7 @@
   <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
     <NuxtLink :to="localePath('/events')" class="mb-6 inline-flex items-center gap-1 text-sm opacity-70 hover:opacity-100">
       <Icon name="mdi:arrow-left" size="16" />
-      <span>{{ locale === 'en' ? 'Back to events' : 'Retour aux événements' }}</span>
+      <span>{{ publicText('events.detail.back', 'Retour aux événements') }}</span>
     </NuxtLink>
 
     <div v-if="!displayEvent" class="py-12 text-center">
@@ -33,22 +33,22 @@
 
         <aside class="space-y-4">
           <section class="rounded-[2rem] border border-base-300 bg-base-200 p-6">
-            <h2 class="text-xl font-semibold">{{ locale === 'en' ? 'Event details' : 'Informations pratiques' }}</h2>
+            <h2 class="text-xl font-semibold">{{ publicText('events.detail.infoTitle', 'Informations pratiques') }}</h2>
             <dl class="mt-4 space-y-3 text-sm">
               <div>
-                <dt class="font-medium">{{ locale === 'en' ? 'Date' : 'Date' }}</dt>
+                <dt class="font-medium">{{ publicText('events.detail.date', 'Date') }}</dt>
                 <dd class="opacity-75">{{ formattedDate }}</dd>
               </div>
               <div v-if="displayEvent.placeName || displayEvent.placeAddress || displayEvent.placeCity">
-                <dt class="font-medium">{{ locale === 'en' ? 'Location' : 'Lieu' }}</dt>
+                <dt class="font-medium">{{ publicText('events.detail.location', 'Lieu') }}</dt>
                 <dd class="opacity-75">{{ [displayEvent.placeName, displayEvent.placeAddress, displayEvent.placeCity].filter(Boolean).join(', ') }}</dd>
               </div>
               <div v-if="displayEvent.publicCapacity">
-                <dt class="font-medium">{{ locale === 'en' ? 'Public capacity' : 'Capacité publique' }}</dt>
+                <dt class="font-medium">{{ publicText('events.detail.publicCapacity', 'Capacité publique') }}</dt>
                 <dd class="opacity-75">{{ displayEvent.publicCapacity }}</dd>
               </div>
               <div v-if="displayEvent.internalCapacity">
-                <dt class="font-medium">{{ locale === 'en' ? 'Internal capacity' : 'Capacité interne' }}</dt>
+                <dt class="font-medium">{{ publicText('events.detail.internalCapacity', 'Capacité interne') }}</dt>
                 <dd class="opacity-75">{{ displayEvent.internalCapacity }}</dd>
               </div>
             </dl>
@@ -57,11 +57,11 @@
           <section v-if="displayEvent.publicReservationEnabled" class="rounded-[2rem] border border-base-300 bg-base-100 p-6">
             <h2 class="text-xl font-semibold">{{ publicReservationLabel }}</h2>
             <div class="mt-4 space-y-3">
-              <input v-model="reservationForm.customerName" class="input input-bordered w-full" :placeholder="locale === 'en' ? 'Full name' : 'Nom complet'" />
+              <input v-model="reservationForm.customerName" class="input input-bordered w-full" :placeholder="publicText('events.detail.fullNamePlaceholder', 'Nom complet')" />
               <input v-model="reservationForm.email" type="email" class="input input-bordered w-full" placeholder="Email" />
-              <input v-model="reservationForm.phone" type="tel" class="input input-bordered w-full" :placeholder="locale === 'en' ? 'Phone' : 'Téléphone'" />
-              <input v-model.number="reservationForm.seats" type="number" min="1" class="input input-bordered w-full" :placeholder="locale === 'en' ? 'Seats' : 'Nombre de places'" />
-              <textarea v-model="reservationForm.message" class="textarea textarea-bordered min-h-28 w-full" :placeholder="locale === 'en' ? 'Message' : 'Message'" />
+              <input v-model="reservationForm.phone" type="tel" class="input input-bordered w-full" :placeholder="publicText('events.detail.phonePlaceholder', 'Téléphone')" />
+              <input v-model.number="reservationForm.seats" type="number" min="1" class="input input-bordered w-full" :placeholder="publicText('events.detail.seatsPlaceholder', 'Nombre de places')" />
+              <textarea v-model="reservationForm.message" class="textarea textarea-bordered min-h-28 w-full" :placeholder="publicText('events.detail.messagePlaceholder', 'Message')" />
               <button type="button" class="btn btn-primary w-full" :disabled="reservationSaving" @click="submitReservation">
                 <span v-if="reservationSaving" class="loading loading-spinner loading-sm" />
                 {{ publicReservationLabel }}
@@ -81,7 +81,7 @@
               <p class="mt-2 text-sm opacity-75">{{ participationInfo }}</p>
             </PageEditable>
             <div class="mt-4 space-y-3">
-              <textarea v-model="participationForm.message" class="textarea textarea-bordered min-h-28 w-full" :placeholder="locale === 'en' ? 'Message' : 'Message'" />
+              <textarea v-model="participationForm.message" class="textarea textarea-bordered min-h-28 w-full" :placeholder="publicText('events.detail.messagePlaceholder', 'Message')" />
               <button type="button" class="btn btn-primary w-full" :disabled="participationSaving" @click="submitParticipation">
                 <span v-if="participationSaving" class="loading loading-spinner loading-sm" />
                 {{ internalParticipationLabel }}
@@ -98,7 +98,7 @@
     >
       <div class="pointer-events-auto rounded-2xl border border-base-300 bg-base-100/95 px-3 py-3 shadow-xl backdrop-blur">
         <button type="button" class="btn btn-sm btn-outline" @click="toggleLiveEdit(true)">
-          Éditer l’événement
+          {{ publicText('events.detail.enterLiveEdit', 'Éditer l’événement') }}
         </button>
       </div>
     </div>
@@ -113,21 +113,21 @@
     >
       <div class="pointer-events-auto flex items-center gap-3 rounded-2xl border border-base-300 bg-base-100/95 px-4 py-3 shadow-xl backdrop-blur">
         <div class="text-sm">
-          <div class="font-semibold">LiveEdit événement</div>
+          <div class="font-semibold">{{ publicText('events.detail.liveEditTitle', 'LiveEdit événement') }}</div>
           <div class="opacity-65">{{ translation.title || displayEvent.slug }}</div>
         </div>
 
         <button type="button" class="btn btn-sm btn-outline" @click="reloadLiveEdit">
-          Recharger
+          {{ publicText('events.detail.reload', 'Recharger') }}
         </button>
 
         <button type="button" class="btn btn-sm btn-outline" @click="toggleLiveEdit(false)">
-          Quitter
+          {{ publicText('events.detail.quit', 'Quitter') }}
         </button>
 
         <button type="button" class="btn btn-sm btn-primary" :disabled="saving" @click="saveLiveEdit">
           <span v-if="saving" class="loading loading-spinner loading-xs" />
-          Enregistrer
+          {{ publicText('events.detail.save', 'Enregistrer') }}
         </button>
       </div>
     </div>
@@ -141,6 +141,7 @@ import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
 import type { EventPayload } from '#modula/shared/events'
 import type { CmsLocale } from '#modula/shared/cms'
 import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
+import { formatLocalizedDateTimeValue } from '#modula/shared/date'
 import { useAuthStore } from '#modula/stores/auth'
 
 definePageMeta({
@@ -154,6 +155,7 @@ const route = useRoute()
 const router = useRouter()
 const localePath = usePublicLocalePath()
 const { contentLocale } = useContentLocale()
+const { publicText } = usePublicDictionary()
 const locale = computed(() => contentLocale.value)
 const authStore = useAuthStore()
 const { $toast } = useNuxtApp() as any
@@ -169,7 +171,7 @@ const { data: eventData } = await useFetch<EventPayload>(() => `/api/events/${sl
     occurrenceId: typeof route.query.occurrenceId === 'string' ? route.query.occurrenceId : undefined
   })),
   onResponseError: () => {
-    throw createError({ statusCode: 404, statusMessage: contentLocale.value === 'en' ? 'Event not found' : 'Événement introuvable' })
+    throw createError({ statusCode: 404, statusMessage: publicText('events.detail.notFound', 'Événement introuvable') })
   }
 })
 
@@ -210,18 +212,18 @@ const translation = computed(() => {
 })
 
 const formattedDate = computed(() => displayEvent.value
-  ? new Intl.DateTimeFormat(contentLocale.value === 'en' ? 'en-GB' : 'fr-FR', {
+  ? formatLocalizedDateTimeValue(displayEvent.value.startsAt, contentLocale.value, {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    }).format(new Date(displayEvent.value.startsAt))
+    })
   : '')
 
-const publicReservationLabel = computed(() => contentLocale.value === 'en' ? 'Public reservation' : 'Réservation publique')
-const internalParticipationLabel = computed(() => contentLocale.value === 'en' ? 'Internal participation' : 'Participation interne')
+const publicReservationLabel = computed(() => publicText('events.detail.publicReservation', 'Réservation publique'))
+const internalParticipationLabel = computed(() => publicText('events.detail.internalParticipation', 'Participation interne'))
 const showParticipationForm = computed(() => {
   if (!authStore.isAuthenticated || !displayEvent.value?.internalParticipationEnabled) return false
   if (!displayEvent.value.audienceMemberRoleIds.length) return true
@@ -267,7 +269,7 @@ function restoreEventState() {
 
 function confirmDiscardLiveEditChanges() {
   if (!liveEditDirty.value || !import.meta.client) return true
-  return window.confirm('Des modifications non sauvegardées sont en cours. Êtes-vous sûr de vouloir quitter ?')
+  return window.confirm(publicText('events.detail.unsavedConfirm', 'Des modifications non sauvegardées sont en cours. Êtes-vous sûr de vouloir quitter ?'))
 }
 
 function handleBeforeUnload(event: BeforeUnloadEvent) {
@@ -361,9 +363,9 @@ async function saveLiveEdit() {
     editableEvent.value = cloneEventData(fresh)
     eventData.value = cloneEventData(fresh)
     syncSavedSnapshot()
-    $toast?.success('Événement enregistré')
+    $toast?.success(publicText('events.detail.saved', 'Événement enregistré'))
   } catch (error: any) {
-    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || 'Impossible d’enregistrer l’événement')
+    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || publicText('events.detail.saveError', 'Impossible d’enregistrer l’événement'))
   } finally {
     saving.value = false
   }
@@ -380,14 +382,14 @@ const submitReservation = async () => {
         locale: contentLocale.value
       }
     })
-    $toast?.success(contentLocale.value === 'en' ? 'Reservation sent' : 'Réservation envoyée')
+    $toast?.success(publicText('events.detail.reservationSent', 'Réservation envoyée'))
     reservationForm.customerName = ''
     reservationForm.email = ''
     reservationForm.phone = ''
     reservationForm.seats = 1
     reservationForm.message = ''
   } catch (error: any) {
-    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || (contentLocale.value === 'en' ? 'Unable to send reservation' : 'Impossible d’envoyer la réservation'))
+    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || publicText('events.detail.reservationError', 'Impossible d’envoyer la réservation'))
   } finally {
     reservationSaving.value = false
   }
@@ -404,10 +406,10 @@ const submitParticipation = async () => {
         locale: contentLocale.value
       }
     })
-    $toast?.success(contentLocale.value === 'en' ? 'Participation sent' : 'Participation envoyée')
+    $toast?.success(publicText('events.detail.participationSent', 'Participation envoyée'))
     participationForm.message = ''
   } catch (error: any) {
-    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || (contentLocale.value === 'en' ? 'Unable to send participation' : 'Impossible d’envoyer la participation'))
+    $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || publicText('events.detail.participationError', 'Impossible d’envoyer la participation'))
   } finally {
     participationSaving.value = false
   }
@@ -422,7 +424,7 @@ onBeforeRouteLeave(() => {
 })
 
 usePageSeo({
-  title: computed(() => translation.value.title || (contentLocale.value === 'en' ? 'Events' : 'Événements')),
+  title: computed(() => translation.value.title || publicText('events.detail.seoFallbackTitle', 'Événements')),
   description: computed(() => translation.value.excerpt || translation.value.subtitle || '')
 })
 </script>

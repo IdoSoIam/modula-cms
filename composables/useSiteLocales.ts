@@ -9,7 +9,11 @@ export function useSiteLocales() {
     return configured.length > 0 ? configured : ['fr', 'en']
   })
 
+  const localeLabels = computed<Record<string, { short: string; long: string }>>(() => {
+    return siteConfig.value?.localeLabels ?? {}
+  })
+
   const loading = computed(() => !siteConfig.value)
 
-  return { locales, loading }
+  return { locales, localeLabels, loading }
 }

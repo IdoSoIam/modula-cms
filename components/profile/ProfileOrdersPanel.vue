@@ -5,8 +5,8 @@
         <div class="card-body">
           <div class="mb-4 flex items-start justify-between gap-4">
             <div>
-              <h2 class="card-title text-2xl">{{ t('orders.title') }}</h2>
-              <p class="text-sm opacity-65">{{ t('orders.historyDescription') }}</p>
+              <h2 class="card-title text-2xl">{{ publicText('orders.title', 'Mes commandes') }}</h2>
+              <p class="text-sm opacity-65">{{ publicText('orders.historyDescription', 'Suivez vos commandes récentes, leur paiement et leur livraison.') }}</p>
             </div>
             <div class="hidden rounded-2xl bg-primary/10 p-3 text-primary md:block">
               <Icon name="mdi:invoice" size="28" />
@@ -15,13 +15,13 @@
 
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4">
-              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.countLabel') }}</div>
+              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.countLabel', 'Commandes') }}</div>
               <div class="mt-2 text-2xl font-black">{{ orders.length }}</div>
             </div>
             <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4">
-              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.latestLabel') }}</div>
+              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.latestLabel', 'Dernière commande') }}</div>
               <div class="mt-2 text-sm font-semibold">
-                {{ latestOrder ? latestOrder.orderNumber : t('orders.none') }}
+                {{ latestOrder ? latestOrder.orderNumber : publicText('orders.none', 'Aucune') }}
               </div>
               <div v-if="latestOrder" class="mt-1 text-xs opacity-65">
                 {{ formatDateTime(latestOrder.createdAt) }}
@@ -35,8 +35,8 @@
         <div class="card-body">
           <div class="mb-4 flex items-start justify-between gap-4">
             <div>
-              <h2 class="card-title text-2xl">{{ t('orders.statusOverview') }}</h2>
-              <p class="text-sm opacity-65">{{ t('orders.statusOverviewDescription') }}</p>
+              <h2 class="card-title text-2xl">{{ publicText('orders.statusOverview', 'Vue d’ensemble des statuts') }}</h2>
+              <p class="text-sm opacity-65">{{ publicText('orders.statusOverviewDescription', 'Consultez rapidement l’état de votre dernière commande.') }}</p>
             </div>
             <div class="hidden rounded-2xl bg-secondary/10 p-3 text-secondary md:block">
               <Icon name="mdi:truck-outline" size="28" />
@@ -57,14 +57,14 @@
             </div>
 
             <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4 text-sm">
-              <div><strong>{{ t('orders.total') }}:</strong> {{ formatPrice(latestOrder.total) }}</div>
-              <div><strong>{{ t('orders.paymentMethod') }}:</strong> {{ paymentProviderLabel(latestOrder.paymentProvider) }}</div>
-              <div><strong>{{ t('orders.fulfillmentLabel') }}:</strong> {{ fulfillmentSummary(latestOrder) }}</div>
+              <div><strong>{{ publicText('orders.total', 'Total') }}:</strong> {{ formatPrice(latestOrder.total) }}</div>
+              <div><strong>{{ publicText('orders.paymentMethod', 'Mode de règlement') }}:</strong> {{ paymentProviderLabel(latestOrder.paymentProvider) }}</div>
+              <div><strong>{{ publicText('orders.fulfillmentLabel', 'Livraison') }}:</strong> {{ fulfillmentSummary(latestOrder) }}</div>
             </div>
           </div>
 
           <div v-else class="rounded-2xl border border-dashed border-base-300 bg-base-200/40 p-5 text-sm opacity-70">
-            {{ t('orders.noOrders') }}
+            {{ publicText('orders.noOrders', 'Aucune commande pour le moment.') }}
           </div>
         </div>
       </div>
@@ -74,17 +74,17 @@
       <div class="card-body">
         <div class="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 class="card-title text-2xl">{{ t('orders.orderHistory') }}</h2>
-            <p class="text-sm opacity-65">{{ t('orders.historyHelp') }}</p>
+            <h2 class="card-title text-2xl">{{ publicText('orders.orderHistory', 'Historique des commandes') }}</h2>
+            <p class="text-sm opacity-65">{{ publicText('orders.historyHelp', 'Ouvrez une commande pour voir les lignes, le règlement et la livraison.') }}</p>
           </div>
           <button type="button" class="btn btn-ghost btn-sm" :disabled="loading" @click="loadOrders">
             <span v-if="loading" class="loading loading-spinner loading-xs"></span>
-            {{ t('common.refresh') }}
+            {{ refreshLabel }}
           </button>
         </div>
 
         <div v-if="loading && !orders.length" class="py-10 text-center text-sm opacity-70">
-          {{ t('orders.loading') }}
+          {{ publicText('orders.loading', 'Chargement des commandes...') }}
         </div>
 
         <div v-else-if="errorMessage" class="alert alert-error">
@@ -92,7 +92,7 @@
         </div>
 
         <div v-else-if="!orders.length" class="rounded-2xl border border-dashed border-base-300 bg-base-200/40 p-6 text-sm opacity-70">
-          {{ t('orders.noOrders') }}
+          {{ publicText('orders.noOrders', 'Aucune commande pour le moment.') }}
         </div>
 
         <div v-else class="space-y-4">
@@ -115,19 +115,19 @@
 
                 <div class="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
                   <div>
-                    <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.orderDate') }}</div>
+                    <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.orderDate', 'Date de commande') }}</div>
                     <div class="mt-1 font-medium">{{ formatDateTime(order.createdAt) }}</div>
                   </div>
                   <div>
-                    <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.total') }}</div>
+                    <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.total', 'Total') }}</div>
                     <div class="mt-1 font-medium">{{ formatPrice(order.total) }}</div>
                   </div>
                   <div>
-                    <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.deliveryMethod') }}</div>
+                    <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.deliveryMethod', 'Mode de livraison') }}</div>
                     <div class="mt-1 font-medium">{{ deliveryTypeLabel(order.deliveryType) }}</div>
                   </div>
                   <div>
-                    <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.paymentMethod') }}</div>
+                    <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.paymentMethod', 'Mode de règlement') }}</div>
                     <div class="mt-1 font-medium">{{ paymentProviderLabel(order.paymentProvider) }}</div>
                   </div>
                 </div>
@@ -139,7 +139,7 @@
 
               <div class="flex flex-wrap items-center gap-2">
                 <button type="button" class="btn btn-primary btn-sm" @click="openOrder(order.id)">
-                  {{ t('orders.viewDetails') }}
+                  {{ publicText('orders.viewDetails', 'Voir le détail') }}
                 </button>
               </div>
             </div>
@@ -153,15 +153,15 @@
         <div class="mb-4 flex items-start justify-between gap-4">
           <div>
             <h3 class="text-2xl font-bold">
-              {{ selectedOrder?.orderNumber || t('orders.detailTitle') }}
+              {{ selectedOrder?.orderNumber || publicText('orders.detailTitle', 'Détail de la commande') }}
             </h3>
-            <p class="mt-1 text-sm opacity-65">{{ t('orders.detailDescription') }}</p>
+            <p class="mt-1 text-sm opacity-65">{{ publicText('orders.detailDescription', 'Consultez les lignes, le règlement et la livraison de cette commande.') }}</p>
           </div>
           <button type="button" class="btn btn-sm btn-circle" @click="closeOrder">x</button>
         </div>
 
         <div v-if="detailLoading" class="py-10 text-center text-sm opacity-70">
-          {{ t('orders.loadingDetails') }}
+          {{ publicText('orders.loadingDetails', 'Chargement du détail...') }}
         </div>
 
         <div v-else-if="detailError" class="alert alert-error">
@@ -183,35 +183,35 @@
 
           <div class="grid gap-4 lg:grid-cols-3">
             <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4">
-              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.customerLabel') }}</div>
+              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.customerLabel', 'Client') }}</div>
               <div class="mt-2 font-semibold">{{ selectedOrder.customerName }}</div>
               <div class="mt-1 text-sm opacity-80">{{ selectedOrder.email }}</div>
               <div v-if="selectedOrder.phone" class="mt-1 text-sm opacity-80">{{ selectedOrder.phone }}</div>
             </div>
             <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4">
-              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.paymentLabel') }}</div>
+              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.paymentLabel', 'Paiement') }}</div>
               <div class="mt-2 text-sm">
-                <div><strong>{{ t('orders.paymentMethod') }}:</strong> {{ paymentProviderLabel(selectedOrder.paymentProvider) }}</div>
-                <div><strong>{{ t('orders.paymentState') }}:</strong> {{ paymentStatusLabel(selectedOrder.paymentStatus) }}</div>
-                <div v-if="selectedOrder.paidAt"><strong>{{ t('orders.paidAt') }}:</strong> {{ formatDateTime(selectedOrder.paidAt) }}</div>
-                <div v-if="selectedOrder.refundedAt"><strong>{{ t('orders.refundedAt') }}:</strong> {{ formatDateTime(selectedOrder.refundedAt) }}</div>
-                <div v-if="selectedOrder.paymentFailureReason"><strong>{{ t('orders.failureReason') }}:</strong> {{ selectedOrder.paymentFailureReason }}</div>
+                <div><strong>{{ publicText('orders.paymentMethod', 'Mode de règlement') }}:</strong> {{ paymentProviderLabel(selectedOrder.paymentProvider) }}</div>
+                <div><strong>{{ publicText('orders.paymentState', 'État du paiement') }}:</strong> {{ paymentStatusLabel(selectedOrder.paymentStatus) }}</div>
+                <div v-if="selectedOrder.paidAt"><strong>{{ publicText('orders.paidAt', 'Payé le') }}:</strong> {{ formatDateTime(selectedOrder.paidAt) }}</div>
+                <div v-if="selectedOrder.refundedAt"><strong>{{ publicText('orders.refundedAt', 'Remboursé le') }}:</strong> {{ formatDateTime(selectedOrder.refundedAt) }}</div>
+                <div v-if="selectedOrder.paymentFailureReason"><strong>{{ publicText('orders.failureReason', 'Raison de l’échec') }}:</strong> {{ selectedOrder.paymentFailureReason }}</div>
               </div>
             </div>
             <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4">
-              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.fulfillmentLabel') }}</div>
+              <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.fulfillmentLabel', 'Livraison') }}</div>
               <div class="mt-2 text-sm">
-                <div><strong>{{ t('orders.deliveryMethod') }}:</strong> {{ deliveryTypeLabel(selectedOrder.deliveryType) }}</div>
-                <div><strong>{{ t('orders.fulfillmentDate') }}:</strong> {{ selectedOrder.fulfillmentDate ? formatDate(selectedOrder.fulfillmentDate) : t('orders.noFulfillmentYet') }}</div>
-                <div><strong>{{ t('orders.fulfillmentTime') }}:</strong> {{ selectedOrder.fulfillmentTime || t('orders.noFulfillmentYet') }}</div>
-                <div><strong>{{ t('orders.fulfillmentLocation') }}:</strong> {{ selectedOrder.fulfillmentLocation || t('orders.noFulfillmentYet') }}</div>
+                <div><strong>{{ publicText('orders.deliveryMethod', 'Mode de livraison') }}:</strong> {{ deliveryTypeLabel(selectedOrder.deliveryType) }}</div>
+                <div><strong>{{ publicText('orders.fulfillmentDate', 'Date') }}:</strong> {{ selectedOrder.fulfillmentDate ? formatDate(selectedOrder.fulfillmentDate) : publicText('orders.noFulfillmentYet', 'Pas encore planifié') }}</div>
+                <div><strong>{{ publicText('orders.fulfillmentTime', 'Heure') }}:</strong> {{ selectedOrder.fulfillmentTime || publicText('orders.noFulfillmentYet', 'Pas encore planifié') }}</div>
+                <div><strong>{{ publicText('orders.fulfillmentLocation', 'Lieu') }}:</strong> {{ selectedOrder.fulfillmentLocation || publicText('orders.noFulfillmentYet', 'Pas encore planifié') }}</div>
               </div>
             </div>
           </div>
 
           <div class="rounded-2xl border border-base-300 bg-base-100">
             <div class="border-b border-base-300 px-4 py-3">
-              <div class="font-semibold">{{ t('orders.orderItems') }}</div>
+              <div class="font-semibold">{{ publicText('orders.orderItems', 'Articles commandés') }}</div>
             </div>
             <div class="divide-y divide-base-300">
               <div v-for="line in selectedOrder.lines" :key="line.id" class="flex flex-col gap-3 px-4 py-4 md:flex-row md:items-start md:justify-between">
@@ -223,15 +223,15 @@
                 </div>
                 <div class="grid gap-2 text-sm md:min-w-[220px]">
                   <div class="flex items-center justify-between gap-3">
-                    <span class="opacity-70">{{ t('orders.quantity') }}</span>
+                    <span class="opacity-70">{{ publicText('orders.quantity', 'Quantité') }}</span>
                     <span class="font-medium">{{ line.quantity }}</span>
                   </div>
                   <div class="flex items-center justify-between gap-3">
-                    <span class="opacity-70">{{ t('orders.unitPrice') }}</span>
+                    <span class="opacity-70">{{ publicText('orders.unitPrice', 'Prix unitaire') }}</span>
                     <span class="font-medium">{{ formatPrice(line.unitPrice) }}</span>
                   </div>
                   <div class="flex items-center justify-between gap-3">
-                    <span class="opacity-70">{{ t('orders.total') }}</span>
+                    <span class="opacity-70">{{ publicText('orders.total', 'Total') }}</span>
                     <span class="font-semibold">{{ formatPrice(line.totalPrice) }}</span>
                   </div>
                 </div>
@@ -241,25 +241,25 @@
 
           <div class="grid gap-4 lg:grid-cols-2">
             <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4 text-sm">
-              <div class="mb-2 text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.messageLabel') }}</div>
+              <div class="mb-2 text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.messageLabel', 'Message') }}</div>
               <div v-if="selectedOrder.message" class="whitespace-pre-wrap">{{ selectedOrder.message }}</div>
-              <div v-else class="opacity-70">{{ t('orders.noMessage') }}</div>
+              <div v-else class="opacity-70">{{ publicText('orders.noMessage', 'Aucun message.') }}</div>
             </div>
 
             <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4 text-sm">
-              <div class="mb-2 text-xs uppercase tracking-[0.18em] opacity-60">{{ t('orders.actionsTitle') }}</div>
+              <div class="mb-2 text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.actionsTitle', 'Actions') }}</div>
               <div v-if="canCancel(selectedOrder)" class="opacity-80">
-                {{ t('orders.cancelComingSoon') }}
+                {{ publicText('orders.cancelComingSoon', 'L’annulation en ligne sera disponible prochainement pour cette commande.') }}
               </div>
               <div v-else class="opacity-70">
-                {{ t('orders.noActions') }}
+                {{ publicText('orders.noActions', 'Aucune action disponible pour cette commande.') }}
               </div>
             </div>
           </div>
         </div>
 
         <div class="modal-action">
-          <button type="button" class="btn" @click="closeOrder">{{ t('common.close') }}</button>
+          <button type="button" class="btn" @click="closeOrder">{{ closeLabel }}</button>
         </div>
       </div>
     </dialog>
@@ -306,7 +306,10 @@ const props = defineProps<{
   initialOrderId?: number | null
 }>()
 
-const { t } = useI18n()
+const { publicText } = usePublicDictionary()
+
+const refreshLabel = computed(() => publicText('orders.refresh', 'Rafraîchir'))
+const closeLabel = computed(() => publicText('orders.close', 'Fermer'))
 
 const loading = ref(false)
 const detailLoading = ref(false)
@@ -322,11 +325,12 @@ const latestOrder = computed(() => orders.value[0] ?? null)
 
 const formatPrice = (value: number) => (useNuxtApp() as any).$formatPrice(value) as string
 const formatDate = (value: string) => (useNuxtApp() as any).$formatDate(value) as string
-const formatDateTime = (value: string) => (useNuxtApp() as any).$formatDate(value) as string
+const formatDateTime = (value: string) => (useNuxtApp() as any).$formatDateTime(value) as string
+const formatTime = (value: string) => (useNuxtApp() as any).$formatTime(value) as string
 
 const orderStatusLabel = (value: ShopOrder['status']) => {
   const key = value === 'PAID' ? 'paid' : value === 'CANCELLED' ? 'cancelled' : value === 'DRAFT' ? 'draft' : 'pending'
-  return t(`orders.shopStatus.${key}`)
+  return publicText(`orders.shopStatus.${key}`, key)
 }
 
 const paymentStatusLabel = (value: ShopOrder['paymentStatus']) => {
@@ -339,18 +343,20 @@ const paymentStatusLabel = (value: ShopOrder['paymentStatus']) => {
         : value === 'FAILED'
           ? 'failed'
           : 'refunded'
-  return t(`orders.paymentStatus.${key}`)
+  return publicText(`orders.paymentStatus.${key}`, key)
 }
 
 const paymentProviderLabel = (value: ShopOrder['paymentProvider']) => {
-  return value === 'STRIPE' ? t('orders.paymentProvider.stripe') : t('orders.paymentProvider.offline')
+  return value === 'STRIPE'
+    ? publicText('orders.paymentProvider.stripe', 'Paiement en ligne')
+    : publicText('orders.paymentProvider.offline', 'Paiement sur place')
 }
 
 const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => {
-  if (value === 'TOUR') return t('orders.deliveryType.home')
-  if (value === 'PICKUP') return t('orders.deliveryType.pickup')
-  if (value === 'ONSITE') return t('orders.deliveryType.onSite')
-  return t('orders.none')
+  if (value === 'TOUR') return publicText('orders.deliveryType.home', 'Livraison à domicile')
+  if (value === 'PICKUP') return publicText('orders.deliveryType.pickup', 'Point relais')
+  if (value === 'ONSITE') return publicText('orders.deliveryType.onSite', 'Retrait sur place')
+  return publicText('orders.none', 'Aucune')
 }
 
 const orderStatusBadgeClass = (value: ShopOrder['status']) => {
@@ -372,10 +378,10 @@ const fulfillmentSummary = (order: ShopOrder) => {
   const parts = [
     deliveryTypeLabel(order.deliveryType),
     order.fulfillmentDate ? formatDate(order.fulfillmentDate) : null,
-    order.fulfillmentTime || null,
+    order.fulfillmentTime ? formatTime(order.fulfillmentTime) : null,
     order.fulfillmentLocation || null,
   ].filter(Boolean)
-  return parts.length ? parts.join(' - ') : t('orders.noFulfillmentYet')
+  return parts.length ? parts.join(' - ') : publicText('orders.noFulfillmentYet', 'Pas encore planifié')
 }
 
 const lineDescription = (line: ShopOrderLine) => {
@@ -384,7 +390,7 @@ const lineDescription = (line: ShopOrderLine) => {
     pieces.push(String(line.meta.unitLabel))
   }
   if (line.meta?.kind === 'LOT') {
-    pieces.push(t('orders.productLotLabel'))
+    pieces.push(publicText('orders.productLotLabel', 'Lot produit'))
   }
   if (Array.isArray(line.meta?.items) && line.meta.items.length) {
     pieces.push(
@@ -394,7 +400,7 @@ const lineDescription = (line: ShopOrderLine) => {
         .join(', ')
     )
   }
-  return pieces.length ? pieces.join(' - ') : t('orders.standardLine')
+  return pieces.length ? pieces.join(' - ') : publicText('orders.standardLine', 'Ligne standard')
 }
 
 const canCancel = (order: ShopOrder) => order.status === 'PENDING' && order.paymentStatus !== 'PAID' && order.paymentStatus !== 'REFUNDED'
@@ -413,7 +419,7 @@ const loadOrders = async () => {
       await openOrder(props.initialOrderId)
     }
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || error?.statusMessage || t('orders.loadError')
+    errorMessage.value = error?.data?.message || error?.statusMessage || publicText('orders.loadError', 'Impossible de charger les commandes.')
   } finally {
     loading.value = false
   }
@@ -427,7 +433,7 @@ const openOrder = async (orderId: number) => {
   try {
     selectedOrder.value = await $fetch<ShopOrder>(`/api/profile/orders/${orderId}`)
   } catch (error: any) {
-    detailError.value = error?.data?.message || error?.statusMessage || t('orders.loadDetailError')
+    detailError.value = error?.data?.message || error?.statusMessage || publicText('orders.loadDetailError', 'Impossible de charger le détail de la commande.')
     selectedOrder.value = null
   } finally {
     detailLoading.value = false

@@ -31,7 +31,6 @@ export interface AdminNavigationOptions {
   featureFlags?: {
     shop: {
       enabled: boolean;
-      basketsEnabled: boolean;
       vegetablesEnabled: boolean;
     };
     associationRolesEnabled: boolean;
@@ -141,14 +140,6 @@ export function getAdminNavigationSections(
           { requiredModule: "shop_orders", requiredAction: "read" },
         ),
         createAdminNavigationItem(
-          "shop-baskets",
-          "admin.navigation.items.baskets",
-          getAdminRoutePath("shopBaskets", routeLocale),
-          "mdi:basket-outline",
-          [...getAdminRoutePaths("shopBaskets"), "/admin/paniers"],
-          { requiredModule: "shop_orders", requiredAction: "read" },
-        ),
-        createAdminNavigationItem(
           "shop-orders",
           "admin.navigation.items.orders",
           getAdminRoutePath("shopOrders", routeLocale),
@@ -217,14 +208,6 @@ export function getAdminNavigationSections(
           "mdi:menu",
           getAdminRoutePaths("customizationNavigation"),
           { requiredModule: "navigation", requiredAction: "read" },
-        ),
-        createAdminNavigationItem(
-          "customization-baskets",
-          "admin.navigation.items.baskets",
-          getAdminRoutePath("customizationBaskets", routeLocale),
-          "mdi:basket-outline",
-          getAdminRoutePaths("customizationBaskets"),
-          { requiredModule: "layout_customization", requiredAction: "read" },
         ),
         createAdminNavigationItem(
           "customization-news",
@@ -353,8 +336,6 @@ export function getAdminNavigationSections(
   ];
 
   const shopEnabled = options.featureFlags?.shop.enabled ?? true;
-  const shopBasketsEnabled =
-    shopEnabled && (options.featureFlags?.shop.basketsEnabled ?? true);
   const shopVegetablesEnabled =
     shopEnabled && (options.featureFlags?.shop.vegetablesEnabled ?? true);
   const associationRolesEnabled =
@@ -376,8 +357,6 @@ export function getAdminNavigationSections(
           item.id === "management-event-reservations"
         )
           return eventsEnabled;
-        if (item.id === "shop-baskets" || item.id === "customization-baskets")
-          return shopBasketsEnabled;
         if (item.id === "shop-vegetables") return shopVegetablesEnabled;
         if (
           item.id === "shop-product-categories" ||

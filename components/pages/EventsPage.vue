@@ -26,7 +26,7 @@
     </div>
 
     <div v-else-if="eventItems.length === 0" class="rounded-3xl border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
-      {{ locale === 'en' ? 'No events published yet.' : 'Aucun événement publié pour le moment.' }}
+      {{ publicText('events.list.empty', 'Aucun événement publié pour le moment.') }}
     </div>
 
     <template v-else>
@@ -105,6 +105,7 @@
 import type { CmsLocale } from '#modula/shared/cms'
 import type { CmsEventsPageSettings, EventListItem, EventsPageViewMode, PublicEventsListResponse } from '#modula/shared/events'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
+import { formatLocalizedDateTimeValue } from '#modula/shared/date'
 
 const props = withDefaults(defineProps<{
   settings?: CmsEventsPageSettings | null
@@ -117,6 +118,7 @@ const props = withDefaults(defineProps<{
 const { contentLocale } = useContentLocale()
 const locale = contentLocale
 const localePath = usePublicLocalePath()
+const { publicText } = usePublicDictionary()
 const siteConfig = await useSiteConfig()
 const defaultSettings = createDefaultCmsSiteSettings().eventsPage
 const effectiveSettings = computed(() => props.settings || siteConfig.value?.cms?.settings?.eventsPage || defaultSettings)
@@ -222,12 +224,14 @@ const cardStyle = computed(() => ({
 }))
 
 const detailHref = (slug: string) => localePath(`/events/${slug}`)
-const modeLabel = (mode: EventsPageViewMode) => mode === 'list' ? (locale.value === 'en' ? 'List' : 'Liste') : (locale.value === 'en' ? 'Grid' : 'Grille')
-const formatDate = (value: string) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', {
+const modeLabel = (mode: EventsPageViewMode) => mode === 'list'
+  ? publicText('events.list.listMode', 'Liste')
+  : publicText('events.list.gridMode', 'Grille')
+const formatDate = (value: string) => formatLocalizedDateTimeValue(value, locale.value, {
   weekday: 'long',
   day: '2-digit',
   month: 'long',
   hour: '2-digit',
   minute: '2-digit'
-}).format(new Date(value))
+})
 </script>

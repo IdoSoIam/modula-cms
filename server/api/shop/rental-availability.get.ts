@@ -6,7 +6,8 @@ import {
   startOfDay,
   toIsoDate,
 } from '#modula/server/services/shop/rentalAvailability'
-import { serializeProduct, serializeProductLot } from '#modula/server/utils/shop'
+import { formatLocalizedDateValue } from '#modula/shared/date'
+import { serializeProduct } from '#modula/server/utils/shop'
 
 function parseMonth(value: string | undefined) {
   const source = value && /^\d{4}-\d{2}$/.test(value) ? value : toIsoDate(new Date()).slice(0, 7)
@@ -30,7 +31,8 @@ function buildCalendarDays(monthDate: Date) {
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const kind = query.kind === 'productLot' ? 'productLot' : query.kind === 'product' ? 'product' : ''
+  const locale = typeof query.locale === 'string' && query.locale.trim() ? query.locale : 'fr'
+  const kind = query.kind === 'product' ? 'product' : ''
   const id = Number(query.id || 0)
   if (!kind || !id) {
     throw createError({
@@ -63,44 +65,16 @@ export default defineEventHandler(async (event) => {
       rentalMinDays: product.rentalMinDays,
       rentalMaxDays: product.rentalMaxDays,
     }, gridStart, gridEnd)
-    return buildResponse(monthDate, gridDays, availability, product)
+    return buildResponse(monthDate, gridDays, availability, product, locale)
   }
 
-  const row = await db.productLot.findUnique({
-    where: { id, active: true },
-    include: {
-      category: true,
-      items: {
-        include: {
-          product: {
-            include: { category: true },
-          },
-        },
-      },
-    },
-  })
-  if (!row) {
-    throw createError({ statusCode: 404, statusMessage: 'Lot introuvable' })
-  }
-  const lot = serializeProductLot(row)
-  const availability = await computeAvailabilityForSource({
-    kind,
-    id: lot.id,
-    title: lot.name,
-    stock: lot.stock,
-    rentalAvailableFrom: lot.rentalAvailableFrom,
-    rentalAvailableTo: lot.rentalAvailableTo,
-    rentalMinDays: lot.rentalMinDays,
-    rentalMaxDays: lot.rentalMaxDays,
-  }, gridStart, gridEnd)
-  return buildResponse(monthDate, gridDays, availability, lot)
+  throw createError({ statusCode: 400, statusMessage: 'Source de location invalide' })
 })
 
-function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<ReturnType<typeof computeAvailabilityForSource>>, source: any) {
-  const labels = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' })
+function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<ReturnType<typeof computeAvailabilityForSource>>, source: any, locale: string) {
   const dayNames = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(2026, 0, 5 + index)
-    const label = labels.format(date)
+    const label = formatLocalizedDateValue(date, locale, { weekday: 'short' })
     return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '')
   })
 
@@ -108,7 +82,7 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
   return {
     month: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
     monthInput: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
-    monthLabel: new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(monthDate),
+    monthLabel: formatLocalizedDateValue(monthDate, locale, { month: 'long', year: 'numeric' }),
     dayNames,
     source,
     days: gridDays.map((day) => {

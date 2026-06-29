@@ -31,10 +31,6 @@ export const ADMIN_ROUTE_PATHS = {
     fr: "/admin/shop/product-categories",
     en: "/admin/shop/product-categories",
   },
-  shopBaskets: {
-    fr: "/admin/shop/product-lots",
-    en: "/admin/shop/product-lots",
-  },
   shopOrders: {
     fr: "/admin/shop/orders",
     en: "/admin/shop/orders",
@@ -58,10 +54,6 @@ export const ADMIN_ROUTE_PATHS = {
   customizationNavigation: {
     fr: "/admin/customization/navigation",
     en: "/admin/customization/navigation",
-  },
-  customizationBaskets: {
-    fr: "/admin/customization/baskets",
-    en: "/admin/customization/baskets",
   },
   customizationNews: {
     fr: "/admin/customization/news",

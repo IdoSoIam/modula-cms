@@ -205,9 +205,10 @@
                     <button
                       v-for="templateDef in subgroup.templates"
                       :key="templateDef.action"
-                      class="w-full rounded-xl border p-3 text-left transition"
+                      type="button"
+                      class="w-full cursor-pointer rounded-xl border p-3 text-left transition hover:border-primary/60 hover:bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/20"
                       :class="activeTemplateAction === templateDef.action ? 'border-primary bg-base-100' : 'border-base-300 bg-base-100/60'"
-                      @click="selectTemplate(templateDef.action)"
+                      @click.stop.prevent="selectTemplate(templateDef.action)"
                     >
                       <div class="flex items-start justify-between gap-2">
                         <div>
@@ -542,23 +543,56 @@ const ensureGroupOpenForAction = (action: string) => {
 
 const ensureTemplateLoaded = async (action: string) => {
   if (templateCache[action]) {
+    ensureTemplateLocaleEntry(action, activeTemplateLocale.value)
     return
   }
 
   templatePending.value = true
   try {
     const response = await $fetch<{ templates: TemplateTranslations }>(`/api/admin/settings/templates/${action}` as string)
+    const localeEntries = new Set([
+      ...resolvedTemplateLocales.value,
+      ...Object.keys(response.templates || {})
+    ])
+
     templateCache[action] = Object.fromEntries(
-      resolvedTemplateLocales.value.map((localeCode) => [
+      [...localeEntries].map((localeCode) => [
         localeCode,
-        { ...(response.templates[localeCode] || { subject: '', body: '' }) }
+        { ...(response.templates?.[localeCode] || { subject: '', body: '' }) }
       ])
     )
+
+    if (!templateCache[action][activeTemplateLocale.value]) {
+      const preferredLocale
+        = localeEntries.has(activeTemplateLocale.value)
+          ? activeTemplateLocale.value
+          : localeEntries.has(locale.value)
+            ? String(locale.value)
+            : [...localeEntries][0]
+
+      if (preferredLocale) {
+        activeTemplateLocale.value = preferredLocale
+      }
+    }
+
+    ensureTemplateLocaleEntry(action, activeTemplateLocale.value)
     templateInitialSignatures[action] = JSON.stringify(templateCache[action])
   } finally {
     templatePending.value = false
   }
 }
+
+const ensureTemplateLocaleEntry = (action: string, localeCode: string) => {
+  if (!action || !localeCode || !templateCache[action]) return
+  if (!templateCache[action][localeCode]) {
+    templateCache[action][localeCode] = { subject: '', body: '' }
+  }
+}
+
+watch([activeTemplateAction, activeTemplateLocale], ([action, localeCode]) => {
+  if (!action || !localeCode) return
+  ensureTemplateLocaleEntry(action, localeCode)
+})
 
 const selectTemplate = async (action: string) => {
   activeTemplateAction.value = action

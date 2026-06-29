@@ -1,9 +1,8 @@
 export interface ShopCartItem {
   key: string
-  kind: 'product' | 'productLot'
+  kind: 'product'
   saleType: 'SALE' | 'RENTAL'
   productId: number | null
-  productLotId: number | null
   title: string
   imageUrl?: string | null
   description?: string | null
@@ -61,10 +60,9 @@ export function useShopCart() {
         items.value = Array.isArray(parsed)
           ? parsed.map((item) => ({
               key: String(item?.key || ''),
-              kind: item?.kind === 'productLot' ? 'productLot' : 'product',
+              kind: 'product',
               saleType: item?.saleType === 'RENTAL' ? 'RENTAL' : 'SALE',
               productId: item?.productId == null ? null : Number(item.productId),
-              productLotId: item?.productLotId == null ? null : Number(item.productLotId),
               title: String(item?.title || ''),
               imageUrl: item?.imageUrl ?? null,
               description: item?.description ?? null,
@@ -80,6 +78,7 @@ export function useShopCart() {
               unitPrice: Number(item?.unitPrice || 0),
               totalPrice: Number(item?.totalPrice || 0)
             }))
+            .filter((item) => item.productId != null && item.key)
           : []
       }
     } catch {

@@ -631,19 +631,6 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
     {
       menu: 'PRIMARY',
       itemType: 'APPLICATION_ROUTE',
-      title: 'Lots de produits',
-      labels: { fr: 'Lots de produits', en: 'Product lots' },
-      navigationItemKey: 'nav-baskets',
-      parentItemKey: null,
-      href: '/lots-produits',
-      pageId: null,
-      newTab: false,
-      visible: true,
-      position: 3
-    },
-    {
-      menu: 'PRIMARY',
-      itemType: 'APPLICATION_ROUTE',
       title: 'Contact',
       labels: { fr: 'Contact', en: 'Contact' },
       navigationItemKey: 'nav-contact',
@@ -652,7 +639,7 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       pageId: null,
       newTab: false,
       visible: true,
-      position: 4
+      position: 3
     },
     {
       menu: 'FOOTER',
@@ -754,20 +741,44 @@ export function createDefaultCmsPagePayload(path: string, title = ''): CmsPagePa
   }
 }
 
+function normalizeCmsLocaleCode(locale: string | null | undefined) {
+  return String(locale || '').trim().toLowerCase()
+}
+
+function localeVariants(locale: string | null | undefined) {
+  const normalized = normalizeCmsLocaleCode(locale)
+  if (!normalized) return []
+  const base = normalized.split('-')[0] || normalized
+  return normalized === base ? [normalized] : [normalized, base]
+}
+
+export function getCmsLocaleFallbacks(locale: string, defaultLocale = 'en') {
+  const requested = localeVariants(locale)
+  const english = requested.includes('en') ? [] : ['en']
+  const defaultVariants = localeVariants(defaultLocale).filter(candidate => candidate !== 'en')
+  return Array.from(new Set([...requested, ...english, ...defaultVariants])).filter(Boolean)
+}
+
 export function pickCmsLocalizedText(locale: string, value: CmsLocalizedText | null | undefined, defaultLocale = 'en') {
   if (!value) return ''
-  if (value[locale]?.trim()) return value[locale]
-  if (value[defaultLocale]?.trim()) return value[defaultLocale]
-  const first = Object.values(value).find(v => v?.trim())
+
+  const normalizedEntries = Object.fromEntries(
+    Object.entries(value).map(([entryLocale, text]) => [normalizeCmsLocaleCode(entryLocale), text])
+  ) as CmsLocalizedText
+
+  for (const candidate of getCmsLocaleFallbacks(locale, defaultLocale)) {
+    if (normalizedEntries[candidate]?.trim()) return normalizedEntries[candidate]
+  }
+
+  const first = Object.values(normalizedEntries).find(v => v?.trim())
   return first || ''
 }
 
 export function resolveLocaleText(value: CmsLocalizedText | null | undefined, locales: string[], fallback = ''): string {
   if (!value) return fallback
-  for (const locale of locales) {
-    if (value[locale]?.trim()) return value[locale]
-  }
-  return fallback
+
+  const [requestedLocale = '', defaultLocale = 'en'] = locales
+  return pickCmsLocalizedText(requestedLocale, value, defaultLocale) || fallback
 }
 
 export const CMS_THEME_COLOR_TOKENS: ThemeColorToken[] = [

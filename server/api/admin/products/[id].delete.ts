@@ -9,9 +9,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
   }
 
-  const usedInLots = await db.productLotItem.count({ where: { productId: id } })
   const usedInOrders = await db.shopOrderLine.count({ where: { productId: id } })
-  if (usedInLots > 0 || usedInOrders > 0) {
+  if (usedInOrders > 0) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Ce produit est déjà utilisé et ne peut pas être supprimé.'

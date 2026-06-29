@@ -1,15 +1,15 @@
 <template>
     <div v-if="showHeading" class="mb-6">
-      <h3 class="text-lg font-semibold">Connexion</h3>
+      <h3 class="text-lg font-semibold">{{ titleLabel }}</h3>
       <p class="mt-1 text-sm opacity-70">
-        L'inscription publique est désactivée pour le moment. Contactez l'administrateur si vous avez besoin d'un accès.
+        {{ disabledRegistrationLabel }}
       </p>
     </div>
 
     <form @submit.prevent="handleLogin" class="space-y-4">
       <div class="form-control gap-3 flex flex-col">
         <label class="label">
-          <span class="label-text">Email</span>
+          <span class="label-text">{{ emailLabel }}</span>
         </label>
         <input
           v-model="loginForm.email"
@@ -22,7 +22,7 @@
 
       <div class="form-control gap-3 flex flex-col">
         <label class="label">
-          <span class="label-text">Mot de passe</span>
+          <span class="label-text">{{ passwordLabel }}</span>
         </label>
         <input
           v-model="loginForm.password"
@@ -33,7 +33,7 @@
         />
       </div>
 
-      <button type="submit" class="btn btn-primary w-full">Se connecter</button>
+      <button type="submit" class="btn btn-primary w-full">{{ loginButtonLabel }}</button>
     </form>
 
     <div v-if="error" class="alert alert-error mt-4">
@@ -54,6 +54,7 @@ import { reactive, ref } from 'vue'
 import { useAuthStore } from '#modula/stores/auth'
 
 const authStore = useAuthStore()
+const { publicText } = usePublicDictionary()
 withDefaults(defineProps<{
   showHeading?: boolean
 }>(), {
@@ -67,6 +68,12 @@ const emit = defineEmits<{
 const error = ref('')
 const success = ref('')
 const isLoading = ref(false)
+
+const titleLabel = computed(() => publicText('auth.login.title', 'Connexion'))
+const disabledRegistrationLabel = computed(() => publicText('auth.form.disabledRegistration', 'L\'inscription publique est désactivée pour le moment. Contactez l\'administrateur si vous avez besoin d\'un accès.'))
+const emailLabel = computed(() => publicText('auth.form.emailLabel', 'Email'))
+const passwordLabel = computed(() => publicText('auth.form.passwordLabel', 'Mot de passe'))
+const loginButtonLabel = computed(() => publicText('auth.form.loginButton', 'Se connecter'))
 
 const loginForm = reactive({
   email: '',
@@ -88,7 +95,7 @@ const handleLogin = async () => {
       password: loginForm.password
     })
 
-    success.value = 'Connexion réussie !'
+    success.value = publicText('auth.form.loginSuccess', 'Connexion réussie !')
     loginForm.email = ''
     loginForm.password = ''
 
@@ -102,7 +109,7 @@ const handleLogin = async () => {
     } else if (e?.message) {
       error.value = e.message
     } else {
-      error.value = 'Une erreur est survenue lors de la connexion'
+      error.value = publicText('auth.form.loginError', 'Une erreur est survenue lors de la connexion')
     }
   } finally {
     isLoading.value = false
