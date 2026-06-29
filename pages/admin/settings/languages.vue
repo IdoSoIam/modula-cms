@@ -187,7 +187,7 @@
           </div>
         </div>
 
-        <div class="rounded-box border border-base-300 bg-base-200/40 p-4 space-y-4">
+        <div class="rounded-box border border-base-300 bg-base-200/40 p-4 space-y-4 h-fit">
           <div v-if="selectedDictionaryEntry">
             <div class="font-semibold">{{ localizedLabel(selectedDictionaryEntry.label) }}</div>
             <div class="mt-1 text-sm opacity-70">{{ dictionaryCategoryLabel(selectedDictionaryEntry.category) }} · {{ selectedDictionaryEntry.page }}</div>
