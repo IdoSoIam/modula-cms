@@ -38,6 +38,7 @@ const define = (
 })
 
 export const PUBLIC_DICTIONARY_DEFINITIONS: PublicDictionaryDefinition[] = [
+  define('navigation.footer.recurringSchedule', 'navigation', 'footer', 'Phrase horaire récurrent footer', 'Footer recurring hours sentence', 'Tous les {day} de {start} à {end}', 'Every {day} from {start} to {end}'),
   define('pages.payment.success.badge', 'pages', 'payment-success', 'Badge paiement confirmé', 'Payment confirmed badge', 'Paiement confirmé', 'Payment confirmed'),
   define('pages.payment.success.title', 'pages', 'payment-success', 'Titre paiement confirmé', 'Payment confirmed title', 'Merci, votre paiement a bien été pris en compte.', 'Thank you, your payment has been received.'),
   define('pages.payment.success.description', 'pages', 'payment-success', 'Description paiement confirmé', 'Payment confirmed description', 'Vous pouvez fermer cette page ou revenir à l\'accueil. La commande est resynchronisée avec le service de paiement au chargement.', 'You can close this page or return home. The order is resynchronized with the payment service on load.', true),

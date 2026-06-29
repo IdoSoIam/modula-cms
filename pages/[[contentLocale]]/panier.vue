@@ -314,7 +314,7 @@ const locale = computed(() => contentLocale.value)
 const localePath = usePublicLocalePath()
 const route = useRoute()
 const authStore = useAuthStore()
-const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
+const { $toast, $formatPrice, $formatDate, $formatTime } = useNuxtApp() as any
 const { items, count, total, updateQuantity, remove, clear } = useShopCart()
 
 await authStore.ensureInitialized()
@@ -389,7 +389,7 @@ const rentalHelpLabel = computed(() => publicText('checkout.cart.rentalHelp', 'L
 const rentalPeriodLabel = computed(() => publicText('checkout.cart.rentalPeriod', 'Période de location'))
 const deliveryLabel = computed(() => publicText('checkout.cart.deliveryMethod', 'Mode de livraison'))
 const deliveryPlaceholderLabel = computed(() => publicText('checkout.cart.deliveryPlaceholder', 'Choisir un mode de livraison'))
-const onSiteDeliveryLabel = computed(() => deliveryOptions.value?.onSitePickup?.label || publicText('checkout.cart.onSiteDelivery', 'Retrait sur place'))
+const onSiteDeliveryLabel = computed(() => publicText('checkout.cart.onSiteDelivery', 'Retrait sur place'))
 const pickupDeliveryLabel = computed(() => publicText('checkout.cart.pickupDelivery', 'Point relais'))
 const tourDeliveryLabel = computed(() => publicText('checkout.cart.homeDelivery', 'Livraison à domicile'))
 const pickupPointLabel = computed(() => publicText('checkout.cart.pickupDelivery', 'Point relais'))
@@ -517,7 +517,8 @@ const selectedDeliveryTour = computed(() =>
 const onSitePickupSummary = computed(() => {
   const onSitePickup = deliveryOptions.value?.onSitePickup
   if (!onSitePickup) return ''
-  return [onSitePickup.address, `${$formatDate(onSitePickup.nextDate)} · ${onSitePickup.slotLabel}`].filter(Boolean).join(' — ')
+  const timeRange = [$formatTime(onSitePickup.startTime), $formatTime(onSitePickup.endTime)].filter(Boolean).join(' - ')
+  return [onSitePickup.address, `${$formatDate(onSitePickup.nextDate)} - ${timeRange}`].filter(Boolean).join(' - ')
 })
 
 const paymentConstraintNotice = computed(() => {
@@ -635,7 +636,7 @@ const updateItemQuantity = (key: string, quantity: number) => updateQuantity(key
 const removeItem = (key: string) => remove(key)
 
 function deliveryTourSummary(tour: DeliveryOptionTour) {
-  return `${$formatDate(tour.nextDate)} · ${tour.startTime} - ${tour.endTime}`
+  return `${$formatDate(tour.nextDate)} - ${$formatTime(tour.startTime)} - ${$formatTime(tour.endTime)}`
 }
 
 function formatVatRate(value: number) {
@@ -646,7 +647,7 @@ function formatRentalRange(startDate: string | null | undefined, endDate: string
   if (!startDate || !endDate) {
     return publicText('checkout.cart.rentalToSelect', 'À sélectionner')
   }
-  return `${$formatDate(startDate)} → ${$formatDate(endDate)}`
+  return `${$formatDate(startDate)} -> ${$formatDate(endDate)}`
 }
 
 function requiredLabel(label: string) {

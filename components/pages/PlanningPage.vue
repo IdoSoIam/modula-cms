@@ -132,7 +132,7 @@ import type {
   PlanningWeekResponse
 } from '#modula/shared/events'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
-import { resolveIntlLocale } from '#modula/shared/date'
+import { formatLocalizedDateValue, formatLocalizedTimeValue } from '#modula/shared/date'
 import { useAuthStore } from '#modula/stores/auth'
 
 const props = withDefaults(defineProps<{
@@ -228,8 +228,8 @@ const previewWeekResponse = computed<PlanningWeekResponse>(() => {
     const items = previewItems.value.filter(item => formatIsoDate(new Date(item.startsAt)) === iso)
     return {
       iso,
-      label: new Intl.DateTimeFormat(resolveIntlLocale(locale.value), { weekday: 'long', day: '2-digit', month: 'long' }).format(day),
-      shortLabel: new Intl.DateTimeFormat(resolveIntlLocale(locale.value), { weekday: 'short' }).format(day),
+      label: formatLocalizedDateValue(day, locale.value, { weekday: 'long', day: '2-digit', month: 'long' }),
+      shortLabel: formatLocalizedDateValue(day, locale.value, { weekday: 'short' }),
       dayNumber: day.getDate(),
       page: 1,
       total: items.length,
@@ -265,9 +265,9 @@ const previewCalendarResponse = computed<PlanningCalendarResponse>(() => {
   return {
     view: 'calendar',
     month: formatMonth(monthStart),
-    monthLabel: new Intl.DateTimeFormat(resolveIntlLocale(locale.value), { month: 'long', year: 'numeric' }).format(monthStart),
+    monthLabel: formatLocalizedDateValue(monthStart, locale.value, { month: 'long', year: 'numeric' }),
     monthInput: formatMonth(monthStart),
-    dayNames: Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(resolveIntlLocale(locale.value), { weekday: 'short' }).format(addDays(firstGridDay, index))),
+    dayNames: Array.from({ length: 7 }, (_, index) => formatLocalizedDateValue(addDays(firstGridDay, index), locale.value, { weekday: 'short' })),
     days
   }
 })
@@ -287,7 +287,7 @@ const currentCalendarResponse = computed<PlanningCalendarResponse | null>(() => 
 const weekColumns = computed(() => currentWeekResponse.value?.columns || [])
 const calendarDays = computed(() => currentCalendarResponse.value?.days || [])
 const calendarDayNames = computed(() => currentCalendarResponse.value?.dayNames || [])
-const calendarMonthLabel = computed(() => currentCalendarResponse.value?.monthLabel || new Intl.DateTimeFormat(resolveIntlLocale(locale.value), { month: 'long', year: 'numeric' }).format(calendarMonth.value))
+const calendarMonthLabel = computed(() => currentCalendarResponse.value?.monthLabel || formatLocalizedDateValue(calendarMonth.value, locale.value, { month: 'long', year: 'numeric' }))
 const calendarMonthInput = computed(() => currentCalendarResponse.value?.monthInput || formatMonth(calendarMonth.value))
 const isEmpty = computed(() => viewMode.value === 'week'
   ? weekColumns.value.every(column => column.total === 0)
@@ -321,8 +321,7 @@ const cardStyle = computed(() => ({
 const weekRangeLabel = computed(() => {
   const start = weekStart.value
   const end = addDays(start, 6)
-  const localeCode = resolveIntlLocale(locale.value)
-  return `${new Intl.DateTimeFormat(localeCode, { day: '2-digit', month: 'long' }).format(start)} - ${new Intl.DateTimeFormat(localeCode, { day: '2-digit', month: 'long' }).format(end)}`
+  return `${formatLocalizedDateValue(start, locale.value, { day: '2-digit', month: 'long' })} - ${formatLocalizedDateValue(end, locale.value, { day: '2-digit', month: 'long' })}`
 })
 
 function startOfWeek(value: Date) {
@@ -422,8 +421,8 @@ const detailHref = (slug: string, occurrenceId?: number | null) => localePath({
 const modeLabel = (mode: PlanningPageViewMode) => mode === 'week'
   ? publicText('planning.page.weekMode', 'Semaine')
   : publicText('planning.page.calendarMode', 'Calendrier')
-const formatTime = (value: string) => new Intl.DateTimeFormat(resolveIntlLocale(locale.value), {
+const formatTime = (value: string) => formatLocalizedTimeValue(value, locale.value, {
   hour: '2-digit',
   minute: '2-digit'
-}).format(new Date(value))
+})
 </script>

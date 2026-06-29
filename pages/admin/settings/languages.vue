@@ -33,7 +33,7 @@
         <div
           v-for="(entry, index) in localeEntries"
           :key="entry.code"
-          class="flex flex-col gap-2 rounded-lg border border-base-300 bg-base-200 p-4 min-w-[240px]"
+          class="flex min-w-[240px] flex-col gap-2 rounded-lg border border-base-300 bg-base-200 p-4"
         >
           <div class="flex items-center justify-between gap-2">
             <span class="text-sm font-semibold">{{ entry.code.toUpperCase() }}</span>
@@ -46,7 +46,7 @@
             </button>
           </div>
 
-          <label class="form-control gap-1">
+          <label class="form-control flex flex-col gap-1">
             <span class="label py-0"><span class="label-text text-xs">{{ t('admin.settingsLanguagesPage.localeLabelShort') }}</span></span>
             <input
               v-model="entry.shortLabel"
@@ -55,7 +55,7 @@
             />
           </label>
 
-          <label class="form-control gap-1">
+          <label class="form-control flex flex-col gap-1">
             <span class="label py-0"><span class="label-text text-xs">{{ t('admin.settingsLanguagesPage.localeLabelLong') }}</span></span>
             <input
               v-model="entry.longLabel"
@@ -67,7 +67,7 @@
       </div>
 
       <div class="flex items-end gap-3">
-        <label class="form-control gap-2 flex-1 max-w-xs">
+        <label class="form-control flex flex-1 flex-col gap-2 max-w-xs">
           <span class="label"><span class="label-text">{{ t('admin.settingsLanguagesPage.addLocaleLabel') }}</span></span>
           <input
             v-model="newLocale"
@@ -82,7 +82,7 @@
       </div>
     </section>
 
-    <section class="rounded-box border border-base-300 bg-base-100 p-6 space-y-5 flex flex-col">
+    <section class="flex flex-col space-y-5 rounded-box border border-base-300 bg-base-100 p-6">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 class="text-xl font-semibold">{{ t('admin.settingsLanguagesPage.publicDictionaryTitle') }}</h2>
@@ -99,95 +99,39 @@
       </div>
 
       <div class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.9fr)]">
-        <div class="rounded-box border border-base-300 bg-base-100 overflow-hidden">
-          <div class="border-b border-base-300 p-4">
-            <div class="flex flex-wrap items-end gap-3">
-              <label class="form-control flex flex-col gap-2 flex-1 min-w-[18rem]">
-                <span class="label">
-                  <span class="label-text">{{ t('admin.settingsLanguagesPage.dictionarySearchLabel') }}</span>
-                </span>
-                <input
-                  v-model="dictionarySearch"
-                  class="input input-bordered w-full"
-                  :placeholder="t('admin.settingsLanguagesPage.dictionarySearchPlaceholder')"
-                />
-              </label>
+        <div class="rounded-box border border-base-300 bg-base-100 p-4">
+          <DataTable
+            :columns="dictionaryColumns as any"
+            :data="dictionaryRows as any"
+            :searchable="true"
+            :search-fields="['categoryLabel', 'page', 'labelText', 'key', 'completionText', 'valuesText']"
+            :page-size="10"
+            :initial-sort="{ key: 'completion', direction: 'asc' }"
+            :row-clickable="true"
+            :empty-text="t('admin.settingsLanguagesPage.dictionaryEmpty')"
+            @row-click="selectDictionaryRow as any"
+          >
+            <template #cell(category)="{ row }">
+              {{ row.categoryLabel }}
+            </template>
 
-              <label class="form-control flex flex-col gap-2 w-32">
-                <span class="label">
-                  <span class="label-text">{{ t('admin.settingsLanguagesPage.dictionaryPageSizeLabel') }}</span>
-                </span>
-                <select v-model.number="dictionaryPageSize" class="select select-bordered w-full">
-                  <option :value="10">10</option>
-                  <option :value="20">20</option>
-                  <option :value="50">50</option>
-                  <option :value="100">100</option>
-                </select>
-              </label>
-            </div>
-          </div>
+            <template #cell(label)="{ row }">
+              <div class="font-medium">{{ row.labelText }}</div>
+            </template>
 
-          <div class="overflow-x-auto">
-            <table class="table table-zebra">
-              <thead>
-                <tr>
-                  <th>{{ t('admin.settingsLanguagesPage.dictionaryTableCategory') }}</th>
-                  <th>{{ t('admin.settingsLanguagesPage.dictionaryTablePage') }}</th>
-                  <th>{{ t('admin.settingsLanguagesPage.dictionaryTableLabel') }}</th>
-                  <th>{{ t('admin.settingsLanguagesPage.dictionaryTableKey') }}</th>
-                  <th>{{ t('admin.settingsLanguagesPage.dictionaryTableStatus') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="entry in paginatedDictionaryRows"
-                  :key="entry.key"
-                  class="cursor-pointer"
-                  :class="{ 'bg-primary/10': selectedDictionaryKey === entry.key }"
-                  @click="selectedDictionaryKey = entry.key"
-                >
-                  <td>{{ dictionaryCategoryLabel(entry.category) }}</td>
-                  <td>{{ entry.page }}</td>
-                  <td>{{ localizedLabel(entry.label) }}</td>
-                  <td><code class="text-xs">{{ entry.key }}</code></td>
-                  <td>
-                    <span class="badge badge-outline">
-                      {{ filledLocalesCount(entry) }}/{{ localeEntries.length }}
-                    </span>
-                  </td>
-                </tr>
-                <tr v-if="!paginatedDictionaryRows.length">
-                  <td colspan="5" class="py-8 text-center opacity-70">
-                    {{ t('admin.settingsLanguagesPage.dictionaryEmpty') }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+            <template #cell(key)="{ row }">
+              <code class="text-xs">{{ row.key }}</code>
+            </template>
 
-          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 p-4 text-sm">
-            <span>
-              {{ t('admin.settingsLanguagesPage.dictionaryPaginationSummary', {
-                from: dictionaryPaginationFrom,
-                to: dictionaryPaginationTo,
-                total: filteredDictionaryRows.length
-              }) }}
-            </span>
-            <div class="join">
-              <button class="btn btn-sm join-item" :disabled="dictionaryPage <= 1" @click="dictionaryPage--">
-                {{ t('admin.settingsLanguagesPage.dictionaryPrevious') }}
-              </button>
-              <button class="btn btn-sm join-item no-animation">
-                {{ dictionaryPage }} / {{ dictionaryTotalPages }}
-              </button>
-              <button class="btn btn-sm join-item" :disabled="dictionaryPage >= dictionaryTotalPages" @click="dictionaryPage++">
-                {{ t('admin.settingsLanguagesPage.dictionaryNext') }}
-              </button>
-            </div>
-          </div>
+            <template #cell(completion)="{ row }">
+              <span class="badge badge-outline">
+                {{ row.completionCount }}/{{ localeEntries.length }}
+              </span>
+            </template>
+          </DataTable>
         </div>
 
-        <div class="rounded-box border border-base-300 bg-base-200/40 p-4 space-y-4 h-fit">
+        <div class="h-fit space-y-4 rounded-box border border-base-300 bg-base-200/40 p-4">
           <div v-if="selectedDictionaryEntry">
             <div class="font-semibold">{{ localizedLabel(selectedDictionaryEntry.label) }}</div>
             <div class="mt-1 text-sm opacity-70">{{ dictionaryCategoryLabel(selectedDictionaryEntry.category) }} · {{ selectedDictionaryEntry.page }}</div>
@@ -195,6 +139,20 @@
           </div>
           <div v-else class="text-sm opacity-70">
             {{ t('admin.settingsLanguagesPage.dictionarySelectHint') }}
+          </div>
+
+          <div v-if="selectedDictionaryEntry" class="flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm opacity-70">
+              {{ t('admin.settingsLanguagesPage.dictionarySingleSummary', { filled: filledLocalesCount(selectedDictionaryEntry), total: localeEntries.length }) }}
+            </div>
+            <button
+              class="btn btn-sm btn-outline"
+              :disabled="translatingSingle || !canTranslateSelectedEntry"
+              @click="translateSelectedDictionaryEntry"
+            >
+              <span v-if="translatingSingle" class="loading loading-spinner loading-sm" />
+              {{ t('admin.settingsLanguagesPage.translateSingleButton') }}
+            </button>
           </div>
 
           <div v-if="selectedDictionaryEntry" class="grid gap-4">
@@ -258,6 +216,7 @@
 </template>
 
 <script setup lang="ts">
+import DataTable from '#modula/components/admin/DataTable.vue'
 
 definePageMeta({
   layout: 'admin',
@@ -297,29 +256,36 @@ interface PublicDictionaryEntry {
   values: Record<string, string>
 }
 
+interface DictionaryRow extends PublicDictionaryEntry {
+  categoryLabel: string
+  labelText: string
+  completionCount: number
+  completionText: string
+  valuesText: string
+}
+
 const { $toast } = useNuxtApp() as any
 const { t } = useI18n()
 const saving = ref(false)
 const translatingAll = ref(false)
+const translatingSingle = ref(false)
 
 const localeEntries = ref<LocaleEntry[]>([])
 const defaultLocale = ref('fr')
 const newLocale = ref('')
 const lastTranslationRun = ref<TranslateAllResult | null>(null)
 const publicDictionary = ref<PublicDictionaryEntry[]>([])
-const dictionarySearch = ref('')
-const dictionaryPage = ref(1)
-const dictionaryPageSize = ref(20)
 const selectedDictionaryKey = ref('')
 
-const { data } = await useFetch<{
+const { data, refresh } = await useFetch<{
   siteLocales: string[]
   siteDefaultLocale: string
   localeLabels: Record<string, { short: string; long: string }>
   publicDictionary: PublicDictionaryEntry[]
 }>('/api/admin/settings/languages')
 
-if (data.value) {
+const loadFetchedState = () => {
+  if (!data.value) return
   const labels = data.value.localeLabels ?? {}
   const codes = data.value.siteLocales ?? ['fr', 'en']
   localeEntries.value = codes.map(code => ({
@@ -330,65 +296,83 @@ if (data.value) {
   defaultLocale.value = data.value.siteDefaultLocale && codes.includes(data.value.siteDefaultLocale)
     ? data.value.siteDefaultLocale
     : codes[0] || 'fr'
-  publicDictionary.value = data.value.publicDictionary || []
+  publicDictionary.value = (data.value.publicDictionary || []).map((entry) => ({
+    ...entry,
+    values: { ...(entry.values || {}) }
+  }))
+  if (!selectedDictionaryKey.value || !publicDictionary.value.some((entry) => entry.key === selectedDictionaryKey.value)) {
+    selectedDictionaryKey.value = publicDictionary.value[0]?.key || ''
+  }
 }
 
-const filteredDictionaryRows = computed(() => {
-  const query = dictionarySearch.value.trim().toLowerCase()
-  if (!query) return publicDictionary.value
-  return publicDictionary.value.filter((entry) => {
-    const haystack = [
-      entry.key,
-      entry.page,
-      entry.category,
-      ...Object.values(entry.label || {}),
-      ...Object.values(entry.values || {})
-    ].join(' ').toLowerCase()
-    return haystack.includes(query)
+loadFetchedState()
+watch(data, loadFetchedState, { deep: true })
+
+const localizedLabel = (value: Record<string, string>) => value.en && defaultLocale.value === 'en'
+  ? (value[defaultLocale.value] || value.en || value.fr || '')
+  : (value[defaultLocale.value] || value.fr || value.en || '')
+
+const filledLocalesCount = (entry: PublicDictionaryEntry) =>
+  localeEntries.value.filter((localeEntry) => entry.values?.[localeEntry.code]?.trim()).length
+
+const dictionaryCategoryLabel = (category: string) =>
+  t(`admin.settingsLanguagesPage.publicDictionaryCategories.${category}`)
+
+const dictionaryRows = computed<DictionaryRow[]>(() =>
+  publicDictionary.value.map((entry) => {
+    const completionCount = filledLocalesCount(entry)
+    return {
+      ...entry,
+      categoryLabel: dictionaryCategoryLabel(entry.category),
+      labelText: localizedLabel(entry.label),
+      completionCount,
+      completionText: `${completionCount}/${localeEntries.value.length}`,
+      valuesText: Object.values(entry.values || {}).join(' ')
+    }
   })
-})
-
-const dictionaryTotalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredDictionaryRows.value.length / dictionaryPageSize.value))
 )
 
-const paginatedDictionaryRows = computed(() => {
-  const start = (dictionaryPage.value - 1) * dictionaryPageSize.value
-  return filteredDictionaryRows.value.slice(start, start + dictionaryPageSize.value)
-})
-
-const dictionaryPaginationFrom = computed(() =>
-  filteredDictionaryRows.value.length ? ((dictionaryPage.value - 1) * dictionaryPageSize.value) + 1 : 0
-)
-
-const dictionaryPaginationTo = computed(() =>
-  Math.min(dictionaryPage.value * dictionaryPageSize.value, filteredDictionaryRows.value.length)
-)
+const dictionaryColumns = computed(() => [
+  { key: 'category', label: t('admin.settingsLanguagesPage.dictionaryTableCategory'), sortValue: (row: DictionaryRow) => row.categoryLabel },
+  { key: 'page', label: t('admin.settingsLanguagesPage.dictionaryTablePage') },
+  { key: 'label', label: t('admin.settingsLanguagesPage.dictionaryTableLabel'), sortValue: (row: DictionaryRow) => row.labelText },
+  { key: 'key', label: t('admin.settingsLanguagesPage.dictionaryTableKey') },
+  { key: 'completion', label: t('admin.settingsLanguagesPage.dictionaryTableStatus'), align: 'center' as const, sortValue: (row: DictionaryRow) => row.completionCount },
+])
 
 const selectedDictionaryEntry = computed(() => {
-  if (!selectedDictionaryKey.value) {
-    return paginatedDictionaryRows.value[0] || filteredDictionaryRows.value[0] || null
-  }
+  if (!selectedDictionaryKey.value) return publicDictionary.value[0] || null
   return publicDictionary.value.find((entry) => entry.key === selectedDictionaryKey.value) || null
 })
 
-watch([filteredDictionaryRows, dictionaryPageSize], () => {
-  if (dictionaryPage.value > dictionaryTotalPages.value) {
-    dictionaryPage.value = dictionaryTotalPages.value
-  }
-  if (!selectedDictionaryEntry.value && filteredDictionaryRows.value.length) {
-    selectedDictionaryKey.value = filteredDictionaryRows.value[0]!.key
-  }
-}, { immediate: true })
-
-watch(dictionarySearch, () => {
-  dictionaryPage.value = 1
+const canTranslateSelectedEntry = computed(() => {
+  const entry = selectedDictionaryEntry.value
+  if (!entry) return false
+  const sourceText = entry.values?.[defaultLocale.value]?.trim()
+  if (!sourceText) return false
+  return localeEntries.value.some((localeEntry) =>
+    localeEntry.code !== defaultLocale.value && !entry.values?.[localeEntry.code]?.trim()
+  )
 })
+
+const reloadDictionary = async () => {
+  await refresh()
+  loadFetchedState()
+}
+
+const selectDictionaryRow = (row: DictionaryRow) => {
+  selectedDictionaryKey.value = row.key
+}
 
 const addLocale = () => {
   const val = newLocale.value.trim().toLowerCase()
   if (!val || localeEntries.value.some(e => e.code === val)) return
   localeEntries.value.push({ code: val, shortLabel: '', longLabel: '' })
+  for (const entry of publicDictionary.value) {
+    if (!entry.values[val]) {
+      entry.values[val] = ''
+    }
+  }
   newLocale.value = ''
 }
 
@@ -404,6 +388,9 @@ const removeLocale = (index: number) => {
     : true
   if (!confirmed) return
   localeEntries.value.splice(index, 1)
+  for (const entry of publicDictionary.value) {
+    delete entry.values[removed]
+  }
   if (removed === defaultLocale.value) {
     defaultLocale.value = localeEntries.value[0]?.code || 'fr'
   }
@@ -447,6 +434,7 @@ const translateAll = async () => {
       method: 'POST'
     })
     lastTranslationRun.value = result
+    await reloadDictionary()
     $toast?.success(t('admin.settingsLanguagesPage.translateAllDone', { count: result.translated, cached: result.cached, total: result.totalTasks }))
   } catch (error: any) {
     $toast?.error(error.statusMessage || t('admin.settingsLanguagesPage.translateAllError'))
@@ -455,15 +443,26 @@ const translateAll = async () => {
   }
 }
 
-const localizedLabel = (value: Record<string, string>) => value.en && defaultLocale.value === 'en'
-  ? (value[defaultLocale.value] || value.en || value.fr || '')
-  : (value[defaultLocale.value] || value.fr || value.en || '')
-
-const filledLocalesCount = (entry: PublicDictionaryEntry) =>
-  localeEntries.value.filter((localeEntry) => entry.values?.[localeEntry.code]?.trim()).length
-
-const dictionaryCategoryLabel = (category: string) =>
-  t(`admin.settingsLanguagesPage.publicDictionaryCategories.${category}`)
+const translateSelectedDictionaryEntry = async () => {
+  if (!selectedDictionaryEntry.value) return
+  translatingSingle.value = true
+  try {
+    const result = await $fetch<{ translated: number; cached: number; totalTasks: number }>('/api/admin/settings/translate-dictionary', {
+      method: 'POST',
+      body: { key: selectedDictionaryEntry.value.key }
+    })
+    await reloadDictionary()
+    $toast?.success(t('admin.settingsLanguagesPage.translateSingleDone', {
+      count: result.translated,
+      cached: result.cached,
+      total: result.totalTasks
+    }))
+  } catch (error: any) {
+    $toast?.error(error.statusMessage || t('admin.settingsLanguagesPage.translateSingleError'))
+  } finally {
+    translatingSingle.value = false
+  }
+}
 
 const translationKindLabel = (kind: TranslateAllResultItem['kind']) => {
   const map: Record<TranslateAllResultItem['kind'], string> = {

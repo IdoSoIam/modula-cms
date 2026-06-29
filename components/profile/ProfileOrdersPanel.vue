@@ -325,7 +325,8 @@ const latestOrder = computed(() => orders.value[0] ?? null)
 
 const formatPrice = (value: number) => (useNuxtApp() as any).$formatPrice(value) as string
 const formatDate = (value: string) => (useNuxtApp() as any).$formatDate(value) as string
-const formatDateTime = (value: string) => (useNuxtApp() as any).$formatDate(value) as string
+const formatDateTime = (value: string) => (useNuxtApp() as any).$formatDateTime(value) as string
+const formatTime = (value: string) => (useNuxtApp() as any).$formatTime(value) as string
 
 const orderStatusLabel = (value: ShopOrder['status']) => {
   const key = value === 'PAID' ? 'paid' : value === 'CANCELLED' ? 'cancelled' : value === 'DRAFT' ? 'draft' : 'pending'
@@ -377,7 +378,7 @@ const fulfillmentSummary = (order: ShopOrder) => {
   const parts = [
     deliveryTypeLabel(order.deliveryType),
     order.fulfillmentDate ? formatDate(order.fulfillmentDate) : null,
-    order.fulfillmentTime || null,
+    order.fulfillmentTime ? formatTime(order.fulfillmentTime) : null,
     order.fulfillmentLocation || null,
   ].filter(Boolean)
   return parts.length ? parts.join(' - ') : publicText('orders.noFulfillmentYet', 'Pas encore planifié')

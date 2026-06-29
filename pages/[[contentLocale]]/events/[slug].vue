@@ -141,7 +141,7 @@ import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
 import type { EventPayload } from '#modula/shared/events'
 import type { CmsLocale } from '#modula/shared/cms'
 import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
-import { resolveIntlLocale } from '#modula/shared/date'
+import { formatLocalizedDateTimeValue } from '#modula/shared/date'
 import { useAuthStore } from '#modula/stores/auth'
 
 definePageMeta({
@@ -212,14 +212,14 @@ const translation = computed(() => {
 })
 
 const formattedDate = computed(() => displayEvent.value
-  ? new Intl.DateTimeFormat(resolveIntlLocale(contentLocale.value), {
+  ? formatLocalizedDateTimeValue(displayEvent.value.startsAt, contentLocale.value, {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    }).format(new Date(displayEvent.value.startsAt))
+    })
   : '')
 
 const publicReservationLabel = computed(() => publicText('events.detail.publicReservation', 'Réservation publique'))

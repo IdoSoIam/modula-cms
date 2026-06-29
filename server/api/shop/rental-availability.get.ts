@@ -6,6 +6,7 @@ import {
   startOfDay,
   toIsoDate,
 } from '#modula/server/services/shop/rentalAvailability'
+import { formatLocalizedDateValue } from '#modula/shared/date'
 import { serializeProduct, serializeProductLot } from '#modula/server/utils/shop'
 
 function parseMonth(value: string | undefined) {
@@ -30,6 +31,7 @@ function buildCalendarDays(monthDate: Date) {
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
+  const locale = typeof query.locale === 'string' && query.locale.trim() ? query.locale : 'fr'
   const kind = query.kind === 'productLot' ? 'productLot' : query.kind === 'product' ? 'product' : ''
   const id = Number(query.id || 0)
   if (!kind || !id) {
@@ -63,7 +65,7 @@ export default defineEventHandler(async (event) => {
       rentalMinDays: product.rentalMinDays,
       rentalMaxDays: product.rentalMaxDays,
     }, gridStart, gridEnd)
-    return buildResponse(monthDate, gridDays, availability, product)
+    return buildResponse(monthDate, gridDays, availability, product, locale)
   }
 
   const row = await db.productLot.findUnique({
@@ -93,14 +95,13 @@ export default defineEventHandler(async (event) => {
     rentalMinDays: lot.rentalMinDays,
     rentalMaxDays: lot.rentalMaxDays,
   }, gridStart, gridEnd)
-  return buildResponse(monthDate, gridDays, availability, lot)
+  return buildResponse(monthDate, gridDays, availability, lot, locale)
 })
 
-function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<ReturnType<typeof computeAvailabilityForSource>>, source: any) {
-  const labels = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' })
+function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<ReturnType<typeof computeAvailabilityForSource>>, source: any, locale: string) {
   const dayNames = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(2026, 0, 5 + index)
-    const label = labels.format(date)
+    const label = formatLocalizedDateValue(date, locale, { weekday: 'short' })
     return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '')
   })
 
@@ -108,7 +109,7 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
   return {
     month: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
     monthInput: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
-    monthLabel: new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(monthDate),
+    monthLabel: formatLocalizedDateValue(monthDate, locale, { month: 'long', year: 'numeric' }),
     dayNames,
     source,
     days: gridDays.map((day) => {

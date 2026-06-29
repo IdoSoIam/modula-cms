@@ -105,7 +105,7 @@
 import type { CmsLocale } from '#modula/shared/cms'
 import type { CmsEventsPageSettings, EventListItem, EventsPageViewMode, PublicEventsListResponse } from '#modula/shared/events'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
-import { resolveIntlLocale } from '#modula/shared/date'
+import { formatLocalizedDateTimeValue } from '#modula/shared/date'
 
 const props = withDefaults(defineProps<{
   settings?: CmsEventsPageSettings | null
@@ -227,11 +227,11 @@ const detailHref = (slug: string) => localePath(`/events/${slug}`)
 const modeLabel = (mode: EventsPageViewMode) => mode === 'list'
   ? publicText('events.list.listMode', 'Liste')
   : publicText('events.list.gridMode', 'Grille')
-const formatDate = (value: string) => new Intl.DateTimeFormat(resolveIntlLocale(locale.value), {
+const formatDate = (value: string) => formatLocalizedDateTimeValue(value, locale.value, {
   weekday: 'long',
   day: '2-digit',
   month: 'long',
   hour: '2-digit',
   minute: '2-digit'
-}).format(new Date(value))
+})
 </script>
