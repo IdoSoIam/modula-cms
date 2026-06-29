@@ -9,6 +9,7 @@ interface CheckoutBody {
   successUrl: string;
   cancelUrl: string;
   customerEmail?: string;
+  locale?: string;
   metadata?: Record<string, string>;
   lineItems?: Array<{
     name: string;
@@ -53,6 +54,7 @@ export default defineEventHandler(async (event) => {
     successUrl: body.successUrl,
     cancelUrl: body.cancelUrl,
     customerEmail: body.customerEmail,
+    locale: body.locale,
     metadata: body.metadata,
     lineItems: body.lineItems,
   });

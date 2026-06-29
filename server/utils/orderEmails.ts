@@ -20,7 +20,8 @@ type CustomerManageLinkMode = 'cancel' | 'manage' | 'respond' | 'none'
 
 export function getManageReservationUrl(token: string | null | undefined, locale?: string | null) {
   if (!token) return null
-  const localePrefix = normalizeReservationLocale(locale) === 'en' ? '/en' : ''
+  const normalized = normalizeReservationLocale(locale)
+  const localePrefix = normalized === 'fr' ? '' : `/${normalized}`
   return `${getSiteOrigin()}${localePrefix}/orders/manage/${token}`
 }
 

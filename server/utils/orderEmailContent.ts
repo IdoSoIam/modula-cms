@@ -3,7 +3,7 @@ import { formatDateLabel } from './dateFormat'
 import { formatFulfillmentDate } from './orderFulfillment'
 import { SETTING_KEYS } from './settings'
 
-export type ReservationLocale = 'fr' | 'en'
+export type ReservationLocale = string
 
 export interface EmailTemplate {
   subject: string
@@ -37,7 +37,7 @@ export interface TemplateDefinition {
   variables: string[]
 }
 
-const DEFAULT_TEMPLATE_MAP: Record<ReservationLocale, Record<TemplateAction, EmailTemplate>> = {
+const DEFAULT_TEMPLATE_MAP: Record<string, Record<TemplateAction, EmailTemplate>> = {
   fr: {
     confirmed: {
       subject: 'Votre réservation de panier est confirmée - Le site',
@@ -491,11 +491,20 @@ Open admin:
 }
 
 export function normalizeReservationLocale(value: string | null | undefined): ReservationLocale {
-  return value === 'en' ? 'en' : 'fr'
+  const normalized = String(value || '').trim().toLowerCase()
+  if (DEFAULT_TEMPLATE_MAP[normalized]) return normalized
+  return DEFAULT_TEMPLATE_MAP.en ? 'en' : 'fr'
 }
 
 export function getReservationDateLocale(locale: string | null | undefined) {
-  return normalizeReservationLocale(locale) === 'en' ? 'en-US' : 'fr-FR'
+  const target = normalizeReservationLocale(locale)
+  if (target === 'en') return 'en-US'
+  if (target === 'fr') return 'fr-FR'
+  if (/^[a-z]{2}-[a-z]{2}$/i.test(target)) {
+    const [lang, region] = target.split('-')
+    return `${lang}-${region.toUpperCase()}`
+  }
+  return `${target}-${target.toUpperCase()}`
 }
 
 export function getReservationEmailHtmlLang(locale: string | null | undefined) {
@@ -504,7 +513,17 @@ export function getReservationEmailHtmlLang(locale: string | null | undefined) {
 }
 
 export function getReservationLanguageLabel(locale: string | null | undefined) {
-  return normalizeReservationLocale(locale) === 'en' ? 'English' : 'Français'
+  const target = normalizeReservationLocale(locale)
+  const labels: Record<string, string> = {
+    fr: 'Français',
+    en: 'English',
+    de: 'Deutsch',
+    es: 'Español',
+    it: 'Italiano',
+    pt: 'Português',
+    nl: 'Nederlands',
+  }
+  return labels[target] || target || 'Français'
 }
 
 function parseTemplateObject(value: unknown): EmailTemplate | null {
@@ -515,7 +534,10 @@ function parseTemplateObject(value: unknown): EmailTemplate | null {
 }
 
 export function getDefaultReservationTemplate(action: TemplateAction, locale: string | null | undefined) {
-  return DEFAULT_TEMPLATE_MAP[normalizeReservationLocale(locale)][action]
+  const targetLocale = normalizeReservationLocale(locale)
+  return DEFAULT_TEMPLATE_MAP[targetLocale]?.[action]
+    ?? DEFAULT_TEMPLATE_MAP.en?.[action]
+    ?? DEFAULT_TEMPLATE_MAP.fr[action]
 }
 
 export const TEMPLATE_ACTION_SETTING_KEYS: Record<TemplateAction, string> = {
@@ -683,7 +705,9 @@ export function resolveReservationTemplate(
   locale: string | null | undefined
 ) {
   const normalized = normalizeReservationLocale(locale)
-  const fallback = DEFAULT_TEMPLATE_MAP[normalized][action]
+  const fallback = DEFAULT_TEMPLATE_MAP[normalized]?.[action]
+    ?? DEFAULT_TEMPLATE_MAP.en?.[action]
+    ?? DEFAULT_TEMPLATE_MAP.fr[action]
 
   if (!raw) return fallback
 
@@ -697,7 +721,7 @@ export function resolveReservationTemplate(
     if (localized) return localized
 
     const legacy = parseTemplateObject(parsed)
-    if (legacy) return normalized === 'fr' ? legacy : fallback
+    if (legacy) return legacy
   } catch {
     return fallback
   }

@@ -1325,6 +1325,7 @@ export async function createRegistryCheckoutSession(body: {
   successUrl: string
   cancelUrl: string
   customerEmail?: string
+  locale?: string
   currency?: string
   metadata?: Record<string, string>
   lineItems: CmsRegistryPaymentLineItem[]

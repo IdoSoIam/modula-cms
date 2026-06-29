@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-base-200 text-base-content">
+    <PageLoader />
     <aside
       class="fixed inset-y-0 left-0 z-50 flex flex-col border-r border-base-300 bg-base-100 transition-all duration-300"
       :class="[
@@ -72,6 +73,7 @@
 
 <script setup lang="ts">
 import AdminNavigationMenu from '#modula/components/admin/AdminNavigationMenu.vue'
+import PageLoader from '#modula/components/PageLoader.vue'
 import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
 import { getAdminNavigationSections } from '#modula/shared/adminNavigation'
 import { useAuthStore } from '#modula/stores/auth'

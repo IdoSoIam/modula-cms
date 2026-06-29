@@ -12,16 +12,19 @@ export async function sendUserInvitationEmail(options: {
   lastName?: string
   setupToken: string
   expiresAt: Date
-  locale?: 'fr' | 'en'
+  locale?: string
 }) {
-  const locale = options.locale === 'en' ? 'en' : 'fr'
+  const locale = /^[a-z]{2}(?:-[a-z]{2})?$/.test(String(options.locale || '').trim().toLowerCase())
+    ? String(options.locale).trim().toLowerCase()
+    : 'fr'
   const template = await resolveAdminEmailTemplate('user_invitation', locale)
   const recipientName = [options.firstName, options.lastName].filter(Boolean).join(' ') || options.email
+  const localeCode = locale === 'en' ? 'en-GB' : locale === 'fr' ? 'fr-FR' : locale.includes('-') ? locale : `${locale}-${locale.toUpperCase()}`
   const variables = {
     recipientName,
     email: options.email,
     passwordSetupUrl: `${getSiteOrigin()}/password-setup/${options.setupToken}`,
-    expiresAt: new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', {
+    expiresAt: new Intl.DateTimeFormat(localeCode, {
       dateStyle: 'long',
       timeStyle: 'short'
     }).format(options.expiresAt)

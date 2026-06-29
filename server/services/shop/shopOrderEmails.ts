@@ -14,7 +14,7 @@ type ShopOrderTemplateAction =
   | 'shop_order_cancelled'
   | 'shop_order_admin_validated'
 
-type ShopOrderEmailLocale = 'fr' | 'en'
+type ShopOrderEmailLocale = string
 
 interface ShopOrderTransition {
   previousStatus?: ShopOrderPayload['status'] | null
@@ -147,12 +147,28 @@ async function getShopOrderForEmail(orderId: number) {
 }
 
 function normalizeShopOrderLocale(value: string | null | undefined): ShopOrderEmailLocale {
-  return value === 'en' ? 'en' : 'fr'
+  const normalized = String(value || '').trim().toLowerCase()
+  return /^[a-z]{2}(?:-[a-z]{2})?$/.test(normalized) ? normalized : 'fr'
+}
+
+function resolveEmailLocaleCode(locale: string): string {
+  if (/^[a-z]{2}-[a-z]{2}$/i.test(locale)) {
+    const [lang, region] = locale.split('-')
+    return `${lang}-${region?.toUpperCase()}`
+  }
+  if (locale === 'en') return 'en-US'
+  if (locale === 'fr') return 'fr-FR'
+  if (locale === 'de') return 'de-DE'
+  if (locale === 'it') return 'it-IT'
+  if (locale === 'es') return 'es-ES'
+  if (locale === 'pt') return 'pt-PT'
+  if (locale === 'nl') return 'nl-NL'
+  return locale
 }
 
 function buildShopOrderTemplateVars(order: ShopOrderPayload, locale: ShopOrderEmailLocale) {
-  const isEnglish = locale === 'en'
-  const localeCode = isEnglish ? 'en-US' : 'fr-FR'
+  const isEnglish = locale.startsWith('en')
+  const localeCode = resolveEmailLocaleCode(locale)
   const currency = (order.currency || 'eur').toUpperCase()
   const formatPrice = (value: number) =>
     new Intl.NumberFormat(localeCode, {

@@ -266,7 +266,7 @@ export function eventToListItem(event: EventWithRelations, locale: CmsLocale): E
 }
 
 export function getEventPublicUrl(slug: string, locale: CmsLocale = 'fr') {
-  const prefix = locale === 'en' ? '/en' : ''
+  const prefix = locale === 'fr' ? '' : `/${locale}`
   return `${prefix}/events/${slug}`
 }
 

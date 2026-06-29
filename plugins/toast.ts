@@ -17,16 +17,23 @@ export default defineNuxtPlugin(() => {
     return Math.max(Math.round(bottom + 12), 12);
   };
 
-  const showToast = (type: 'success' | 'error', message: string) => {
+  const showToast = (type: 'success' | 'error' | 'warning' | 'info', message: string) => {
     const toast = document.getElementById('toast') as ToastPopoverElement | null;
 
     if (!toast) {
       return;
     }
 
+    const alertClass = {
+      success: 'alert-success',
+      error: 'alert-error',
+      warning: 'alert-warning',
+      info: 'alert-info',
+    }[type] || 'alert-success';
+
     toast.style.top = `${getToastOffset()}px`;
     toast.innerHTML = `
-      <div class="alert ${type === 'success' ? 'alert-success' : 'alert-error'} shadow-lg">
+      <div class="alert ${alertClass} shadow-lg">
         <span>${message}</span>
       </div>
     `;
@@ -59,6 +66,8 @@ export default defineNuxtPlugin(() => {
       toast: {
         success: (message: string) => showToast('success', message),
         error: (message: string) => showToast('error', message),
+        warning: (message: string) => showToast('warning', message),
+        info: (message: string) => showToast('info', message),
       },
     },
   };

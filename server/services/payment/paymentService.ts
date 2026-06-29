@@ -8,6 +8,7 @@ export interface PaymentCheckoutOptions {
   successUrl: string
   cancelUrl: string
   customerEmail?: string
+  locale?: string
   metadata?: Record<string, string>
   lineItems: PaymentCheckoutLineItem[]
   orderId: string
@@ -95,6 +96,7 @@ export async function createStripeCheckoutSession(options: PaymentCheckoutOption
     successUrl: options.successUrl,
     cancelUrl: options.cancelUrl,
     customerEmail: options.customerEmail,
+    locale: options.locale,
     metadata: options.metadata,
     lineItems: options.lineItems,
   })

@@ -26,6 +26,7 @@
     <LayoutMobileMenu />
     <LayoutCookieBanner />
     <CmsShellEditModal />
+    <PageLoader />
   </div>
 </template>
 
@@ -33,6 +34,7 @@
 import LayoutCookieBanner from '#modula/components/layout/CookieBanner.vue'
 import LayoutMobileMenu from '#modula/components/layout/MobileMenu.vue'
 import CmsShellEditModal from '#modula/components/cms/CmsShellEditModal.vue'
+import PageLoader from '#modula/components/PageLoader.vue'
 
 const { contentLocale, availableLocales, pathWithoutLocale, buildPublicLocalePath } = useContentLocale()
 const locale = computed(() => contentLocale.value)

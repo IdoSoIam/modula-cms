@@ -12,6 +12,7 @@ import {
 } from "#modula/server/utils/settings";
 import {
   createOrderNumber,
+  pickProductLocalizedText,
   serializeProduct,
   serializeShopOrder,
 } from "#modula/server/utils/shop";
@@ -50,7 +51,9 @@ const authService = new AuthService();
 export default defineEventHandler(async (event) => {
   const body = await readBody<OrderBody>(event);
   const sessionUser = await authService.getUserFromSession(event);
-  const language = body.language === "en" ? "en" : "fr";
+  const language = /^[a-z]{2}(?:-[a-z]{2})?$/.test(String(body.language || "").trim().toLowerCase())
+    ? String(body.language).trim().toLowerCase()
+    : "fr";
   const normalizedEmail = body.email.trim().toLowerCase();
 
   if (!body.customerName?.trim() || !body.email?.trim()) {
@@ -106,7 +109,7 @@ export default defineEventHandler(async (event) => {
     return {
       kind: "product" as const,
       quantity,
-      title: product.name,
+      title: pickProductLocalizedText(language, product.nameLocalized, product.name),
       productId: product.id,
       productLotId: null,
       unitPrice: product.price,
@@ -117,7 +120,9 @@ export default defineEventHandler(async (event) => {
       allowOnlinePayment: product.allowOnlinePayment,
       saleType: product.saleType,
       imageUrl: product.imageUrl,
-      description: product.excerpt || product.description || undefined,
+      description: pickProductLocalizedText(language, product.excerptLocalized)
+        || pickProductLocalizedText(language, product.descriptionLocalized)
+        || product.excerpt || product.description || undefined,
       metaJson: JSON.stringify({
         slug: product.slug,
         saleType: product.saleType,
@@ -463,14 +468,16 @@ export default defineEventHandler(async (event) => {
 
   if (useStripe) {
     const requestUrl = getRequestURL(event);
-    const successUrl = `${requestUrl.origin}/payment/success?order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${requestUrl.origin}/panier?checkout=cancel&order=${order.id}`;
+    const localePrefix = language === 'fr' ? '' : `/${language}`;
+    const successUrl = `${requestUrl.origin}${localePrefix}/payment/success?order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${requestUrl.origin}${localePrefix}/panier?checkout=cancel&order=${order.id}`;
     const session = await createStripeCheckoutSession({
       orderId: String(order.id),
       orderNumber,
       successUrl,
       cancelUrl,
       customerEmail: normalizedEmail,
+      locale: language,
       metadata: {
         orderId: String(order.id),
         orderNumber,

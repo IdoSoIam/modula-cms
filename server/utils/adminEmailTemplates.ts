@@ -9,6 +9,7 @@ import {
 interface LocalizedText {
   fr: string
   en: string
+  [key: string]: string
 }
 
 export interface AdminEmailTemplateDefinition {
@@ -55,7 +56,7 @@ const RESERVATION_ACTIONS = new Set(
   RESERVATION_TEMPLATE_DEFINITIONS.map(definition => definition.action)
 )
 
-const CUSTOM_TEMPLATE_DEFAULTS: Record<string, Record<'fr' | 'en', EmailTemplate>> = {
+const CUSTOM_TEMPLATE_DEFAULTS: Record<string, Record<string, EmailTemplate>> = {
   event_call_for_participation: {
     fr: {
       subject: 'Appel à participation - {{eventTitle}}',
