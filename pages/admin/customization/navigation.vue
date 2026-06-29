@@ -10,7 +10,6 @@
 
       <div class="flex flex-wrap gap-2">
         <button class="btn btn-outline" @click="resetToDefaultNavigation">{{ t('admin.customizationNavigationPage.reset') }}</button>
-        <button class="btn btn-outline" @click="addNavigationItem(activeMenuTab)">{{ t('admin.customizationNavigationPage.addLink') }}</button>
         <button class="btn btn-primary" :disabled="saving" @click="save">
           <span v-if="saving" class="loading loading-spinner loading-sm" />
           {{ t('admin.common.save') }}
@@ -28,92 +27,108 @@
         </button>
       </div>
 
-      <div class="space-y-4">
-        <article
-          v-for="(item, index) in activeItems"
-          :key="item.id ?? `new-${index}`"
-          class="rounded-2xl border border-base-300 p-5"
-        >
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="font-medium">{{ t('admin.customizationNavigationPage.link', { index: index + 1 }) }}</div>
-            <button class="btn btn-outline btn-error btn-xs" @click="removeNavigationItem(item)">{{ t('admin.common.delete') }}</button>
+      <section
+        class="collapse collapse-arrow rounded-2xl border border-base-300 bg-base-100"
+        :class="isOpen('nav-header') ? 'collapse-open' : 'collapse-close'"
+      >
+        <button type="button" class="collapse-title w-full text-left text-lg font-medium" @click="toggleAccordion('nav-header')">
+          {{ activeMenuTab === 'PRIMARY' ? t('admin.customizationNavigationPage.header') : t('admin.customizationNavigationPage.footer') }}
+        </button>
+        <div class="collapse-content space-y-4">
+          <div class="flex justify-end">
+            <button class="btn btn-outline" @click="addNavigationItem(activeMenuTab)">{{ t('admin.customizationNavigationPage.addLink') }}</button>
           </div>
 
-          <div class="grid gap-4 lg:grid-cols-3">
-            <label class="form-control gap-2">
-              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.menuZone') }}</span></span>
-              <select v-model="item.menu" class="select select-bordered w-full">
-                <option value="PRIMARY">{{ t('admin.customizationNavigationPage.header') }}</option>
-                <option value="FOOTER">{{ t('admin.customizationNavigationPage.footer') }}</option>
-              </select>
-            </label>
-
-            <label class="form-control gap-2">
-              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.type') }}</span></span>
-              <select v-model="item.itemType" class="select select-bordered w-full">
-                <option value="CMS_PAGE">{{ t('admin.customizationNavigationPage.typeCmsPage') }}</option>
-                <option value="APPLICATION_ROUTE">{{ t('admin.customizationNavigationPage.typeApplicationRoute') }}</option>
-                <option value="EXTERNAL_URL">{{ t('admin.customizationNavigationPage.typeExternalUrl') }}</option>
-              </select>
-            </label>
-
-            <label class="form-control gap-2">
-              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.position') }}</span></span>
-              <input v-model.number="item.position" type="number" class="input input-bordered w-full" />
-            </label>
-
-            <label class="form-control gap-2">
-              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.parentLink') }}</span></span>
-              <select v-model="item.parentItemKey" class="select select-bordered w-full">
-                <option :value="null">{{ t('admin.customizationNavigationPage.topLevel') }}</option>
-                <option
-                  v-for="candidate in parentCandidates(item)"
-                  :key="candidate.navigationItemKey"
-                  :value="candidate.navigationItemKey"
-                >
-                  {{ previewText(candidate.labels) || candidate.title }}
-                </option>
-              </select>
-            </label>
-
-            <label class="form-control gap-2">
-              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.internalTitle') }}</span></span>
-              <input v-model="item.title" class="input input-bordered w-full" />
-            </label>
-
-            <label class="form-control gap-2 lg:col-span-2">
-              <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.url') }}</span></span>
-              <input v-model="item.href" class="input input-bordered w-full" />
-            </label>
-          </div>
-
-          <div class="mt-4">
-            <AdminPageBuilderTranslationTabs :model-value="item.labels" :label="t('admin.customizationNavigationPage.linkLabel')" />
-          </div>
-
-          <div class="mt-4 grid gap-3 sm:grid-cols-2">
-            <label class="flex items-start gap-3 rounded-xl border border-base-300 p-4">
-              <input v-model="item.visible" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
-              <div>
-                <div class="font-medium">{{ t('admin.customizationNavigationPage.visible') }}</div>
-                <div class="text-sm opacity-70">{{ t('admin.customizationNavigationPage.visibleDescription') }}</div>
+          <article
+            v-for="(item, index) in activeItems"
+            :key="item.id ?? `new-${index}`"
+            class="collapse collapse-arrow rounded-2xl border border-base-300 bg-base-100"
+            :class="isOpen(`nav-item-${item.navigationItemKey || index}`) ? 'collapse-open' : 'collapse-close'"
+          >
+            <button type="button" class="collapse-title w-full text-left font-medium" @click="toggleAccordion(`nav-item-${item.navigationItemKey || index}`)">
+              {{ previewText(item.labels) || item.title || t('admin.customizationNavigationPage.link', { index: index + 1 }) }}
+            </button>
+            <div class="collapse-content space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="text-sm opacity-70">{{ t('admin.customizationNavigationPage.link', { index: index + 1 }) }}</div>
+                <button class="btn btn-outline btn-error btn-xs" @click="removeNavigationItem(item)">{{ t('admin.common.delete') }}</button>
               </div>
-            </label>
 
-            <label class="flex items-start gap-3 rounded-xl border border-base-300 p-4">
-              <input v-model="item.newTab" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
-              <div>
-                <div class="font-medium">{{ t('admin.customizationNavigationPage.newTab') }}</div>
-                <div class="text-sm opacity-70">{{ t('admin.customizationNavigationPage.newTabDescription') }}</div>
+              <div class="grid gap-4 lg:grid-cols-3">
+                <label class="form-control gap-2">
+                  <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.menuZone') }}</span></span>
+                  <select v-model="item.menu" class="select select-bordered w-full">
+                    <option value="PRIMARY">{{ t('admin.customizationNavigationPage.header') }}</option>
+                    <option value="FOOTER">{{ t('admin.customizationNavigationPage.footer') }}</option>
+                  </select>
+                </label>
+
+                <label class="form-control gap-2">
+                  <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.type') }}</span></span>
+                  <select v-model="item.itemType" class="select select-bordered w-full">
+                    <option value="CMS_PAGE">{{ t('admin.customizationNavigationPage.typeCmsPage') }}</option>
+                    <option value="APPLICATION_ROUTE">{{ t('admin.customizationNavigationPage.typeApplicationRoute') }}</option>
+                    <option value="EXTERNAL_URL">{{ t('admin.customizationNavigationPage.typeExternalUrl') }}</option>
+                  </select>
+                </label>
+
+                <label class="form-control gap-2">
+                  <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.position') }}</span></span>
+                  <input v-model.number="item.position" type="number" class="input input-bordered w-full" />
+                </label>
+
+                <label class="form-control gap-2">
+                  <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.parentLink') }}</span></span>
+                  <select v-model="item.parentItemKey" class="select select-bordered w-full">
+                    <option :value="null">{{ t('admin.customizationNavigationPage.topLevel') }}</option>
+                    <option
+                      v-for="candidate in parentCandidates(item)"
+                      :key="candidate.navigationItemKey"
+                      :value="candidate.navigationItemKey"
+                    >
+                      {{ previewText(candidate.labels) || candidate.title }}
+                    </option>
+                  </select>
+                </label>
+
+                <label class="form-control gap-2">
+                  <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.internalTitle') }}</span></span>
+                  <input v-model="item.title" class="input input-bordered w-full" />
+                </label>
+
+                <label class="form-control gap-2 lg:col-span-2">
+                  <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.url') }}</span></span>
+                  <input v-model="item.href" class="input input-bordered w-full" />
+                </label>
               </div>
-            </label>
-          </div>
-        </article>
 
-        <div v-if="!activeItems.length" class="rounded-2xl border border-dashed border-base-300 p-6 text-sm opacity-70">
-          {{ t('admin.customizationNavigationPage.empty') }}
+              <AdminPageBuilderTranslationTabs v-model="item.labels" :label="t('admin.customizationNavigationPage.linkLabel')" />
+
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="flex items-start gap-3 rounded-xl border border-base-300 p-4">
+                  <input v-model="item.visible" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
+                  <div>
+                    <div class="font-medium">{{ t('admin.customizationNavigationPage.visible') }}</div>
+                    <div class="text-sm opacity-70">{{ t('admin.customizationNavigationPage.visibleDescription') }}</div>
+                  </div>
+                </label>
+
+                <label class="flex items-start gap-3 rounded-xl border border-base-300 p-4">
+                  <input v-model="item.newTab" type="checkbox" class="checkbox checkbox-primary mt-0.5" />
+                  <div>
+                    <div class="font-medium">{{ t('admin.customizationNavigationPage.newTab') }}</div>
+                    <div class="text-sm opacity-70">{{ t('admin.customizationNavigationPage.newTabDescription') }}</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </article>
+
+          <div v-if="!activeItems.length" class="rounded-2xl border border-dashed border-base-300 p-6 text-sm opacity-70">
+            {{ t('admin.customizationNavigationPage.empty') }}
+          </div>
         </div>
-      </div>
+      </section>
     </section>
   </div>
 </template>
@@ -136,6 +151,14 @@ const { t } = useI18n()
 const saving = ref(false)
 const previewLocale = ref<'fr' | 'en'>('fr')
 const activeMenuTab = ref<'PRIMARY' | 'FOOTER'>('PRIMARY')
+const openAccordions = ref<string[]>([])
+
+const isOpen = (id: string) => openAccordions.value.includes(id)
+const toggleAccordion = (id: string) => {
+  openAccordions.value = isOpen(id)
+    ? openAccordions.value.filter(entry => entry !== id)
+    : [...openAccordions.value, id]
+}
 const { data } = await useFetch<SiteShellModel>('/api/admin/cms/site-shell')
 
 if (!data.value) {
