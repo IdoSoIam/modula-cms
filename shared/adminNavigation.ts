@@ -31,7 +31,6 @@ export interface AdminNavigationOptions {
   featureFlags?: {
     shop: {
       enabled: boolean;
-      vegetablesEnabled: boolean;
     };
     associationRolesEnabled: boolean;
     eventsEnabled: boolean;
@@ -126,9 +125,9 @@ export function getAdminNavigationSections(
         createAdminNavigationItem(
           "shop-vegetables",
           "admin.navigation.items.vegetables",
-          getAdminRoutePath("shopVegetables", routeLocale),
+          getAdminRoutePath("shopProducts", routeLocale),
           "mdi:carrot",
-          [...getAdminRoutePaths("shopVegetables"), "/admin/legumes"],
+          [...getAdminRoutePaths("shopProducts"), "/admin/legumes"],
           { requiredModule: "shop_orders", requiredAction: "read" },
         ),
         createAdminNavigationItem(
@@ -344,8 +343,6 @@ export function getAdminNavigationSections(
   ];
 
   const shopEnabled = options.featureFlags?.shop.enabled ?? true;
-  const shopVegetablesEnabled =
-    shopEnabled && (options.featureFlags?.shop.vegetablesEnabled ?? true);
   const associationRolesEnabled =
     options.featureFlags?.associationRolesEnabled ?? true;
   const eventsEnabled = options.featureFlags?.eventsEnabled ?? true;
@@ -365,7 +362,7 @@ export function getAdminNavigationSections(
           item.id === "management-event-reservations"
         )
           return eventsEnabled;
-        if (item.id === "shop-vegetables") return shopVegetablesEnabled;
+        if (item.id === "shop-vegetables") return shopEnabled;
         if (
           item.id === "shop-product-categories" ||
           item.id === "shop-orders" ||

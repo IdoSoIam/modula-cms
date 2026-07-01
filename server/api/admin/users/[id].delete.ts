@@ -48,11 +48,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const [confirmedReservationsCount, publishedArticlesCount] = await Promise.all([
-    db.reservation.count({
+  const [shopOrdersCount, publishedArticlesCount] = await Promise.all([
+    db.shopOrder.count({
       where: {
         userId: id,
-        status: 'CONFIRMED'
+        status: { in: ['PENDING', 'PAID'] }
       }
     }),
     db.article.count({
@@ -64,8 +64,8 @@ export default defineEventHandler(async (event) => {
   ])
 
   const activeDependencies: string[] = []
-  if (confirmedReservationsCount > 0) {
-    activeDependencies.push(`${confirmedReservationsCount} reservation(s) confirmee(s)`)
+  if (shopOrdersCount > 0) {
+    activeDependencies.push(`${shopOrdersCount} commande(s) active(s)`)
   }
   if (publishedArticlesCount > 0) {
     activeDependencies.push(`${publishedArticlesCount} article(s) publie(s)`)

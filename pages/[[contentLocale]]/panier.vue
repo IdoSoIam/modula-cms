@@ -363,6 +363,7 @@ const checkoutForm = ref({
 })
 
 const savingOrder = ref(false)
+const retryOrderId = ref<number | null>(null)
 
 const eyebrowLabel = computed(() => publicText('checkout.cart.eyebrow', 'Commande'))
 const titleLabel = computed(() => publicText('checkout.cart.title', 'Panier d’achat'))
@@ -627,6 +628,7 @@ onMounted(() => {
   if (route.query.checkout === 'cancel') {
     const orderId = typeof route.query.order === 'string' ? route.query.order : ''
     if (orderId) {
+      retryOrderId.value = Number(orderId) > 0 ? Number(orderId) : null
       $fetch(`/api/shop/orders/${orderId}/cancel`, { method: 'POST' }).catch(() => {})
     }
     $toast.warning(publicText('checkout.cart.paymentCancelledToast', 'Le paiement Stripe a été annulé. Vous pouvez revoir votre panier et réessayer.'))
@@ -709,6 +711,7 @@ async function submitOrder() {
         customerName: checkoutForm.value.customerName,
         email: checkoutForm.value.email,
         language: contentLocale.value,
+        retryOrderId: retryOrderId.value || undefined,
         phone: checkoutForm.value.phone,
         message: checkoutForm.value.message,
         paymentMode: checkoutForm.value.paymentMode,
@@ -736,6 +739,7 @@ async function submitOrder() {
 
     clear()
     resetCheckoutForm()
+    retryOrderId.value = null
     if (response.accountProvisioning?.invitationSent) {
       $toast.info(publicText('checkout.cart.accountProvisioningInfo', 'Un email vous a été envoyé pour activer votre compte et retrouver cette commande plus tard.'))
     }

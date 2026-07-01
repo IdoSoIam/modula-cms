@@ -72,6 +72,9 @@ export function resolveRentalWindow(
 
 export async function ensureRentalAvailability(
   requests: Array<RentalSource & { rentalWindow: RentalWindow | null }>,
+  options?: {
+    excludedOrderIds?: number[]
+  },
 ) {
   if (!requests.length) return
 
@@ -87,18 +90,23 @@ export async function ensureRentalAvailability(
 
   const grouped = groupRequestsBySource(requests)
   for (const request of grouped) {
+    const firstRequest = request.requests[0]
+    if (!firstRequest) continue
     const rangeStart = request.requests.reduce(
       (current, entry) => entry.rentalWindow.startAt.getTime() < current.getTime() ? entry.rentalWindow.startAt : current,
-      request.requests[0].rentalWindow.startAt,
+      firstRequest.rentalWindow.startAt,
     )
     const rangeEnd = request.requests.reduce(
       (current, entry) => entry.rentalWindow.endAt.getTime() > current.getTime() ? entry.rentalWindow.endAt : current,
-      request.requests[0].rentalWindow.endAt,
+      firstRequest.rentalWindow.endAt,
     )
     const dayAvailability = await computeAvailabilityForSource(
       request.source,
       rangeStart,
       rangeEnd,
+      {
+        excludedOrderIds: options?.excludedOrderIds,
+      },
     )
     const availabilityByDay = new Map(dayAvailability.map((day) => [day.iso, day]))
     const requestedByDay = new Map<string, number>()
@@ -126,6 +134,9 @@ export async function computeAvailabilityForSource(
   source: Omit<RentalSource, 'quantity'> & { quantity?: number },
   startAt: Date,
   endAt: Date,
+  options?: {
+    excludedOrderIds?: number[]
+  },
 ): Promise<RentalAvailabilityDay[]> {
   const rangeStart = startOfDay(startAt)
   const rangeEnd = endOfDay(endAt)
@@ -136,7 +147,14 @@ export async function computeAvailabilityForSource(
     select: { id: true },
   })
 
-  const orderIds = overlappingOrders.map((entry: any) => Number(entry.id))
+  const excludedOrderIds = new Set(
+    (options?.excludedOrderIds ?? [])
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0),
+  )
+  const orderIds = overlappingOrders
+    .map((entry: any) => Number(entry.id))
+    .filter((id: number) => !excludedOrderIds.has(id))
   const overlappingLines = orderIds.length
     ? await db.shopOrderLine.findMany({
         where: {

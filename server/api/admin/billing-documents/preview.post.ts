@@ -1,7 +1,10 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { createBillingDocumentPdfAttachment } from '#modula/server/utils/billingDocumentPdf'
 import {
+  createDefaultBillingDocumentInvoiceColumns,
+  normalizeBillingDocumentInvoiceColumns,
   normalizeBillingDocumentLocalizedText,
+  type BillingDocumentInvoiceColumnConfig,
   type BillingDocumentKind,
   type BillingDocumentTemplatePayload,
 } from '#modula/server/utils/billingDocuments'
@@ -19,6 +22,7 @@ interface Body {
   titleLocalized?: CmsLocalizedText | null
   contentLocalized?: CmsLocalizedText | null
   footerLocalized?: CmsLocalizedText | null
+  invoiceColumns?: BillingDocumentInvoiceColumnConfig[] | null
 }
 
 export default defineEventHandler(async (event) => {
@@ -45,6 +49,9 @@ export default defineEventHandler(async (event) => {
     titleLocalized: normalizeBillingDocumentLocalizedText(body.titleLocalized, name),
     contentLocalized: normalizeBillingDocumentLocalizedText(body.contentLocalized),
     footerLocalized: normalizeBillingDocumentLocalizedText(body.footerLocalized),
+    invoiceColumns: kind === 'INVOICE'
+      ? normalizeBillingDocumentInvoiceColumns(body.invoiceColumns)
+      : createDefaultBillingDocumentInvoiceColumns(),
     active: true,
     isDefault: false,
     position: 0,
@@ -61,7 +68,6 @@ export default defineEventHandler(async (event) => {
       ? {
           id: 0,
           orderNumber: 'CMD-PREVIEW',
-          userId: null,
           language: 'fr',
           status: 'PAID',
           paymentProvider: 'STRIPE',
@@ -102,7 +108,6 @@ export default defineEventHandler(async (event) => {
               id: 0,
               orderId: 0,
               productId: null,
-              productLotId: null,
               title: 'Produit exemple premium',
               quantity: 1,
               unitPrice: 120,
@@ -115,7 +120,6 @@ export default defineEventHandler(async (event) => {
               id: 1,
               orderId: 0,
               productId: null,
-              productLotId: null,
               title: 'Accessoire complementaire',
               quantity: 1,
               unitPrice: 25,

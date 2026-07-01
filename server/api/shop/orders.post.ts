@@ -34,6 +34,7 @@ interface OrderBody {
   customerName: string;
   email: string;
   language?: string | null;
+  retryOrderId?: number | null;
   phone?: string | null;
   message?: string | null;
   paymentMode?: "offline" | "stripe";
@@ -55,6 +56,7 @@ export default defineEventHandler(async (event) => {
     ? String(body.language).trim().toLowerCase()
     : "fr";
   const normalizedEmail = body.email.trim().toLowerCase();
+  const retryOrderId = Number(body.retryOrderId);
 
   if (!body.customerName?.trim() || !body.email?.trim()) {
     throw createError({
@@ -70,6 +72,38 @@ export default defineEventHandler(async (event) => {
   const lines = Array.isArray(body.lines) ? body.lines : [];
   if (!lines.length) {
     throw createError({ statusCode: 400, statusMessage: "Panier vide" });
+  }
+
+  const retryOrder =
+    Number.isFinite(retryOrderId) && retryOrderId > 0
+      ? await db.shopOrder.findUnique({
+          where: { id: retryOrderId },
+          include: {
+            lines: true,
+          },
+        })
+      : null;
+
+  if (Number.isFinite(retryOrderId) && retryOrderId > 0 && !retryOrder) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: "Commande à relancer introuvable",
+    });
+  }
+
+  if (retryOrder) {
+    if (String(retryOrder.email || "").trim().toLowerCase() !== normalizedEmail) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: "Cette commande ne correspond pas à cet email",
+      });
+    }
+    if (retryOrder.paymentStatus === "PAID" || retryOrder.status === "PAID") {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Cette commande est déjà payée",
+      });
+    }
   }
 
   const productIds = Array.from(
@@ -111,7 +145,6 @@ export default defineEventHandler(async (event) => {
       quantity,
       title: pickProductLocalizedText(language, product.nameLocalized, product.name),
       productId: product.id,
-      productLotId: null,
       unitPrice: product.price,
       totalPrice: product.price * quantity,
       vatRate: product.vatRate,
@@ -168,6 +201,11 @@ export default defineEventHandler(async (event) => {
         rentalMaxDays: line.rentalMaxDays,
         rentalWindow: line.rentalWindow,
       })),
+      retryOrder
+        ? {
+            excludedOrderIds: [Number(retryOrder.id)],
+          }
+        : undefined,
     );
   }
 
@@ -207,6 +245,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const requiredStocks = new Map<number, number>();
+  const previouslyReservedStocks = new Map<number, number>();
+  for (const line of retryOrder?.lines ?? []) {
+    const productId = Number(line.productId || 0);
+    if (!productId) continue;
+    previouslyReservedStocks.set(
+      productId,
+      (previouslyReservedStocks.get(productId) || 0) + Number(line.quantity || 0),
+    );
+  }
   for (const line of normalizedLines) {
     if (line.saleType === "RENTAL") {
       continue;
@@ -220,7 +267,9 @@ export default defineEventHandler(async (event) => {
 
   for (const [productId, requiredQuantity] of requiredStocks.entries()) {
     const product = productById.get(productId);
-    if (!product || product.stock < requiredQuantity) {
+    const previouslyReservedQuantity = previouslyReservedStocks.get(productId) || 0;
+    const availableQuantity = (product?.stock || 0) + previouslyReservedQuantity;
+    if (!product || availableQuantity < requiredQuantity) {
       throw createError({
         statusCode: 400,
         statusMessage: `Stock insuffisant pour ${product?.name || `#${productId}`}`,
@@ -404,45 +453,74 @@ export default defineEventHandler(async (event) => {
     deliveryPostalCode,
   });
 
-  const order = await db.shopOrder.create({
-    data: {
-      orderNumber: `TMP-${Date.now()}`,
-      userId: accountProvisioning.userId,
-      language,
-      status: "PENDING",
-      paymentProvider: useStripe ? "STRIPE" : "OFFLINE",
-      paymentStatus: useStripe ? "PENDING" : "UNPAID",
-      customerName: body.customerName.trim(),
-      email: normalizedEmail,
-      phone: body.phone?.trim() || null,
-      message: body.message?.trim() || null,
-      deliveryType,
-      pickupPointId,
-      deliveryTourId,
-      deliveryAddress,
-      deliveryCity,
-      deliveryPostalCode,
-      fulfillmentDate: fulfillment.fulfillmentDate,
-      fulfillmentTime: fulfillment.fulfillmentTime,
-      fulfillmentLocation: fulfillment.fulfillmentLocation,
-      rentalStartDate: orderRentalStartDate,
-      rentalEndDate: orderRentalEndDate,
-      currency: "eur",
-      subtotal,
-      total: subtotal,
-    },
-  });
+  const baseOrderData = {
+    userId: accountProvisioning.userId,
+    language,
+    status: "PENDING" as const,
+    paymentProvider: useStripe ? "STRIPE" : "OFFLINE",
+    paymentStatus: useStripe ? "PENDING" : "UNPAID",
+    customerName: body.customerName.trim(),
+    email: normalizedEmail,
+    phone: body.phone?.trim() || null,
+    message: body.message?.trim() || null,
+    deliveryType,
+    pickupPointId,
+    deliveryTourId,
+    deliveryAddress,
+    deliveryCity,
+    deliveryPostalCode,
+    fulfillmentDate: fulfillment.fulfillmentDate,
+    fulfillmentTime: fulfillment.fulfillmentTime,
+    fulfillmentLocation: fulfillment.fulfillmentLocation,
+    rentalStartDate: orderRentalStartDate,
+    rentalEndDate: orderRentalEndDate,
+    currency: "eur",
+    subtotal,
+    total: subtotal,
+    paidAt: null,
+    refundedAt: null,
+    checkoutUrl: null,
+    providerSessionId: null,
+    providerPaymentIntentId: null,
+    providerPaymentStatus: null,
+    providerLastEventId: null,
+    paymentFailureReason: null,
+  };
 
-  const orderNumber = createOrderNumber(Number(order.id));
-  await db.shopOrder.update({
-    where: { id: order.id },
-    data: { orderNumber },
-  });
+  let orderId: number;
+  let orderNumber: string;
+
+  if (retryOrder) {
+    orderId = Number(retryOrder.id);
+    orderNumber = String(retryOrder.orderNumber || createOrderNumber(orderId));
+    await db.shopOrder.update({
+      where: { id: orderId },
+      data: {
+        ...baseOrderData,
+        orderNumber,
+      },
+    });
+    await db.shopOrderLine.deleteMany({
+      where: { orderId },
+    });
+  } else {
+    const order = await db.shopOrder.create({
+      data: {
+        orderNumber: `TMP-${Date.now()}`,
+        ...baseOrderData,
+      },
+    });
+    orderId = Number(order.id);
+    orderNumber = createOrderNumber(orderId);
+    await db.shopOrder.update({
+      where: { id: orderId },
+      data: { orderNumber },
+    });
+  }
 
   await db.shopOrderLine.createMany({
     data: normalizedLines.map((line) => ({
-      orderId: order.id,
-      productLotId: line.productLotId,
+      orderId,
       productId: line.productId,
       title: line.title,
       quantity: line.quantity,
@@ -458,16 +536,24 @@ export default defineEventHandler(async (event) => {
     })),
   });
 
-  for (const [productId, requiredQuantity] of requiredStocks.entries()) {
+  const allStockProductIds = new Set<number>([
+    ...requiredStocks.keys(),
+    ...previouslyReservedStocks.keys(),
+  ]);
+  for (const productId of allStockProductIds) {
     const source = productById.get(productId);
     if (!source) continue;
+    const requiredQuantity = requiredStocks.get(productId) || 0;
+    const previouslyReservedQuantity = previouslyReservedStocks.get(productId) || 0;
+    const stockDelta = requiredQuantity - previouslyReservedQuantity;
+    if (!stockDelta) continue;
     await db.product.update({
       where: { id: productId },
       data: {
-        stock: Math.max(0, source.stock - requiredQuantity),
+        stock: Math.max(0, source.stock - stockDelta),
       },
     });
-    source.stock = Math.max(0, source.stock - requiredQuantity);
+    source.stock = Math.max(0, source.stock - stockDelta);
   }
 
   let checkoutUrl: string | null = null;
@@ -477,17 +563,17 @@ export default defineEventHandler(async (event) => {
   if (useStripe) {
     const requestUrl = getRequestURL(event);
     const localePrefix = language === 'fr' ? '' : `/${language}`;
-    const successUrl = `${requestUrl.origin}${localePrefix}/payment/success?order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${requestUrl.origin}${localePrefix}/panier?checkout=cancel&order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
+    const successUrl = `${requestUrl.origin}${localePrefix}/payment/success?order=${orderId}&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${requestUrl.origin}${localePrefix}/panier?checkout=cancel&order=${orderId}&session_id={CHECKOUT_SESSION_ID}`;
     const session = await createStripeCheckoutSession({
-      orderId: String(order.id),
+      orderId: String(orderId),
       orderNumber,
       successUrl,
       cancelUrl,
       customerEmail: normalizedEmail,
       locale: language,
       metadata: {
-        orderId: String(order.id),
+        orderId: String(orderId),
         orderNumber,
       },
       lineItems: normalizedLines.map((line) => ({
@@ -505,7 +591,7 @@ export default defineEventHandler(async (event) => {
     providerSessionId = session.id;
     providerPaymentIntentId = session.paymentIntentId;
     await db.shopOrder.update({
-      where: { id: order.id },
+      where: { id: orderId },
       data: {
         checkoutUrl,
         providerSessionId,
@@ -515,7 +601,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const fullOrder = await db.shopOrder.findUnique({
-    where: { id: order.id },
+    where: { id: orderId },
     include: {
       lines: true,
       pickupPoint: true,
@@ -523,7 +609,7 @@ export default defineEventHandler(async (event) => {
     },
   });
 
-  await sendShopOrderCreatedNotifications(order.id, {
+  await sendShopOrderCreatedNotifications(orderId, {
     notifyAdmin: !useStripe,
   });
 
@@ -539,7 +625,7 @@ async function resolveOrderAccountProvisioning(options: {
   sessionUserId: number | null;
   email: string;
   customerName: string;
-  locale: "fr" | "en";
+  locale: string;
 }) {
   if (options.sessionUserId) {
     return {
@@ -638,7 +724,7 @@ async function trySendOrderInvitationEmail(options: {
   lastName?: string;
   setupToken: string;
   expiresAt: Date;
-  locale: "fr" | "en";
+  locale: string;
 }) {
   try {
     await sendUserInvitationEmail(options);

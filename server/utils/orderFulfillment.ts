@@ -1,8 +1,9 @@
-import type { DeliveryTour, PickupPoint, Reservation } from '#modula/server/data/types'
+import type { DeliveryTour, PickupPoint } from '#modula/server/data/types'
 import { getDefaultTimeZone } from './dateFormat'
 import type { OnSitePickupConfig } from './settings'
 
 type FulfillmentDeliveryType = 'FARM' | 'ONSITE' | 'PICKUP' | 'TOUR' | null
+type DeliveryTypeLabelInput = 'ONSITE' | 'PICKUP' | 'TOUR' | 'FARM' | null
 
 function normalizeReservationLocale(value: string | null | undefined) {
   return value === 'en' ? 'en' : 'fr'
@@ -104,7 +105,7 @@ export function formatFulfillmentDate(date: Date | null | undefined, locale = 'f
   }).format(date)
 }
 
-export function getDeliveryMethodLabel(deliveryType: Reservation['deliveryType'] | 'ONSITE', locale: string | null | undefined = 'fr') {
+export function getDeliveryMethodLabel(deliveryType: DeliveryTypeLabelInput, locale: string | null | undefined = 'fr') {
   if (normalizeReservationLocale(locale) === 'en') {
     if (isOnSiteDeliveryType(deliveryType)) return 'On-site pickup'
     if (deliveryType === 'PICKUP') return 'Pickup point collection'

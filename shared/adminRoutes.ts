@@ -23,7 +23,7 @@ export const ADMIN_ROUTE_PATHS = {
     fr: "/admin/content/planning",
     en: "/admin/content/planning",
   },
-  shopVegetables: {
+  shopProducts: {
     fr: "/admin/shop/products",
     en: "/admin/shop/products",
   },

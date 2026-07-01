@@ -270,7 +270,6 @@
 interface ShopOrderLine {
   id: number
   orderId: number
-  productLotId: number | null
   productId: number | null
   title: string
   quantity: number

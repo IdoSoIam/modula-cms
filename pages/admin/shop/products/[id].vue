@@ -336,7 +336,7 @@ const localePath = useLocalePath()
 const { locale, t } = useI18n()
 const { locales: siteLocales } = useSiteLocales()
 const { $toast } = useNuxtApp() as any
-const productsBasePath = computed(() => getAdminRoutePath('shopVegetables', normalizeAdminRouteLocale(locale.value)))
+const productsBasePath = computed(() => getAdminRoutePath('shopProducts', normalizeAdminRouteLocale(locale.value)))
 const editorLocales = computed(() => siteLocales.value.length ? [...siteLocales.value] : ['fr', 'en'])
 
 const routeId = computed(() => String(route.params.id || ''))

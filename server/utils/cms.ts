@@ -934,7 +934,7 @@ function isFeatureEnabledForHref(href: string, featureFlags: FeatureFlags) {
     return false
   }
   if (normalizedHref === '/boutique' || normalizedHref.startsWith('/boutique/')) {
-    return featureFlags.shop.enabled && featureFlags.shop.vegetablesEnabled
+    return featureFlags.shop.enabled
   }
   if (normalizedHref === '/news' || normalizedHref.startsWith('/news/')) {
     return featureFlags.newsEnabled
@@ -1970,7 +1970,7 @@ function isRendererEnabled(rendererKey: string, featureFlags: FeatureFlags) {
     return featureFlags.eventsEnabled
   }
   if (rendererKey === 'shop') {
-    return featureFlags.shop.enabled && featureFlags.shop.vegetablesEnabled
+    return featureFlags.shop.enabled
   }
   return true
 }

@@ -1,9 +1,9 @@
-import type { Reservation } from '#modula/server/data/types'
 import { formatDateLabel } from './dateFormat'
 import { formatFulfillmentDate } from './orderFulfillment'
 import { SETTING_KEYS } from './settings'
 
 export type ReservationLocale = string
+type ReservationDeliveryType = 'ONSITE' | 'PICKUP' | 'TOUR' | 'FARM' | null
 
 export interface EmailTemplate {
   subject: string
@@ -766,7 +766,7 @@ export function buildReservationCreatedCustomerEmail(options: {
   fulfillmentDate: Date | null
   fulfillmentTime: string | null
   basketPrice: number
-  deliveryType: Reservation['deliveryType']
+  deliveryType: ReservationDeliveryType
 }) {
   const normalized = normalizeReservationLocale(options.locale)
   const localeCode = getReservationDateLocale(normalized)

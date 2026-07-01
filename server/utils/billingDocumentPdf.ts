@@ -5,11 +5,14 @@ import { getEmailBrandingConfig } from '#modula/server/utils/emailBranding'
 import { formatDateLabel } from '#modula/server/utils/dateFormat'
 import { getSiteOrigin } from '#modula/server/utils/gmail'
 import { getUploadObject } from '#modula/server/utils/uploadStorage'
-import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getFarmPickupConfig } from '#modula/server/utils/settings'
+import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getFarmPickupConfig, getSiteDefaultLocale, getSiteLocales } from '#modula/server/utils/settings'
+import { getResolvedPublicDictionary } from '#modula/server/utils/publicDictionary'
 import { pickCmsLocalizedText } from '#modula/shared/cms'
 import {
+  createDefaultBillingDocumentInvoiceColumns,
   normalizeBillingDocumentLocalizedText,
   serializeBillingDocumentTemplate,
+  type BillingDocumentInvoiceColumnKey,
   type BillingDocumentKind,
   type BillingDocumentTemplatePayload,
 } from '#modula/server/utils/billingDocuments'
@@ -25,6 +28,21 @@ export interface PdfAttachment {
 function normalizeLocale(locale: string | null | undefined) {
   const normalized = String(locale || '').trim().toLowerCase()
   return normalized || 'fr'
+}
+
+async function getBillingPdfDictionary(locale: string) {
+  const [siteLocales, defaultLocale] = await Promise.all([
+    getSiteLocales(),
+    getSiteDefaultLocale(),
+  ])
+  return await getResolvedPublicDictionary(locale, siteLocales, defaultLocale)
+}
+
+function getLocaleCode(locale: string) {
+  const normalized = normalizeLocale(locale)
+  if (normalized === 'de') return 'de-DE'
+  if (normalized === 'en') return 'en-US'
+  return 'fr-FR'
 }
 
 function renderTemplate(value: string, vars: Record<string, string>) {
@@ -125,7 +143,7 @@ async function readImageFromSourceUrl(sourceUrl: string | null | undefined) {
 }
 
 function buildOrderVars(order: ShopOrderPayload, locale: string) {
-  const localeCode = locale === 'en' ? 'en-US' : locale === 'de' ? 'de-DE' : 'fr-FR'
+  const localeCode = getLocaleCode(locale)
   const currency = (order.currency || 'eur').toUpperCase()
   const formatter = new Intl.NumberFormat(localeCode, {
     style: 'currency',
@@ -224,45 +242,47 @@ function splitBodyIntoSections(bodyText: string, fallbackTitle: string) {
 
 function buildDocumentMetaLines(options: {
   kind: BillingDocumentKind
-  locale: string
+  dictionary: Record<string, string>
   order?: ShopOrderPayload | null
   product?: ProductPayload | null
 }) {
-  const english = options.locale === 'en'
-  const german = options.locale === 'de'
   const lines: string[] = []
+  const orderLabel = options.dictionary['billing.pdf.order'] || 'Commande'
+  const productLabel = options.dictionary['billing.pdf.product'] || 'Produit'
+  const coveredItemLabel = options.dictionary['billing.pdf.coveredItem'] || 'Élément couvert'
 
   if (options.order?.orderNumber) {
-    lines.push(`${english ? 'Order' : german ? 'Bestellung' : 'Commande'} : ${options.order.orderNumber}`)
+    lines.push(`${orderLabel} : ${options.order.orderNumber}`)
   }
 
   if (options.product?.slug) {
-    lines.push(`${english ? 'Product' : german ? 'Produkt' : 'Produit'} : ${options.product.slug}`)
+    lines.push(`${productLabel} : ${options.product.slug}`)
   }
 
   if (options.kind === 'ASSURANCE' && options.product?.name) {
-    lines.push(`${english ? 'Covered item' : german ? 'Versichertes Produkt' : 'Element couvert'} : ${options.product.name}`)
+    lines.push(`${coveredItemLabel} : ${options.product.name}`)
   }
 
   return lines
 }
 
-function buildDocumentStatusLabel(kind: BillingDocumentKind, locale: string) {
+function buildDocumentStatusLabel(kind: BillingDocumentKind, dictionary: Record<string, string>) {
   if (kind === 'ASSURANCE') {
-    return locale === 'en' ? 'Active document' : locale === 'de' ? 'Aktives Dokument' : 'Document actif'
+    return dictionary['billing.pdf.documentActive'] || 'Document actif'
   }
   if (kind === 'CONTRACT') {
-    return locale === 'en' ? 'Drafted document' : locale === 'de' ? 'Erstelltes Dokument' : 'Document genere'
+    return dictionary['billing.pdf.documentDraft'] || 'Document généré'
   }
   return null
 }
 
-function buildInvoiceLineDescription(line: ShopOrderPayload['lines'][number], locale: string) {
+function buildInvoiceLineDescription(line: ShopOrderPayload['lines'][number], locale: string, dictionary: Record<string, string>) {
   const parts: string[] = []
   if (line.meta?.saleType === 'RENTAL' && line.rentalStartDate && line.rentalEndDate) {
-    const localeCode = locale === 'en' ? 'en-US' : locale === 'de' ? 'de-DE' : 'fr-FR'
+    const localeCode = getLocaleCode(locale)
+    const rentalLabel = dictionary['billing.pdf.rental'] || 'Location'
     parts.push(
-      `${locale === 'en' ? 'Rental' : locale === 'de' ? 'Miete' : 'Location'} : ${formatDateLabel(line.rentalStartDate, localeCode)} -> ${formatDateLabel(line.rentalEndDate, localeCode)}`,
+      `${rentalLabel} : ${formatDateLabel(line.rentalStartDate, localeCode)} -> ${formatDateLabel(line.rentalEndDate, localeCode)}`,
     )
   }
   if (typeof line.meta?.slug === 'string' && line.meta.slug.trim()) {
@@ -280,62 +300,155 @@ async function resolveTemplateBranding(template: BillingDocumentTemplatePayload 
   }
 }
 
-function formatInvoiceLineVatRate(line: ShopOrderPayload['lines'][number]) {
+function formatInvoiceLineVatRate(line: ShopOrderPayload['lines'][number], dictionary: Record<string, string>) {
   const rate = Number(line.meta?.vatRate)
   if (!Number.isFinite(rate)) return null
-  if (rate <= 0) return 'TVA non applicable'
-  return `TVA ${rate.toFixed(rate % 1 === 0 ? 0 : 2)}%`
+  if (rate <= 0) {
+    return dictionary['billing.pdf.vatNotApplicable'] || 'TVA non applicable'
+  }
+  return `${dictionary['billing.pdf.vatPrefix'] || 'TVA'} ${rate.toFixed(rate % 1 === 0 ? 0 : 2)}%`
 }
 
-function buildInvoiceTaxGroups(order: ShopOrderPayload, localeCode: string) {
+function getInvoiceLineAmounts(line: ShopOrderPayload['lines'][number]) {
+  const rate = Number(line.meta?.vatRate)
+  const unitTtc = Number(line.unitPrice || 0)
+  const totalTtc = Number(line.totalPrice || 0)
+
+  if (!Number.isFinite(rate) || rate <= 0) {
+    return {
+      rate: 0,
+      unitHt: unitTtc,
+      totalHt: totalTtc,
+      vatAmount: 0,
+      totalTtc,
+    }
+  }
+
+  const divisor = 1 + rate / 100
+  const unitHt = unitTtc / divisor
+  const totalHt = totalTtc / divisor
+  const vatAmount = totalTtc - totalHt
+
+  return {
+    rate,
+    unitHt,
+    totalHt,
+    vatAmount,
+    totalTtc,
+  }
+}
+
+function buildInvoiceTaxGroups(order: ShopOrderPayload, localeCode: string, dictionary: Record<string, string>) {
   const currency = (order.currency || 'EUR').toUpperCase()
   const formatter = new Intl.NumberFormat(localeCode, { style: 'currency', currency })
-  const groups = new Map<number, { base: number, tax: number }>()
+  const groups = new Map<number, { tax: number }>()
 
   for (const line of order.lines) {
-    const rate = Number(line.meta?.vatRate)
-    if (!Number.isFinite(rate)) continue
-    const totalTtc = Number(line.totalPrice || 0)
-    if (rate <= 0) {
-      const current = groups.get(0) || { base: 0, tax: 0 }
-      current.base += totalTtc
-      groups.set(0, current)
-      continue
-    }
-    const base = totalTtc / (1 + rate / 100)
-    const tax = totalTtc - base
-    const current = groups.get(rate) || { base: 0, tax: 0 }
-    current.base += base
-    current.tax += tax
-    groups.set(rate, current)
+    const amounts = getInvoiceLineAmounts(line)
+    const current = groups.get(amounts.rate) || { tax: 0 }
+    current.tax += amounts.vatAmount
+    groups.set(amounts.rate, current)
   }
 
   return Array.from(groups.entries())
     .sort((a, b) => a[0] - b[0])
     .map(([rate, values]) => ({
-      label: rate <= 0 ? 'TVA non applicable' : `TVA ${rate.toFixed(rate % 1 === 0 ? 0 : 2)}%`,
-      baseLabel: formatter.format(values.base),
-      taxLabel: formatter.format(values.tax),
+      label: rate <= 0
+        ? (dictionary['billing.pdf.vatNotApplicable'] || 'TVA non applicable')
+        : `${dictionary['billing.pdf.vatPrefix'] || 'TVA'} ${rate.toFixed(rate % 1 === 0 ? 0 : 2)}%`,
+      amountLabel: formatter.format(values.tax),
     }))
 }
 
-function getDeliveryTypeLabel(order: ShopOrderPayload, locale: string) {
-  const english = locale === 'en'
-  const german = locale === 'de'
-  if (order.deliveryType === 'PICKUP') return english ? 'Pickup point' : german ? 'Abholstation' : 'Point relais'
-  if (order.deliveryType === 'TOUR') return english ? 'Home delivery' : german ? 'Lieferung nach Hause' : 'Livraison à domicile'
-  if (order.deliveryType === 'ONSITE') return english ? 'On-site pickup' : german ? 'Abholung vor Ort' : 'Retrait sur place'
+function buildInvoiceTotals(order: ShopOrderPayload) {
+  let totalHt = 0
+  let totalVat = 0
+
+  for (const line of order.lines) {
+    const amounts = getInvoiceLineAmounts(line)
+    totalHt += amounts.totalHt
+    totalVat += amounts.vatAmount
+  }
+
+  return {
+    totalHt,
+    totalVat,
+    totalTtc: Number(order.total || 0),
+  }
+}
+
+function buildInvoiceReferenceLabel(line: ShopOrderPayload['lines'][number]) {
+  if (line.productId != null && Number(line.productId) > 0) {
+    return String(line.productId)
+  }
+  const fallbackId = Number(line.meta?.productId)
+  if (Number.isInteger(fallbackId) && fallbackId > 0) {
+    return String(fallbackId)
+  }
   return '-'
 }
 
-function getPaymentStatusLabel(order: ShopOrderPayload, locale: string) {
-  const english = locale === 'en'
-  const german = locale === 'de'
-  if (order.paymentStatus === 'PAID') return english ? 'Paid' : german ? 'Bezahlt' : 'Payée'
-  if (order.paymentStatus === 'PENDING') return english ? 'Pending payment' : german ? 'Zahlung ausstehend' : 'Paiement en attente'
-  if (order.paymentStatus === 'FAILED') return english ? 'Payment failed' : german ? 'Zahlung fehlgeschlagen' : 'Paiement échoué'
-  if (order.paymentStatus === 'REFUNDED') return english ? 'Refunded' : german ? 'Erstattet' : 'Remboursée'
-  return english ? 'Unpaid' : german ? 'Unbezahlt' : 'Non payée'
+function formatInvoiceQuantity(line: ShopOrderPayload['lines'][number]) {
+  const quantity = Number(line.quantity || 0)
+  return Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(2)
+}
+
+function buildInvoiceDocumentNumber(order: ShopOrderPayload) {
+  if (/^CMD-/i.test(order.orderNumber)) {
+    return order.orderNumber
+  }
+  const sourceDate = order.paidAt || order.createdAt || new Date().toISOString()
+  const year = new Date(sourceDate).getUTCFullYear()
+  return `FAC-${year}-${String(order.id).padStart(6, '0')}`
+}
+
+function resolveInvoiceColumnDefinitions(template: BillingDocumentTemplatePayload, locale: string) {
+  const source = template.invoiceColumns?.length
+    ? template.invoiceColumns
+    : createDefaultBillingDocumentInvoiceColumns()
+
+  return source
+    .filter((column) => column.enabled)
+    .map((column) => ({
+      key: column.key,
+      label: pickCmsLocalizedText(locale, column.labelLocalized, 'en')
+        || pickCmsLocalizedText('fr', column.labelLocalized, 'en')
+        || column.key,
+    }))
+}
+
+function buildInvoiceColumnValue(
+  key: BillingDocumentInvoiceColumnKey,
+  line: ShopOrderPayload['lines'][number],
+  index: number,
+  dictionary: Record<string, string>,
+  formatter: Intl.NumberFormat,
+) {
+  const amounts = getInvoiceLineAmounts(line)
+  if (key === 'lineNumber') return String(index + 1)
+  if (key === 'designation') return line.title
+  if (key === 'reference') return buildInvoiceReferenceLabel(line)
+  if (key === 'quantity') return formatInvoiceQuantity(line)
+  if (key === 'unitPriceHt') return formatter.format(amounts.unitHt)
+  if (key === 'totalHt') return formatter.format(amounts.totalHt)
+  if (key === 'vatAmount') return formatter.format(amounts.vatAmount)
+  if (key === 'vatRate') return formatInvoiceLineVatRate(line, dictionary) || (dictionary['billing.pdf.notApplicable'] || 'Non applicable')
+  return formatter.format(amounts.totalTtc)
+}
+
+function getDeliveryTypeLabel(order: ShopOrderPayload, dictionary: Record<string, string>) {
+  if (order.deliveryType === 'PICKUP') return dictionary['checkout.cart.pickupDelivery'] || 'Point relais'
+  if (order.deliveryType === 'TOUR') return dictionary['checkout.cart.homeDelivery'] || 'Livraison à domicile'
+  if (order.deliveryType === 'ONSITE') return dictionary['checkout.cart.onSiteDelivery'] || 'Retrait sur place'
+  return '-'
+}
+
+function getPaymentStatusLabel(order: ShopOrderPayload, dictionary: Record<string, string>) {
+  if (order.paymentStatus === 'PAID') return dictionary['billing.pdf.paymentPaid'] || 'Payée'
+  if (order.paymentStatus === 'PENDING') return dictionary['billing.pdf.paymentPending'] || 'Paiement en attente'
+  if (order.paymentStatus === 'FAILED') return dictionary['billing.pdf.paymentFailed'] || 'Paiement échoué'
+  if (order.paymentStatus === 'REFUNDED') return dictionary['billing.pdf.paymentRefunded'] || 'Remboursée'
+  return dictionary['billing.pdf.paymentUnpaid'] || 'Non payée'
 }
 
 export async function findBillingDocumentTemplateById(id: number) {
@@ -378,6 +491,7 @@ function buildFallbackTemplate(kind: BillingDocumentKind): BillingDocumentTempla
     titleLocalized: normalizeBillingDocumentLocalizedText(kind === 'INVOICE' ? 'Facture' : kind === 'ASSURANCE' ? 'Attestation d’assurance' : 'Contrat'),
     contentLocalized: normalizeBillingDocumentLocalizedText(''),
     footerLocalized: normalizeBillingDocumentLocalizedText(''),
+    invoiceColumns: createDefaultBillingDocumentInvoiceColumns(),
     active: true,
     isDefault: true,
     position: 0,
@@ -396,6 +510,7 @@ export async function createBillingDocumentPdfAttachment(options: {
 }) {
   const template = options.template || buildFallbackTemplate(options.kind)
   const locale = normalizeLocale(options.locale)
+  const dictionary = await getBillingPdfDictionary(locale)
   const staticPdfSource = template.kind !== 'INVOICE' ? await readPdfFromSourceUrl(template.sourcePdfUrl || '') : null
   if (staticPdfSource) {
     return {
@@ -431,9 +546,11 @@ export async function createBillingDocumentPdfAttachment(options: {
 
   if (template.kind === 'INVOICE' && options.order) {
     const order = options.order
-    const localeCode = locale === 'en' ? 'en-US' : locale === 'de' ? 'de-DE' : 'fr-FR'
+    const localeCode = getLocaleCode(locale)
     const currency = (order.currency || 'EUR').toUpperCase()
     const formatter = new Intl.NumberFormat(localeCode, { style: 'currency', currency })
+    const invoiceTotals = buildInvoiceTotals(order)
+    const invoiceColumns = resolveInvoiceColumnDefinitions(template, locale)
     const farmPickup = await getFarmPickupConfig().catch(() => getDefaultFarmPickupConfig())
     const sellerEmail = await getContactEmail()
     const sellerPhone = await getAdminPhone()
@@ -443,16 +560,17 @@ export async function createBillingDocumentPdfAttachment(options: {
       title,
       brandName: branding.brandName,
       accentColor: branding.accentColor,
-      invoiceNumber: order.orderNumber,
+      invoiceNumber: buildInvoiceDocumentNumber(order),
       invoiceDateLabel: formatDateLabel(order.createdAt, localeCode),
-      paymentStatusLabel: getPaymentStatusLabel(order, locale),
+      paymentStatusLabel: getPaymentStatusLabel(order, dictionary),
+      sellerTitle: dictionary['billing.pdf.issuer'] || 'Émetteur',
       sellerLines: [
         branding.brandName,
         sellerEmail || '',
         sellerPhone || '',
         farmPickup.address || '',
       ].filter(Boolean),
-      customerTitle: locale === 'en' ? 'Customer' : locale === 'de' ? 'Kunde' : 'Client',
+      customerTitle: dictionary['billing.pdf.customer'] || 'Client',
       customerLines: [
         order.customerName,
         order.email,
@@ -460,24 +578,49 @@ export async function createBillingDocumentPdfAttachment(options: {
         [order.deliveryAddress, order.deliveryPostalCode, order.deliveryCity].filter(Boolean).join(' '),
       ].filter(Boolean),
       metaLines: [
-        `${locale === 'en' ? 'Delivery' : locale === 'de' ? 'Lieferung' : 'Livraison'} : ${getDeliveryTypeLabel(order, locale)}`,
-        order.fulfillmentDate ? `${locale === 'en' ? 'Fulfillment' : locale === 'de' ? 'Bereitstellung' : 'Mise à disposition'} : ${formatDateLabel(order.fulfillmentDate, localeCode)}${order.fulfillmentTime ? ` · ${order.fulfillmentTime}` : ''}${order.fulfillmentLocation ? ` · ${order.fulfillmentLocation}` : ''}` : '',
+        `${dictionary['billing.pdf.delivery'] || 'Livraison'} : ${getDeliveryTypeLabel(order, dictionary)}`,
+        order.fulfillmentDate ? `${dictionary['billing.pdf.fulfillment'] || 'Mise à disposition'} : ${formatDateLabel(order.fulfillmentDate, localeCode)}${order.fulfillmentTime ? ` · ${order.fulfillmentTime}` : ''}${order.fulfillmentLocation ? ` · ${order.fulfillmentLocation}` : ''}` : '',
       ].filter(Boolean),
-      lines: order.lines.map((line) => ({
-        title: line.title,
-        description: buildInvoiceLineDescription(line, locale),
-        quantity: line.quantity,
-        unitPriceLabel: formatter.format(Number(line.unitPrice || 0)),
-        totalPriceLabel: formatter.format(Number(line.totalPrice || 0)),
-        vatRateLabel: formatInvoiceLineVatRate(line),
-      })),
-      subtotalLabel: formatter.format(order.subtotal),
-      totalLabel: formatter.format(order.total),
-      taxGroups: buildInvoiceTaxGroups(order, localeCode),
+      columns: invoiceColumns,
+      lines: order.lines.map((line, index) => {
+        const amounts = getInvoiceLineAmounts(line)
+        return {
+          lineNumberLabel: String(index + 1),
+          title: line.title,
+          referenceLabel: buildInvoiceReferenceLabel(line),
+          description: buildInvoiceLineDescription(line, locale, dictionary),
+          quantity: Number(formatInvoiceQuantity(line)),
+          unitPriceExclTaxLabel: formatter.format(amounts.unitHt),
+          totalPriceExclTaxLabel: formatter.format(amounts.totalHt),
+          vatAmountLabel: formatter.format(amounts.vatAmount),
+          vatRateLabel: formatInvoiceLineVatRate(line, dictionary),
+          totalPriceInclTaxLabel: formatter.format(amounts.totalTtc),
+          values: Object.fromEntries(
+            invoiceColumns.map((column) => [
+              column.key,
+              buildInvoiceColumnValue(column.key, line, index, dictionary, formatter),
+            ]),
+          ),
+        }
+      }),
+      subtotalExclTaxLabel: formatter.format(invoiceTotals.totalHt),
+      totalVatLabel: formatter.format(invoiceTotals.totalVat),
+      totalInclTaxLabel: formatter.format(invoiceTotals.totalTtc),
+      taxRows: buildInvoiceTaxGroups(order, localeCode, dictionary),
       notes: order.message || '',
       footer: renderTemplate(footer, vars),
       logoBytes: logoImage?.bytes || null,
       logoMimeType: logoImage?.contentType || null,
+      labels: {
+        notesTitle: dictionary['billing.pdf.notes'] || 'Notes',
+        noNotes: dictionary['billing.pdf.noNotes'] || 'Aucune note',
+        totalsTitle: dictionary['billing.pdf.totals'] || 'Totaux',
+        totalHt: dictionary['billing.pdf.totalHt'] || 'Total HT',
+        totalVat: dictionary['billing.pdf.totalVat'] || 'Total TVA',
+        totalTtc: dictionary['billing.pdf.totalTtc'] || 'Total TTC',
+        emptyLines: dictionary['billing.pdf.emptyLines'] || 'Aucune ligne',
+        page: dictionary['billing.pdf.page'] || 'Page',
+      },
     })
 
     return {
@@ -497,9 +640,9 @@ export async function createBillingDocumentPdfAttachment(options: {
     brandName: branding.brandName,
     accentColor: branding.accentColor,
     documentNumber: options.order?.orderNumber || options.product?.slug || template.slug,
-    documentDateLabel: formatDateLabel(new Date().toISOString(), locale === 'en' ? 'en-US' : locale === 'de' ? 'de-DE' : 'fr-FR'),
-    statusLabel: buildDocumentStatusLabel(template.kind, locale),
-    sellerTitle: locale === 'en' ? 'Issuer' : locale === 'de' ? 'Aussteller' : 'Emetteur',
+    documentDateLabel: formatDateLabel(new Date().toISOString(), getLocaleCode(locale)),
+    statusLabel: buildDocumentStatusLabel(template.kind, dictionary),
+    sellerTitle: dictionary['billing.pdf.issuer'] || 'Émetteur',
     sellerLines: [
       branding.brandName,
       sellerEmail || '',
@@ -507,8 +650,8 @@ export async function createBillingDocumentPdfAttachment(options: {
       farmPickup.address || '',
     ].filter(Boolean),
     customerTitle: options.order
-      ? locale === 'en' ? 'Customer' : locale === 'de' ? 'Kunde' : 'Client'
-      : locale === 'en' ? 'Related item' : locale === 'de' ? 'Betroffenes Produkt' : 'Element concerne',
+      ? (dictionary['billing.pdf.customer'] || 'Client')
+      : (dictionary['billing.pdf.relatedItem'] || 'Élément concerné'),
     customerLines: options.order
       ? [
           options.order.customerName,
@@ -521,7 +664,7 @@ export async function createBillingDocumentPdfAttachment(options: {
         ].filter(Boolean),
     metaLines: buildDocumentMetaLines({
       kind: template.kind,
-      locale,
+      dictionary,
       order: options.order,
       product: options.product,
     }),
@@ -624,7 +767,7 @@ export async function renderPublicBillingDocumentPdf(options: {
       const linkedIds = product.detailSections
         .flatMap((section) => section.items)
         .map((item) => item.mediaDocumentId)
-        .filter((value): value is number => Number.isInteger(value) && value > 0)
+        .filter((value): value is number => typeof value === 'number' && Number.isInteger(value) && value > 0)
       if (!linkedIds.includes(template.id)) {
         throw createError({ statusCode: 404, statusMessage: 'Document introuvable' })
       }

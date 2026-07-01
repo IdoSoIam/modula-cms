@@ -811,7 +811,36 @@
         "isDefault": "Document par défaut pour ce type",
         "localizedTitle": "Titre visible",
         "localizedContent": "Contenu du document",
+        "localizedNotes": "Notes",
         "localizedFooter": "Pied de document"
+      },
+      "invoiceColumns": {
+        "title": "Colonnes de facture",
+        "description": "Choisissez les colonnes visibles dans le PDF et personnalisez leur libellé dans chaque langue.",
+        "enabled": "Afficher",
+        "labelField": "Libellé de colonne",
+        "titles": {
+          "lineNumber": "Numéro de ligne",
+          "designation": "Désignation",
+          "reference": "Référence",
+          "quantity": "Quantité",
+          "unitPriceHt": "Prix unitaire HT",
+          "totalHt": "Total HT",
+          "vatAmount": "Montant TVA",
+          "vatRate": "Taux TVA",
+          "totalTtc": "Total TTC"
+        },
+        "descriptions": {
+          "lineNumber": "Index affiché pour chaque ligne d’article.",
+          "designation": "Nom de l’article avec son complément éventuel.",
+          "reference": "Référence interne de l’article ou du produit.",
+          "quantity": "Quantité commandée.",
+          "unitPriceHt": "Prix unitaire hors taxe.",
+          "totalHt": "Montant hors taxe de la ligne.",
+          "vatAmount": "Montant de TVA sur la ligne.",
+          "vatRate": "Taux ou mention TVA appliquée.",
+          "totalTtc": "Montant total TTC de la ligne."
+        }
       }
     },
     "productCategoriesPage": {

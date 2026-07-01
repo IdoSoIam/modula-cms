@@ -80,7 +80,7 @@ const { data: products, pending, refresh } = await useFetch<ProductPayload[]>('/
 const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const { $toast } = useNuxtApp() as any
-const productsBasePath = computed(() => getAdminRoutePath('shopVegetables', normalizeAdminRouteLocale(locale.value)))
+const productsBasePath = computed(() => getAdminRoutePath('shopProducts', normalizeAdminRouteLocale(locale.value)))
 
 const formatVatRate = (value: number) => `${Number(value || 0).toFixed(2)}%`
 const getLocalizedProductName = (product: ProductPayload) => pickCmsLocalizedText(locale.value, product.nameLocalized) || product.name

@@ -27,20 +27,11 @@ const MODEL_NAMES = [
   'RolePermission',
   'MemberRole',
   'UserMemberRole',
-  'Vegetable',
-  'Basket',
-  'BasketItem',
-  'Reservation',
-  'ReservationScheduleProposal',
-  'ReservationOccurrence',
-  'ReservationNotification',
   'PickupPoint',
   'DeliveryTour',
   'TourCity',
   'Product',
   'ProductCategory',
-  'ProductLot',
-  'ProductLotItem',
   'BillingDocumentTemplate',
   'ShopOrder',
   'ShopOrderLine',
@@ -64,7 +55,6 @@ const COMPOSITE_UNIQUE_FIELDS: Record<string, string[]> = {
   userId_memberRoleId: ['userId', 'memberRoleId'],
   eventId_userId: ['eventId', 'userId'],
   eventId_occurrenceDate: ['eventId', 'occurrenceDate'],
-  productLotId_productId: ['productLotId', 'productId']
 }
 
 const MANUAL_RELATIONS: Record<ModelName, Record<string, { type: 'hasMany'; target: ModelName; foreignKey: string }>> = {
@@ -79,19 +69,6 @@ const MANUAL_RELATIONS: Record<ModelName, Record<string, { type: 'hasMany'; targ
   RolePermission: {},
   MemberRole: {},
   UserMemberRole: {},
-  Vegetable: {},
-  Basket: {
-    items: { type: 'hasMany', target: 'BasketItem', foreignKey: 'basketId' }
-  },
-  BasketItem: {},
-  Reservation: {
-    scheduleProposals: { type: 'hasMany', target: 'ReservationScheduleProposal', foreignKey: 'reservationId' },
-    occurrences: { type: 'hasMany', target: 'ReservationOccurrence', foreignKey: 'reservationId' },
-    notifications: { type: 'hasMany', target: 'ReservationNotification', foreignKey: 'reservationId' }
-  },
-  ReservationScheduleProposal: {},
-  ReservationOccurrence: {},
-  ReservationNotification: {},
   PickupPoint: {},
   DeliveryTour: {
     cities: { type: 'hasMany', target: 'TourCity', foreignKey: 'tourId' }
@@ -99,10 +76,6 @@ const MANUAL_RELATIONS: Record<ModelName, Record<string, { type: 'hasMany'; targ
   TourCity: {},
   Product: {},
   ProductCategory: {},
-  ProductLot: {
-    items: { type: 'hasMany', target: 'ProductLotItem', foreignKey: 'productLotId' }
-  },
-  ProductLotItem: {},
   BillingDocumentTemplate: {},
   ShopOrder: {
     lines: { type: 'hasMany', target: 'ShopOrderLine', foreignKey: 'orderId' }

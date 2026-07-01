@@ -821,7 +821,36 @@
         "isDefault": "Default document for this type",
         "localizedTitle": "Visible title",
         "localizedContent": "Document content",
+        "localizedNotes": "Notes",
         "localizedFooter": "Document footer"
+      },
+      "invoiceColumns": {
+        "title": "Invoice columns",
+        "description": "Choose which columns are visible in the PDF and customize their label in each language.",
+        "enabled": "Show",
+        "labelField": "Column label",
+        "titles": {
+          "lineNumber": "Line number",
+          "designation": "Description",
+          "reference": "Reference",
+          "quantity": "Quantity",
+          "unitPriceHt": "Unit price excl. tax",
+          "totalHt": "Total excl. tax",
+          "vatAmount": "VAT amount",
+          "vatRate": "VAT rate",
+          "totalTtc": "Total incl. tax"
+        },
+        "descriptions": {
+          "lineNumber": "Displayed index for each invoice line.",
+          "designation": "Item name with its optional detail.",
+          "reference": "Internal article or product reference.",
+          "quantity": "Ordered quantity.",
+          "unitPriceHt": "Unit price excluding tax.",
+          "totalHt": "Line amount excluding tax.",
+          "vatAmount": "VAT amount for the line.",
+          "vatRate": "Applied VAT rate or note.",
+          "totalTtc": "Line total including tax."
+        }
       }
     },
     "productCategoriesPage": {

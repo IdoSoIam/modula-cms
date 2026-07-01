@@ -1,8 +1,6 @@
 import type {
   ArticleRecord,
-  BasketItemRecord,
   BillingDocumentTemplateRecord,
-  BasketRecord,
   CmsNavigationItemRecord,
   CmsPageRecord,
   DeliveryTourRecord,
@@ -16,15 +14,9 @@ import type {
   ImageVariantRecord,
   MemberRoleRecord,
   PasswordSetupTokenRecord,
-  ProductLotItemRecord,
-  ProductLotRecord,
   ProductCategoryRecord,
   ProductRecord,
   PickupPointRecord,
-  ReservationNotificationRecord,
-  ReservationOccurrenceRecord,
-  ReservationRecord,
-  ReservationScheduleProposalRecord,
   RolePermissionRecord,
   RoleRecord,
   ShopOrderLineRecord,
@@ -32,8 +24,7 @@ import type {
   SiteParamsRecord,
   TourCityRecord,
   UserMemberRoleRecord,
-  UserRecord,
-  VegetableRecord
+  UserRecord
 } from '#modula/server/generated/models.generated'
 
 export type SiteParams = SiteParamsRecord
@@ -43,21 +34,12 @@ export type Role = RoleRecord
 export type RolePermission = RolePermissionRecord
 export type MemberRole = MemberRoleRecord
 export type UserMemberRole = UserMemberRoleRecord
-export type Vegetable = VegetableRecord
-export type Basket = BasketRecord
-export type BasketItem = BasketItemRecord
 export type BillingDocumentTemplate = BillingDocumentTemplateRecord
-export type Reservation = ReservationRecord
-export type ReservationScheduleProposal = ReservationScheduleProposalRecord
-export type ReservationOccurrence = ReservationOccurrenceRecord
-export type ReservationNotification = ReservationNotificationRecord
 export type PickupPoint = PickupPointRecord
 export type DeliveryTour = DeliveryTourRecord
 export type TourCity = TourCityRecord
 export type Product = ProductRecord
 export type ProductCategory = ProductCategoryRecord
-export type ProductLot = ProductLotRecord
-export type ProductLotItem = ProductLotItemRecord
 export type ShopOrder = ShopOrderRecord
 export type ShopOrderLine = ShopOrderLineRecord
 export type Article = ArticleRecord
@@ -72,21 +54,16 @@ export type EventInternalParticipation = EventInternalParticipationRecord
 export type CmsPage = CmsPageRecord
 export type CmsNavigationItem = CmsNavigationItemRecord
 
-export type DeliveryType = ReservationRecord['deliveryType']
-export type ReservationScheduleProposalSource = ReservationScheduleProposalRecord['proposedBy']
+export type DeliveryType = ShopOrderRecord['deliveryType']
 
 export namespace DbTypes {
-  export type ReservationInclude = any
-  export type ReservationWhereInput = any
   export type EventWhereInput = any
   export type EventInclude = any
   export type UserSelect = any
   export type UserInclude = any
   export type RoleInclude = any
-  export type BasketInclude = any
   export type ProductInclude = any
   export type ProductCategoryInclude = any
-  export type ProductLotInclude = any
   export type ShopOrderInclude = any
   export type DeliveryTourInclude = any
   export type CmsPageInclude = any

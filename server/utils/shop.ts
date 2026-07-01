@@ -43,37 +43,6 @@ export interface ProductCategoryPayload {
   active: boolean
 }
 
-export interface ProductLotPayload {
-  id: number
-  name: string
-  slug: string
-  saleType: 'SALE' | 'RENTAL'
-  categoryId: number | null
-  category: ProductCategoryPayload | null
-  description: string | null
-  imageUrl: string | null
-  kind: 'SINGLE' | 'LOT'
-  price: number
-  vatRate: number
-  paymentTaxCode: string | null
-  paymentTaxBehavior: 'inclusive' | 'exclusive' | null
-  stock: number
-  rentalAvailableFrom: string | null
-  rentalAvailableTo: string | null
-  rentalMinDays: number
-  rentalMaxDays: number | null
-  allowOfflinePayment: boolean
-  allowOnlinePayment: boolean
-  active: boolean
-  position: number
-  items: Array<{
-    id?: number
-    productId: number
-    quantity: number
-    product?: ProductPayload | null
-  }>
-}
-
 export interface PaymentModeCapabilities {
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
@@ -130,7 +99,6 @@ export interface ShopOrderPayload {
   lines: Array<{
     id: number
     orderId: number
-    productLotId: number | null
     productId: number | null
     title: string
     quantity: number
@@ -186,27 +154,6 @@ export function computePaymentModeCapabilities(
   }
 }
 
-function computeProductLotStock(row: any) {
-  const items = Array.isArray(row?.items) ? row.items : []
-  if (!items.length) {
-    return Math.max(0, Number(row?.stock || 0))
-  }
-
-  let minStock = Number.POSITIVE_INFINITY
-  for (const item of items) {
-    const itemQuantity = Number(item?.quantity || 0)
-    const productStock = Number(item?.product?.stock || 0)
-    if (itemQuantity <= 0) continue
-    minStock = Math.min(minStock, Math.floor(productStock / itemQuantity))
-  }
-
-  if (!Number.isFinite(minStock)) {
-    return Math.max(0, Number(row?.stock || 0))
-  }
-
-  return Math.max(0, minStock)
-}
-
 export function serializeProduct(row: any): ProductPayload {
   const nameLocalized = normalizeProductLocalizedText(row.nameJson, String(row.name || ''))
   const excerptLocalized = normalizeProductLocalizedText(row.excerptJson, row.excerpt ?? '')
@@ -253,61 +200,6 @@ export function serializeProductCategory(row: any): ProductCategoryPayload {
     description: row.description ?? null,
     position: Number(row.position || 0),
     active: Boolean(row.active)
-  }
-}
-
-export function serializeProductLot(row: any): ProductLotPayload {
-  const itemPaymentCapabilities = computePaymentModeCapabilities(
-    Array.isArray(row.items)
-      ? row.items
-          .map((item: any) => item?.product
-            ? {
-                allowOfflinePayment: toBoolean(item.product.allowOfflinePayment),
-                allowOnlinePayment: toBoolean(item.product.allowOnlinePayment)
-              }
-            : null)
-          .filter(Boolean)
-      : []
-  )
-  const hasResolvedItems = Array.isArray(row.items) && row.items.some((item: any) => item?.product)
-  const allowOfflinePayment = hasResolvedItems
-    ? toBoolean(row.allowOfflinePayment) && itemPaymentCapabilities.allowOfflinePayment
-    : toBoolean(row.allowOfflinePayment)
-  const allowOnlinePayment = hasResolvedItems
-    ? toBoolean(row.allowOnlinePayment) && itemPaymentCapabilities.allowOnlinePayment
-    : toBoolean(row.allowOnlinePayment)
-
-  return {
-    id: Number(row.id),
-    name: String(row.name),
-    slug: String(row.slug),
-    saleType: row.saleType === 'RENTAL' ? 'RENTAL' : 'SALE',
-    categoryId: row.categoryId == null ? null : Number(row.categoryId),
-    category: row.category ? serializeProductCategory(row.category) : null,
-    description: row.description ?? null,
-    imageUrl: row.imageUrl ?? null,
-    kind: row.kind === 'SINGLE' ? 'SINGLE' : 'LOT',
-    price: toNumber(row.price),
-    vatRate: toNumber(row.vatRate),
-    paymentTaxCode: row.paymentTaxCode?.trim() || null,
-    paymentTaxBehavior: row.paymentTaxBehavior === 'exclusive' ? 'exclusive' : row.paymentTaxBehavior === 'inclusive' ? 'inclusive' : null,
-    stock: computeProductLotStock(row),
-    rentalAvailableFrom: row.rentalAvailableFrom ? new Date(row.rentalAvailableFrom).toISOString() : null,
-    rentalAvailableTo: row.rentalAvailableTo ? new Date(row.rentalAvailableTo).toISOString() : null,
-    rentalMinDays: Math.max(1, Number(row.rentalMinDays || 1)),
-    rentalMaxDays: row.rentalMaxDays == null ? null : Math.max(1, Number(row.rentalMaxDays)),
-    allowOfflinePayment,
-    allowOnlinePayment,
-    active: toBoolean(row.active),
-    position: Number(row.position || 0),
-    items: Array.isArray(row.items)
-      ? row.items.map((item: any) => ({
-          id: item.id == null ? undefined : Number(item.id),
-          productId: Number(item.productId),
-          quantity: toNumber(item.quantity),
-          product: item.product ? serializeProduct(item.product) : null
-        }))
-      : []
   }
 }
 
@@ -370,7 +262,6 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
       ? row.lines.map((line: any) => ({
           id: Number(line.id),
           orderId: Number(line.orderId),
-          productLotId: line.productLotId == null ? null : Number(line.productLotId),
           productId: line.productId == null ? null : Number(line.productId),
           title: String(line.title),
           quantity: Number(line.quantity || 0),
@@ -530,15 +421,13 @@ export function pickProductLocalizedText(locale: string, value: CmsLocalizedText
 }
 
 export async function ensureUniqueSlug(
-  modelKey: 'product' | 'productLot' | 'productCategory',
+  modelKey: 'product' | 'productCategory',
   source: string,
   excludeId?: number
 ) {
   const accessor = modelKey === 'product'
     ? db.product
-    : modelKey === 'productLot'
-      ? db.productLot
-      : db.productCategory
+    : db.productCategory
   const base = slugify(source || 'item')
   let slug = base
   let suffix = 2

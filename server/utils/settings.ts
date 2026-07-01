@@ -74,8 +74,6 @@ export const SETTING_KEYS = {
   REGISTER_ENABLED: 'register_enabled',
   SUBSCRIPTIONS_ENABLED: 'subscriptions_enabled',
   SHOP_ENABLED: 'shop_enabled',
-  SHOP_BASKETS_ENABLED: 'shop_baskets_enabled',
-  SHOP_VEGETABLES_ENABLED: 'shop_vegetables_enabled',
   ASSOCIATION_ROLES_ENABLED: 'association_roles_enabled',
   EVENTS_ENABLED: 'events_enabled',
   NEWS_ENABLED: 'news_enabled',
@@ -152,8 +150,6 @@ export interface FeatureFlags {
   onlinePaymentsEnabled: boolean
   shop: {
     enabled: boolean
-    basketsEnabled: boolean
-    vegetablesEnabled: boolean
   }
   associationRolesEnabled: boolean
   eventsEnabled: boolean
@@ -175,9 +171,7 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   subscriptionsEnabled: false,
   onlinePaymentsEnabled: true,
   shop: {
-    enabled: cmsProjectConfig.modules.shop,
-    basketsEnabled: cmsProjectConfig.modules.shop && cmsProjectConfig.modules.shopBaskets,
-    vegetablesEnabled: cmsProjectConfig.modules.shop && cmsProjectConfig.modules.shopVegetables
+    enabled: cmsProjectConfig.modules.shop
   },
   associationRolesEnabled: cmsProjectConfig.modules.associationRoles,
   eventsEnabled: cmsProjectConfig.modules.events || cmsProjectConfig.modules.planning,
@@ -328,16 +322,12 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     SETTING_KEYS.SUBSCRIPTIONS_ENABLED,
     SETTING_KEYS.PAYMENTS_ENABLED,
     SETTING_KEYS.SHOP_ENABLED,
-    SETTING_KEYS.SHOP_BASKETS_ENABLED,
-    SETTING_KEYS.SHOP_VEGETABLES_ENABLED,
     SETTING_KEYS.ASSOCIATION_ROLES_ENABLED,
     SETTING_KEYS.EVENTS_ENABLED,
     SETTING_KEYS.NEWS_ENABLED
   ])
 
   const shopEnabled = parseBooleanSetting(settings[SETTING_KEYS.SHOP_ENABLED], DEFAULT_FEATURE_FLAGS.shop.enabled)
-  const basketsEnabled = parseBooleanSetting(settings[SETTING_KEYS.SHOP_BASKETS_ENABLED], DEFAULT_FEATURE_FLAGS.shop.basketsEnabled)
-  const vegetablesEnabled = parseBooleanSetting(settings[SETTING_KEYS.SHOP_VEGETABLES_ENABLED], DEFAULT_FEATURE_FLAGS.shop.vegetablesEnabled)
 
   return {
     inDevelopment: parseBooleanSetting(settings[SETTING_KEYS.IN_DEVELOPMENT], DEFAULT_FEATURE_FLAGS.inDevelopment),
@@ -345,9 +335,7 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     subscriptionsEnabled: parseBooleanSetting(settings[SETTING_KEYS.SUBSCRIPTIONS_ENABLED], DEFAULT_FEATURE_FLAGS.subscriptionsEnabled),
     onlinePaymentsEnabled: parseBooleanSetting(settings[SETTING_KEYS.PAYMENTS_ENABLED], DEFAULT_FEATURE_FLAGS.onlinePaymentsEnabled),
     shop: {
-      enabled: shopEnabled,
-      basketsEnabled: shopEnabled && basketsEnabled,
-      vegetablesEnabled: shopEnabled && vegetablesEnabled
+      enabled: shopEnabled
     },
     associationRolesEnabled: parseBooleanSetting(settings[SETTING_KEYS.ASSOCIATION_ROLES_ENABLED], DEFAULT_FEATURE_FLAGS.associationRolesEnabled),
     eventsEnabled: parseBooleanSetting(settings[SETTING_KEYS.EVENTS_ENABLED], DEFAULT_FEATURE_FLAGS.eventsEnabled),
@@ -359,9 +347,7 @@ export function normalizeFeatureFlags(flags: FeatureFlags): FeatureFlags {
   return {
     ...flags,
     shop: {
-      enabled: flags.shop.enabled,
-      basketsEnabled: flags.shop.enabled && flags.shop.basketsEnabled,
-      vegetablesEnabled: flags.shop.enabled && flags.shop.vegetablesEnabled
+      enabled: flags.shop.enabled
     }
   }
 }

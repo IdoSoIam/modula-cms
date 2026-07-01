@@ -72,7 +72,7 @@ const isRendererEnabled = (rendererKey: string) => {
   if (!flags) return true
   if (rendererKey === 'news') return flags.newsEnabled
   if (rendererKey === 'events' || rendererKey === 'planning') return flags.eventsEnabled
-  if (rendererKey === 'shop') return flags.shop.enabled && flags.shop.vegetablesEnabled
+  if (rendererKey === 'shop') return flags.shop.enabled
   return true
 }
 

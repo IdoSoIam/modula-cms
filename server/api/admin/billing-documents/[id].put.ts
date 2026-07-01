@@ -2,9 +2,11 @@ import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
 import {
   buildBillingDocumentLocalizedPayload,
+  normalizeBillingDocumentInvoiceColumns,
   enforceSingleDefaultBillingDocument,
   ensureUniqueBillingDocumentSlug,
   serializeBillingDocumentTemplate,
+  type BillingDocumentInvoiceColumnConfig,
   type BillingDocumentKind,
 } from '#modula/server/utils/billingDocuments'
 import type { CmsLocalizedText } from '#modula/shared/cms'
@@ -21,6 +23,7 @@ interface Body {
   titleLocalized?: CmsLocalizedText | null
   contentLocalized?: CmsLocalizedText | null
   footerLocalized?: CmsLocalizedText | null
+  invoiceColumns?: BillingDocumentInvoiceColumnConfig[] | null
   active?: boolean
   isDefault?: boolean
   position?: number
@@ -72,6 +75,9 @@ export default defineEventHandler(async (event) => {
   }
   if (body.footerLocalized !== undefined) {
     data.footerJson = buildBillingDocumentLocalizedPayload(body.footerLocalized).json
+  }
+  if (body.invoiceColumns !== undefined) {
+    data.invoiceColumnsJson = JSON.stringify(normalizeBillingDocumentInvoiceColumns(body.invoiceColumns))
   }
 
   const row = await db.billingDocumentTemplate.update({

@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (order.status === 'CANCELLED' || order.paymentStatus === 'PAID') {
+  if (order.paymentStatus === 'PAID') {
     return { id: order.id, status: order.status, paymentStatus: order.paymentStatus, alreadyCancelled: true }
   }
 
@@ -40,9 +40,11 @@ export default defineEventHandler(async (event) => {
   const updated = await db.shopOrder.update({
     where: { id },
     data: {
-      status: 'CANCELLED',
+      status: 'PENDING',
       paymentStatus: 'FAILED',
       paymentFailureReason: 'Paiement annulé par l\'utilisateur sur Stripe.',
+      checkoutUrl: null,
+      providerPaymentStatus: 'canceled',
     },
     select: {
       id: true,

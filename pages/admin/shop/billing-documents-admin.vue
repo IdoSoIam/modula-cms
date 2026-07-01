@@ -163,7 +163,7 @@
           </div>
         </div>
 
-        <label class="form-control mt-6 flex flex-col gap-2">
+        <label v-if="form.kind !== 'INVOICE'" class="form-control mt-6 flex flex-col gap-2">
           <span class="label"><span class="label-text">{{ t('admin.billingDocumentsPage.fields.description') }}</span></span>
           <textarea v-model="form.description" class="textarea textarea-bordered min-h-24 w-full" rows="3" />
         </label>
@@ -189,7 +189,9 @@
           <AdminPageBuilderTranslationTabs
             v-model="form.contentLocalized"
             :locales="siteLocales"
-            :label="t('admin.billingDocumentsPage.fields.localizedContent')"
+            :label="form.kind === 'INVOICE'
+              ? t('admin.billingDocumentsPage.fields.localizedNotes')
+              : t('admin.billingDocumentsPage.fields.localizedContent')"
             multiline
           />
           <AdminPageBuilderTranslationTabs
@@ -199,6 +201,42 @@
             multiline
           />
         </div>
+
+        <section
+          v-if="form.kind === 'INVOICE'"
+          class="mt-8 rounded-[1.75rem] border border-base-300 bg-base-100 p-5"
+        >
+          <div class="mb-5">
+            <h3 class="text-lg font-semibold">{{ t('admin.billingDocumentsPage.invoiceColumns.title') }}</h3>
+            <p class="mt-1 text-sm opacity-70">{{ t('admin.billingDocumentsPage.invoiceColumns.description') }}</p>
+          </div>
+
+          <div class="space-y-5">
+            <div
+              v-for="column in invoiceColumnEntries"
+              :key="column.key"
+              class="rounded-2xl border border-base-300 bg-base-50 p-4"
+            >
+              <div class="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <div class="font-medium">{{ column.title }}</div>
+                  <p class="mt-1 text-sm opacity-70">{{ column.description }}</p>
+                </div>
+
+                <label class="form-control flex gap-3">
+                  <input v-model="column.model.enabled" class="toggle toggle-primary" type="checkbox">
+                  <span class="label-text">{{ t('admin.billingDocumentsPage.invoiceColumns.enabled') }}</span>
+                </label>
+              </div>
+
+              <AdminPageBuilderTranslationTabs
+                v-model="column.model.labelLocalized"
+                :locales="siteLocales"
+                :label="t('admin.billingDocumentsPage.invoiceColumns.labelField')"
+              />
+            </div>
+          </div>
+        </section>
       </section>
     </div>
   </div>
@@ -207,6 +245,12 @@
 <script setup lang="ts">
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
 import { createEmptyCmsLocalizedText, type CmsLocalizedText } from '#modula/shared/cms'
+import {
+  BILLING_DOCUMENT_INVOICE_COLUMN_ORDER,
+  createDefaultBillingDocumentInvoiceColumns,
+  type BillingDocumentInvoiceColumnConfig,
+  type BillingDocumentInvoiceColumnKey,
+} from '#modula/shared/billingDocuments'
 
 type BillingDocumentKind = 'INVOICE' | 'CONTRACT' | 'ASSURANCE'
 
@@ -223,6 +267,7 @@ interface BillingDocumentTemplatePayload {
   titleLocalized: CmsLocalizedText
   contentLocalized: CmsLocalizedText
   footerLocalized: CmsLocalizedText
+  invoiceColumns: BillingDocumentInvoiceColumnConfig[]
   active: boolean
   isDefault: boolean
   position: number
@@ -239,6 +284,7 @@ const { locales: dynamicLocales } = useSiteLocales()
 const siteLocales = computed(() => dynamicLocales.value.length ? dynamicLocales.value : ['fr', 'en'])
 const selectedId = ref<number | null>(null)
 const saving = ref(false)
+const invoiceColumnKeys: BillingDocumentInvoiceColumnKey[] = [...BILLING_DOCUMENT_INVOICE_COLUMN_ORDER]
 
 const { data: documents, pending, refresh } = await useFetch<BillingDocumentTemplatePayload[]>('/api/admin/billing-documents')
 
@@ -255,6 +301,7 @@ const createEmptyForm = (kind: BillingDocumentKind = 'CONTRACT') => ({
   titleLocalized: createEmptyCmsLocalizedText(siteLocales.value),
   contentLocalized: createEmptyCmsLocalizedText(siteLocales.value),
   footerLocalized: createEmptyCmsLocalizedText(siteLocales.value),
+  invoiceColumns: createDefaultBillingDocumentInvoiceColumns(siteLocales.value),
   active: true,
   isDefault: false,
   position: 0
@@ -285,6 +332,20 @@ const groupedDocuments = computed(() => {
   ]
 })
 
+const invoiceColumnEntries = computed(() => {
+  const columnMap = new Map(form.value.invoiceColumns.map((entry) => [entry.key, entry]))
+  return invoiceColumnKeys.map((key) => {
+    const entry = columnMap.get(key)
+      || createDefaultBillingDocumentInvoiceColumns(siteLocales.value).find((item) => item.key === key)!
+    return {
+      key,
+      title: t(`admin.billingDocumentsPage.invoiceColumns.titles.${key}`),
+      description: t(`admin.billingDocumentsPage.invoiceColumns.descriptions.${key}`),
+      model: entry,
+    }
+  })
+})
+
 function selectDocument(entry: BillingDocumentTemplatePayload) {
   selectedId.value = entry.id
   form.value = {
@@ -300,6 +361,11 @@ function selectDocument(entry: BillingDocumentTemplatePayload) {
     titleLocalized: { ...entry.titleLocalized },
     contentLocalized: { ...entry.contentLocalized },
     footerLocalized: { ...entry.footerLocalized },
+    invoiceColumns: entry.invoiceColumns.map((column) => ({
+      key: column.key,
+      enabled: column.enabled,
+      labelLocalized: { ...column.labelLocalized },
+    })),
     active: entry.active,
     isDefault: entry.isDefault,
     position: entry.position
@@ -342,6 +408,7 @@ async function save() {
       titleLocalized: form.value.titleLocalized,
       contentLocalized: form.value.contentLocalized,
       footerLocalized: form.value.footerLocalized,
+      invoiceColumns: form.value.invoiceColumns,
       active: form.value.active,
       isDefault: form.value.isDefault,
       position: form.value.position
@@ -372,7 +439,7 @@ async function save() {
 
 async function previewDocument() {
   try {
-    const blob = await $fetch('/api/admin/billing-documents/preview', {
+    const blobPayload = await $fetch('/api/admin/billing-documents/preview', {
       method: 'POST',
       body: {
         kind: form.value.kind,
@@ -386,12 +453,19 @@ async function previewDocument() {
         titleLocalized: form.value.titleLocalized,
         contentLocalized: form.value.contentLocalized,
         footerLocalized: form.value.footerLocalized,
+        invoiceColumns: form.value.invoiceColumns,
       },
       responseType: 'blob'
     })
 
     if (!import.meta.client) return
-    const url = URL.createObjectURL(blob as Blob)
+    const blob = blobPayload instanceof Blob
+      ? blobPayload
+      : new Blob(
+          [isBufferPayload(blobPayload) ? new Uint8Array(blobPayload.data) : String(blobPayload ?? '')],
+          { type: 'application/pdf' }
+        )
+    const url = URL.createObjectURL(blob)
     window.open(url, '_blank', 'noopener,noreferrer')
     window.setTimeout(() => URL.revokeObjectURL(url), 60000)
   } catch (error: any) {
@@ -418,6 +492,17 @@ async function removeDocument() {
   }
 }
 
+function isBufferPayload(value: unknown): value is { type: 'Buffer'; data: number[] } {
+  return Boolean(
+    value
+    && typeof value === 'object'
+    && 'type' in value
+    && 'data' in value
+    && (value as { type?: unknown }).type === 'Buffer'
+    && Array.isArray((value as { data?: unknown }).data)
+  )
+}
+
 watch(
   documents,
   (value) => {
@@ -435,7 +520,10 @@ watch(
       }
     }
 
-    selectDocument(value[0])
+    const first = value[0]
+    if (first) {
+      selectDocument(first)
+    }
   },
   { immediate: true }
 )

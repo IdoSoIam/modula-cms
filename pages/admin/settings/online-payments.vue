@@ -168,6 +168,20 @@
               :disabled="form.provider !== 'stripe_connect'"
             />
           </label>
+
+          <div class="form-control flex flex-col gap-2">
+            <span class="label">
+              <span class="label-text">{{ t("admin.onlinePaymentsPage.webhookHelpTitle") }}</span>
+            </span>
+            <input
+              :value="data?.webhookUrl || ''"
+              class="input input-bordered w-full"
+              readonly
+            />
+            <p class="text-xs opacity-75">
+              {{ t("admin.onlinePaymentsPage.webhookHelpDescription") }}
+            </p>
+          </div>
         </div>
 
         <div class="rounded-xl border border-base-300 bg-base-200 p-4 text-sm space-y-2">
@@ -197,6 +211,7 @@ definePageMeta({
 interface SettingsData {
   onlinePaymentsEnabled: boolean;
   onlinePayments: CmsRegistryPaymentConfig;
+  webhookUrl: string;
 }
 
 const { $toast } = useNuxtApp() as any;

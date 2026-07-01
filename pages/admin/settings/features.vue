@@ -97,22 +97,9 @@
           }}</span>
         </label>
 
-        <div class="grid gap-4 md:grid-cols-2">
-          <label
-            class="flex label cursor-pointer justify-start gap-3"
-            :class="!form.featureFlags.shop.enabled ? 'opacity-50' : ''"
-          >
-            <input
-              v-model="form.featureFlags.shop.vegetablesEnabled"
-              type="checkbox"
-              class="toggle toggle-primary"
-              :disabled="!form.featureFlags.shop.enabled"
-            />
-            <span class="label-text">{{
-              t("admin.settingsFeaturesPage.shopProductsEnabled")
-            }}</span>
-          </label>
-        </div>
+        <p class="text-sm opacity-70">
+          {{ t("admin.settingsFeaturesPage.shopProductsEnabled") }}
+        </p>
       </section>
 
       <section
@@ -184,7 +171,6 @@ interface SettingsData {
     onlinePaymentsEnabled: boolean;
     shop: {
       enabled: boolean;
-      vegetablesEnabled: boolean;
     };
     associationRolesEnabled: boolean;
     eventsEnabled: boolean;
@@ -212,7 +198,6 @@ const form = reactive({
     onlinePaymentsEnabled: true,
     shop: {
       enabled: true,
-      vegetablesEnabled: true,
     },
     associationRolesEnabled: true,
     eventsEnabled: true,
@@ -228,15 +213,6 @@ watchEffect(() => {
   form.onlinePaymentsEnabled = data.value.onlinePaymentsEnabled;
   form.featureFlags = structuredClone(data.value.featureFlags);
 });
-
-watch(
-  () => form.featureFlags.shop.enabled,
-  (enabled) => {
-    if (!enabled) {
-      form.featureFlags.shop.vegetablesEnabled = false;
-    }
-  },
-);
 
 watch(
   () => form.onlinePaymentsEnabled,

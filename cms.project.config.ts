@@ -30,8 +30,6 @@ const baseConfig = defineCmsProjectConfig({
     planning: true,
     events: true,
     shop: true,
-    shopBaskets: true,
-    shopVegetables: true,
     associationRoles: true
   },
   seed: {

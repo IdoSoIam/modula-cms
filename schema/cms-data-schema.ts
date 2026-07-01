@@ -1,11 +1,6 @@
 import { defineModel, defineSchema, field, index, relation, unique } from './dsl.ts'
 
-const vegetableUnits = ['KG', 'PIECE']
-const reservationStatuses = ['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED']
-const reservationOccurrenceStatuses = ['SCHEDULED', 'CANCELLED']
 const deliveryTypes = ['ONSITE', 'PICKUP', 'TOUR']
-const reservationScheduleProposalSources = ['CUSTOMER', 'ADMIN']
-const productLotKinds = ['SINGLE', 'LOT']
 const productSaleTypes = ['SALE', 'RENTAL']
 const billingDocumentKinds = ['INVOICE', 'CONTRACT', 'ASSURANCE']
 const shopOrderStatuses = ['DRAFT', 'PENDING', 'PAID', 'CANCELLED']
@@ -168,184 +163,6 @@ export const cmsDataSchema = defineSchema({
         index(['memberRoleId'], 'UserMemberRole_memberRoleId_idx')
       ]
     }),
-    Vegetable: defineModel({
-      tableName: 'Vegetable',
-      primaryKey: 'id',
-      fields: {
-        id: field.id(),
-        name: field.string({ unique: true }),
-        unit: field.enum(vegetableUnits, { default: 'KG' }),
-        price: field.decimal(),
-        imageUrl: field.string({ nullable: true }),
-        active: field.boolean({ default: true }),
-        createdAt: field.datetime({ default: 'now' }),
-        updatedAt: field.datetime()
-      },
-      indexes: [
-        unique(['name'], 'Vegetable_name_key')
-      ]
-    }),
-    Basket: defineModel({
-      tableName: 'Basket',
-      primaryKey: 'id',
-      fields: {
-        id: field.id(),
-        name: field.string(),
-        description: field.string({ nullable: true }),
-        imageUrl: field.string({ nullable: true }),
-        computedPrice: field.decimal({ default: 0 }),
-        finalPrice: field.decimal({ default: 0 }),
-        available: field.int({ default: 0 }),
-        active: field.boolean({ default: true }),
-        position: field.int({ default: 0 }),
-        createdAt: field.datetime({ default: 'now' }),
-        updatedAt: field.datetime()
-      }
-    }),
-    BasketItem: defineModel({
-      tableName: 'BasketItem',
-      primaryKey: 'id',
-      fields: {
-        id: field.id(),
-        basketId: field.int(),
-        vegetableId: field.int(),
-        quantity: field.decimal()
-      },
-      relations: {
-        basket: relation.belongsTo('Basket', 'basketId', 'id', { onDelete: 'cascade' }),
-        vegetable: relation.belongsTo('Vegetable', 'vegetableId', 'id', { onDelete: 'restrict' })
-      },
-      indexes: [
-        unique(['basketId', 'vegetableId'], 'BasketItem_basketId_vegetableId_key'),
-        index(['basketId'], 'BasketItem_basketId_idx'),
-        index(['vegetableId'], 'BasketItem_vegetableId_idx')
-      ]
-    }),
-    Reservation: defineModel({
-      tableName: 'Reservation',
-      primaryKey: 'id',
-      fields: {
-        id: field.id(),
-        basketId: field.int(),
-        userId: field.int({ nullable: true }),
-        customerName: field.string(),
-        email: field.string(),
-        language: field.string({ default: 'fr' }),
-        phone: field.string({ nullable: true }),
-        message: field.string({ nullable: true }),
-        status: field.enum(reservationStatuses, { default: 'PENDING' }),
-        adminNote: field.string({ nullable: true }),
-        confirmedAt: field.datetime({ nullable: true }),
-        deliveryType: field.enum(deliveryTypes, { nullable: true }),
-        pickupPointId: field.int({ nullable: true }),
-        deliveryTourId: field.int({ nullable: true }),
-        deliveryAddress: field.string({ nullable: true }),
-        deliveryCity: field.string({ nullable: true }),
-        deliveryPostalCode: field.string({ nullable: true }),
-        fulfillmentDate: field.datetime({ nullable: true }),
-        fulfillmentTime: field.string({ nullable: true }),
-        fulfillmentLocation: field.string({ nullable: true }),
-        monthlySubscription: field.boolean({ default: false }),
-        googleCalendarEventId: field.string({ nullable: true }),
-        googleCalendarSyncedAt: field.datetime({ nullable: true }),
-        publicActionToken: field.string({ nullable: true, unique: true }),
-        cancelledByCustomerAt: field.datetime({ nullable: true }),
-        subscriptionActive: field.boolean({ default: true }),
-        subscriptionCancelledAt: field.datetime({ nullable: true }),
-        archivedAt: field.datetime({ nullable: true }),
-        scheduleProposalPendingBy: field.enum(reservationScheduleProposalSources, { nullable: true }),
-        lastScheduleProposalAt: field.datetime({ nullable: true }),
-        scheduleProposalAcceptedAt: field.datetime({ nullable: true }),
-        createdAt: field.datetime({ default: 'now' }),
-        updatedAt: field.datetime()
-      },
-      relations: {
-        basket: relation.belongsTo('Basket', 'basketId', 'id', { onDelete: 'restrict' }),
-        user: relation.belongsTo('User', 'userId', 'id', { onDelete: 'setNull' }),
-        pickupPoint: relation.belongsTo('PickupPoint', 'pickupPointId', 'id', { onDelete: 'setNull' }),
-        deliveryTour: relation.belongsTo('DeliveryTour', 'deliveryTourId', 'id', { onDelete: 'setNull' })
-      },
-      indexes: [
-        unique(['publicActionToken'], 'Reservation_publicActionToken_key'),
-        index(['basketId'], 'Reservation_basketId_idx'),
-        index(['userId'], 'Reservation_userId_idx'),
-        index(['status'], 'Reservation_status_idx'),
-        index(['archivedAt'], 'Reservation_archivedAt_idx'),
-        index(['pickupPointId'], 'Reservation_pickupPointId_idx'),
-        index(['deliveryTourId'], 'Reservation_deliveryTourId_idx')
-      ]
-    }),
-    ReservationScheduleProposal: defineModel({
-      tableName: 'ReservationScheduleProposal',
-      primaryKey: 'id',
-      fields: {
-        id: field.id(),
-        reservationId: field.int(),
-        proposedBy: field.enum(reservationScheduleProposalSources),
-        proposalDate: field.datetime(),
-        proposalTime: field.string(),
-        proposalLocation: field.string({ nullable: true }),
-        acceptedAt: field.datetime({ nullable: true }),
-        createdAt: field.datetime({ default: 'now' }),
-        updatedAt: field.datetime()
-      },
-      relations: {
-        reservation: relation.belongsTo('Reservation', 'reservationId', 'id', { onDelete: 'cascade' })
-      },
-      indexes: [
-        unique(['reservationId', 'proposalDate', 'proposalTime'], 'ScheduleProposal_unique_date_time'),
-        index(['reservationId', 'createdAt'], 'ReservationScheduleProposal_reservationId_createdAt_idx')
-      ]
-    }),
-    ReservationOccurrence: defineModel({
-      tableName: 'ReservationOccurrence',
-      primaryKey: 'id',
-      fields: {
-        id: field.id(),
-        reservationId: field.int(),
-        occurrenceDate: field.datetime(),
-        originalOccurrenceDate: field.datetime({ nullable: true }),
-        occurrenceTime: field.string({ nullable: true }),
-        occurrenceLocation: field.string({ nullable: true }),
-        status: field.enum(reservationOccurrenceStatuses, { default: 'SCHEDULED' }),
-        customSchedule: field.boolean({ default: false }),
-        cancelledAt: field.datetime({ nullable: true }),
-        cancellationReason: field.string({ nullable: true }),
-        googleCalendarEventId: field.string({ nullable: true }),
-        lastNotifiedAt: field.datetime({ nullable: true }),
-        createdAt: field.datetime({ default: 'now' }),
-        updatedAt: field.datetime()
-      },
-      relations: {
-        reservation: relation.belongsTo('Reservation', 'reservationId', 'id', { onDelete: 'cascade' })
-      },
-      indexes: [
-        index(['reservationId', 'occurrenceDate'], 'ReservationOccurrence_reservationId_occurrenceDate_idx')
-      ]
-    }),
-    ReservationNotification: defineModel({
-      tableName: 'ReservationNotification',
-      primaryKey: 'id',
-      fields: {
-        id: field.id(),
-        reservationId: field.int(),
-        occurrenceId: field.int({ nullable: true }),
-        kind: field.string(),
-        channel: field.string({ default: 'EMAIL' }),
-        recipientEmail: field.string(),
-        subject: field.string(),
-        summary: field.string({ nullable: true }),
-        createdAt: field.datetime({ default: 'now' })
-      },
-      relations: {
-        reservation: relation.belongsTo('Reservation', 'reservationId', 'id', { onDelete: 'cascade' }),
-        occurrence: relation.belongsTo('ReservationOccurrence', 'occurrenceId', 'id', { onDelete: 'setNull' })
-      },
-      indexes: [
-        index(['reservationId', 'createdAt'], 'ReservationNotification_reservationId_createdAt_idx'),
-        index(['occurrenceId'], 'ReservationNotification_occurrenceId_idx')
-      ]
-    }),
     PickupPoint: defineModel({
       tableName: 'PickupPoint',
       primaryKey: 'id',
@@ -460,63 +277,6 @@ export const cmsDataSchema = defineSchema({
         index(['active', 'position'], 'ProductCategory_active_position_idx')
       ]
     }),
-    ProductLot: defineModel({
-      tableName: 'ProductLot',
-      primaryKey: 'id',
-      fields: {
-        id: field.id(),
-        name: field.string(),
-        slug: field.string({ unique: true }),
-        saleType: field.enum(productSaleTypes, { default: 'SALE' }),
-        categoryId: field.int({ nullable: true }),
-        description: field.string({ nullable: true }),
-        imageUrl: field.string({ nullable: true }),
-        kind: field.enum(productLotKinds, { default: 'LOT' }),
-        price: field.decimal({ default: 0 }),
-        vatRate: field.decimal({ default: 20 }),
-        paymentTaxCode: field.string({ nullable: true }),
-        paymentTaxBehavior: field.enum(stripeTaxBehaviors, { nullable: true }),
-        stock: field.int({ default: 0 }),
-        rentalAvailableFrom: field.datetime({ nullable: true }),
-        rentalAvailableTo: field.datetime({ nullable: true }),
-        rentalMinDays: field.int({ default: 1 }),
-        rentalMaxDays: field.int({ nullable: true }),
-        allowOfflinePayment: field.boolean({ default: true }),
-        allowOnlinePayment: field.boolean({ default: false }),
-        active: field.boolean({ default: true }),
-        position: field.int({ default: 0 }),
-        createdAt: field.datetime({ default: 'now' }),
-        updatedAt: field.datetime()
-      },
-      relations: {
-        category: relation.belongsTo('ProductCategory', 'categoryId', 'id', { onDelete: 'setNull' })
-      },
-      indexes: [
-        unique(['slug'], 'ProductLot_slug_key'),
-        index(['categoryId'], 'ProductLot_categoryId_idx'),
-        index(['saleType'], 'ProductLot_saleType_idx'),
-        index(['active', 'position'], 'ProductLot_active_position_idx')
-      ]
-    }),
-    ProductLotItem: defineModel({
-      tableName: 'ProductLotItem',
-      primaryKey: 'id',
-      fields: {
-        id: field.id(),
-        productLotId: field.int(),
-        productId: field.int(),
-        quantity: field.decimal()
-      },
-      relations: {
-        productLot: relation.belongsTo('ProductLot', 'productLotId', 'id', { onDelete: 'cascade' }),
-        product: relation.belongsTo('Product', 'productId', 'id', { onDelete: 'restrict' })
-      },
-      indexes: [
-        unique(['productLotId', 'productId'], 'ProductLotItem_productLotId_productId_key'),
-        index(['productLotId'], 'ProductLotItem_productLotId_idx'),
-        index(['productId'], 'ProductLotItem_productId_idx')
-      ]
-    }),
     BillingDocumentTemplate: defineModel({
       tableName: 'BillingDocumentTemplate',
       primaryKey: 'id',
@@ -609,7 +369,6 @@ export const cmsDataSchema = defineSchema({
       fields: {
         id: field.id(),
         orderId: field.int(),
-        productLotId: field.int({ nullable: true }),
         productId: field.int({ nullable: true }),
         title: field.string(),
         quantity: field.int({ default: 1 }),
@@ -623,15 +382,12 @@ export const cmsDataSchema = defineSchema({
       },
       relations: {
         order: relation.belongsTo('ShopOrder', 'orderId', 'id', { onDelete: 'cascade' }),
-        productLot: relation.belongsTo('ProductLot', 'productLotId', 'id', { onDelete: 'setNull' }),
         product: relation.belongsTo('Product', 'productId', 'id', { onDelete: 'setNull' })
       },
       indexes: [
         index(['orderId'], 'ShopOrderLine_orderId_idx'),
-        index(['productLotId'], 'ShopOrderLine_productLotId_idx'),
         index(['productId'], 'ShopOrderLine_productId_idx'),
-        index(['productId', 'rentalStartDate'], 'ShopOrderLine_productId_rentalStartDate_idx'),
-        index(['productLotId', 'rentalStartDate'], 'ShopOrderLine_productLotId_rentalStartDate_idx')
+        index(['productId', 'rentalStartDate'], 'ShopOrderLine_productId_rentalStartDate_idx')
       ]
     }),
     Article: defineModel({

@@ -828,8 +828,6 @@ export async function importTemplateSnapshot(
     setSetting(SETTING_KEYS.REGISTER_ENABLED, prepared.featureFlags.registerEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SUBSCRIPTIONS_ENABLED, prepared.featureFlags.subscriptionsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SHOP_ENABLED, prepared.featureFlags.shop.enabled ? 'true' : 'false'),
-    setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, prepared.featureFlags.shop.basketsEnabled ? 'true' : 'false'),
-    setSetting(SETTING_KEYS.SHOP_VEGETABLES_ENABLED, prepared.featureFlags.shop.vegetablesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, prepared.featureFlags.associationRolesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.EVENTS_ENABLED, prepared.featureFlags.eventsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.NEWS_ENABLED, prepared.featureFlags.newsEnabled ? 'true' : 'false')
@@ -1309,6 +1307,13 @@ export async function triggerUpdateAgentRollback(mode: 'fast' | 'full' = 'fast')
 export async function getRegistryPaymentConfig() {
   const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
   return await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {}, scope)
+}
+
+export async function getRegistryStripeWebhookUrl() {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  const config = await resolveRegistryConfig(scope)
+  if (!config.url) return ''
+  return `${config.url.replace(/\/$/, '')}/v1/payments/webhooks/stripe`
 }
 
 export async function saveRegistryPaymentConfig(settings: Partial<CmsRegistryPaymentConfig>) {

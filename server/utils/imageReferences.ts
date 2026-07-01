@@ -318,20 +318,11 @@ function cmsUsageToReferenceItem(
 }
 
 export async function syncImageUsageTable() {
-  const [images, vegetables, baskets, products, productLots, articles, cmsPages] = await Promise.all([
+  const [images, products, articles, cmsPages] = await Promise.all([
     db.image.findMany({
       select: { id: true, url: true }
     }),
-    db.vegetable.findMany({
-      select: { id: true, name: true, imageUrl: true }
-    }),
-    db.basket.findMany({
-      select: { id: true, name: true, imageUrl: true }
-    }),
     db.product.findMany({
-      select: { id: true, name: true, imageUrl: true }
-    }).catch(() => []),
-    db.productLot.findMany({
       select: { id: true, name: true, imageUrl: true }
     }).catch(() => []),
     db.article.findMany({
@@ -353,34 +344,6 @@ export async function syncImageUsageTable() {
   const { getCmsSiteSettings } = await import('./cms')
   const cmsSiteSettings = await getCmsSiteSettings().catch(() => null)
 
-  for (const vegetable of vegetables) {
-    const imageId = vegetable.imageUrl ? imageIdByUrl.get(vegetable.imageUrl) as number | undefined : undefined
-    if (!imageId) continue
-    usages.push({
-      imageId,
-      scopeType: 'vegetable',
-      scopeId: String(vegetable.id),
-      fieldKey: 'imageUrl',
-      label: `Legume "${vegetable.name}"`,
-      createdAt: now,
-      updatedAt: now
-    })
-  }
-
-  for (const basket of baskets) {
-    const imageId = basket.imageUrl ? imageIdByUrl.get(basket.imageUrl) as number | undefined : undefined
-    if (!imageId) continue
-    usages.push({
-      imageId,
-      scopeType: 'basket',
-      scopeId: String(basket.id),
-      fieldKey: 'imageUrl',
-      label: `Panier "${basket.name}"`,
-      createdAt: now,
-      updatedAt: now
-    })
-  }
-
   for (const product of products) {
     const imageId = product.imageUrl ? imageIdByUrl.get(product.imageUrl) as number | undefined : undefined
     if (!imageId) continue
@@ -390,20 +353,6 @@ export async function syncImageUsageTable() {
       scopeId: String(product.id),
       fieldKey: 'imageUrl',
       label: `Produit "${product.name}"`,
-      createdAt: now,
-      updatedAt: now
-    })
-  }
-
-  for (const productLot of productLots) {
-    const imageId = productLot.imageUrl ? imageIdByUrl.get(productLot.imageUrl) as number | undefined : undefined
-    if (!imageId) continue
-    usages.push({
-      imageId,
-      scopeType: 'product-lot',
-      scopeId: String(productLot.id),
-      fieldKey: 'imageUrl',
-      label: `Lot produit "${productLot.name}"`,
       createdAt: now,
       updatedAt: now
     })
@@ -573,19 +522,7 @@ export async function listImageUsageAssociations(imageId: number) {
 }
 
 export async function updateImageReferences(oldUrl: string, newUrl: string) {
-  await db.vegetable.updateMany({
-    where: { imageUrl: oldUrl },
-    data: { imageUrl: newUrl }
-  })
-  await db.basket.updateMany({
-    where: { imageUrl: oldUrl },
-    data: { imageUrl: newUrl }
-  })
   await db.product.updateMany({
-    where: { imageUrl: oldUrl },
-    data: { imageUrl: newUrl }
-  })
-  await db.productLot.updateMany({
     where: { imageUrl: oldUrl },
     data: { imageUrl: newUrl }
   })
@@ -609,20 +546,7 @@ export async function updateImageReferences(oldUrl: string, newUrl: string) {
 }
 
 export async function removeImageReferences(url: string) {
-  await db.vegetable.updateMany({
-    where: { imageUrl: url },
-    data: { imageUrl: null }
-  })
-
-  await db.basket.updateMany({
-    where: { imageUrl: url },
-    data: { imageUrl: null }
-  })
   await db.product.updateMany({
-    where: { imageUrl: url },
-    data: { imageUrl: null }
-  })
-  await db.productLot.updateMany({
     where: { imageUrl: url },
     data: { imageUrl: null }
   })
@@ -655,8 +579,6 @@ export async function countImageReferences(url: string) {
 
   if (!image) {
     return {
-      vegetables: 0,
-      baskets: 0,
       products: 0,
       productLots: 0,
       articles: 0,
@@ -701,10 +623,8 @@ export async function countImageReferences(url: string) {
     }))
 
   return {
-    vegetables: usages.filter((usage: any) => usage.scopeType === 'vegetable').length,
-    baskets: usages.filter((usage: any) => usage.scopeType === 'basket').length,
     products: usages.filter((usage: any) => usage.scopeType === 'product').length,
-    productLots: usages.filter((usage: any) => usage.scopeType === 'product-lot').length,
+    productLots: 0,
     articles: usages.filter((usage: any) => usage.scopeType === 'article').length,
     articleContent: usages.filter((usage: any) => usage.scopeType === 'article-content').length,
     cmsSiteSettings: {

@@ -2,9 +2,11 @@ import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
 import {
   buildBillingDocumentLocalizedPayload,
+  normalizeBillingDocumentInvoiceColumns,
   enforceSingleDefaultBillingDocument,
   ensureUniqueBillingDocumentSlug,
   serializeBillingDocumentTemplate,
+  type BillingDocumentInvoiceColumnConfig,
   type BillingDocumentKind,
 } from '#modula/server/utils/billingDocuments'
 import type { CmsLocalizedText } from '#modula/shared/cms'
@@ -21,6 +23,7 @@ interface Body {
   titleLocalized?: CmsLocalizedText | null
   contentLocalized?: CmsLocalizedText | null
   footerLocalized?: CmsLocalizedText | null
+  invoiceColumns?: BillingDocumentInvoiceColumnConfig[] | null
   active?: boolean
   isDefault?: boolean
   position?: number
@@ -43,6 +46,7 @@ export default defineEventHandler(async (event) => {
   const titlePayload = buildBillingDocumentLocalizedPayload(body.titleLocalized, name)
   const contentPayload = buildBillingDocumentLocalizedPayload(body.contentLocalized)
   const footerPayload = buildBillingDocumentLocalizedPayload(body.footerLocalized)
+  const invoiceColumns = normalizeBillingDocumentInvoiceColumns(body.invoiceColumns)
   const slug = await ensureUniqueBillingDocumentSlug(body.slug?.trim() || name)
 
   const row = await db.billingDocumentTemplate.create({
@@ -58,6 +62,7 @@ export default defineEventHandler(async (event) => {
       titleJson: titlePayload.json,
       contentJson: contentPayload.json,
       footerJson: footerPayload.json,
+      invoiceColumnsJson: JSON.stringify(invoiceColumns),
       active: body.active !== false,
       isDefault: Boolean(body.isDefault),
       position: Number.isFinite(Number(body.position)) ? Number(body.position) : 0

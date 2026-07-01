@@ -221,7 +221,6 @@ const { data: siteShellData } = await useFetch<{ settings: CmsSiteSettings, navi
   subscriptionsEnabled: boolean
   shop: {
     enabled: boolean
-    vegetablesEnabled: boolean
   }
   associationRolesEnabled: boolean
   eventsEnabled: boolean
@@ -292,7 +291,7 @@ const selectedPageRenderer = computed({
 
 const pageRendererOptions = computed(() => allPageRendererOptions.filter((option) => {
   if (option.value === 'news') return featureFlags.value.newsEnabled
-  if (option.value === 'shop') return featureFlags.value.shop.enabled && featureFlags.value.shop.vegetablesEnabled
+  if (option.value === 'shop') return featureFlags.value.shop.enabled
   if (option.value === 'events' || option.value === 'planning') return featureFlags.value.eventsEnabled
   return true
 }))

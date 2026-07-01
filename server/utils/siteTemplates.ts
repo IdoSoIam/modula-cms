@@ -1030,7 +1030,7 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
       registerEnabled: false,
       subscriptionsEnabled: false,
       onlinePaymentsEnabled: true,
-      shop: { enabled: true, basketsEnabled: true, vegetablesEnabled: true },
+      shop: { enabled: true },
       associationRolesEnabled: false,
       eventsEnabled: true,
       newsEnabled: true
@@ -1041,7 +1041,7 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
         registerEnabled: false,
         subscriptionsEnabled: false,
         onlinePaymentsEnabled: false,
-        shop: { enabled: false, basketsEnabled: false, vegetablesEnabled: false },
+        shop: { enabled: false },
         associationRolesEnabled: true,
         eventsEnabled: true,
         newsEnabled: true
@@ -1051,7 +1051,7 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
         registerEnabled: false,
         subscriptionsEnabled: false,
         onlinePaymentsEnabled: false,
-        shop: { enabled: false, basketsEnabled: false, vegetablesEnabled: false },
+        shop: { enabled: false },
         associationRolesEnabled: false,
         eventsEnabled: false,
         newsEnabled: false
@@ -1141,8 +1141,6 @@ export async function applyBundledSiteTemplate(
   await Promise.all([
     setSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY, templateKey),
     setSetting(SETTING_KEYS.SHOP_ENABLED, templateFeatureFlags.shop.enabled ? 'true' : 'false'),
-    setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, templateFeatureFlags.shop.basketsEnabled ? 'true' : 'false'),
-    setSetting(SETTING_KEYS.SHOP_VEGETABLES_ENABLED, templateFeatureFlags.shop.vegetablesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, templateFeatureFlags.associationRolesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.EVENTS_ENABLED, templateFeatureFlags.eventsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.NEWS_ENABLED, templateFeatureFlags.newsEnabled ? 'true' : 'false')
