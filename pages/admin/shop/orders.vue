@@ -111,8 +111,38 @@
                 <div v-if="details.providerSessionId">Session : <code class="break-all">{{ details.providerSessionId }}</code></div>
                 <div v-if="details.providerPaymentIntentId">{{ t('admin.ordersPage.intentIdLabel') }} : <code class="text-xs break-all">{{ details.providerPaymentIntentId }}</code></div>
                 <div v-if="details.providerPaymentStatus">{{ t('admin.ordersPage.intentStatusLabel') }}: <strong>{{ paymentStatusLabel(details.providerPaymentStatus.toUpperCase() as any) }}</strong></div>
+                <div v-if="details.providerLastEventId">{{ t('admin.ordersPage.eventIdLabel') }}: <code class="text-xs break-all">{{ details.providerLastEventId }}</code></div>
                 <div v-if="details.paymentFailureReason">{{ t('admin.ordersPage.failureReasonLabel') }}: <strong>{{ details.paymentFailureReason }}</strong></div>
                 <div v-if="details.refundedAt">{{ t('admin.ordersPage.refundedAtLabel') }}: <strong>{{ $formatDate(details.refundedAt) }}</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-if="details.paymentStatus === 'FAILED' || details.paymentFailureReason"
+            class="mt-4 rounded-xl border border-error/30 bg-error/10 p-4"
+          >
+            <div class="font-medium text-error">{{ t('admin.ordersPage.failureDetailsTitle') }}</div>
+            <div class="mt-2 space-y-1 text-sm">
+              <div>
+                {{ t('admin.ordersPage.failureReasonLabel') }}:
+                <strong>{{ details.paymentFailureReason || t('admin.ordersPage.failureUnknown') }}</strong>
+              </div>
+              <div v-if="details.providerPaymentStatus">
+                {{ t('admin.ordersPage.intentStatusLabel') }}:
+                <strong>{{ paymentStatusLabel(details.providerPaymentStatus.toUpperCase() as any) }}</strong>
+              </div>
+              <div v-if="details.providerSessionId">
+                Session:
+                <code class="break-all">{{ details.providerSessionId }}</code>
+              </div>
+              <div v-if="details.providerPaymentIntentId">
+                {{ t('admin.ordersPage.intentIdLabel') }}:
+                <code class="break-all">{{ details.providerPaymentIntentId }}</code>
+              </div>
+              <div v-if="details.providerLastEventId">
+                {{ t('admin.ordersPage.eventIdLabel') }}:
+                <code class="break-all">{{ details.providerLastEventId }}</code>
               </div>
             </div>
           </div>
@@ -159,6 +189,16 @@
           </div>
 
           <div class="mt-6 flex flex-wrap gap-2">
+            <a
+              v-if="details.paymentStatus === 'PAID'"
+              class="btn btn-outline btn-sm"
+              :href="`/api/admin/orders/${details.id}/invoice`"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Icon name="mdi:file-document-outline" size="16" />
+              {{ t('admin.ordersPage.viewInvoice') }}
+            </a>
             <button class="btn btn-success btn-sm" :disabled="actionPending || details.status === 'PAID'" @click="updateStatus('PAID', 'PAID')">
               {{ t('admin.ordersPage.markPaid') }}
             </button>
