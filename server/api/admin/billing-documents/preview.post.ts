@@ -1,7 +1,9 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { createBillingDocumentPdfAttachment } from '#modula/server/utils/billingDocumentPdf'
 import {
+  createDefaultBillingDocumentInvoiceOptions,
   createDefaultBillingDocumentInvoiceColumns,
+  normalizeBillingDocumentInvoiceOptions,
   normalizeBillingDocumentInvoiceColumns,
   normalizeBillingDocumentLocalizedText,
   type BillingDocumentInvoiceColumnConfig,
@@ -23,6 +25,7 @@ interface Body {
   contentLocalized?: CmsLocalizedText | null
   footerLocalized?: CmsLocalizedText | null
   invoiceColumns?: BillingDocumentInvoiceColumnConfig[] | null
+  invoiceOptions?: Record<string, unknown> | null
 }
 
 export default defineEventHandler(async (event) => {
@@ -52,6 +55,9 @@ export default defineEventHandler(async (event) => {
     invoiceColumns: kind === 'INVOICE'
       ? normalizeBillingDocumentInvoiceColumns(body.invoiceColumns)
       : createDefaultBillingDocumentInvoiceColumns(),
+    invoiceOptions: kind === 'INVOICE'
+      ? normalizeBillingDocumentInvoiceOptions(body.invoiceOptions)
+      : createDefaultBillingDocumentInvoiceOptions(),
     active: true,
     isDefault: false,
     position: 0,

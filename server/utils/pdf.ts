@@ -1,7 +1,11 @@
 import { existsSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { getCurrentCmsRuntimeTarget } from '#modula/server/utils/settings'
+import {
+  getCurrentCmsRuntimeTarget,
+  getStoredPdfRendererMode,
+  type PdfRendererMode,
+} from '#modula/server/utils/settings'
 
 export interface InvoicePdfLine {
   lineNumberLabel: string
@@ -128,6 +132,7 @@ interface ExternalInvoicePdfPayload {
     phone?: string
     address?: string
   }
+  metaLines?: string[]
   columns?: Array<{
     key: string
     label: string
@@ -207,14 +212,37 @@ function getExternalPdfServiceUrl() {
   return process.env.CMS_PDF_SERVICE_URL?.trim() || ''
 }
 
+function getExternalPdfServiceApiKey() {
+  return process.env.CMS_PDF_SERVICE_API_KEY?.trim() || ''
+}
+
+function canUseLocalBrowserPdf() {
+  return getCurrentCmsRuntimeTarget() === 'server' && Boolean(resolveChromiumExecutablePath())
+}
+
+async function resolvePdfRendererMode(): Promise<PdfRendererMode> {
+  if (getCurrentCmsRuntimeTarget() === 'cloudflare') {
+    return 'external'
+  }
+
+  const storedMode = await getStoredPdfRendererMode()
+  if (storedMode) {
+    return storedMode
+  }
+
+  return canUseLocalBrowserPdf() ? 'local' : 'external'
+}
+
 async function renderExternalPdf(payload: ExternalInvoicePdfPayload | ExternalBrandedDocumentPdfPayload) {
   const baseUrl = getExternalPdfServiceUrl()
   if (!baseUrl) return null
+  const apiKey = getExternalPdfServiceApiKey()
 
   const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/render`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      ...(apiKey ? { 'x-modula-pdf-key': apiKey } : {}),
     },
     body: JSON.stringify(payload),
   })
@@ -228,6 +256,29 @@ async function renderExternalPdf(payload: ExternalInvoicePdfPayload | ExternalBr
   }
 
   return Buffer.from(await response.arrayBuffer())
+}
+
+function buildBrowserFooterTemplate(options: {
+  documentNumber?: string | null
+  footer?: string | null
+  pageLabel?: string | null
+}) {
+  const documentNumber = escapeHtml(String(options.documentNumber || '').trim())
+  const footer = escapeHtml(String(options.footer || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
+  const pageLabel = escapeHtml(String(options.pageLabel || '').trim() || 'Page')
+
+  return `
+    <div style="width:100%; font-family: Inter, 'Segoe UI', Arial, sans-serif; font-size:8px; color:#627086; padding:0 24px 0; box-sizing:border-box;">
+      <div style="border-top:1px solid #d9deea; padding-top:8px; width:100%; display:grid; grid-template-columns:30% 40% 30%; align-items:start;">
+        <div style="text-align:left; line-height:1.25;">
+          ${documentNumber ? `<div style="font-size:8px; font-weight:700; color:#18212f;">${documentNumber}</div>` : ''}
+          <div>${pageLabel} <span class="pageNumber"></span>/<span class="totalPages"></span></div>
+        </div>
+        <div style="text-align:center; line-height:1.25;">${footer}</div>
+        <div></div>
+      </div>
+    </div>
+  `
 }
 
 async function importPlaywright() {
@@ -291,7 +342,7 @@ function buildDocumentCss(accentColor: string) {
     html, body {
       margin: 0;
       padding: 0;
-      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
       color: var(--text);
       background: white;
       -webkit-print-color-adjust: exact;
@@ -304,8 +355,8 @@ function buildDocumentCss(accentColor: string) {
     }
 
     body {
-      padding: 24px 28px 68px;
-      font-size: 12px;
+      padding: 18px 24px 10px;
+      font-size: 11px;
       line-height: 1.45;
     }
 
@@ -313,126 +364,112 @@ function buildDocumentCss(accentColor: string) {
       width: 100%;
     }
 
-    .document-main {
-      width: 100%;
-    }
+    .document-main { width: 100%; }
 
     .document-topbar {
       height: 4px;
-      border-radius: 2px;
       background: var(--accent);
       margin-bottom: 20px;
     }
 
-    .header {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 24px;
-      align-items: start;
-      margin-bottom: 22px;
-    }
-
-    .header-brand {
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-      min-width: 0;
-    }
-
+    .header-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 0; }
+    .brand-block { width: 61%; vertical-align: top; }
+    .meta-block-head { width: 39%; vertical-align: top; text-align: right; }
+    .brand-row { width: 100%; border-collapse: collapse; }
+    .logo-cell { width: 112px; vertical-align: top; }
+    .copy-cell { vertical-align: top; }
     .logo {
-      width: 82px;
-      max-height: 62px;
+      width: 104px;
+      max-width: 104px;
+      max-height: 76px;
       object-fit: contain;
       object-position: left center;
-      flex: 0 0 auto;
+      display: block;
     }
 
-    .brand-copy {
-      min-width: 0;
-    }
+    .brand-copy { min-width: 0; }
 
     .brand-name {
       margin: 0;
-      font-size: 29px;
-      line-height: 1.08;
-      font-weight: 800;
+      font-size: 18pt;
+      line-height: 1.04;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
     }
 
     .document-title {
-      margin: 8px 0 0;
-      font-size: 15px;
+      margin: 5px 0 0;
+      font-size: 9.5pt;
       color: var(--muted);
-      font-weight: 600;
-    }
-
-    .identity {
-      text-align: right;
-      min-width: 220px;
+      font-weight: 500;
+      white-space: nowrap;
     }
 
     .identity-title {
       margin: 0;
-      font-size: 14px;
+      font-size: 12pt;
       font-weight: 700;
       color: var(--accent);
+      line-height: 1.1;
+      white-space: nowrap;
     }
 
     .identity-meta {
-      margin-top: 8px;
+      margin-top: 4px;
       color: var(--muted);
-      font-size: 11px;
-      line-height: 1.5;
+      font-size: 9pt;
+      line-height: 1.35;
+      white-space: nowrap;
     }
 
     .identity-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 10px;
-      border-radius: 4px;
+      display: block;
+      width: 100%;
+      padding: 4px 8px;
       background: var(--accent-soft);
       color: var(--accent);
-      font-size: 11px;
+      font-size: 8pt;
       font-weight: 700;
-      margin-top: 10px;
+      margin-top: 8px;
+      text-align: right;
+      white-space: nowrap;
     }
 
-    .party-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-      margin-bottom: 18px;
-    }
-
+    .party-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; margin-top: 12px; margin-bottom: 12px; }
+    .party-gap { width: 1%; }
     .party-card {
+      width: 49.5%;
+      vertical-align: top;
       border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 16px 18px;
-      background: white;
-      min-height: 112px;
+      padding: 12px 14px;
+      background: #f7f9fc;
+      min-height: 84px;
     }
 
     .party-title {
-      font-size: 11px;
+      font-size: 7.6pt;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.04em;
       color: var(--muted);
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
+      white-space: nowrap;
     }
 
     .party-line {
-      margin: 0 0 4px;
-      white-space: pre-wrap;
-      word-break: break-word;
+      margin: 0 0 3px;
+      font-size: 9pt;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: normal;
     }
 
     .meta-block {
       border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 12px 16px;
+      padding: 10px 14px;
       background: var(--panel);
-      margin-bottom: 18px;
+      margin-bottom: 12px;
     }
 
     .meta-line {
@@ -440,12 +477,7 @@ function buildDocumentCss(accentColor: string) {
       color: var(--muted);
     }
 
-    .invoice-table {
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 18px;
-    }
+    .invoice-table { border: 1px solid var(--border); overflow: hidden; margin-top: 12px; margin-bottom: 12px; }
 
     .invoice-table table {
       width: 100%;
@@ -453,23 +485,23 @@ function buildDocumentCss(accentColor: string) {
       table-layout: fixed;
     }
 
-    .invoice-table col.col-line-number { width: 5%; }
+    .invoice-table col.col-line-number { width: 4%; }
     .invoice-table col.col-designation { width: 27%; }
-    .invoice-table col.col-reference { width: 8%; }
-    .invoice-table col.col-quantity { width: 6%; }
-    .invoice-table col.col-unit-ht { width: 10%; }
-    .invoice-table col.col-total-ht { width: 10%; }
-    .invoice-table col.col-vat-amount { width: 10%; }
-    .invoice-table col.col-vat-rate { width: 11%; }
-    .invoice-table col.col-total-ttc { width: 13%; }
+    .invoice-table col.col-reference { width: 7%; }
+    .invoice-table col.col-quantity { width: 5%; }
+    .invoice-table col.col-unit-ht { width: 11%; }
+    .invoice-table col.col-total-ht { width: 11%; }
+    .invoice-table col.col-vat-rate { width: 12%; }
+    .invoice-table col.col-vat-amount { width: 11%; }
+    .invoice-table col.col-total-ttc { width: 12%; }
 
     .invoice-table thead th {
       background: var(--panel);
       color: var(--muted);
       text-align: right;
-      font-size: 10px;
+      font-size: 7.2pt;
       font-weight: 700;
-      padding: 10px 8px;
+      padding: 7px 5px;
       border-bottom: 1px solid var(--border);
       white-space: normal;
       overflow-wrap: anywhere;
@@ -482,16 +514,18 @@ function buildDocumentCss(accentColor: string) {
 
     .invoice-table thead th:first-child,
     .invoice-table tbody td:first-child {
-      padding-left: 6px;
-      padding-right: 6px;
+      padding-left: 3px;
+      padding-right: 3px;
     }
 
     .invoice-table tbody td {
-      padding: 10px 8px;
+      padding: 8px 5px;
       border-bottom: 1px solid var(--border);
       vertical-align: top;
       overflow-wrap: anywhere;
       word-break: break-word;
+      font-size: 9pt;
+      line-height: 1.25;
     }
 
     .invoice-table tbody tr:last-child td {
@@ -499,15 +533,15 @@ function buildDocumentCss(accentColor: string) {
     }
 
     .line-title {
-      font-size: 13px;
+      font-size: 9.4pt;
       font-weight: 700;
       margin: 0;
     }
 
     .line-description {
-      margin: 5px 0 0;
+      margin: 4px 0 0;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 8.5pt;
       white-space: pre-wrap;
     }
 
@@ -524,41 +558,41 @@ function buildDocumentCss(accentColor: string) {
       font-variant-numeric: tabular-nums;
     }
 
-    .summary {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 280px;
-      gap: 24px;
-      align-items: start;
-      margin-bottom: 18px;
-    }
+    .col-lineNumber { text-align: center !important; padding-left: 1px !important; padding-right: 1px !important; }
+    .col-designation { text-align: left !important; }
+    .col-vatRate { color: var(--muted); font-size: 8.1pt; line-height: 1.15; }
+    .total-cell { font-weight: 700; }
 
-    .notes-card,
-    .summary-card,
-    .section-card {
+    .summary-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .notes-cell { width: 55%; vertical-align: top; }
+    .summary-gap { width: 5%; }
+    .totals-cell { width: 40%; vertical-align: top; }
+
+    .section-card,
+    .summary-card {
       border: 1px solid var(--border);
-      border-radius: 4px;
       background: white;
       overflow: hidden;
     }
 
     .section-heading {
-      padding: 12px 16px;
+      padding: 10px 12px;
       background: var(--panel);
       border-bottom: 1px solid var(--border);
       color: var(--text);
-      font-size: 12px;
+      font-size: 9px;
       font-weight: 700;
     }
 
     .section-body {
-      padding: 16px;
+      padding: 12px;
     }
 
     .summary-row {
       display: flex;
       justify-content: space-between;
-      gap: 16px;
-      padding: 9px 0;
+      gap: 12px;
+      padding: 8px 0;
       border-bottom: 1px solid var(--border);
     }
 
@@ -567,13 +601,13 @@ function buildDocumentCss(accentColor: string) {
     }
 
     .summary-row.total {
-      font-size: 15px;
+      font-size: 11pt;
       font-weight: 800;
       color: var(--accent);
     }
 
     .section {
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .section:last-child {
@@ -581,11 +615,11 @@ function buildDocumentCss(accentColor: string) {
     }
 
     .section-card + .section-card {
-      margin-top: 14px;
+      margin-top: 10px;
     }
 
     .section-paragraph {
-      margin: 0 0 10px;
+      margin: 0 0 8px;
       white-space: pre-wrap;
     }
 
@@ -593,18 +627,25 @@ function buildDocumentCss(accentColor: string) {
       margin-bottom: 0;
     }
 
-    .footer {
-      position: fixed;
-      left: 28px;
-      right: 28px;
-      bottom: 14px;
-      padding-top: 10px;
-      border-top: 1px solid var(--border);
+    .notes-title {
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
       color: var(--muted);
-      font-size: 10px;
-      white-space: pre-wrap;
-      background: white;
+      font-weight: 700;
+      margin-bottom: 8px;
     }
+
+    .notes-plain { min-height: 24px; }
+
+    .totals-box { width: 100%; border: 1px solid var(--border); background: white; }
+    .totals-heading { padding: 10px 12px 0; }
+    .totals-inner { width: 100%; border-collapse: collapse; }
+    .totals-inner td { padding: 7px 12px; border-bottom: 1px solid var(--border); }
+    .totals-inner tr:last-child td { border-bottom: none; }
+    .total-label { color: var(--text); }
+    .total-value { text-align: right; font-weight: 700; }
+    .grand-total td { color: var(--accent); font-size: 11pt; font-weight: 700; }
   `
 }
 
@@ -637,20 +678,26 @@ function renderHeader(options: {
 
   return `
     <div class="document-topbar"></div>
-    <header class="header">
-      <div class="header-brand">
-        ${options.logoDataUri ? `<img class="logo" src="${options.logoDataUri}" alt="${escapeHtml(options.brandName)}">` : ''}
-        <div class="brand-copy">
-          <h1 class="brand-name">${escapeHtml(options.brandName)}</h1>
-          <div class="document-title">${escapeHtml(options.title)}</div>
-        </div>
-      </div>
-      <div class="identity">
-        <p class="identity-title">${escapeHtml(options.metaTitle)}</p>
-        <div class="identity-meta">${metaHtml}</div>
-        ${options.statusLabel ? `<div class="identity-status">${escapeHtml(options.statusLabel)}</div>` : ''}
-      </div>
-    </header>
+    <table class="header-table" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td class="brand-block">
+          <table class="brand-row" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+              ${options.logoDataUri ? `<td class="logo-cell"><img class="logo" src="${options.logoDataUri}" alt="${escapeHtml(options.brandName)}"></td>` : ''}
+              <td class="copy-cell">
+                <div class="brand-name">${escapeHtml(options.brandName)}</div>
+                <div class="document-title">${escapeHtml(options.title)}</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+        <td class="meta-block-head">
+          <div class="identity-title">${escapeHtml(options.metaTitle)}</div>
+          <div class="identity-meta">${metaHtml}</div>
+          ${options.statusLabel ? `<div class="identity-status">${escapeHtml(options.statusLabel)}</div>` : ''}
+        </td>
+      </tr>
+    </table>
   `
 }
 
@@ -675,10 +722,13 @@ function renderPartyGrid(options: {
   customerLines?: string[]
 }) {
   return `
-    <section class="party-grid">
-      ${renderPartyCard(options.sellerTitle || 'Emetteur', options.sellerLines || [])}
-      ${renderPartyCard(options.customerTitle || 'Client', options.customerLines || [])}
-    </section>
+    <table class="party-table" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        ${renderPartyCard(options.sellerTitle || 'Emetteur', options.sellerLines || [])}
+        <td class="party-gap"></td>
+        ${renderPartyCard(options.customerTitle || 'Client', options.customerLines || [])}
+      </tr>
+    </table>
   `
 }
 
@@ -693,49 +743,75 @@ function renderMetaBlock(lines?: string[]) {
   `
 }
 
-function renderInvoiceTable(lines: InvoicePdfLine[]) {
+function invoiceColumnCssClass(key: string, header: boolean) {
+  const align = key === 'designation' ? 'designation' : (key === 'lineNumber' ? 'lineNumber' : 'numeric')
+  const vat = key === 'vatRate' ? ' col-vatRate' : ''
+  const total = key === 'totalTtc' && !header ? ' total-cell' : ''
+  if (header) {
+    return `${align}${vat}`.trim()
+  }
+  return `cell col-${key} ${align}${vat}${total}`.trim()
+}
+
+function invoiceColumnWidthClass(key: string) {
+  if (key === 'lineNumber') return 'col-line-number'
+  if (key === 'designation') return 'col-designation'
+  if (key === 'reference') return 'col-reference'
+  if (key === 'quantity') return 'col-quantity'
+  if (key === 'unitPriceHt') return 'col-unit-ht'
+  if (key === 'totalHt') return 'col-total-ht'
+  if (key === 'vatRate') return 'col-vat-rate'
+  if (key === 'vatAmount') return 'col-vat-amount'
+  return 'col-total-ttc'
+}
+
+function renderInvoiceTable(lines: InvoicePdfLine[], columns?: InvoicePdfColumn[]) {
+  const effectiveColumns = columns?.length
+    ? columns
+    : [
+        { key: 'lineNumber', label: 'N°' },
+        { key: 'designation', label: 'Désignation' },
+        { key: 'reference', label: 'Réf.' },
+        { key: 'quantity', label: 'Qté' },
+        { key: 'unitPriceHt', label: 'PU HT' },
+        { key: 'totalHt', label: 'Total HT' },
+        { key: 'vatAmount', label: 'TVA Montant' },
+        { key: 'vatRate', label: 'TVA' },
+        { key: 'totalTtc', label: 'Total TTC' },
+      ]
+  const colgroup = effectiveColumns.map(column => `<col class="${invoiceColumnWidthClass(column.key)}">`).join('')
   const rows = lines.map(line => `
       <tr>
-        <td class="numeric line-number">${escapeHtml(line.lineNumberLabel)}</td>
-        <td>
-          <p class="line-title">${escapeHtml(line.title)}</p>
-          ${line.description ? `<p class="line-description">${escapeHtml(line.description)}</p>` : ''}
-        </td>
-        <td class="numeric line-reference">${escapeHtml(line.referenceLabel)}</td>
-        <td class="numeric">${escapeHtml(line.quantity)}</td>
-        <td class="numeric">${escapeHtml(line.unitPriceExclTaxLabel)}</td>
-        <td class="numeric">${escapeHtml(line.totalPriceExclTaxLabel)}</td>
-        <td class="numeric">${escapeHtml(line.vatAmountLabel)}</td>
-        <td class="numeric">${escapeHtml(line.vatRateLabel || '-')}</td>
-        <td class="numeric"><strong>${escapeHtml(line.totalPriceInclTaxLabel)}</strong></td>
+        ${effectiveColumns.map((column, index) => {
+          if (column.key === 'designation') {
+            return `<td class="${invoiceColumnCssClass(column.key, false)}"><div class="line-title">${escapeHtml(line.title)}</div>${line.description ? `<div class="line-description">${escapeHtml(line.description)}</div>` : ''}</td>`
+          }
+          const fallbackValue = (
+            column.key === 'lineNumber' ? line.lineNumberLabel :
+            column.key === 'reference' ? line.referenceLabel :
+            column.key === 'quantity' ? String(line.quantity) :
+            column.key === 'unitPriceHt' ? line.unitPriceExclTaxLabel :
+            column.key === 'totalHt' ? line.totalPriceExclTaxLabel :
+            column.key === 'vatAmount' ? line.vatAmountLabel :
+            column.key === 'vatRate' ? (line.vatRateLabel || '-') :
+            line.totalPriceInclTaxLabel
+          )
+          const value = line.values?.[column.key] || fallbackValue || (index ? '-' : '-')
+          return `<td class="${invoiceColumnCssClass(column.key, false)}">${escapeHtml(value)}</td>`
+        }).join('')}
       </tr>
     `).join('')
 
   return `
     <section class="invoice-table">
       <table>
-        <colgroup>
-          <col class="col-line-number">
-          <col class="col-designation">
-          <col class="col-reference">
-          <col class="col-quantity">
-          <col class="col-unit-ht">
-          <col class="col-total-ht">
-          <col class="col-vat-amount">
-          <col class="col-vat-rate">
-          <col class="col-total-ttc">
-        </colgroup>
+        <colgroup>${colgroup}</colgroup>
         <thead>
           <tr>
-            <th class="numeric">N°</th>
-            <th class="designation">Désignation</th>
-            <th class="numeric">Réf.</th>
-            <th class="numeric">Qté</th>
-            <th class="numeric">PU HT</th>
-            <th class="numeric">Total HT</th>
-            <th class="numeric">TVA Montant</th>
-            <th class="numeric">TVA</th>
-            <th class="numeric">Total TTC</th>
+            ${effectiveColumns.map((column) => {
+              const headerClass = invoiceColumnCssClass(column.key, true)
+              return `<th class="${headerClass}">${escapeHtml(column.label)}</th>`
+            }).join('')}
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -749,7 +825,12 @@ function renderSummaryCard(options: {
   totalVatLabel: string
   totalInclTaxLabel: string
   taxRows?: Array<{ label: string, amountLabel: string }>
+  labels?: InvoicePdfOptions['labels']
 }) {
+  const totalsTitle = options.labels?.totalsTitle || 'Totaux'
+  const totalHt = options.labels?.totalHt || 'Total HT'
+  const totalVat = options.labels?.totalVat || 'Total TVA'
+  const totalTtc = options.labels?.totalTtc || 'Total TTC'
   const taxRows = (options.taxRows || []).map(group => `
       <div class="summary-row">
         <span>${escapeHtml(group.label)}</span>
@@ -759,19 +840,19 @@ function renderSummaryCard(options: {
 
   return `
     <section class="summary-card">
-      <div class="section-heading">Totaux</div>
+      <div class="section-heading">${escapeHtml(totalsTitle)}</div>
       <div class="section-body">
         <div class="summary-row">
-          <span>Total HT</span>
+          <span>${escapeHtml(totalHt)}</span>
           <span>${escapeHtml(options.subtotalExclTaxLabel)}</span>
         </div>
         ${taxRows}
         <div class="summary-row">
-          <span>Total TVA</span>
+          <span>${escapeHtml(totalVat)}</span>
           <span>${escapeHtml(options.totalVatLabel)}</span>
         </div>
         <div class="summary-row total">
-          <span>Total TTC</span>
+          <span>${escapeHtml(totalTtc)}</span>
           <span>${escapeHtml(options.totalInclTaxLabel)}</span>
         </div>
       </div>
@@ -788,6 +869,23 @@ function renderNotesCard(notes?: string | null) {
       <div class="section-heading">Notes</div>
       <div class="section-body">
         ${paragraphs.map(line => `<p class="section-paragraph">${escapeHtml(line)}</p>`).join('')}
+      </div>
+    </section>
+  `
+}
+
+function renderNotesCardWithLabels(notes: string | null | undefined, labels?: InvoicePdfOptions['labels']) {
+  const paragraphs = textToParagraphs(notes)
+  const notesTitle = labels?.notesTitle || 'Notes'
+  const noNotes = labels?.noNotes || 'No notes'
+
+  return `
+    <section>
+      <div class="notes-title">${escapeHtml(notesTitle)}</div>
+      <div class="notes-plain">
+        ${paragraphs.length
+          ? paragraphs.map(line => `<p class="section-paragraph">${escapeHtml(line)}</p>`).join('')
+          : `<p class="section-paragraph">${escapeHtml(noNotes)}</p>`}
       </div>
     </section>
   `
@@ -816,7 +914,7 @@ function renderFooter(footer?: string | null) {
   return `<footer class="footer">${escapeHtml(text)}</footer>`
 }
 
-async function renderHtmlToPdf(html: string) {
+async function renderHtmlToPdf(html: string, options?: { footerTemplate?: string | null }) {
   if (getCurrentCmsRuntimeTarget() !== 'server') {
     throw createError({
       statusCode: 503,
@@ -853,10 +951,13 @@ async function renderHtmlToPdf(html: string) {
         format: 'A4',
         printBackground: true,
         preferCSSPageSize: true,
+        displayHeaderFooter: Boolean(options?.footerTemplate),
+        headerTemplate: '<div></div>',
+        footerTemplate: options?.footerTemplate || '<div></div>',
         margin: {
           top: '10mm',
           right: '10mm',
-          bottom: '12mm',
+          bottom: options?.footerTemplate ? '20mm' : '12mm',
           left: '10mm'
         }
       })
@@ -868,8 +969,108 @@ async function renderHtmlToPdf(html: string) {
   }
 }
 
+async function renderPreferredPdf(
+  html: string,
+  payload: ExternalInvoicePdfPayload | ExternalBrandedDocumentPdfPayload,
+  failureMessage: string,
+  options?: { footerTemplate?: string | null },
+) {
+  const preferredMode = await resolvePdfRendererMode()
+  const localBrowserAvailable = canUseLocalBrowserPdf()
+  const externalServiceConfigured = Boolean(getExternalPdfServiceUrl())
+
+  if (preferredMode === 'local' && localBrowserAvailable) {
+    try {
+      return Buffer.from(await renderHtmlToPdf(html, options))
+    } catch (error) {
+      if (externalServiceConfigured) {
+        const externalPdf = await renderExternalPdf(payload)
+        if (externalPdf) {
+          return externalPdf
+        }
+      }
+      throw error
+    }
+  }
+
+  if (preferredMode === 'external') {
+    const externalPdf = await renderExternalPdf(payload)
+    if (externalPdf) {
+      return externalPdf
+    }
+
+    if (localBrowserAvailable && getCurrentCmsRuntimeTarget() === 'server') {
+      return Buffer.from(await renderHtmlToPdf(html, options))
+    }
+
+    throw createError({
+      statusCode: 503,
+      statusMessage: failureMessage,
+      message: getCurrentCmsRuntimeTarget() === 'cloudflare'
+        ? 'Le runtime Cloudflare doit utiliser un service PDF externe configure via CMS_PDF_SERVICE_URL.'
+        : 'Le mode PDF externe est sélectionné mais aucun service PDF externe n est configure.',
+    })
+  }
+
+  if (localBrowserAvailable) {
+    try {
+      return Buffer.from(await renderHtmlToPdf(html, options))
+    } catch (error) {
+      if (externalServiceConfigured) {
+        const externalPdf = await renderExternalPdf(payload)
+        if (externalPdf) {
+          return externalPdf
+        }
+      }
+      throw error
+    }
+  }
+
+  const externalPdf = await renderExternalPdf(payload)
+  if (externalPdf) {
+    return externalPdf
+  }
+
+  throw createError({
+    statusCode: 503,
+    statusMessage: failureMessage,
+    message: getCurrentCmsRuntimeTarget() === 'cloudflare'
+      ? 'Le runtime Cloudflare doit utiliser un service PDF externe configure via CMS_PDF_SERVICE_URL.'
+      : 'Aucun navigateur Chromium local n est disponible et aucun service PDF externe n est configure.',
+  })
+}
+
+export async function getPdfRuntimeDiagnostics() {
+  const runtimeTarget = getCurrentCmsRuntimeTarget()
+  const localBrowserAvailable = canUseLocalBrowserPdf()
+  const externalServiceConfigured = Boolean(getExternalPdfServiceUrl())
+  const preferredMode = await resolvePdfRendererMode()
+
+  return {
+    runtimeTarget,
+    localBrowserAvailable,
+    externalServiceConfigured,
+    executablePath: resolveChromiumExecutablePath(),
+    hostPlatform: process.platform,
+    hostArch: os.arch(),
+    preferredMode,
+    effectiveMode: runtimeTarget === 'cloudflare'
+      ? 'external'
+      : preferredMode === 'external'
+        ? 'external'
+        : localBrowserAvailable
+          ? 'local'
+          : externalServiceConfigured
+            ? 'external'
+            : 'local',
+    canSelectLocal: runtimeTarget !== 'cloudflare' && localBrowserAvailable,
+    canSelectExternal: externalServiceConfigured,
+    forcedExternal: runtimeTarget === 'cloudflare',
+  }
+}
+
 export async function buildBrandedDocumentPdf(options: BrandedDocumentPdfOptions) {
-  const externalPdf = await renderExternalPdf({
+  const payload: ExternalBrandedDocumentPdfPayload = {
     kind: 'document',
     title: options.title,
     filename: `${options.title || 'document'}.pdf`,
@@ -889,10 +1090,6 @@ export async function buildBrandedDocumentPdf(options: BrandedDocumentPdfOptions
     metaLines: options.metaLines || [],
     sections: options.sections,
     footer: options.footer,
-  })
-
-  if (externalPdf) {
-    return externalPdf
   }
 
   const accentColor = normalizeColor(options.accentColor)
@@ -919,11 +1116,22 @@ export async function buildBrandedDocumentPdf(options: BrandedDocumentPdfOptions
     ${renderFooter(options.footer)}
   `
 
-  return Buffer.from(await renderHtmlToPdf(wrapHtmlDocument(options.title, body, accentColor)))
+  return await renderPreferredPdf(
+    wrapHtmlDocument(options.title, body, accentColor),
+    payload,
+    'PDF document rendering unavailable',
+    {
+      footerTemplate: buildBrowserFooterTemplate({
+        documentNumber: options.documentNumber || options.title,
+        footer: options.footer,
+        pageLabel: 'Page',
+      }),
+    },
+  )
 }
 
 export async function buildInvoicePdf(options: InvoicePdfOptions) {
-  const externalPdf = await renderExternalPdf({
+  const payload: ExternalInvoicePdfPayload = {
     kind: 'invoice',
     title: options.title,
     filename: `${options.invoiceNumber || 'invoice'}.pdf`,
@@ -945,6 +1153,7 @@ export async function buildInvoicePdf(options: InvoicePdfOptions) {
       phone: options.customerLines[2] || '',
       address: options.customerLines.slice(3).join('\n'),
     },
+    metaLines: options.metaLines || [],
     columns: options.columns,
     items: options.lines.map(line => ({
       values: line.values,
@@ -960,10 +1169,6 @@ export async function buildInvoicePdf(options: InvoicePdfOptions) {
     notes: options.notes,
     footer: options.footer,
     labels: options.labels,
-  })
-
-  if (externalPdf) {
-    return externalPdf
   }
 
   const accentColor = normalizeColor(options.accentColor)
@@ -985,32 +1190,37 @@ export async function buildInvoicePdf(options: InvoicePdfOptions) {
         customerLines: options.customerLines
       })}
       ${renderMetaBlock(options.metaLines)}
-      ${renderInvoiceTable(options.lines)}
-      <section class="summary">
-        <div>
-          ${renderNotesCard(options.notes)}
-        </div>
-        <div>
-          ${renderSummaryCard({
-            subtotalExclTaxLabel: options.subtotalExclTaxLabel,
-            totalVatLabel: options.totalVatLabel,
-            totalInclTaxLabel: options.totalInclTaxLabel,
-            taxRows: options.taxRows
-          })}
-        </div>
-      </section>
+      ${renderInvoiceTable(options.lines, options.columns)}
+      <table class="summary-table" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td class="notes-cell">
+          ${renderNotesCardWithLabels(options.notes, options.labels)}
+          </td>
+          <td class="summary-gap"></td>
+          <td class="totals-cell">
+            ${renderSummaryCard({
+              subtotalExclTaxLabel: options.subtotalExclTaxLabel,
+              totalVatLabel: options.totalVatLabel,
+              totalInclTaxLabel: options.totalInclTaxLabel,
+              taxRows: options.taxRows,
+              labels: options.labels,
+            })}
+          </td>
+        </tr>
+      </table>
     </div>
-    ${renderFooter(options.footer)}
   `
 
-  return Buffer.from(await renderHtmlToPdf(wrapHtmlDocument(options.title, body, accentColor)))
-}
-
-export function getPdfRuntimeDiagnostics() {
-  return {
-    runtimeTarget: getCurrentCmsRuntimeTarget(),
-    executablePath: resolveChromiumExecutablePath(),
-    hostPlatform: process.platform,
-    hostArch: os.arch()
-  }
+  return await renderPreferredPdf(
+    wrapHtmlDocument(options.title, body, accentColor),
+    payload,
+    'PDF invoice rendering unavailable',
+    {
+      footerTemplate: buildBrowserFooterTemplate({
+        documentNumber: options.invoiceNumber,
+        footer: options.footer,
+        pageLabel: options.labels?.page || 'Page',
+      }),
+    },
+  )
 }

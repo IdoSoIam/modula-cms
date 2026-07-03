@@ -304,6 +304,14 @@ export function getAdminNavigationSections(
           { requiredModule: "settings", requiredAction: "read" },
         ),
         createAdminNavigationItem(
+          "settings-system-info",
+          "admin.navigation.items.systemInfo",
+          getAdminRoutePath("settingsSystemInfo", routeLocale),
+          "mdi:server-outline",
+          getAdminRoutePaths("settingsSystemInfo"),
+          { requiredModule: "settings", requiredAction: "read" },
+        ),
+        createAdminNavigationItem(
           "settings-email",
           "admin.navigation.items.emailConnectors",
           getAdminRoutePath("settingsEmailConnectors", routeLocale),

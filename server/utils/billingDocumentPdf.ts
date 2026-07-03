@@ -9,6 +9,7 @@ import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getFarmPick
 import { getResolvedPublicDictionary } from '#modula/server/utils/publicDictionary'
 import { pickCmsLocalizedText } from '#modula/shared/cms'
 import {
+  createDefaultBillingDocumentInvoiceOptions,
   createDefaultBillingDocumentInvoiceColumns,
   normalizeBillingDocumentLocalizedText,
   serializeBillingDocumentTemplate,
@@ -492,6 +493,7 @@ function buildFallbackTemplate(kind: BillingDocumentKind): BillingDocumentTempla
     contentLocalized: normalizeBillingDocumentLocalizedText(''),
     footerLocalized: normalizeBillingDocumentLocalizedText(''),
     invoiceColumns: createDefaultBillingDocumentInvoiceColumns(),
+    invoiceOptions: createDefaultBillingDocumentInvoiceOptions(),
     active: true,
     isDefault: true,
     position: 0,
@@ -577,10 +579,10 @@ export async function createBillingDocumentPdfAttachment(options: {
         order.phone || '',
         [order.deliveryAddress, order.deliveryPostalCode, order.deliveryCity].filter(Boolean).join(' '),
       ].filter(Boolean),
-      metaLines: [
-        `${dictionary['billing.pdf.delivery'] || 'Livraison'} : ${getDeliveryTypeLabel(order, dictionary)}`,
+      metaLines: template.invoiceOptions.showDeliveryMethod ? [
+        template.invoiceOptions.showDeliveryMethod ? `${dictionary['billing.pdf.delivery'] || 'Livraison'} : ${getDeliveryTypeLabel(order, dictionary)}` : '',
         order.fulfillmentDate ? `${dictionary['billing.pdf.fulfillment'] || 'Mise à disposition'} : ${formatDateLabel(order.fulfillmentDate, localeCode)}${order.fulfillmentTime ? ` · ${order.fulfillmentTime}` : ''}${order.fulfillmentLocation ? ` · ${order.fulfillmentLocation}` : ''}` : '',
-      ].filter(Boolean),
+      ].filter(Boolean) : [],
       columns: invoiceColumns,
       lines: order.lines.map((line, index) => {
         const amounts = getInvoiceLineAmounts(line)

@@ -65,6 +65,7 @@ export const SETTING_KEYS = {
   CMS_REGISTRY_URL: 'cms_registry_url_v1',
   CMS_REGISTRY_API_KEY: 'cms_registry_api_key_v1',
   IMAGE_PERSIST_VARIANTS: 'image_persist_variants_v1',
+  PDF_RENDERER_MODE: 'pdf_renderer_mode_v1',
   DAISYUI_THEME_CONFIG: 'daisyui_theme_config_v1',
   EMAIL_VISUAL_TEMPLATE_CONFIG: 'email_visual_template_config_v1',
   IN_DEVELOPMENT: 'in_development',
@@ -517,6 +518,8 @@ export interface ImageVariantSettings {
   runtimeTarget: 'server' | 'cloudflare'
 }
 
+export type PdfRendererMode = 'local' | 'external'
+
 function getResolvedPlatformConfig() {
   return resolveCmsPlatformConfig(process.env, cmsProjectConfig)
 }
@@ -545,6 +548,19 @@ export async function getImageVariantSettings(): Promise<ImageVariantSettings> {
 
 export async function arePersistentImageVariantsEnabled() {
   return (await getImageVariantSettings()).persistVariants
+}
+
+export async function getStoredPdfRendererMode(): Promise<PdfRendererMode | null> {
+  const raw = (await getSetting(SETTING_KEYS.PDF_RENDERER_MODE))?.trim().toLowerCase()
+  return raw === 'external' ? 'external' : raw === 'local' ? 'local' : null
+}
+
+export async function savePdfRendererMode(mode: PdfRendererMode | null | undefined) {
+  if (mode === 'local' || mode === 'external') {
+    await setSetting(SETTING_KEYS.PDF_RENDERER_MODE, mode)
+    return
+  }
+  await deleteSetting(SETTING_KEYS.PDF_RENDERER_MODE)
 }
 
 export async function isAssociationRolesEnabled() {

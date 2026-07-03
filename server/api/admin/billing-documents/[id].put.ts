@@ -2,6 +2,7 @@ import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
 import {
   buildBillingDocumentLocalizedPayload,
+  normalizeBillingDocumentInvoiceOptions,
   normalizeBillingDocumentInvoiceColumns,
   enforceSingleDefaultBillingDocument,
   ensureUniqueBillingDocumentSlug,
@@ -24,6 +25,7 @@ interface Body {
   contentLocalized?: CmsLocalizedText | null
   footerLocalized?: CmsLocalizedText | null
   invoiceColumns?: BillingDocumentInvoiceColumnConfig[] | null
+  invoiceOptions?: Record<string, unknown> | null
   active?: boolean
   isDefault?: boolean
   position?: number
@@ -51,6 +53,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Nom requis' })
   }
 
+  if (nextKind === 'INVOICE') {
+    const otherInvoice = await db.billingDocumentTemplate.findFirst({
+      where: {
+        kind: 'INVOICE',
+        id: { not: id }
+      }
+    })
+    if (otherInvoice) {
+      throw createError({ statusCode: 400, statusMessage: 'Un seul modèle de facture est autorisé' })
+    }
+  }
+
   const data: Record<string, any> = {
     kind: nextKind
   }
@@ -62,7 +76,7 @@ export default defineEventHandler(async (event) => {
   if (body.accentColor !== undefined) data.accentColor = body.accentColor?.trim() || null
   if (body.sourcePdfUrl !== undefined) data.sourcePdfUrl = body.sourcePdfUrl?.trim() || null
   if (body.active !== undefined) data.active = Boolean(body.active)
-  if (body.isDefault !== undefined) data.isDefault = Boolean(body.isDefault)
+  if (body.isDefault !== undefined || nextKind === 'INVOICE') data.isDefault = nextKind === 'INVOICE' ? true : Boolean(body.isDefault)
   if (body.position !== undefined) data.position = Number.isFinite(Number(body.position)) ? Number(body.position) : 0
   if (body.slug !== undefined || body.name !== undefined) {
     data.slug = await ensureUniqueBillingDocumentSlug(body.slug?.trim() || nextName || String(existing.slug), id)
@@ -78,6 +92,9 @@ export default defineEventHandler(async (event) => {
   }
   if (body.invoiceColumns !== undefined) {
     data.invoiceColumnsJson = JSON.stringify(normalizeBillingDocumentInvoiceColumns(body.invoiceColumns))
+  }
+  if (body.invoiceOptions !== undefined) {
+    data.invoiceOptionsJson = JSON.stringify(normalizeBillingDocumentInvoiceOptions(body.invoiceOptions))
   }
 
   const row = await db.billingDocumentTemplate.update({

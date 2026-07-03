@@ -360,6 +360,51 @@ Selon la plateforme :
 
 Les assets de modèles partagés ne sont pas censés rester dispersés dans chaque instance. Le registre sert de source centrale pour les assets système des modèles.
 
+## PDF
+
+Le CMS peut générer les factures, contrats et assurances de deux manières.
+
+### Priorité de rendu
+
+En runtime Node classique :
+
+- si un navigateur Chromium local est disponible, le CMS génère directement le PDF
+- sinon il bascule vers un service PDF externe si `CMS_PDF_SERVICE_URL` est configuré
+
+En runtime Cloudflare :
+
+- le rendu navigateur local n’est pas disponible
+- un service PDF externe est donc obligatoire
+
+### Variables d’environnement
+
+```env
+CMS_PDF_SERVICE_URL="https://pdf.example.com"
+CMS_PDF_SERVICE_API_KEY="secret"
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=""
+```
+
+Rôle des variables :
+
+- `CMS_PDF_SERVICE_URL`
+  - URL du service PDF externe
+  - obligatoire en Cloudflare
+  - optionnelle en Node si Chromium local est disponible
+- `CMS_PDF_SERVICE_API_KEY`
+  - clé envoyée au service externe sur le header `X-Modula-PDF-Key`
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`
+  - chemin explicite vers Chromium/Chrome/Edge si l’auto-détection ne suffit pas
+
+### Service PDF externe
+
+Le service PHP de référence est séparé du CMS et peut être hébergé à part.
+
+Il est particulièrement utile pour :
+
+- les instances Cloudflare
+- les serveurs Node sans Chromium local
+- les environnements mutualisés où le rendu navigateur n’est pas souhaitable dans le process CMS
+
 ## Email
 
 Le CMS expose une personnalisation email avec :

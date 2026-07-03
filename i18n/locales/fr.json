@@ -455,6 +455,7 @@
         "siteTemplate": "Modèle de site",
         "onlinePayments": "Paiement en ligne",
         "updates": "Mises à jour",
+        "systemInfo": "Informations système",
         "emailConnectors": "Emails et connecteurs",
         "features": "Fonctionnalités",
         "users": "Utilisateurs",
@@ -775,31 +776,43 @@
       "paymentRequired": "Au moins un mode de paiement doit être activé"
     },
     "billingDocumentsPage": {
-      "title": "Factures et contrats",
-      "description": "Gérez plusieurs modèles de facture et de contrat avec leurs contenus multilingues.",
+      "title": "Modèle de facture et documents",
+      "description": "Séparez le modèle de facture utilisé au paiement des documents produit de type contrat et assurance.",
       "newContract": "Nouveau contrat",
       "newAssurance": "Nouveau document d'assurance",
       "newInvoice": "Nouvelle facture",
+      "createInvoiceTemplate": "Créer le modèle de facture",
+      "editInvoiceTemplate": "Modifier le modèle de facture",
       "kindContract": "Contrat",
       "kindAssurance": "Assurance",
       "kindInvoice": "Facture",
+      "invoiceSectionTitle": "Modèle de facture",
+      "invoiceSectionDescription": "Une seule facture est utilisée par défaut pour les commandes payées.",
+      "documentsSectionTitle": "Documents",
+      "emptyInvoice": "Aucun modèle de facture. Créez-en un pour les paiements validés.",
       "defaultBadge": "Par défaut",
       "active": "Actif",
       "inactive": "Inactif",
       "emptyGroup": "Aucun document dans cette catégorie.",
       "editTitle": "Modifier le document",
       "createTitle": "Nouveau document",
+      "editInvoiceTitle": "Modifier le modèle de facture",
+      "createInvoiceTitle": "Créer le modèle de facture",
       "editorDescription": "Chaque document peut exister en plusieurs langues avec traduction automatique des champs manquants.",
+      "invoiceEditorDescription": "Ce modèle de facture est utilisé automatiquement pour les commandes payées.",
+      "documentsEditorDescription": "Les documents produit servent à gérer les contrats et assurances partageables entre plusieurs produits.",
       "preview": "Prévisualiser",
       "delete": "Supprimer",
       "deleted": "Document supprimé",
       "saved": "Document enregistré",
+      "invoiceDefaultHelp": "Le modèle de facture est toujours utilisé par défaut pour les paiements.",
       "slugPlaceholder": "Laisser vide pour génération automatique",
       "sourcePdfHelp": "Optionnel. Associez un PDF partagé existant pour réutiliser le même contrat ou la même assurance sur plusieurs produits.",
       "sourcePdfPlaceholder": "/uploads/contrat.pdf ou https://...",
       "deleteConfirm": "Supprimer \"{name}\" ?",
       "errors": {
-        "nameRequired": "Le nom du document est requis"
+        "nameRequired": "Le nom du document est requis",
+        "singleInvoiceOnly": "Un seul modèle de facture est autorisé"
       },
       "fields": {
         "kind": "Type de document",
@@ -817,6 +830,9 @@
         "localizedContent": "Contenu du document",
         "localizedNotes": "Notes",
         "localizedFooter": "Pied de document"
+      },
+      "invoiceOptions": {
+        "showDeliveryMethod": "Afficher le mode de livraison sur la facture"
       },
       "invoiceColumns": {
         "title": "Colonnes de facture",
@@ -1299,6 +1315,31 @@
         "rollback-complete": "Retour arrière terminé",
         "stale": "Job interrompu ou devenu obsolète"
       }
+    },
+    "systemInfoPage": {
+      "title": "Informations système",
+      "description": "Consultez l'environnement d'exécution de cette instance et choisissez le moteur PDF utilisé pour les factures et documents générés.",
+      "pdfTitle": "Génération PDF",
+      "pdfDescription": "Le moteur local utilise Chromium sur le serveur Node. Le moteur externe délègue la génération à un service HTTP dédié.",
+      "pdfModeLabel": "Moteur PDF",
+      "pdfModeLocal": "Rendu local",
+      "pdfModeLocalHelp": "Utilise Chromium présent sur le serveur pour générer les PDF directement dans l'instance.",
+      "pdfModeExternal": "Service externe",
+      "pdfModeExternalHelp": "Envoie le HTML au service PDF configuré via l'environnement, recommandé pour Cloudflare et les hébergements sans navigateur local.",
+      "pdfModeCloudflareForced": "Runtime Cloudflare détecté : le rendu PDF externe est obligatoire sur cette instance.",
+      "pdfModeUnavailable": "Aucun moteur exploitable n'est actuellement disponible. Configurez soit Chromium local, soit un service PDF externe.",
+      "pdfModeLocalUnavailable": "Le rendu local est indisponible : aucun exécutable Chromium compatible n'a été détecté sur ce serveur.",
+      "pdfModeExternalUnavailable": "Le service PDF externe n'est pas configuré dans l'environnement de cette instance.",
+      "preferredMode": "Mode choisi",
+      "effectiveMode": "Mode réellement utilisé",
+      "localBrowserAvailable": "Chromium local disponible",
+      "externalServiceConfigured": "Service externe configuré",
+      "chromiumPath": "Chemin Chromium détecté",
+      "save": "Enregistrer",
+      "saveSuccess": "Préférence PDF enregistrée",
+      "saveError": "Impossible d'enregistrer la préférence PDF",
+      "yes": "Oui",
+      "no": "Non"
     },
     "emailConnectorsPage": {
       "title": "Emails et connecteurs",

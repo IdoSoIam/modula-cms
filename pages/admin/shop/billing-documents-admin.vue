@@ -6,6 +6,13 @@
         <p class="mt-1 text-sm opacity-70">{{ t('admin.billingDocumentsPage.description') }}</p>
       </div>
       <div class="flex flex-wrap gap-2">
+        <button
+          class="btn btn-primary"
+          @click="startInvoiceEditor"
+        >
+          <Icon name="mdi:invoice-outline" size="18" />
+          {{ invoiceDocument ? t('admin.billingDocumentsPage.editInvoiceTemplate') : t('admin.billingDocumentsPage.createInvoiceTemplate') }}
+        </button>
         <button class="btn btn-outline" @click="startCreate('CONTRACT')">
           <Icon name="mdi:file-document-edit-outline" size="18" />
           {{ t('admin.billingDocumentsPage.newContract') }}
@@ -13,10 +20,6 @@
         <button class="btn btn-outline" @click="startCreate('ASSURANCE')">
           <Icon name="mdi:file-document-outline" size="18" />
           {{ t('admin.billingDocumentsPage.newAssurance') }}
-        </button>
-        <button class="btn btn-primary" @click="startCreate('INVOICE')">
-          <Icon name="mdi:invoice" size="18" />
-          {{ t('admin.billingDocumentsPage.newInvoice') }}
         </button>
       </div>
     </div>
@@ -27,15 +30,62 @@
           <span class="loading loading-spinner loading-md" />
         </div>
         <div v-else class="space-y-6">
-          <div v-for="group in groupedDocuments" :key="group.kind" class="space-y-3">
+          <div class="space-y-3">
             <div class="flex items-center justify-between gap-3">
               <h2 class="text-sm font-semibold uppercase tracking-wide opacity-70">
-                {{ group.label }}
+                {{ t('admin.billingDocumentsPage.invoiceSectionTitle') }}
               </h2>
-              <span class="badge badge-outline">{{ group.items.length }}</span>
+              <span class="badge badge-outline">{{ invoiceDocument ? 1 : 0 }}</span>
             </div>
 
-            <div class="space-y-2">
+            <div v-if="invoiceDocument" class="space-y-2">
+              <button
+                type="button"
+                class="flex w-full flex-col rounded-xl border p-4 text-left transition"
+                :class="selectedId === invoiceDocument.id
+                  ? 'border-primary bg-primary/5'
+                  : 'border-base-300 bg-base-200/40 hover:border-primary/50 hover:bg-base-200'"
+                @click="selectDocument(invoiceDocument)"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="truncate font-semibold">{{ invoiceDocument.name }}</div>
+                    <div class="truncate text-xs opacity-70">{{ invoiceDocument.slug }}</div>
+                  </div>
+                  <div class="flex gap-1">
+                    <span class="badge badge-primary badge-sm">{{ t('admin.billingDocumentsPage.defaultBadge') }}</span>
+                    <span class="badge badge-sm" :class="invoiceDocument.active ? 'badge-success' : 'badge-ghost'">
+                      {{ invoiceDocument.active ? t('admin.billingDocumentsPage.active') : t('admin.billingDocumentsPage.inactive') }}
+                    </span>
+                  </div>
+                </div>
+                <p class="mt-2 text-sm opacity-70">
+                  {{ t('admin.billingDocumentsPage.invoiceSectionDescription') }}
+                </p>
+              </button>
+            </div>
+
+            <div v-else class="rounded-xl border border-dashed border-base-300 p-4 text-sm opacity-60">
+              {{ t('admin.billingDocumentsPage.emptyInvoice') }}
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-sm font-semibold uppercase tracking-wide opacity-70">
+                {{ t('admin.billingDocumentsPage.documentsSectionTitle') }}
+              </h2>
+              <span class="badge badge-outline">{{ nonInvoiceDocuments.length }}</span>
+            </div>
+
+            <div v-for="group in groupedNonInvoiceDocuments" :key="group.kind" class="space-y-2">
+              <div class="flex items-center justify-between gap-3">
+                <h3 class="text-xs font-semibold uppercase tracking-wide opacity-60">
+                  {{ group.label }}
+                </h3>
+                <span class="badge badge-outline badge-sm">{{ group.items.length }}</span>
+              </div>
+
               <button
                 v-for="entry in group.items"
                 :key="entry.id"
@@ -75,10 +125,10 @@
         <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 class="text-2xl font-semibold">
-              {{ isEditing ? t('admin.billingDocumentsPage.editTitle') : t('admin.billingDocumentsPage.createTitle') }}
+              {{ editorTitle }}
             </h2>
             <p class="mt-1 text-sm opacity-70">
-              {{ t('admin.billingDocumentsPage.editorDescription') }}
+              {{ editorDescription }}
             </p>
           </div>
 
@@ -107,12 +157,11 @@
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2">
-          <label class="form-control flex flex-col gap-2">
+          <label v-if="form.kind !== 'INVOICE'" class="form-control flex flex-col gap-2">
             <span class="label"><span class="label-text">{{ t('admin.billingDocumentsPage.fields.kind') }}</span></span>
             <select v-model="form.kind" class="select select-bordered w-full">
               <option value="CONTRACT">{{ t('admin.billingDocumentsPage.kindContract') }}</option>
               <option value="ASSURANCE">{{ t('admin.billingDocumentsPage.kindAssurance') }}</option>
-              <option value="INVOICE">{{ t('admin.billingDocumentsPage.kindInvoice') }}</option>
             </select>
           </label>
 
@@ -174,10 +223,13 @@
             <span class="label-text">{{ t('admin.billingDocumentsPage.fields.active') }}</span>
           </label>
 
-          <label class="form-control flex gap-3">
+          <label v-if="form.kind !== 'INVOICE'" class="form-control flex gap-3">
             <input v-model="form.isDefault" class="toggle toggle-primary" type="checkbox">
             <span class="label-text">{{ t('admin.billingDocumentsPage.fields.isDefault') }}</span>
           </label>
+          <div v-else class="rounded-xl border border-base-300 bg-base-200/50 px-4 py-3 text-sm opacity-80">
+            {{ t('admin.billingDocumentsPage.invoiceDefaultHelp') }}
+          </div>
         </div>
 
         <div class="mt-8 space-y-5">
@@ -206,6 +258,13 @@
           v-if="form.kind === 'INVOICE'"
           class="mt-8 rounded-[1.75rem] border border-base-300 bg-base-100 p-5"
         >
+          <div class="mb-5 rounded-2xl border border-base-300 bg-base-200/40 p-4">
+            <label class="form-control flex gap-3">
+              <input v-model="form.invoiceOptions.showDeliveryMethod" class="toggle toggle-primary" type="checkbox">
+              <span class="label-text">{{ t('admin.billingDocumentsPage.invoiceOptions.showDeliveryMethod') }}</span>
+            </label>
+          </div>
+
           <div class="mb-5">
             <h3 class="text-lg font-semibold">{{ t('admin.billingDocumentsPage.invoiceColumns.title') }}</h3>
             <p class="mt-1 text-sm opacity-70">{{ t('admin.billingDocumentsPage.invoiceColumns.description') }}</p>
@@ -248,8 +307,10 @@ import { createEmptyCmsLocalizedText, type CmsLocalizedText } from '#modula/shar
 import {
   BILLING_DOCUMENT_INVOICE_COLUMN_ORDER,
   createDefaultBillingDocumentInvoiceColumns,
+  createDefaultBillingDocumentInvoiceOptions,
   type BillingDocumentInvoiceColumnConfig,
   type BillingDocumentInvoiceColumnKey,
+  type BillingDocumentInvoiceOptions,
 } from '#modula/shared/billingDocuments'
 
 type BillingDocumentKind = 'INVOICE' | 'CONTRACT' | 'ASSURANCE'
@@ -268,6 +329,7 @@ interface BillingDocumentTemplatePayload {
   contentLocalized: CmsLocalizedText
   footerLocalized: CmsLocalizedText
   invoiceColumns: BillingDocumentInvoiceColumnConfig[]
+  invoiceOptions: BillingDocumentInvoiceOptions
   active: boolean
   isDefault: boolean
   position: number
@@ -302,6 +364,7 @@ const createEmptyForm = (kind: BillingDocumentKind = 'CONTRACT') => ({
   contentLocalized: createEmptyCmsLocalizedText(siteLocales.value),
   footerLocalized: createEmptyCmsLocalizedText(siteLocales.value),
   invoiceColumns: createDefaultBillingDocumentInvoiceColumns(siteLocales.value),
+  invoiceOptions: createDefaultBillingDocumentInvoiceOptions(),
   active: true,
   isDefault: false,
   position: 0
@@ -310,27 +373,38 @@ const createEmptyForm = (kind: BillingDocumentKind = 'CONTRACT') => ({
 const form = ref(createEmptyForm())
 
 const isEditing = computed(() => Boolean(form.value.id))
+const invoiceDocument = computed(() => (documents.value || []).find((entry) => entry.kind === 'INVOICE') || null)
+const nonInvoiceDocuments = computed(() => (documents.value || []).filter((entry) => entry.kind !== 'INVOICE'))
 
-const groupedDocuments = computed(() => {
-  const entries = documents.value || []
-  return [
-    {
-      kind: 'CONTRACT' as BillingDocumentKind,
-      label: t('admin.billingDocumentsPage.kindContract'),
-      items: entries.filter((entry) => entry.kind === 'CONTRACT')
-    },
-    {
-      kind: 'ASSURANCE' as BillingDocumentKind,
-      label: t('admin.billingDocumentsPage.kindAssurance'),
-      items: entries.filter((entry) => entry.kind === 'ASSURANCE')
-    },
-    {
-      kind: 'INVOICE' as BillingDocumentKind,
-      label: t('admin.billingDocumentsPage.kindInvoice'),
-      items: entries.filter((entry) => entry.kind === 'INVOICE')
-    }
-  ]
+const groupedNonInvoiceDocuments = computed(() => [
+  {
+    kind: 'CONTRACT' as BillingDocumentKind,
+    label: t('admin.billingDocumentsPage.kindContract'),
+    items: nonInvoiceDocuments.value.filter((entry) => entry.kind === 'CONTRACT')
+  },
+  {
+    kind: 'ASSURANCE' as BillingDocumentKind,
+    label: t('admin.billingDocumentsPage.kindAssurance'),
+    items: nonInvoiceDocuments.value.filter((entry) => entry.kind === 'ASSURANCE')
+  }
+])
+
+const editorTitle = computed(() => {
+  if (form.value.kind === 'INVOICE') {
+    return isEditing.value
+      ? t('admin.billingDocumentsPage.editInvoiceTitle')
+      : t('admin.billingDocumentsPage.createInvoiceTitle')
+  }
+  return isEditing.value
+    ? t('admin.billingDocumentsPage.editTitle')
+    : t('admin.billingDocumentsPage.createTitle')
 })
+
+const editorDescription = computed(() => (
+  form.value.kind === 'INVOICE'
+    ? t('admin.billingDocumentsPage.invoiceEditorDescription')
+    : t('admin.billingDocumentsPage.documentsEditorDescription')
+))
 
 const invoiceColumnEntries = computed(() => {
   const columnMap = new Map(form.value.invoiceColumns.map((entry) => [entry.key, entry]))
@@ -366,6 +440,9 @@ function selectDocument(entry: BillingDocumentTemplatePayload) {
       enabled: column.enabled,
       labelLocalized: { ...column.labelLocalized },
     })),
+    invoiceOptions: {
+      showDeliveryMethod: entry.invoiceOptions?.showDeliveryMethod !== false,
+    },
     active: entry.active,
     isDefault: entry.isDefault,
     position: entry.position
@@ -373,8 +450,23 @@ function selectDocument(entry: BillingDocumentTemplatePayload) {
 }
 
 function startCreate(kind: BillingDocumentKind) {
+  if (kind === 'INVOICE' && invoiceDocument.value) {
+    selectDocument(invoiceDocument.value)
+    return
+  }
   selectedId.value = null
   form.value = createEmptyForm(kind)
+  if (kind === 'INVOICE') {
+    form.value.isDefault = true
+  }
+}
+
+function startInvoiceEditor() {
+  if (invoiceDocument.value) {
+    selectDocument(invoiceDocument.value)
+    return
+  }
+  startCreate('INVOICE')
 }
 
 function resetForm() {
@@ -384,6 +476,10 @@ function resetForm() {
       selectDocument(existing)
       return
     }
+  }
+  if (invoiceDocument.value) {
+    selectDocument(invoiceDocument.value)
+    return
   }
   startCreate('CONTRACT')
 }
@@ -409,8 +505,9 @@ async function save() {
       contentLocalized: form.value.contentLocalized,
       footerLocalized: form.value.footerLocalized,
       invoiceColumns: form.value.invoiceColumns,
+      invoiceOptions: form.value.invoiceOptions,
       active: form.value.active,
-      isDefault: form.value.isDefault,
+      isDefault: form.value.kind === 'INVOICE' ? true : form.value.isDefault,
       position: form.value.position
     }
 
@@ -454,6 +551,7 @@ async function previewDocument() {
         contentLocalized: form.value.contentLocalized,
         footerLocalized: form.value.footerLocalized,
         invoiceColumns: form.value.invoiceColumns,
+        invoiceOptions: form.value.invoiceOptions,
       },
       responseType: 'blob'
     })
@@ -507,7 +605,7 @@ watch(
   documents,
   (value) => {
     if (!value?.length) {
-      startCreate('CONTRACT')
+      startInvoiceEditor()
       return
     }
 
@@ -520,7 +618,12 @@ watch(
       }
     }
 
-    const first = value[0]
+    if (invoiceDocument.value) {
+      selectDocument(invoiceDocument.value)
+      return
+    }
+
+    const first = nonInvoiceDocuments.value[0]
     if (first) {
       selectDocument(first)
     }

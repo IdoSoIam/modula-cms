@@ -2,6 +2,7 @@ import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
 import {
   buildBillingDocumentLocalizedPayload,
+  normalizeBillingDocumentInvoiceOptions,
   normalizeBillingDocumentInvoiceColumns,
   enforceSingleDefaultBillingDocument,
   ensureUniqueBillingDocumentSlug,
@@ -24,6 +25,7 @@ interface Body {
   contentLocalized?: CmsLocalizedText | null
   footerLocalized?: CmsLocalizedText | null
   invoiceColumns?: BillingDocumentInvoiceColumnConfig[] | null
+  invoiceOptions?: Record<string, unknown> | null
   active?: boolean
   isDefault?: boolean
   position?: number
@@ -43,10 +45,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Nom requis' })
   }
 
+  if (kind === 'INVOICE') {
+    const existingInvoice = await db.billingDocumentTemplate.findFirst({
+      where: { kind: 'INVOICE' }
+    })
+    if (existingInvoice) {
+      throw createError({ statusCode: 400, statusMessage: 'Un seul modèle de facture est autorisé' })
+    }
+  }
+
   const titlePayload = buildBillingDocumentLocalizedPayload(body.titleLocalized, name)
   const contentPayload = buildBillingDocumentLocalizedPayload(body.contentLocalized)
   const footerPayload = buildBillingDocumentLocalizedPayload(body.footerLocalized)
   const invoiceColumns = normalizeBillingDocumentInvoiceColumns(body.invoiceColumns)
+  const invoiceOptions = normalizeBillingDocumentInvoiceOptions(body.invoiceOptions)
   const slug = await ensureUniqueBillingDocumentSlug(body.slug?.trim() || name)
 
   const row = await db.billingDocumentTemplate.create({
@@ -63,8 +75,9 @@ export default defineEventHandler(async (event) => {
       contentJson: contentPayload.json,
       footerJson: footerPayload.json,
       invoiceColumnsJson: JSON.stringify(invoiceColumns),
+      invoiceOptionsJson: JSON.stringify(invoiceOptions),
       active: body.active !== false,
-      isDefault: Boolean(body.isDefault),
+      isDefault: kind === 'INVOICE' ? true : Boolean(body.isDefault),
       position: Number.isFinite(Number(body.position)) ? Number(body.position) : 0
     }
   })

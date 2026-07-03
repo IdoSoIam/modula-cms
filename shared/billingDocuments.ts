@@ -19,6 +19,10 @@ export interface BillingDocumentInvoiceColumnConfig {
   labelLocalized: CmsLocalizedText
 }
 
+export interface BillingDocumentInvoiceOptions {
+  showDeliveryMethod: boolean
+}
+
 export const BILLING_DOCUMENT_INVOICE_COLUMN_ORDER: BillingDocumentInvoiceColumnKey[] = [
   'lineNumber',
   'designation',
@@ -41,6 +45,12 @@ export const BILLING_DOCUMENT_INVOICE_COLUMN_LABELS: Record<BillingDocumentInvoi
   vatRate: { fr: 'TVA', en: 'VAT' },
   vatAmount: { fr: 'TVA montant', en: 'VAT amount' },
   totalTtc: { fr: 'Total TTC', en: 'Total incl. tax' },
+}
+
+export function createDefaultBillingDocumentInvoiceOptions(): BillingDocumentInvoiceOptions {
+  return {
+    showDeliveryMethod: true,
+  }
 }
 
 export function createDefaultBillingDocumentInvoiceColumns(

@@ -455,6 +455,7 @@
         "siteTemplate": "Site template",
         "onlinePayments": "Online payments",
         "updates": "Updates",
+        "systemInfo": "System information",
         "emailConnectors": "Emails and connectors",
         "features": "Features",
         "users": "Users",
@@ -785,31 +786,43 @@
       "paymentRequired": "At least one payment method must be enabled"
     },
     "billingDocumentsPage": {
-      "title": "Invoices and contracts",
-      "description": "Manage multiple invoice and contract templates with multilingual content.",
+      "title": "Invoice template and documents",
+      "description": "Separate the invoice template used for payments from product documents of type contract and insurance.",
       "newContract": "New contract",
       "newAssurance": "New insurance document",
       "newInvoice": "New invoice",
+      "createInvoiceTemplate": "Create invoice template",
+      "editInvoiceTemplate": "Edit invoice template",
       "kindContract": "Contract",
       "kindAssurance": "Insurance",
       "kindInvoice": "Invoice",
+      "invoiceSectionTitle": "Invoice template",
+      "invoiceSectionDescription": "A single invoice template is used by default for paid orders.",
+      "documentsSectionTitle": "Documents",
+      "emptyInvoice": "No invoice template yet. Create one for paid orders.",
       "defaultBadge": "Default",
       "active": "Active",
       "inactive": "Inactive",
       "emptyGroup": "No document in this group yet.",
       "editTitle": "Edit document",
       "createTitle": "New document",
+      "editInvoiceTitle": "Edit invoice template",
+      "createInvoiceTitle": "Create invoice template",
       "editorDescription": "Each document can be written in multiple languages with automatic translation for missing fields.",
+      "invoiceEditorDescription": "This invoice template is automatically used for paid orders.",
+      "documentsEditorDescription": "Product documents are used to manage contracts and insurance files shared across multiple products.",
       "preview": "Preview",
       "delete": "Delete",
       "deleted": "Document deleted",
       "saved": "Document saved",
+      "invoiceDefaultHelp": "The invoice template is always used as the default for payments.",
       "slugPlaceholder": "Leave empty to auto-generate",
       "sourcePdfHelp": "Optional. Link an existing shared PDF to reuse the same contract or insurance document across multiple products.",
       "sourcePdfPlaceholder": "/uploads/contract.pdf or https://...",
       "deleteConfirm": "Delete \"{name}\"?",
       "errors": {
-        "nameRequired": "Document name is required"
+        "nameRequired": "Document name is required",
+        "singleInvoiceOnly": "Only one invoice template is allowed"
       },
       "fields": {
         "kind": "Document type",
@@ -827,6 +840,9 @@
         "localizedContent": "Document content",
         "localizedNotes": "Notes",
         "localizedFooter": "Document footer"
+      },
+      "invoiceOptions": {
+        "showDeliveryMethod": "Show delivery method on the invoice"
       },
       "invoiceColumns": {
         "title": "Invoice columns",
@@ -1295,6 +1311,31 @@
         "rollback-complete": "Rollback completed",
         "stale": "Job interrupted or stale"
       }
+    },
+    "systemInfoPage": {
+      "title": "System information",
+      "description": "Inspect this instance runtime environment and choose which PDF renderer is used for generated invoices and documents.",
+      "pdfTitle": "PDF rendering",
+      "pdfDescription": "Local rendering uses Chromium on the Node server. External rendering delegates PDF generation to a dedicated HTTP service.",
+      "pdfModeLabel": "PDF engine",
+      "pdfModeLocal": "Local rendering",
+      "pdfModeLocalHelp": "Uses Chromium available on the server to generate PDFs directly inside the instance.",
+      "pdfModeExternal": "External service",
+      "pdfModeExternalHelp": "Sends the HTML to the PDF service configured through the environment, recommended for Cloudflare and hosts without a local browser.",
+      "pdfModeCloudflareForced": "Cloudflare runtime detected: external PDF rendering is mandatory on this instance.",
+      "pdfModeUnavailable": "No usable PDF engine is currently available. Configure either a local Chromium binary or an external PDF service.",
+      "pdfModeLocalUnavailable": "Local rendering is unavailable: no compatible Chromium executable was detected on this server.",
+      "pdfModeExternalUnavailable": "The external PDF service is not configured in this instance environment.",
+      "preferredMode": "Selected mode",
+      "effectiveMode": "Effective mode",
+      "localBrowserAvailable": "Local Chromium available",
+      "externalServiceConfigured": "External service configured",
+      "chromiumPath": "Detected Chromium path",
+      "save": "Save",
+      "saveSuccess": "PDF preference saved",
+      "saveError": "Unable to save the PDF preference",
+      "yes": "Yes",
+      "no": "No"
     },
     "emailConnectorsPage": {
       "title": "Emails and connectors",

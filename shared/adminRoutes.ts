@@ -99,6 +99,10 @@ export const ADMIN_ROUTE_PATHS = {
     fr: "/admin/settings/updates",
     en: "/admin/settings/updates",
   },
+  settingsSystemInfo: {
+    fr: "/admin/settings/system-info",
+    en: "/admin/settings/system-info",
+  },
   settingsFeatures: {
     fr: "/admin/settings/features",
     en: "/admin/settings/features",

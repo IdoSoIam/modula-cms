@@ -3,9 +3,11 @@ import { db } from '#modula/server/data/client'
 import { slugify } from '#modula/server/utils/slug'
 import {
   BILLING_DOCUMENT_INVOICE_COLUMN_ORDER,
+  createDefaultBillingDocumentInvoiceOptions,
   createDefaultBillingDocumentInvoiceColumns,
   type BillingDocumentInvoiceColumnConfig,
   type BillingDocumentInvoiceColumnKey,
+  type BillingDocumentInvoiceOptions,
   type BillingDocumentKind,
 } from '#modula/shared/billingDocuments'
 
@@ -13,8 +15,10 @@ export { createDefaultBillingDocumentInvoiceColumns }
 export type {
   BillingDocumentInvoiceColumnConfig,
   BillingDocumentInvoiceColumnKey,
+  BillingDocumentInvoiceOptions,
   BillingDocumentKind,
 } from '#modula/shared/billingDocuments'
+export { createDefaultBillingDocumentInvoiceOptions } from '#modula/shared/billingDocuments'
 
 export interface BillingDocumentTemplatePayload {
   id: number
@@ -30,6 +34,7 @@ export interface BillingDocumentTemplatePayload {
   contentLocalized: CmsLocalizedText
   footerLocalized: CmsLocalizedText
   invoiceColumns: BillingDocumentInvoiceColumnConfig[]
+  invoiceOptions: BillingDocumentInvoiceOptions
   active: boolean
   isDefault: boolean
   position: number
@@ -114,11 +119,39 @@ export function normalizeBillingDocumentInvoiceColumns(
   return BILLING_DOCUMENT_INVOICE_COLUMN_ORDER.map((key) => normalized.get(key) || defaultMap.get(key)!)
 }
 
+export function normalizeBillingDocumentInvoiceOptions(
+  value: unknown,
+): BillingDocumentInvoiceOptions {
+  const defaults = createDefaultBillingDocumentInvoiceOptions()
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        return normalizeBillingDocumentInvoiceOptions(JSON.parse(trimmed))
+      } catch {
+        return defaults
+      }
+    }
+    return defaults
+  }
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return defaults
+  }
+
+  const record = value as Record<string, unknown>
+  return {
+    showDeliveryMethod: record.showDeliveryMethod !== false,
+  }
+}
+
 export function serializeBillingDocumentTemplate(row: any): BillingDocumentTemplatePayload {
   const titleLocalized = normalizeBillingDocumentLocalizedText(row.titleJson)
   const contentLocalized = normalizeBillingDocumentLocalizedText(row.contentJson)
   const footerLocalized = normalizeBillingDocumentLocalizedText(row.footerJson)
   const invoiceColumns = normalizeBillingDocumentInvoiceColumns(row.invoiceColumnsJson)
+  const invoiceOptions = normalizeBillingDocumentInvoiceOptions(row.invoiceOptionsJson)
 
   return {
     id: Number(row.id),
@@ -138,6 +171,7 @@ export function serializeBillingDocumentTemplate(row: any): BillingDocumentTempl
     contentLocalized,
     footerLocalized,
     invoiceColumns,
+    invoiceOptions,
     active: Boolean(row.active),
     isDefault: Boolean(row.isDefault),
     position: Number(row.position || 0),
