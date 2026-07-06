@@ -1,8 +1,8 @@
 <template>
   <section class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-    <NuxtLink :to="localePath('/boutique')" class="mb-6 inline-flex items-center gap-1 text-sm opacity-70 hover:opacity-100">
+    <NuxtLink :to="localePath(shopPagePath)" class="mb-6 inline-flex items-center gap-1 text-sm opacity-70 hover:opacity-100">
       <Icon name="mdi:arrow-left" size="16" />
-      <span>{{ backLabel }}</span>
+      <span>{{ resolvedBackLabel }}</span>
     </NuxtLink>
 
     <div v-if="!product" class="py-16 text-center">
@@ -156,7 +156,7 @@
           <section v-if="relatedProducts.length" class="rounded-[2rem] border border-base-300 bg-base-100 p-6 shadow-sm">
             <div class="flex items-center justify-between gap-4">
               <h2 class="text-2xl font-semibold">{{ relatedTitle }}</h2>
-              <NuxtLink :to="localePath('/boutique')" class="btn btn-sm btn-ghost">{{ browseLabel }}</NuxtLink>
+              <NuxtLink :to="localePath(shopPagePath)" class="btn btn-sm btn-ghost">{{ resolvedBrowseLabel }}</NuxtLink>
             </div>
             <div class="mt-5 grid gap-4 md:grid-cols-3">
               <NuxtLink
@@ -255,6 +255,8 @@ const route = useRoute()
 const localePath = usePublicLocalePath()
 const { contentLocale } = useContentLocale()
 const { publicText } = usePublicDictionary()
+const initialSiteConfig = await ensureSiteConfigState({ path: route.path, locale: contentLocale.value })
+const siteConfig = useSiteConfigState()
 const locale = computed(() => contentLocale.value)
 const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
 const { add } = useShopCart()
@@ -273,11 +275,19 @@ const { data } = await useFetch<{
 })
 
 const product = computed(() => data.value?.product || null)
+const shopPagePath = computed(() => siteConfig.value?.shopPagePath || initialSiteConfig?.shopPagePath || '/boutique')
 const relatedProducts = computed(() => data.value?.relatedProducts || [])
 const quantity = ref(1)
 const rentalModalOpen = ref(false)
 const selectedRentalStartDate = ref('')
 const selectedRentalEndDate = ref('')
+const customReturnToListingLabel = computed(() =>
+  pickCmsLocalizedText(
+    contentLocale.value,
+    siteConfig.value?.cms?.settings?.basketsPage?.returnToListingLabel
+      || initialSiteConfig?.cms?.settings?.basketsPage?.returnToListingLabel
+  )
+)
 
 const backLabel = computed(() => publicText('shop.product.backToShop', 'Retour à la boutique'))
 const saleLabel = computed(() => publicText('shop.product.sale', 'Vente'))
@@ -304,6 +314,8 @@ const rentalMinLabel = computed(() => publicText('shop.product.minimumDuration',
 const rentalMaxLabel = computed(() => publicText('shop.product.maximumDuration', 'Durée maximale'))
 const relatedTitle = computed(() => publicText('shop.product.relatedTitle', 'Autres produits liés'))
 const browseLabel = computed(() => publicText('shop.product.browseShop', 'Voir la boutique'))
+const resolvedBackLabel = computed(() => customReturnToListingLabel.value || backLabel.value)
+const resolvedBrowseLabel = computed(() => customReturnToListingLabel.value || browseLabel.value)
 const actionTitle = computed(() => publicText('shop.product.orderTitle', 'Commander'))
 const actionIntro = computed(() => {
   if (!product.value) return ''

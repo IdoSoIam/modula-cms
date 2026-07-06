@@ -67,6 +67,8 @@ import type { ProductCategoryPayload, ProductPayload } from '#modula/server/util
 
 const props = defineProps<{
   settings?: CmsBasketsPageSettings | null
+  pageTitleOverride?: string | null
+  pageSubtitleOverride?: string | null
 }>()
 
 const { contentLocale } = useContentLocale()
@@ -88,8 +90,16 @@ const { data, pending, refresh } = await useFetch<{ categories: ProductCategoryP
 const categories = computed(() => data.value?.categories || [])
 const products = computed(() => data.value?.products || [])
 
-const pageTitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.title) || publicText('shop.catalog.title', 'Boutique'))
-const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.subtitle) || publicText('shop.catalog.subtitle', 'Parcourez les produits à vendre ou à louer.'))
+const pageTitle = computed(() =>
+  String(props.pageTitleOverride || '').trim()
+  || pickCmsLocalizedText(locale.value, props.settings?.title)
+  || publicText('shop.catalog.title', 'Boutique')
+)
+const pageSubtitle = computed(() =>
+  String(props.pageSubtitleOverride || '').trim()
+  || pickCmsLocalizedText(locale.value, props.settings?.subtitle)
+  || publicText('shop.catalog.subtitle', 'Parcourez les produits à vendre ou à louer.')
+)
 const shopLabel = computed(() => publicText('shop.catalog.eyebrow', 'Produits'))
 const cartButtonLabel = computed(() => publicText('shop.catalog.cartButton', 'Panier ({count})', { count: count.value }))
 const addToCartLabel = computed(() => publicText('shop.catalog.addToCart', 'Ajouter au panier'))

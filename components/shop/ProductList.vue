@@ -46,7 +46,7 @@
               {{ viewLabel }}
             </button>
             <button
-              class="btn btn-outline"
+              class="btn btn-primary"
               :class="product.saleType === 'RENTAL' ? 'sm:col-span-1' : ''"
               :disabled="disableOnSoldOut && product.stock <= 0"
               @click="$emit('add', product)"

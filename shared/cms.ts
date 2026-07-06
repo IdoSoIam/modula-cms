@@ -127,6 +127,7 @@ export interface CmsFooterSettings {
 export interface CmsBasketsPageSettings {
   title: CmsLocalizedText
   subtitle: CmsLocalizedText
+  returnToListingLabel: CmsLocalizedText
   containerWidth: SectionContainerWidth
   gridColumns: CmsApplicationGridColumns
   showOrdersBanner: boolean
@@ -379,6 +380,10 @@ export function createDefaultCmsSiteSettings(): CmsSiteSettings {
       subtitle: {
         fr: 'Consultez les lots de produits disponibles à la vente ou à la location.',
         en: 'Browse available product lots for sale or rental.'
+      },
+      returnToListingLabel: {
+        fr: 'Retour à la boutique',
+        en: 'Back to shop'
       },
       containerWidth: 'wide',
       gridColumns: 3,

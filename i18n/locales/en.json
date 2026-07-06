@@ -1644,6 +1644,7 @@
       "seoDescription": "Translated titles, menu and metadata.",
       "visibleTitle": "Visible title",
       "visibleSubtitle": "Visible subtitle",
+      "returnToListingLabel": "Back to listing label",
       "metaTitle": "Meta title",
       "metaDescription": "Meta description",
       "ogImage": "OG image",

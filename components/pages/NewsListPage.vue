@@ -106,6 +106,8 @@ type ViewMode = 'grid' | 'list'
 
 const props = defineProps<{
   settings?: CmsNewsPageSettings | null
+  pageTitleOverride?: string | null
+  pageSubtitleOverride?: string | null
   forceArticles?: boolean
   showArticles?: boolean
   disableSeo?: boolean
@@ -133,8 +135,15 @@ watch(effectiveSettings, (value) => {
   viewMode.value = value.defaultViewMode
 }, { deep: true })
 
-const pageTitle = computed(() => pickCmsLocalizedText(locale.value, effectiveSettings.value.title) || t('pages.news.title'))
-const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value, effectiveSettings.value.subtitle))
+const pageTitle = computed(() =>
+  String(props.pageTitleOverride || '').trim()
+  || pickCmsLocalizedText(locale.value, effectiveSettings.value.title)
+  || t('pages.news.title')
+)
+const pageSubtitle = computed(() =>
+  String(props.pageSubtitleOverride || '').trim()
+  || pickCmsLocalizedText(locale.value, effectiveSettings.value.subtitle)
+)
 
 if (!props.disableSeo) {
   usePageSeo({

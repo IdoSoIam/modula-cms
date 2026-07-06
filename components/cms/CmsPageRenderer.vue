@@ -46,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+import { pickCmsLocalizedText } from '#modula/shared/cms'
 import type { ResolvedCmsPage } from '#modula/shared/cms'
 import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
 import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
@@ -64,9 +65,10 @@ defineEmits<{
   edit: [target: PageBuilderEditTarget]
 }>()
 
-const siteConfig = await useSiteConfig()
-const cmsSettings = computed(() => siteConfig.value?.cms?.settings)
-const featureFlags = computed(() => siteConfig.value?.featureFlags)
+const initialSiteConfig = await ensureSiteConfigState({ locale: props.locale })
+const siteConfig = useSiteConfigState()
+const cmsSettings = computed(() => siteConfig.value?.cms?.settings ?? initialSiteConfig?.cms?.settings)
+const featureFlags = computed(() => siteConfig.value?.featureFlags ?? initialSiteConfig?.featureFlags)
 const isRendererEnabled = (rendererKey: string) => {
   const flags = featureFlags.value
   if (!flags) return true
@@ -77,20 +79,28 @@ const isRendererEnabled = (rendererKey: string) => {
 }
 
 const shopPageProps = computed(() => ({
-  settings: cmsSettings.value?.basketsPage ?? null
+  settings: cmsSettings.value?.basketsPage ?? null,
+  pageTitleOverride: props.resolvedPage.title ?? '',
+  pageSubtitleOverride: pickCmsLocalizedText(props.locale, cmsSettings.value?.basketsPage?.subtitle) || ''
 }))
 
 const newsPageProps = computed(() => ({
   settings: cmsSettings.value?.newsPage ?? null,
+  pageTitleOverride: props.resolvedPage.title ?? '',
+  pageSubtitleOverride: pickCmsLocalizedText(props.locale, cmsSettings.value?.newsPage?.subtitle) || '',
   showArticles: true
 }))
 
 const eventsPageProps = computed(() => ({
-  settings: cmsSettings.value?.eventsPage ?? null
+  settings: cmsSettings.value?.eventsPage ?? null,
+  pageTitleOverride: props.resolvedPage.title ?? '',
+  pageSubtitleOverride: pickCmsLocalizedText(props.locale, cmsSettings.value?.eventsPage?.subtitle) || ''
 }))
 
 const planningPageProps = computed(() => ({
-  settings: cmsSettings.value?.planningPage ?? null
+  settings: cmsSettings.value?.planningPage ?? null,
+  pageTitleOverride: props.resolvedPage.title ?? '',
+  pageSubtitleOverride: pickCmsLocalizedText(props.locale, cmsSettings.value?.planningPage?.subtitle) || ''
 }))
 
 const showContent = computed(() =>

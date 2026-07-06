@@ -137,6 +137,8 @@ import { useAuthStore } from '#modula/stores/auth'
 
 const props = withDefaults(defineProps<{
   settings?: CmsPlanningPageSettings | null
+  pageTitleOverride?: string | null
+  pageSubtitleOverride?: string | null
   preview?: boolean
 }>(), {
   settings: null,
@@ -297,8 +299,14 @@ const isEmpty = computed(() => viewMode.value === 'week'
   ? weekColumns.value.every(column => column.total === 0)
   : calendarDays.value.every(day => day.total === 0))
 
-const pageTitle = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.title))
-const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.subtitle))
+const pageTitle = computed(() =>
+  String(props.pageTitleOverride || '').trim()
+  || pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.title)
+)
+const pageSubtitle = computed(() =>
+  String(props.pageSubtitleOverride || '').trim()
+  || pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.subtitle)
+)
 const detailLabel = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.detailLabel))
 const becomeVolunteerLabel = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.becomeVolunteerLabel))
 const internalParticipationLabel = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.internalParticipationLabel))

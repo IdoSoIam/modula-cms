@@ -109,6 +109,8 @@ import { formatLocalizedDateTimeValue } from '#modula/shared/date'
 
 const props = withDefaults(defineProps<{
   settings?: CmsEventsPageSettings | null
+  pageTitleOverride?: string | null
+  pageSubtitleOverride?: string | null
   preview?: boolean
 }>(), {
   settings: null,
@@ -192,8 +194,14 @@ const previewItems = computed<EventListItem[]>(() => [
 const eventItems = computed(() => data.value?.items?.length ? data.value.items : (props.preview ? previewItems.value : []))
 const totalPages = computed(() => props.preview ? 1 : (data.value?.totalPages || 1))
 
-const pageTitle = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.title))
-const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.subtitle))
+const pageTitle = computed(() =>
+  String(props.pageTitleOverride || '').trim()
+  || pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.title)
+)
+const pageSubtitle = computed(() =>
+  String(props.pageSubtitleOverride || '').trim()
+  || pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.subtitle)
+)
 const detailLabel = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.detailLabel))
 const publicReservationLabel = computed(() => pickCmsLocalizedText(locale.value as CmsLocale, effectiveSettings.value.publicReservationLabel))
 

@@ -104,6 +104,12 @@
                 multiline
                 @update:model-value="updateVisibleSubtitle"
               />
+              <AdminPageBuilderTranslationTabs
+                v-if="applicationLocalizedReturnToListingLabel"
+                :model-value="applicationLocalizedReturnToListingLabel"
+                :label="t('admin.pageEditorPage.returnToListingLabel')"
+                @update:model-value="updateReturnToListingLabel"
+              />
               <AdminPageBuilderTranslationTabs :model-value="localizedMetaTitle" :label="t('admin.pageEditorPage.metaTitle')" @update:model-value="localizedMetaTitle = $event" />
               <AdminPageBuilderTranslationTabs :model-value="localizedMetaDescription" :label="t('admin.pageEditorPage.metaDescription')" multiline @update:model-value="localizedMetaDescription = $event" />
 
@@ -329,6 +335,10 @@ const applicationLocalizedSubtitle = computed<null | LocalizedText>(() => {
   if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.subtitle
   return null
 })
+const applicationLocalizedReturnToListingLabel = computed<null | LocalizedText>(() => {
+  if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.returnToListingLabel
+  return null
+})
 
 const getApplicationLocalizedTitleTarget = () => {
   if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.title
@@ -437,6 +447,12 @@ const updateVisibleSubtitle = (value: LocalizedText) => {
   }
   if (selectedPageRenderer.value === 'planning') {
     siteShellModel.settings.planningPage.subtitle = structuredClone(value)
+  }
+}
+
+const updateReturnToListingLabel = (value: LocalizedText) => {
+  if (selectedPageRenderer.value === 'shop') {
+    siteShellModel.settings.basketsPage.returnToListingLabel = structuredClone(value)
   }
 }
 

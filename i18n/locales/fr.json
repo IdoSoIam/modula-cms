@@ -1648,6 +1648,7 @@
       "seoDescription": "Titres traduits, menu et métadonnées.",
       "visibleTitle": "Titre visible",
       "visibleSubtitle": "Sous-titre visible",
+      "returnToListingLabel": "Libellé retour vers la liste",
       "metaTitle": "Meta title",
       "metaDescription": "Meta description",
       "ogImage": "OG image",

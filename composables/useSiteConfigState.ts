@@ -44,6 +44,7 @@ interface PublicSiteConfigState {
   cms?: PublicSiteShell | null
   themes?: PublicDaisyUiThemeConfig | null
   constructionPagePath?: string | null
+  shopPagePath?: string | null
   siteLocales?: string[]
   siteDefaultLocale?: string
   localeLabels?: Record<string, { short: string; long: string }>

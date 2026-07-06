@@ -1189,6 +1189,7 @@ export async function getCmsSiteSettings(): Promise<CmsSiteSettings> {
       ? {
           title: normalizeLocalizedText(parsed.basketsPage.title),
           subtitle: normalizeLocalizedText(parsed.basketsPage.subtitle),
+          returnToListingLabel: normalizeLocalizedTextWithFallback(parsed.basketsPage.returnToListingLabel, fallback.basketsPage.returnToListingLabel),
           containerWidth: typeof parsed.basketsPage.containerWidth === 'string'
             ? parsed.basketsPage.containerWidth as CmsSiteSettings['basketsPage']['containerWidth']
             : fallback.basketsPage.containerWidth,
@@ -1330,6 +1331,32 @@ export async function getCmsPageByPath(path: string) {
     async () => null
   )
   return row ? { id: row.id, ...pageRowToPayload(row) } : null
+}
+
+export async function getCmsApplicationPagePath(rendererKey: string) {
+  await ensureCmsSystemPages()
+  const row = await withCmsTableFallback(
+    () => db.cmsPage.findFirst({
+      where: {
+        rendererKey,
+        status: 'PUBLISHED'
+      },
+      orderBy: {
+        updatedAt: 'desc'
+      }
+    }),
+    async () => null
+  )
+
+  if (row?.path) {
+    return normalizePath(row.path)
+  }
+
+  if (rendererKey === 'shop') return '/boutique'
+  if (rendererKey === 'news') return '/news'
+  if (rendererKey === 'events') return '/events'
+  if (rendererKey === 'planning') return '/planning'
+  return null
 }
 
 export async function getCmsSpecialPagePath(role: CmsPageSpecialRole) {
@@ -2174,6 +2201,7 @@ export function validateCmsSiteSettingsPayload(value: unknown): CmsSiteSettings 
     basketsPage: {
       title: normalizeLocalizedText(basketsPageValue.title),
       subtitle: normalizeLocalizedText(basketsPageValue.subtitle),
+      returnToListingLabel: normalizeLocalizedTextWithFallback(basketsPageValue.returnToListingLabel, fallback.basketsPage.returnToListingLabel),
       containerWidth: typeof basketsPageValue.containerWidth === 'string' ? basketsPageValue.containerWidth as CmsSiteSettings['basketsPage']['containerWidth'] : fallback.basketsPage.containerWidth,
       gridColumns: normalizeGridColumns(basketsPageValue.gridColumns, fallback.basketsPage.gridColumns, 4),
       showOrdersBanner: typeof basketsPageValue.showOrdersBanner === 'boolean' ? basketsPageValue.showOrdersBanner : fallback.basketsPage.showOrdersBanner,

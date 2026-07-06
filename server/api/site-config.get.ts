@@ -1,5 +1,5 @@
 import cmsProjectConfig from '#modula/cms.project.config'
-import { getCmsSpecialPagePath, getPublicSiteShell } from '#modula/server/utils/cms'
+import { getCmsApplicationPagePath, getCmsSpecialPagePath, getPublicSiteShell } from '#modula/server/utils/cms'
 import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getDefaultFeatureFlags, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSiteDefaultLocale, getSiteLocales, getSiteLocaleLabels } from '#modula/server/utils/settings'
 import { getResolvedPublicDictionary } from '#modula/server/utils/publicDictionary'
 import { getPublicDaisyUiThemeConfig } from '#modula/server/utils/themes'
@@ -84,7 +84,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const featureFlags = await getFeatureFlags()
-  const [ordersWindow, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath, siteLocales, defaultLocale, localeLabels] = await Promise.all([
+  const [ordersWindow, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath, shopPagePath, siteLocales, defaultLocale, localeLabels] = await Promise.all([
     getOrdersWindow(),
     getFarmPickupConfig(),
     getContactEmail(),
@@ -92,6 +92,7 @@ export default defineEventHandler(async (event) => {
     getPublicSiteShell(requestedLocale || 'fr', featureFlags),
     getPublicDaisyUiThemeConfig(),
     getCmsSpecialPagePath('construction'),
+    getCmsApplicationPagePath('shop'),
     getSiteLocales().catch(() => ['fr', 'en']),
     getSiteDefaultLocale().catch(() => cmsProjectConfig.site.defaultLocale),
     getSiteLocaleLabels().catch(() => ({}))
@@ -125,6 +126,7 @@ export default defineEventHandler(async (event) => {
     cms: siteShell,
     themes,
     constructionPagePath,
+    shopPagePath,
     siteLocales,
     siteDefaultLocale: defaultLocale,
     localeLabels,
