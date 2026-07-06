@@ -272,24 +272,24 @@
 
           <div class="space-y-5">
             <div
-              v-for="column in invoiceColumnEntries"
-              :key="column.key"
+              v-for="(column, index) in form.invoiceColumns"
+              :key="`${selectedId || 'new'}-${column.key}`"
               class="rounded-2xl border border-base-300 bg-base-50 p-4"
             >
               <div class="mb-4 flex items-start justify-between gap-4">
                 <div>
-                  <div class="font-medium">{{ column.title }}</div>
-                  <p class="mt-1 text-sm opacity-70">{{ column.description }}</p>
+                  <div class="font-medium">{{ invoiceColumnMeta(column.key).title }}</div>
+                  <p class="mt-1 text-sm opacity-70">{{ invoiceColumnMeta(column.key).description }}</p>
                 </div>
 
                 <label class="form-control flex gap-3">
-                  <input v-model="column.model.enabled" class="toggle toggle-primary" type="checkbox">
+                  <input v-model="form.invoiceColumns[index].enabled" class="toggle toggle-primary" type="checkbox">
                   <span class="label-text">{{ t('admin.billingDocumentsPage.invoiceColumns.enabled') }}</span>
                 </label>
               </div>
 
               <AdminPageBuilderTranslationTabs
-                v-model="column.model.labelLocalized"
+                v-model="form.invoiceColumns[index].labelLocalized"
                 :locales="siteLocales"
                 :label="t('admin.billingDocumentsPage.invoiceColumns.labelField')"
               />
@@ -334,11 +334,6 @@ interface BillingDocumentTemplatePayload {
   isDefault: boolean
   position: number
 }
-
-definePageMeta({
-  layout: 'admin',
-  middleware: 'auth'
-})
 
 const { t } = useI18n()
 const { $toast } = useNuxtApp() as any
@@ -406,19 +401,16 @@ const editorDescription = computed(() => (
     : t('admin.billingDocumentsPage.documentsEditorDescription')
 ))
 
-const invoiceColumnEntries = computed(() => {
-  const columnMap = new Map(form.value.invoiceColumns.map((entry) => [entry.key, entry]))
-  return invoiceColumnKeys.map((key) => {
-    const entry = columnMap.get(key)
-      || createDefaultBillingDocumentInvoiceColumns(siteLocales.value).find((item) => item.key === key)!
-    return {
-      key,
-      title: t(`admin.billingDocumentsPage.invoiceColumns.titles.${key}`),
-      description: t(`admin.billingDocumentsPage.invoiceColumns.descriptions.${key}`),
-      model: entry,
-    }
-  })
-})
+function invoiceColumnMeta(key: BillingDocumentInvoiceColumnKey) {
+  return {
+    title: t(`admin.billingDocumentsPage.invoiceColumns.titles.${key}`),
+    description: t(`admin.billingDocumentsPage.invoiceColumns.descriptions.${key}`),
+  }
+}
+
+function buildInvoiceColumnsPayload() {
+  return JSON.parse(JSON.stringify(form.value.invoiceColumns))
+}
 
 function selectDocument(entry: BillingDocumentTemplatePayload) {
   selectedId.value = entry.id
@@ -435,11 +427,7 @@ function selectDocument(entry: BillingDocumentTemplatePayload) {
     titleLocalized: { ...entry.titleLocalized },
     contentLocalized: { ...entry.contentLocalized },
     footerLocalized: { ...entry.footerLocalized },
-    invoiceColumns: entry.invoiceColumns.map((column) => ({
-      key: column.key,
-      enabled: column.enabled,
-      labelLocalized: { ...column.labelLocalized },
-    })),
+    invoiceColumns: JSON.parse(JSON.stringify(entry.invoiceColumns)),
     invoiceOptions: {
       showDeliveryMethod: entry.invoiceOptions?.showDeliveryMethod !== false,
     },
@@ -504,7 +492,7 @@ async function save() {
       titleLocalized: form.value.titleLocalized,
       contentLocalized: form.value.contentLocalized,
       footerLocalized: form.value.footerLocalized,
-      invoiceColumns: form.value.invoiceColumns,
+      invoiceColumns: buildInvoiceColumnsPayload(),
       invoiceOptions: form.value.invoiceOptions,
       active: form.value.active,
       isDefault: form.value.kind === 'INVOICE' ? true : form.value.isDefault,
@@ -519,13 +507,20 @@ async function save() {
       }
     )
 
-    await refresh()
-    const next = (documents.value || []).find((entry) => entry.id === saved.id)
-    if (next) {
-      selectDocument(next)
-    } else {
-      selectDocument(saved)
+    selectDocument(saved)
+
+    if (documents.value) {
+      const nextDocuments = [...documents.value]
+      const existingIndex = nextDocuments.findIndex((entry) => entry.id === saved.id)
+      if (existingIndex >= 0) {
+        nextDocuments.splice(existingIndex, 1, saved)
+      } else {
+        nextDocuments.push(saved)
+      }
+      documents.value = nextDocuments
     }
+
+    await refresh()
     $toast?.success(t('admin.billingDocumentsPage.saved'))
   } catch (error: any) {
     $toast?.error(error?.data?.statusMessage || error?.statusMessage || t('common.error'))
@@ -604,6 +599,10 @@ function isBufferPayload(value: unknown): value is { type: 'Buffer'; data: numbe
 watch(
   documents,
   (value) => {
+    if (saving.value) {
+      return
+    }
+
     if (!value?.length) {
       startInvoiceEditor()
       return

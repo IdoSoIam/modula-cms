@@ -293,6 +293,7 @@ export const cmsDataSchema = defineSchema({
         titleJson: field.string({ default: '{"fr":"","en":""}' }),
         contentJson: field.string({ default: '{"fr":"","en":""}' }),
         footerJson: field.string({ default: '{"fr":"","en":""}' }),
+        invoiceColumnsJson: field.string({ default: '[]' }),
         invoiceOptionsJson: field.string({ default: '{"showDeliveryMethod":true}' }),
         active: field.boolean({ default: true }),
         isDefault: field.boolean({ default: false }),

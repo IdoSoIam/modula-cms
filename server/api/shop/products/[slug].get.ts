@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
 
   const relatedProducts = relatedRows
     .map(serializeProduct)
-    .filter((entry) =>
+    .filter((entry: ReturnType<typeof serializeProduct>) =>
       entry.id !== product.id
       && (
         (product.categoryId != null && entry.categoryId === product.categoryId)

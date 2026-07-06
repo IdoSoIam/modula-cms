@@ -1,9 +1,10 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
+import { getSiteLocales } from '#modula/server/utils/settings'
 import {
   buildBillingDocumentLocalizedPayload,
   normalizeBillingDocumentInvoiceOptions,
-  normalizeBillingDocumentInvoiceColumns,
+  sanitizeBillingDocumentInvoiceColumns,
   enforceSingleDefaultBillingDocument,
   ensureUniqueBillingDocumentSlug,
   serializeBillingDocumentTemplate,
@@ -34,6 +35,7 @@ interface Body {
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
+  const siteLocales = await getSiteLocales()
   const body = await readBody<Body>(event)
   const kind = body.kind === 'INVOICE'
     ? 'INVOICE'
@@ -57,7 +59,7 @@ export default defineEventHandler(async (event) => {
   const titlePayload = buildBillingDocumentLocalizedPayload(body.titleLocalized, name)
   const contentPayload = buildBillingDocumentLocalizedPayload(body.contentLocalized)
   const footerPayload = buildBillingDocumentLocalizedPayload(body.footerLocalized)
-  const invoiceColumns = normalizeBillingDocumentInvoiceColumns(body.invoiceColumns)
+  const invoiceColumns = sanitizeBillingDocumentInvoiceColumns(body.invoiceColumns, siteLocales)
   const invoiceOptions = normalizeBillingDocumentInvoiceOptions(body.invoiceOptions)
   const slug = await ensureUniqueBillingDocumentSlug(body.slug?.trim() || name)
 
@@ -87,5 +89,5 @@ export default defineEventHandler(async (event) => {
   }
 
   const saved = await db.billingDocumentTemplate.findUnique({ where: { id: Number(row.id) } })
-  return serializeBillingDocumentTemplate(saved)
+  return serializeBillingDocumentTemplate(saved, siteLocales)
 })

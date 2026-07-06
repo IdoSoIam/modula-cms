@@ -58,7 +58,7 @@ export function useShopCart() {
       if (raw) {
         const parsed = JSON.parse(raw)
         items.value = Array.isArray(parsed)
-          ? parsed.map((item) => ({
+          ? parsed.map<ShopCartItem>((item) => ({
               key: String(item?.key || ''),
               kind: 'product',
               saleType: item?.saleType === 'RENTAL' ? 'RENTAL' : 'SALE',

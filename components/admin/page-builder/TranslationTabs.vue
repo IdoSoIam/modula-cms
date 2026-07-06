@@ -45,14 +45,14 @@
 
     <textarea
       v-if="multiline"
-      :value="localValue[activeLang]"
+      :value="currentValue"
       class="textarea textarea-bordered w-full"
       rows="3"
       @input="updateLocalizedValue(activeLang, ($event.target as HTMLTextAreaElement).value)"
     />
     <input
       v-else
-      :value="localValue[activeLang]"
+      :value="currentValue"
       class="input input-bordered w-full"
       @input="updateLocalizedValue(activeLang, ($event.target as HTMLInputElement).value)"
     >
@@ -78,7 +78,10 @@ const emit = defineEmits<{
 
 const { locales: siteLocales } = useSiteLocales()
 const { $toast } = useNuxtApp() as any
-const resolvedLocales = computed(() => props.locales?.length ? props.locales : (siteLocales.value.length ? siteLocales.value : ['fr', 'en']))
+
+const resolvedLocales = computed(() =>
+  props.locales?.length ? props.locales : (siteLocales.value.length ? siteLocales.value : ['fr', 'en'])
+)
 const activeLang = ref<string>(resolvedLocales.value[0] || 'fr')
 
 watch(resolvedLocales, (newLocales) => {
@@ -87,60 +90,36 @@ watch(resolvedLocales, (newLocales) => {
   }
 })
 
-/* ---- Réf locale synchro + auto-traduction ---- */
-
-// Ref locale éditable qui sert de source de vérité pour le contenu
-const localValue = ref<LocalizedText>({ ...props.modelValue })
-
-// Évite les boucles : on ne ré-écrit localValue depuis la prop que si les valeurs diffèrent
-function deepEqual(a: Record<string, string>, b: Record<string, string>): boolean {
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)])
-  for (const k of keys) {
-    if ((a[k] ?? '') !== (b[k] ?? '')) return false
-  }
-  return true
-}
-
-// Synchro prop → localValue (changements externes)
-watch(() => props.modelValue, (val) => {
-  if (!deepEqual(localValue.value, val)) {
-    localValue.value = { ...val }
-  }
-}, { deep: true, immediate: true })
-
-// Synchro localValue → parent (via emit)
-watch(localValue, (val) => {
-  if (!deepEqual(val, props.modelValue)) {
-    emit('update:modelValue', { ...val })
-  }
-}, { deep: true })
-
 const translating = ref(false)
+const currentValue = computed(() => props.modelValue?.[activeLang.value] ?? '')
 
 const translationSourceLocale = computed(() => {
-  if (localValue.value[activeLang.value]?.trim()) return activeLang.value
-  return resolvedLocales.value.find((locale) => localValue.value[locale]?.trim()) || activeLang.value
+  if (props.modelValue?.[activeLang.value]?.trim()) return activeLang.value
+  return resolvedLocales.value.find((locale) => props.modelValue?.[locale]?.trim()) || activeLang.value
 })
 
 const emptyTargetLocales = computed(() =>
   resolvedLocales.value.filter((locale) =>
     locale !== translationSourceLocale.value
-    && !localValue.value[locale]?.trim()
+    && !props.modelValue?.[locale]?.trim()
   )
 )
 
 const showAutoTranslateButton = computed(() =>
-  Boolean(localValue.value[translationSourceLocale.value]?.trim())
+  Boolean(props.modelValue?.[translationSourceLocale.value]?.trim())
   && emptyTargetLocales.value.length > 0
 )
 
 function updateLocalizedValue(lang: string, value: string) {
-  localValue.value = { ...localValue.value, [lang]: value }
+  emit('update:modelValue', {
+    ...(props.modelValue || {}),
+    [lang]: value,
+  })
 }
 
 async function translateMissingLocales() {
   const sourceLocale = translationSourceLocale.value
-  const text = localValue.value[sourceLocale]?.trim()
+  const text = props.modelValue?.[sourceLocale]?.trim()
   if (!text || !emptyTargetLocales.value.length) return
 
   translating.value = true
@@ -151,12 +130,13 @@ async function translateMissingLocales() {
         text,
         sourceLocale,
         targetLocales: emptyTargetLocales.value,
-        context: props.label
-      }
+        context: props.label,
+      },
     })
 
-    const next = { ...localValue.value }
+    const next = { ...(props.modelValue || {}) }
     let changed = false
+
     for (const locale of emptyTargetLocales.value) {
       const translated = result?.translations?.[locale]?.trim()
       if (translated && !next[locale]?.trim()) {
@@ -166,7 +146,7 @@ async function translateMissingLocales() {
     }
 
     if (changed) {
-      localValue.value = next
+      emit('update:modelValue', next)
     }
   } catch (error: any) {
     $toast?.error(error?.data?.statusMessage || error?.statusMessage || 'Traduction impossible.')

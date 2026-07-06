@@ -11,7 +11,7 @@ import { serializeProduct } from '#modula/server/utils/shop'
 
 function parseMonth(value: string | undefined) {
   const source = value && /^\d{4}-\d{2}$/.test(value) ? value : toIsoDate(new Date()).slice(0, 7)
-  const [year, month] = source.split('-').map(Number)
+  const [year = new Date().getFullYear(), month = 1] = source.split('-').map(Number)
   return new Date(year, month - 1, 1)
 }
 
@@ -43,8 +43,11 @@ export default defineEventHandler(async (event) => {
 
   const monthDate = parseMonth(typeof query.month === 'string' ? query.month : undefined)
   const { gridDays } = buildCalendarDays(monthDate)
-  const gridStart = startOfDay(gridDays[0])
-  const gridEnd = endOfDay(gridDays[gridDays.length - 1])
+  if (!gridDays.length) {
+    throw createError({ statusCode: 500, statusMessage: 'Calendrier de location invalide' })
+  }
+  const gridStart = startOfDay(gridDays[0]!)
+  const gridEnd = endOfDay(gridDays[gridDays.length - 1]!)
 
   if (kind === 'product') {
     const row = await db.product.findUnique({

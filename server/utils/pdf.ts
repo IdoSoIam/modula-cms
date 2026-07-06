@@ -70,6 +70,7 @@ export interface InvoicePdfOptions {
     label: string
     amountLabel: string
   }>
+  vatNote?: string | null
   footer?: string | null
   notes?: string | null
   logoBytes?: Uint8Array | null
@@ -151,6 +152,7 @@ interface ExternalInvoicePdfPayload {
       amountLabel: string
     }>
   }
+  vatNote?: string | null
   notes?: string | null
   footer?: string | null
   labels?: {
@@ -351,11 +353,11 @@ function buildDocumentCss(accentColor: string) {
 
     @page {
       size: A4;
-      margin: 10mm 10mm 18mm 10mm;
+      margin: 8mm 8mm 15mm 8mm;
     }
 
     body {
-      padding: 18px 24px 10px;
+      padding: 2px 3px 0;
       font-size: 11px;
       line-height: 1.45;
     }
@@ -369,19 +371,19 @@ function buildDocumentCss(accentColor: string) {
     .document-topbar {
       height: 4px;
       background: var(--accent);
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
 
     .header-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 0; }
-    .brand-block { width: 61%; vertical-align: top; }
-    .meta-block-head { width: 39%; vertical-align: top; text-align: right; }
+    .brand-block { width: 72%; vertical-align: top; }
+    .meta-block-head { width: 28%; vertical-align: top; text-align: right; }
     .brand-row { width: 100%; border-collapse: collapse; }
-    .logo-cell { width: 112px; vertical-align: top; }
-    .copy-cell { vertical-align: top; }
+    .logo-cell { width: 126px; vertical-align: top; }
+    .copy-cell { vertical-align: top; padding-left: 4px; }
     .logo {
-      width: 104px;
-      max-width: 104px;
-      max-height: 76px;
+      width: 118px;
+      max-width: 118px;
+      max-height: 92px;
       object-fit: contain;
       object-position: left center;
       display: block;
@@ -391,35 +393,35 @@ function buildDocumentCss(accentColor: string) {
 
     .brand-name {
       margin: 0;
-      font-size: 18pt;
+      font-size: 14pt;
       line-height: 1.04;
-      font-weight: 700;
-      letter-spacing: -0.01em;
+      font-weight: 500;
+      letter-spacing: -0.005em;
       white-space: nowrap;
     }
 
     .document-title {
-      margin: 5px 0 0;
-      font-size: 9.5pt;
+      margin: 4px 0 0;
+      font-size: 8.6pt;
       color: var(--muted);
-      font-weight: 500;
+      font-weight: 400;
       white-space: nowrap;
     }
 
     .identity-title {
       margin: 0;
-      font-size: 12pt;
-      font-weight: 700;
+      font-size: 10pt;
+      font-weight: 500;
       color: var(--accent);
       line-height: 1.1;
       white-space: nowrap;
     }
 
     .identity-meta {
-      margin-top: 4px;
+      margin-top: 3px;
       color: var(--muted);
-      font-size: 9pt;
-      line-height: 1.35;
+      font-size: 8.3pt;
+      line-height: 1.25;
       white-space: nowrap;
     }
 
@@ -430,7 +432,7 @@ function buildDocumentCss(accentColor: string) {
       background: var(--accent-soft);
       color: var(--accent);
       font-size: 8pt;
-      font-weight: 700;
+      font-weight: 500;
       margin-top: 8px;
       text-align: right;
       white-space: nowrap;
@@ -442,34 +444,36 @@ function buildDocumentCss(accentColor: string) {
       width: 49.5%;
       vertical-align: top;
       border: 1px solid var(--border);
-      padding: 12px 14px;
+      padding: 10px 12px;
       background: #f7f9fc;
-      min-height: 84px;
+      min-height: 78px;
+      overflow: hidden;
     }
 
     .party-title {
-      font-size: 7.6pt;
+      font-size: 7.2pt;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.035em;
       color: var(--muted);
-      font-weight: 700;
+      font-weight: 500;
       margin-bottom: 8px;
       white-space: nowrap;
     }
 
     .party-line {
       margin: 0 0 3px;
-      font-size: 9pt;
-      white-space: normal;
-      overflow-wrap: anywhere;
-      word-break: normal;
+      font-size: 8.4pt;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .meta-block {
       border: 1px solid var(--border);
-      padding: 10px 14px;
+      padding: 9px 12px;
       background: var(--panel);
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .meta-line {
@@ -477,7 +481,7 @@ function buildDocumentCss(accentColor: string) {
       color: var(--muted);
     }
 
-    .invoice-table { border: 1px solid var(--border); overflow: hidden; margin-top: 12px; margin-bottom: 12px; }
+    .invoice-table { overflow: hidden; margin-top: 10px; margin-bottom: 4px; }
 
     .invoice-table table {
       width: 100%;
@@ -500,7 +504,7 @@ function buildDocumentCss(accentColor: string) {
       color: var(--muted);
       text-align: right;
       font-size: 7.2pt;
-      font-weight: 700;
+      font-weight: 400;
       padding: 7px 5px;
       border-bottom: 1px solid var(--border);
       white-space: normal;
@@ -534,7 +538,7 @@ function buildDocumentCss(accentColor: string) {
 
     .line-title {
       font-size: 9.4pt;
-      font-weight: 700;
+      font-weight: 400;
       margin: 0;
     }
 
@@ -561,7 +565,13 @@ function buildDocumentCss(accentColor: string) {
     .col-lineNumber { text-align: center !important; padding-left: 1px !important; padding-right: 1px !important; }
     .col-designation { text-align: left !important; }
     .col-vatRate { color: var(--muted); font-size: 8.1pt; line-height: 1.15; }
-    .total-cell { font-weight: 700; }
+    .total-cell { font-weight: 400; }
+    .invoice-vat-note {
+      margin: 0 0 12px;
+      text-align: right;
+      font-size: 8.2pt;
+      color: var(--muted);
+    }
 
     .summary-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     .notes-cell { width: 55%; vertical-align: top; }
@@ -581,7 +591,7 @@ function buildDocumentCss(accentColor: string) {
       border-bottom: 1px solid var(--border);
       color: var(--text);
       font-size: 9px;
-      font-weight: 700;
+      font-weight: 400;
     }
 
     .section-body {
@@ -592,7 +602,7 @@ function buildDocumentCss(accentColor: string) {
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      padding: 8px 0;
+      padding: 7px 0;
       border-bottom: 1px solid var(--border);
     }
 
@@ -602,7 +612,7 @@ function buildDocumentCss(accentColor: string) {
 
     .summary-row.total {
       font-size: 11pt;
-      font-weight: 800;
+      font-weight: 400;
       color: var(--accent);
     }
 
@@ -632,20 +642,27 @@ function buildDocumentCss(accentColor: string) {
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--muted);
-      font-weight: 700;
+      font-weight: 400;
       margin-bottom: 8px;
     }
 
     .notes-plain { min-height: 24px; }
 
     .totals-box { width: 100%; border: 1px solid var(--border); background: white; }
-    .totals-heading { padding: 10px 12px 0; }
+    .totals-heading {
+      padding: 10px 12px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-size: 9px;
+      font-weight: 400;
+    }
     .totals-inner { width: 100%; border-collapse: collapse; }
     .totals-inner td { padding: 7px 12px; border-bottom: 1px solid var(--border); }
     .totals-inner tr:last-child td { border-bottom: none; }
     .total-label { color: var(--text); }
-    .total-value { text-align: right; font-weight: 700; }
-    .grand-total td { color: var(--accent); font-size: 11pt; font-weight: 700; }
+    .total-value { text-align: right; font-weight: 400; }
+    .grand-total td { color: var(--accent); font-size: 11pt; font-weight: 400; }
   `
 }
 
@@ -708,10 +725,10 @@ function renderPartyCard(title: string, lines: string[]) {
     .join('')
 
   return `
-    <section class="party-card">
+    <td class="party-card">
       <div class="party-title">${escapeHtml(title)}</div>
       ${content}
-    </section>
+    </td>
   `
 }
 
@@ -753,19 +770,27 @@ function invoiceColumnCssClass(key: string, header: boolean) {
   return `cell col-${key} ${align}${vat}${total}`.trim()
 }
 
-function invoiceColumnWidthClass(key: string) {
-  if (key === 'lineNumber') return 'col-line-number'
-  if (key === 'designation') return 'col-designation'
-  if (key === 'reference') return 'col-reference'
-  if (key === 'quantity') return 'col-quantity'
-  if (key === 'unitPriceHt') return 'col-unit-ht'
-  if (key === 'totalHt') return 'col-total-ht'
-  if (key === 'vatRate') return 'col-vat-rate'
-  if (key === 'vatAmount') return 'col-vat-amount'
-  return 'col-total-ttc'
+const RAW_INVOICE_COLUMN_WIDTHS: Record<string, number> = {
+  lineNumber: 4,
+  designation: 27,
+  reference: 7,
+  quantity: 5,
+  unitPriceHt: 11,
+  totalHt: 11,
+  vatRate: 12,
+  vatAmount: 11,
+  totalTtc: 12,
 }
 
-function renderInvoiceTable(lines: InvoicePdfLine[], columns?: InvoicePdfColumn[]) {
+function resolveInvoiceColumnWidths(columns: InvoicePdfColumn[]) {
+  const total = columns.reduce((sum, column) => sum + (RAW_INVOICE_COLUMN_WIDTHS[column.key] || 10), 0) || 1
+  return Object.fromEntries(columns.map((column) => {
+    const raw = RAW_INVOICE_COLUMN_WIDTHS[column.key] || 10
+    return [column.key, `${((raw / total) * 100).toFixed(4)}%`]
+  }))
+}
+
+function renderInvoiceTable(lines: InvoicePdfLine[], columns?: InvoicePdfColumn[], vatNote?: string | null) {
   const effectiveColumns = columns?.length
     ? columns
     : [
@@ -779,7 +804,8 @@ function renderInvoiceTable(lines: InvoicePdfLine[], columns?: InvoicePdfColumn[
         { key: 'vatRate', label: 'TVA' },
         { key: 'totalTtc', label: 'Total TTC' },
       ]
-  const colgroup = effectiveColumns.map(column => `<col class="${invoiceColumnWidthClass(column.key)}">`).join('')
+  const widths = resolveInvoiceColumnWidths(effectiveColumns)
+  const colgroup = effectiveColumns.map(column => `<col style="width:${widths[column.key] || 'auto'}">`).join('')
   const rows = lines.map(line => `
       <tr>
         ${effectiveColumns.map((column, index) => {
@@ -817,6 +843,7 @@ function renderInvoiceTable(lines: InvoicePdfLine[], columns?: InvoicePdfColumn[
         <tbody>${rows}</tbody>
       </table>
     </section>
+    ${vatNote ? `<p class="invoice-vat-note">${escapeHtml(vatNote)}</p>` : ''}
   `
 }
 
@@ -825,6 +852,7 @@ function renderSummaryCard(options: {
   totalVatLabel: string
   totalInclTaxLabel: string
   taxRows?: Array<{ label: string, amountLabel: string }>
+  vatNote?: string | null
   labels?: InvoicePdfOptions['labels']
 }) {
   const totalsTitle = options.labels?.totalsTitle || 'Totaux'
@@ -837,20 +865,23 @@ function renderSummaryCard(options: {
         <span>${escapeHtml(group.amountLabel)}</span>
       </div>
     `).join('')
+  const totalVatRow = options.vatNote ? '' : `
+        <div class="summary-row">
+          <span>${escapeHtml(totalVat)}</span>
+          <span>${escapeHtml(options.totalVatLabel)}</span>
+        </div>
+      `
 
   return `
     <section class="summary-card">
-      <div class="section-heading">${escapeHtml(totalsTitle)}</div>
+      <div class="totals-heading">${escapeHtml(totalsTitle)}</div>
       <div class="section-body">
         <div class="summary-row">
           <span>${escapeHtml(totalHt)}</span>
           <span>${escapeHtml(options.subtotalExclTaxLabel)}</span>
         </div>
         ${taxRows}
-        <div class="summary-row">
-          <span>${escapeHtml(totalVat)}</span>
-          <span>${escapeHtml(options.totalVatLabel)}</span>
-        </div>
+        ${totalVatRow}
         <div class="summary-row total">
           <span>${escapeHtml(totalTtc)}</span>
           <span>${escapeHtml(options.totalInclTaxLabel)}</span>
@@ -1166,6 +1197,7 @@ export async function buildInvoicePdf(options: InvoicePdfOptions) {
       grandTotalLabel: options.totalInclTaxLabel,
       taxRows: options.taxRows,
     },
+    vatNote: options.vatNote,
     notes: options.notes,
     footer: options.footer,
     labels: options.labels,
@@ -1190,7 +1222,7 @@ export async function buildInvoicePdf(options: InvoicePdfOptions) {
         customerLines: options.customerLines
       })}
       ${renderMetaBlock(options.metaLines)}
-      ${renderInvoiceTable(options.lines, options.columns)}
+      ${renderInvoiceTable(options.lines, options.columns, options.vatNote)}
       <table class="summary-table" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td class="notes-cell">
@@ -1203,6 +1235,7 @@ export async function buildInvoicePdf(options: InvoicePdfOptions) {
               totalVatLabel: options.totalVatLabel,
               totalInclTaxLabel: options.totalInclTaxLabel,
               taxRows: options.taxRows,
+              vatNote: options.vatNote,
               labels: options.labels,
             })}
           </td>

@@ -55,7 +55,9 @@ export default defineEventHandler(async (event) => {
         .filter(Boolean)
         .map((city: string) => [city.toLowerCase(), city])
     ).values()
-  ).sort((left, right) => left.localeCompare(right, 'fr'))
+  ) as string[]
+
+  allServedCities.sort((left, right) => left.localeCompare(right, 'fr'))
 
   return {
     onSitePickup: {

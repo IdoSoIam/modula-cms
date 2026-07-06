@@ -62,7 +62,14 @@ export function createDefaultBillingDocumentInvoiceColumns(
       key,
       enabled: true,
       labelLocalized: Object.fromEntries(
-        locales.map((locale) => [locale, locale === 'en' ? labels.en : labels.fr]),
+        locales.map((locale) => [
+          locale,
+          locale === 'fr'
+            ? labels.fr
+            : locale === 'en'
+              ? labels.en
+              : '',
+        ]),
       ) as CmsLocalizedText,
     }
   })

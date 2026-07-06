@@ -1,5 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { createBillingDocumentPdfAttachment } from '#modula/server/utils/billingDocumentPdf'
+import { getSiteLocales } from '#modula/server/utils/settings'
 import {
   createDefaultBillingDocumentInvoiceOptions,
   createDefaultBillingDocumentInvoiceColumns,
@@ -31,6 +32,7 @@ interface Body {
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
+  const siteLocales = await getSiteLocales()
   const body = await readBody<Body>(event)
   const kind = body.kind === 'INVOICE'
     ? 'INVOICE'
@@ -49,12 +51,12 @@ export default defineEventHandler(async (event) => {
     logoUrl: body.logoUrl?.trim() || null,
     accentColor: body.accentColor?.trim() || null,
     sourcePdfUrl: body.sourcePdfUrl?.trim() || null,
-    titleLocalized: normalizeBillingDocumentLocalizedText(body.titleLocalized, name),
-    contentLocalized: normalizeBillingDocumentLocalizedText(body.contentLocalized),
-    footerLocalized: normalizeBillingDocumentLocalizedText(body.footerLocalized),
+    titleLocalized: normalizeBillingDocumentLocalizedText(body.titleLocalized, name, siteLocales),
+    contentLocalized: normalizeBillingDocumentLocalizedText(body.contentLocalized, '', siteLocales),
+    footerLocalized: normalizeBillingDocumentLocalizedText(body.footerLocalized, '', siteLocales),
     invoiceColumns: kind === 'INVOICE'
-      ? normalizeBillingDocumentInvoiceColumns(body.invoiceColumns)
-      : createDefaultBillingDocumentInvoiceColumns(),
+      ? normalizeBillingDocumentInvoiceColumns(body.invoiceColumns, siteLocales)
+      : createDefaultBillingDocumentInvoiceColumns(siteLocales),
     invoiceOptions: kind === 'INVOICE'
       ? normalizeBillingDocumentInvoiceOptions(body.invoiceOptions)
       : createDefaultBillingDocumentInvoiceOptions(),

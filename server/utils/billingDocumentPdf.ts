@@ -361,6 +361,10 @@ function buildInvoiceTaxGroups(order: ShopOrderPayload, localeCode: string, dict
     }))
 }
 
+function shouldHideInvoiceVat(order: ShopOrderPayload) {
+  return order.lines.every((line) => getInvoiceLineAmounts(line).rate <= 0)
+}
+
 function buildInvoiceTotals(order: ShopOrderPayload) {
   let totalHt = 0
   let totalVat = 0
@@ -552,7 +556,9 @@ export async function createBillingDocumentPdfAttachment(options: {
     const currency = (order.currency || 'EUR').toUpperCase()
     const formatter = new Intl.NumberFormat(localeCode, { style: 'currency', currency })
     const invoiceTotals = buildInvoiceTotals(order)
+    const hideVat = shouldHideInvoiceVat(order)
     const invoiceColumns = resolveInvoiceColumnDefinitions(template, locale)
+      .filter((column) => !hideVat || (column.key !== 'vatAmount' && column.key !== 'vatRate'))
     const farmPickup = await getFarmPickupConfig().catch(() => getDefaultFarmPickupConfig())
     const sellerEmail = await getContactEmail()
     const sellerPhone = await getAdminPhone()
@@ -608,7 +614,8 @@ export async function createBillingDocumentPdfAttachment(options: {
       subtotalExclTaxLabel: formatter.format(invoiceTotals.totalHt),
       totalVatLabel: formatter.format(invoiceTotals.totalVat),
       totalInclTaxLabel: formatter.format(invoiceTotals.totalTtc),
-      taxRows: buildInvoiceTaxGroups(order, localeCode, dictionary),
+      taxRows: hideVat ? [] : buildInvoiceTaxGroups(order, localeCode, dictionary),
+      vatNote: hideVat ? (dictionary['billing.pdf.vatNotApplicable'] || 'TVA non applicable') : null,
       notes: order.message || '',
       footer: renderTemplate(footer, vars),
       logoBytes: logoImage?.bytes || null,

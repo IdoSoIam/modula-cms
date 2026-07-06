@@ -1,9 +1,10 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
+import { getSiteLocales } from '#modula/server/utils/settings'
 import {
   buildBillingDocumentLocalizedPayload,
   normalizeBillingDocumentInvoiceOptions,
-  normalizeBillingDocumentInvoiceColumns,
+  sanitizeBillingDocumentInvoiceColumns,
   enforceSingleDefaultBillingDocument,
   ensureUniqueBillingDocumentSlug,
   serializeBillingDocumentTemplate,
@@ -34,6 +35,7 @@ interface Body {
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
+  const siteLocales = await getSiteLocales()
   const id = Number(getRouterParam(event, 'id'))
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
@@ -91,7 +93,35 @@ export default defineEventHandler(async (event) => {
     data.footerJson = buildBillingDocumentLocalizedPayload(body.footerLocalized).json
   }
   if (body.invoiceColumns !== undefined) {
-    data.invoiceColumnsJson = JSON.stringify(normalizeBillingDocumentInvoiceColumns(body.invoiceColumns))
+    const existingColumns = sanitizeBillingDocumentInvoiceColumns(existing.invoiceColumnsJson, siteLocales)
+    const incomingColumns = sanitizeBillingDocumentInvoiceColumns(body.invoiceColumns, siteLocales)
+    const existingMap = new Map(existingColumns.map((column) => [column.key, column]))
+
+    const mergedInvoiceColumns = incomingColumns.map((column) => {
+      const current = existingMap.get(column.key)
+      const mergedLocales = new Set([
+        ...Object.keys(current?.labelLocalized || {}),
+        ...Object.keys(column.labelLocalized || {}),
+      ])
+      const labelLocalized = {} as CmsLocalizedText
+
+      for (const locale of mergedLocales) {
+        if (Object.prototype.hasOwnProperty.call(column.labelLocalized || {}, locale)) {
+          labelLocalized[locale] = column.labelLocalized[locale] ?? ''
+        } else if (current?.labelLocalized?.[locale] !== undefined) {
+          labelLocalized[locale] = current.labelLocalized[locale]
+        } else {
+          labelLocalized[locale] = ''
+        }
+      }
+
+      return {
+        ...column,
+        labelLocalized,
+      }
+    })
+
+    data.invoiceColumnsJson = JSON.stringify(mergedInvoiceColumns)
   }
   if (body.invoiceOptions !== undefined) {
     data.invoiceOptionsJson = JSON.stringify(normalizeBillingDocumentInvoiceOptions(body.invoiceOptions))
@@ -107,5 +137,5 @@ export default defineEventHandler(async (event) => {
   }
 
   const saved = await db.billingDocumentTemplate.findUnique({ where: { id } })
-  return serializeBillingDocumentTemplate(saved)
+  return serializeBillingDocumentTemplate(saved, siteLocales)
 })

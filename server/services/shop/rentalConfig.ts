@@ -71,7 +71,7 @@ function normalizeMinDays(value: number | null | undefined, fallback: number) {
 }
 
 function normalizeMaxDays(value: number | null | undefined, minDays: number) {
-  if (value == null || value === "") return null
+  if (value == null) return null
   const normalized = Number(value)
   if (!Number.isInteger(normalized) || normalized < minDays) {
     throw createError({

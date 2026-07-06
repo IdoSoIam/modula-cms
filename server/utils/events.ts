@@ -16,6 +16,7 @@ import {
   type EventRecurrenceType,
   type EventStatus,
   type EventTranslation,
+  type EventTranslationsMap,
   type EventWeekdayValue,
   type EventVisibility
 } from '#modula/shared/events'
@@ -47,9 +48,9 @@ function localized(value?: Partial<CmsLocalizedText> | null): CmsLocalizedText {
   }
 }
 
-function normalizeEventTranslationsMap(value: unknown): Record<CmsLocale, EventTranslation> {
+function normalizeEventTranslationsMap(value: unknown): EventTranslationsMap {
   const source = typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}
-  const normalized: Record<CmsLocale, EventTranslation> = {}
+  const normalized: Partial<EventTranslationsMap> = {}
 
   for (const [locale, localeValue] of Object.entries(source)) {
     normalized[locale] = normalizeEventTranslation(localeValue)
@@ -58,7 +59,7 @@ function normalizeEventTranslationsMap(value: unknown): Record<CmsLocale, EventT
   if (!normalized.fr) normalized.fr = createDefaultEventTranslation()
   if (!normalized.en) normalized.en = createDefaultEventTranslation()
 
-  return normalized
+  return normalized as EventTranslationsMap
 }
 
 function normalizeWeekdayValues(value: unknown): EventWeekdayValue[] {

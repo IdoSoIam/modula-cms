@@ -420,11 +420,11 @@ function normalizeTranslations(value: unknown, path = '/'): Record<CmsLocale, Cm
   }
 
   if (!normalized.fr) {
-    normalized.fr = fallback.fr
+    normalized.fr = fallback.fr ?? createDefaultCmsPageTranslation()
   }
 
   if (!normalized.en) {
-    normalized.en = fallback.en
+    normalized.en = fallback.en ?? createDefaultCmsPageTranslation()
   }
 
   return synchronizeSharedPageContent(normalized)

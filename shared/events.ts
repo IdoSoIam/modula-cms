@@ -1,4 +1,4 @@
-import type { CmsLocalizedText } from '#modula/shared/cms'
+import type { CmsLocale, CmsLocalizedText } from '#modula/shared/cms'
 import type { PageBuilderContent, SectionContainerWidth, ThemeColorSelection } from '#modula/shared/pageBuilder'
 import { createThemeColorSelection } from '#modula/shared/pageBuilder'
 
@@ -33,6 +33,11 @@ export interface EventTranslation {
   content: PageBuilderContent
 }
 
+export type EventTranslationsMap = Record<CmsLocale, EventTranslation> & {
+  fr: EventTranslation
+  en: EventTranslation
+}
+
 export interface EventPayload {
   id?: number
   slug: string
@@ -62,10 +67,7 @@ export interface EventPayload {
   notifyAdminOnInternalParticipation: boolean
   audienceMemberRoleIds: number[]
   occurrence?: EventOccurrencePayload | null
-  translations: {
-    fr: EventTranslation
-    en: EventTranslation
-  }
+  translations: EventTranslationsMap
 }
 
 export interface EventListItem {

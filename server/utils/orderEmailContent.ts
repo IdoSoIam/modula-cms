@@ -37,7 +37,7 @@ export interface TemplateDefinition {
   variables: string[]
 }
 
-const DEFAULT_TEMPLATE_MAP: Record<string, Record<TemplateAction, EmailTemplate>> = {
+const DEFAULT_TEMPLATE_MAP: Record<'fr' | 'en', Record<TemplateAction, EmailTemplate>> & Record<string, Record<TemplateAction, EmailTemplate>> = {
   fr: {
     confirmed: {
       subject: 'Votre réservation de panier est confirmée - Le site',
@@ -501,7 +501,8 @@ export function getReservationDateLocale(locale: string | null | undefined) {
   if (target === 'en') return 'en-US'
   if (target === 'fr') return 'fr-FR'
   if (/^[a-z]{2}-[a-z]{2}$/i.test(target)) {
-    const [lang, region] = target.split('-')
+    const [lang = target, regionRaw] = target.split('-')
+    const region = regionRaw || lang
     return `${lang}-${region.toUpperCase()}`
   }
   return `${target}-${target.toUpperCase()}`
