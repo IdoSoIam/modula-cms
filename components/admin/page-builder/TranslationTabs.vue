@@ -17,22 +17,42 @@
         </select>
       </div>
 
-      <div class="tabs tabs-box tabs-xs">
-        <button type="button" class="tab" :class="activeLang === 'fr' ? 'tab-active' : ''" @click="activeLang = 'fr'">FR</button>
-        <button type="button" class="tab" :class="activeLang === 'en' ? 'tab-active' : ''" @click="activeLang = 'en'">EN</button>
+      <div class="flex items-center gap-2">
+        <button
+          v-if="showAutoTranslateButton"
+          type="button"
+          class="btn btn-xs btn-outline"
+          :disabled="translating"
+          @click="translateMissingLocales"
+        >
+          <span v-if="translating" class="loading loading-spinner loading-xs" />
+          <span v-else>Trad auto</span>
+        </button>
+        <div class="tabs tabs-box tabs-xs">
+          <button
+            v-for="locale in resolvedLocales"
+            :key="locale"
+            type="button"
+            class="tab"
+            :class="activeLang === locale ? 'tab-active' : ''"
+            @click="activeLang = locale"
+          >
+            {{ locale.toUpperCase() }}
+          </button>
+        </div>
       </div>
     </div>
 
     <textarea
       v-if="multiline"
-      :value="modelValue[activeLang]"
+      :value="currentValue"
       class="textarea textarea-bordered w-full"
       rows="3"
       @input="updateLocalizedValue(activeLang, ($event.target as HTMLTextAreaElement).value)"
     />
     <input
       v-else
-      :value="modelValue[activeLang]"
+      :value="currentValue"
       class="input input-bordered w-full"
       @input="updateLocalizedValue(activeLang, ($event.target as HTMLInputElement).value)"
     >
@@ -48,6 +68,7 @@ const props = defineProps<{
   label: string
   size?: TypographySize
   multiline?: boolean
+  locales?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -55,13 +76,82 @@ const emit = defineEmits<{
   'update:modelValue': [value: LocalizedText]
 }>()
 
-const activeLang = ref<'fr' | 'en'>('fr')
+const { locales: siteLocales } = useSiteLocales()
+const { $toast } = useNuxtApp() as any
 
-const updateLocalizedValue = (lang: 'fr' | 'en', value: string) => {
-  props.modelValue[lang] = value
+const resolvedLocales = computed(() =>
+  props.locales?.length ? props.locales : (siteLocales.value.length ? siteLocales.value : ['fr', 'en'])
+)
+const activeLang = ref<string>(resolvedLocales.value[0] || 'fr')
+
+watch(resolvedLocales, (newLocales) => {
+  if (!activeLang.value || !newLocales.includes(activeLang.value)) {
+    activeLang.value = newLocales[0] || 'fr'
+  }
+})
+
+const translating = ref(false)
+const currentValue = computed(() => props.modelValue?.[activeLang.value] ?? '')
+
+const translationSourceLocale = computed(() => {
+  if (props.modelValue?.[activeLang.value]?.trim()) return activeLang.value
+  return resolvedLocales.value.find((locale) => props.modelValue?.[locale]?.trim()) || activeLang.value
+})
+
+const emptyTargetLocales = computed(() =>
+  resolvedLocales.value.filter((locale) =>
+    locale !== translationSourceLocale.value
+    && !props.modelValue?.[locale]?.trim()
+  )
+)
+
+const showAutoTranslateButton = computed(() =>
+  Boolean(props.modelValue?.[translationSourceLocale.value]?.trim())
+  && emptyTargetLocales.value.length > 0
+)
+
+function updateLocalizedValue(lang: string, value: string) {
   emit('update:modelValue', {
-    ...props.modelValue,
-    [lang]: value
+    ...(props.modelValue || {}),
+    [lang]: value,
   })
+}
+
+async function translateMissingLocales() {
+  const sourceLocale = translationSourceLocale.value
+  const text = props.modelValue?.[sourceLocale]?.trim()
+  if (!text || !emptyTargetLocales.value.length) return
+
+  translating.value = true
+  try {
+    const result = await $fetch<{ translations?: Record<string, string> }>('/api/admin/translate', {
+      method: 'POST',
+      body: {
+        text,
+        sourceLocale,
+        targetLocales: emptyTargetLocales.value,
+        context: props.label,
+      },
+    })
+
+    const next = { ...(props.modelValue || {}) }
+    let changed = false
+
+    for (const locale of emptyTargetLocales.value) {
+      const translated = result?.translations?.[locale]?.trim()
+      if (translated && !next[locale]?.trim()) {
+        next[locale] = translated
+        changed = true
+      }
+    }
+
+    if (changed) {
+      emit('update:modelValue', next)
+    }
+  } catch (error: any) {
+    $toast?.error(error?.data?.statusMessage || error?.statusMessage || 'Traduction impossible.')
+  } finally {
+    translating.value = false
+  }
 }
 </script>

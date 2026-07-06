@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <h1 class="mb-6 text-3xl font-bold">{{ t('admin.emailConnectorsPage.title') }}</h1>
 
@@ -143,9 +143,8 @@
               <label class="label">
                 <span class="label-text">{{ t('admin.emailConnectorsPage.resendApiKey') }}</span>
               </label>
-              <input
+              <PasswordField
                 v-model="form.resendApiKey"
-                type="password"
                 class="input input-bordered w-full"
                 placeholder="re_..."
                 autocomplete="off"
@@ -205,9 +204,10 @@
                     <button
                       v-for="templateDef in subgroup.templates"
                       :key="templateDef.action"
-                      class="w-full rounded-xl border p-3 text-left transition"
+                      type="button"
+                      class="w-full cursor-pointer rounded-xl border p-3 text-left transition hover:border-primary/60 hover:bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/20"
                       :class="activeTemplateAction === templateDef.action ? 'border-primary bg-base-100' : 'border-base-300 bg-base-100/60'"
-                      @click="selectTemplate(templateDef.action)"
+                      @click.stop.prevent="selectTemplate(templateDef.action)"
                     >
                       <div class="flex items-start justify-between gap-2">
                         <div>
@@ -254,18 +254,13 @@
 
               <div class="tabs tabs-border w-fit">
                 <button
+                  v-for="localeCode in resolvedTemplateLocales"
+                  :key="localeCode"
                   class="tab"
-                  :class="{ 'tab-active': activeTemplateLocale === 'fr' }"
-                  @click="activeTemplateLocale = 'fr'"
+                  :class="{ 'tab-active': activeTemplateLocale === localeCode }"
+                  @click="activeTemplateLocale = localeCode"
                 >
-                  {{ t('admin.emailConnectorsPage.french') }}
-                </button>
-                <button
-                  class="tab"
-                  :class="{ 'tab-active': activeTemplateLocale === 'en' }"
-                  @click="activeTemplateLocale = 'en'"
-                >
-                  English
+                  {{ templateLocaleLabel(localeCode) }}
                 </button>
               </div>
 
@@ -355,25 +350,17 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.settingsEmailConnectors
-  }
-})
+  middleware: 'auth'})
 
 interface Template {
   subject: string
   body: string
 }
 
-interface TemplateTranslations {
-  fr: Template
-  en: Template
-}
+type TemplateTranslations = Record<string, Template>
 
 interface TemplateDefinition {
   action: string
@@ -409,6 +396,7 @@ interface SettingsBase {
 }
 
 const { t, locale } = useI18n()
+const { locales: siteLocales, localeLabels } = useSiteLocales()
 const settingsData = ref<SettingsBase | null>(null)
 const pending = ref(true)
 const creatingTemplate = ref(false)
@@ -427,7 +415,8 @@ const form = reactive({
 })
 
 const activeTemplateAction = ref('')
-const activeTemplateLocale = ref<'fr' | 'en'>('fr')
+const resolvedTemplateLocales = computed(() => siteLocales.value.length ? siteLocales.value : ['fr', 'en'])
+const activeTemplateLocale = ref<string>(resolvedTemplateLocales.value[0] || 'fr')
 const saving = ref(false)
 const testingEmail = ref(false)
 const templatePending = ref(false)
@@ -465,8 +454,14 @@ const activeTemplateDefinition = computed(() =>
 const currentTemplate = computed<Template | null>(() => {
   const action = activeTemplateAction.value
   if (!action || !templateCache[action]) return null
-  return templateCache[action][activeTemplateLocale.value]
+  return templateCache[action][activeTemplateLocale.value] ?? null
 })
+
+watch(resolvedTemplateLocales, (value) => {
+  if (!value.includes(activeTemplateLocale.value)) {
+    activeTemplateLocale.value = value[0] || 'fr'
+  }
+}, { immediate: true })
 
 const dirtyTemplateActions = computed(() => {
   return new Set(
@@ -524,6 +519,8 @@ const updateCalendarName = () => {
 
 const formatTemplateVariable = (variable: string) => `{{${variable}}}`
 const localizedValue = (value: { fr: string, en: string }) => locale.value === 'en' ? (value.en || value.fr) : (value.fr || value.en)
+const templateLocaleLabel = (localeCode: string) =>
+  localeLabels.value[localeCode]?.long || localeLabels.value[localeCode]?.short || localeCode.toUpperCase()
 const isGroupOpen = (key: string) => openGroupKeys.value.includes(key)
 const toggleGroup = (key: string) => {
   if (isGroupOpen(key)) {
@@ -545,21 +542,56 @@ const ensureGroupOpenForAction = (action: string) => {
 
 const ensureTemplateLoaded = async (action: string) => {
   if (templateCache[action]) {
+    ensureTemplateLocaleEntry(action, activeTemplateLocale.value)
     return
   }
 
   templatePending.value = true
   try {
     const response = await $fetch<{ templates: TemplateTranslations }>(`/api/admin/settings/templates/${action}` as string)
-    templateCache[action] = {
-      fr: { ...response.templates.fr },
-      en: { ...response.templates.en }
+    const localeEntries = new Set([
+      ...resolvedTemplateLocales.value,
+      ...Object.keys(response.templates || {})
+    ])
+
+    templateCache[action] = Object.fromEntries(
+      [...localeEntries].map((localeCode) => [
+        localeCode,
+        { ...(response.templates?.[localeCode] || { subject: '', body: '' }) }
+      ])
+    )
+
+    if (!templateCache[action][activeTemplateLocale.value]) {
+      const preferredLocale
+        = localeEntries.has(activeTemplateLocale.value)
+          ? activeTemplateLocale.value
+          : localeEntries.has(locale.value)
+            ? String(locale.value)
+            : [...localeEntries][0]
+
+      if (preferredLocale) {
+        activeTemplateLocale.value = preferredLocale
+      }
     }
+
+    ensureTemplateLocaleEntry(action, activeTemplateLocale.value)
     templateInitialSignatures[action] = JSON.stringify(templateCache[action])
   } finally {
     templatePending.value = false
   }
 }
+
+const ensureTemplateLocaleEntry = (action: string, localeCode: string) => {
+  if (!action || !localeCode || !templateCache[action]) return
+  if (!templateCache[action][localeCode]) {
+    templateCache[action][localeCode] = { subject: '', body: '' }
+  }
+}
+
+watch([activeTemplateAction, activeTemplateLocale], ([action, localeCode]) => {
+  if (!action || !localeCode) return
+  ensureTemplateLocaleEntry(action, localeCode)
+})
 
 const selectTemplate = async (action: string) => {
   activeTemplateAction.value = action

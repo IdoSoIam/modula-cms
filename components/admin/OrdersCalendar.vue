@@ -41,7 +41,8 @@
           class="min-h-36 rounded-xl border p-2 text-left transition hover:border-primary/60"
           :class="[
             day.inCurrentMonth ? 'border-base-300 bg-base-100' : 'border-base-300/60 bg-base-300/50 opacity-70',
-            day.isToday ? 'ring-2 ring-primary/40' : ''
+            day.isToday ? 'ring-2 ring-primary/40' : '',
+            dayClass(day)
           ]"
           @click="$emit('select-day', day)"
         >
@@ -90,6 +91,7 @@ const props = withDefaults(defineProps<{
   todayLabel?: string
   monthPickerLabel?: string
   itemClass?: (item: any) => string
+  dayClass?: (day: any) => string
   itemTitle?: (item: any) => string
   itemSubtitle?: (item: any) => string
   itemMeta?: (item: any) => string
@@ -97,6 +99,7 @@ const props = withDefaults(defineProps<{
   todayLabel: '',
   monthPickerLabel: '',
   itemClass: () => 'bg-primary text-primary-content shadow-sm',
+  dayClass: () => '',
   itemTitle: (item: any) => String(item?.title ?? ''),
   itemSubtitle: (item: any) => String(item?.subtitle ?? ''),
   itemMeta: (item: any) => String(item?.meta ?? '')
@@ -118,6 +121,7 @@ const todayLabel = computed(() => props.todayLabel || t('admin.ordersPage.today'
 const monthPickerLabel = computed(() => props.monthPickerLabel || t('admin.ordersPage.monthPicker'))
 
 const itemClass = (item: any) => props.itemClass(item)
+const dayClass = (day: any) => props.dayClass(day)
 const itemTitle = (item: any) => props.itemTitle(item)
 const itemSubtitle = (item: any) => props.itemSubtitle(item)
 const itemMeta = (item: any) => props.itemMeta(item)

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -231,11 +231,19 @@
               <p class="text-sm opacity-70">Ce contenu s’affiche sous les métadonnées de l’événement.</p>
             </div>
           </div>
-          <div class="tabs tabs-box">
-            <button type="button" class="tab" :class="{ 'tab-active': contentLocale === 'fr' }" @click="contentLocale = 'fr'">FR</button>
-            <button type="button" class="tab" :class="{ 'tab-active': contentLocale === 'en' }" @click="contentLocale = 'en'">EN</button>
+          <div class="tabs tabs-box flex-wrap">
+            <button
+              v-for="localeCode in resolvedLocales"
+              :key="localeCode"
+              type="button"
+              class="tab"
+              :class="{ 'tab-active': contentLocale === localeCode }"
+              @click="contentLocale = localeCode"
+            >
+              {{ localeCode.toUpperCase() }}
+            </button>
           </div>
-          <CmsPageContentBuilder :content="editor.translations[contentLocale].content" />
+          <CmsPageContentBuilder :content="editor.translations[contentLocale]?.content ?? editor.translations.fr.content" />
         </section>
 
         <section v-if="editor.id" class="space-y-4 rounded-2xl border border-base-300 bg-base-200 p-5">
@@ -368,17 +376,13 @@
 <script setup lang="ts">
 import CmsPageContentBuilder from '#modula/components/admin/cms/CmsPageContentBuilder.vue'
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
+import type { LocalizedText } from '#modula/shared/pageBuilder'
 import cmsProjectConfig from '#modula/cms.project.config'
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import { createDefaultEventPayload, type EventListItem, type EventPayload, type EventWeekdayValue } from '#modula/shared/events'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.contentEvents
-  }
-})
+  middleware: 'auth'})
 
 interface MemberRoleSummary {
   id: number
@@ -409,12 +413,14 @@ const { $toast } = useNuxtApp() as any
 const route = useRoute()
 const localePath = useLocalePath()
 const siteConfig = await useSiteConfig()
+const { locales: siteLocales } = useSiteLocales()
 const statusFilter = ref('')
 const selectedId = ref<number | null>(null)
 const saving = ref(false)
 const sendingCall = ref(false)
 const creating = ref(false)
-const contentLocale = ref<'fr' | 'en'>('fr')
+const resolvedLocales = computed<string[]>(() => siteLocales.value.length ? [...siteLocales.value] : ['fr', 'en'])
+const contentLocale = ref<string>('fr')
 const createDialogRef = ref<HTMLDialogElement | null>(null)
 
 const { data: eventsData, pending, refresh } = await useFetch<EventListItem[]>('/api/admin/events', {
@@ -433,8 +439,8 @@ const editor = ref<EventPayload | null>(null)
 const eligibleUsers = ref<EligibleUser[]>([])
 const cloneEventPayload = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 const createForm = reactive({
-  title: { fr: '', en: '' },
-  subtitle: { fr: '', en: '' },
+  title: { fr: '', en: '' } as Record<string, string>,
+  subtitle: { fr: '', en: '' } as Record<string, string>,
   slug: '',
   visibility: 'PUBLIC' as 'PUBLIC' | 'PRIVATE',
   status: 'DRAFT' as 'DRAFT' | 'PUBLISHED',
@@ -481,10 +487,10 @@ const createEvent = () => {
 const openCreateDialog = () => {
   const now = new Date()
   const inTwoHours = new Date(now.getTime() + 2 * 60 * 60 * 1000)
-  createForm.title.fr = ''
-  createForm.title.en = ''
-  createForm.subtitle.fr = ''
-  createForm.subtitle.en = ''
+  createForm.title['fr'] = ''
+  createForm.title['en'] = ''
+  createForm.subtitle['fr'] = ''
+  createForm.subtitle['en'] = ''
   createForm.slug = `evenement-${Date.now()}`
   createForm.visibility = 'PUBLIC'
   createForm.status = 'DRAFT'
@@ -498,14 +504,16 @@ const openCreateDialog = () => {
 }
 
 const localizedField = (key: 'title' | 'subtitle' | 'excerpt') => computed({
-  get: () => editor.value ? {
-    fr: editor.value.translations.fr[key],
-    en: editor.value.translations.en[key]
-  } : { fr: '', en: '' },
-  set: (value: { fr: string; en: string }) => {
+  get: (): LocalizedText => Object.fromEntries(
+    resolvedLocales.value.map((localeCode) => [localeCode, editor.value?.translations[localeCode]?.[key] ?? ''])
+  ) as LocalizedText,
+  set: (value: LocalizedText) => {
     if (!editor.value) return
-    editor.value.translations.fr[key] = value.fr
-    editor.value.translations.en[key] = value.en
+    for (const localeCode of resolvedLocales.value) {
+      const translation = editor.value.translations[localeCode]
+      if (!translation) continue
+      translation[key] = value[localeCode] ?? ''
+    }
   }
 })
 const titleTranslations = localizedField('title')
@@ -565,10 +573,10 @@ const createEventAndOpenLiveEdit = async () => {
     payload.placeCity = createForm.placeCity.trim()
     payload.publicReservationEnabled = createForm.publicReservationEnabled
     payload.internalParticipationEnabled = createForm.internalParticipationEnabled
-    payload.translations.fr.title = createForm.title.fr.trim() || 'Événement à compléter'
-    payload.translations.en.title = createForm.title.en.trim() || 'Event to complete'
-    payload.translations.fr.subtitle = createForm.subtitle.fr.trim()
-    payload.translations.en.subtitle = createForm.subtitle.en.trim()
+    payload.translations.fr.title = (createForm.title['fr'] ?? '').trim() || 'Événement à compléter'
+    payload.translations.en.title = (createForm.title['en'] ?? '').trim() || 'Event to complete'
+    payload.translations.fr.subtitle = (createForm.subtitle['fr'] ?? '').trim()
+    payload.translations.en.subtitle = (createForm.subtitle['en'] ?? '').trim()
     payload.translations.fr.excerpt = 'Exemple d’événement public avec contenu CMS prêt à éditer.'
     payload.translations.en.excerpt = 'Sample public event with editable CMS content.'
 
@@ -650,6 +658,12 @@ watch(() => [editor.value?.audienceMemberRoleIds.join(','), allUsers.value.lengt
     loadEligibleUsers()
   }
 })
+
+watch(resolvedLocales, (locales) => {
+  if (!locales.includes(contentLocale.value)) {
+    contentLocale.value = locales[0] || 'fr'
+  }
+}, { immediate: true })
 
 watch(() => route.query.open, async (value) => {
   if (!value) return

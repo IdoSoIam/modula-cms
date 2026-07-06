@@ -11,7 +11,9 @@ import type {
   CmsCookieServiceCategory,
   CmsCookieServiceStorage,
   CmsFooterBlock,
+  CmsImageAsset,
   CmsLocale,
+  CmsLocalizedText,
   CmsNavigationItemPayload,
   CmsNavigationMenu,
   CmsNavigationItemType,
@@ -28,7 +30,6 @@ import type {
 } from '#modula/shared/cms'
 import type { FeatureFlags } from '#modula/server/utils/settings'
 import {
-  CMS_LOCALES,
   createDefaultCmsPagePayload,
   createDefaultCmsPageTranslation,
   createDefaultCmsFooterColumn,
@@ -39,7 +40,8 @@ import {
   createDefaultCmsSiteSettings,
   createEmptyCmsPageSeo,
   createEmptyPageBuilderContent,
-  createEmptyCmsLocalizedText
+  createEmptyCmsLocalizedText,
+  pickCmsLocalizedText
 } from '#modula/shared/cms'
 import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '#modula/shared/events'
 import type { PageBuilderContent, ThemeColorSelection } from '#modula/shared/pageBuilder'
@@ -93,21 +95,30 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function normalizeLocalizedText(value: unknown) {
   if (!isObject(value)) return createEmptyCmsLocalizedText()
-  return {
-    fr: typeof value.fr === 'string' ? value.fr : '',
-    en: typeof value.en === 'string' ? value.en : ''
-  }
+  const entries = Object.entries(value)
+    .filter(([key, entry]) => typeof key === 'string' && typeof entry === 'string')
+    .map(([key, entry]) => [key.trim().toLowerCase(), entry])
+    .filter(([key]) => key)
+
+  const normalized = Object.fromEntries(entries) as CmsLocalizedText
+  if (typeof normalized.fr !== 'string') normalized.fr = ''
+  if (typeof normalized.en !== 'string') normalized.en = ''
+  return normalized
 }
 
-function normalizeLocalizedTextWithFallback(value: unknown, fallback: { fr: string, en: string }) {
+function normalizeLocalizedTextWithFallback(value: unknown, fallback: CmsLocalizedText) {
   const normalized = normalizeLocalizedText(value)
   return {
-    fr: normalized.fr || fallback.fr,
-    en: normalized.en || fallback.en
-  }
+    ...normalized,
+    ...Object.fromEntries(
+      Object.entries(fallback)
+        .filter(([key]) => !normalized[key]?.trim())
+        .map(([key, val]) => [key, val])
+    )
+  } as CmsLocalizedText
 }
 
-function normalizeImageAsset(value: unknown, fallback: { src: string; alt: { fr: string; en: string } }) {
+function normalizeImageAsset(value: unknown, fallback: CmsImageAsset) {
   const source = isObject(value) ? value : {}
   return {
     src: typeof source.src === 'string' && source.src.trim() ? source.src.trim() : fallback.src,
@@ -282,12 +293,17 @@ function isEmptyPageBuilderContent(content: PageBuilderContent | null | undefine
 }
 
 function pickSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
-  if (!isEmptyPageBuilderContent(translations.fr.content)) {
-    return clonePageBuilderContent(translations.fr.content)
+  for (const locale of ['fr', 'en']) {
+    const translation = translations[locale]
+    if (translation && !isEmptyPageBuilderContent(translation.content)) {
+      return clonePageBuilderContent(translation.content)
+    }
   }
 
-  if (!isEmptyPageBuilderContent(translations.en.content)) {
-    return clonePageBuilderContent(translations.en.content)
+  for (const translation of Object.values(translations)) {
+    if (translation && !isEmptyPageBuilderContent(translation.content)) {
+      return clonePageBuilderContent(translation.content)
+    }
   }
 
   return createEmptyPageBuilderContent()
@@ -295,17 +311,18 @@ function pickSharedPageContent(translations: Record<CmsLocale, CmsPageTranslatio
 
 function synchronizeSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
   const sharedContent = pickSharedPageContent(translations)
+  const locales = new Set<CmsLocale>(['fr', 'en', ...Object.keys(translations)])
+  const synchronized: Record<CmsLocale, CmsPageTranslation> = {}
 
-  return {
-    fr: {
-      ...translations.fr,
-      content: clonePageBuilderContent(sharedContent)
-    },
-    en: {
-      ...translations.en,
+  for (const locale of locales) {
+    const base = translations[locale] ?? createDefaultCmsPageTranslation()
+    synchronized[locale] = {
+      ...base,
       content: clonePageBuilderContent(sharedContent)
     }
   }
+
+  return synchronized
 }
 
 async function ensureFormEmailTemplateActions(payload: CmsPagePayload) {
@@ -361,13 +378,25 @@ async function ensureFormEmailTemplateActions(payload: CmsPagePayload) {
       }
     }
   }
+  const fr = payload.translations['fr']
+  const en = payload.translations['en']
+  const frTitle: string = fr?.title ?? ''
+  const frNav: string = fr?.navigationLabel ?? ''
+  const frSeo: CmsPageSeo = fr?.seo ?? createEmptyCmsPageSeo()
+  const enTitle: string = en?.title ?? ''
+  const enNav: string = en?.navigationLabel ?? ''
+  const enSeo: CmsPageSeo = en?.seo ?? createEmptyCmsPageSeo()
   payload.translations = synchronizeSharedPageContent({
     fr: {
-      ...payload.translations.fr,
+      title: frTitle,
+      navigationLabel: frNav,
+      seo: frSeo,
       content: clonePageBuilderContent(sharedContent)
     },
     en: {
-      ...payload.translations.en,
+      title: enTitle,
+      navigationLabel: enNav,
+      seo: enSeo,
       content: clonePageBuilderContent(sharedContent)
     }
   })
@@ -377,10 +406,28 @@ function normalizeTranslations(value: unknown, path = '/'): Record<CmsLocale, Cm
   const fallback = createDefaultCmsPagePayload(path).translations
   if (!isObject(value)) return fallback
 
-  return synchronizeSharedPageContent({
-    fr: normalizeTranslation(value.fr),
-    en: normalizeTranslation(value.en)
-  })
+  const normalized: Record<CmsLocale, CmsPageTranslation> = {}
+  const entries = Object.entries(value as Record<string, unknown>)
+
+  for (const [locale, localeValue] of entries) {
+    const next = normalizeTranslation(localeValue)
+    normalized[locale] = {
+      title: next.title ?? '',
+      navigationLabel: next.navigationLabel ?? '',
+      seo: next.seo ?? createEmptyCmsPageSeo(),
+      content: next.content ?? createEmptyPageBuilderContent()
+    }
+  }
+
+  if (!normalized.fr) {
+    normalized.fr = fallback.fr ?? createDefaultCmsPageTranslation()
+  }
+
+  if (!normalized.en) {
+    normalized.en = fallback.en ?? createDefaultCmsPageTranslation()
+  }
+
+  return synchronizeSharedPageContent(normalized)
 }
 
 function parseJson<T>(value: string | null | undefined): T | null {
@@ -676,7 +723,7 @@ function createDefaultContactPageContent() {
           kind: 'text',
           source: 'opening-hours',
           icon: 'mdi:clock',
-          title: { fr: 'Vente directe à la ferme', en: 'Farm direct sale' },
+          title: { fr: 'Vente directe à la ferme', en: 'OnSite direct sale' },
           text: { fr: '', en: '' },
           titleSize: 'sm',
           textSize: 'sm'
@@ -795,8 +842,30 @@ function pageRowToPayload(row: CmsPage): CmsPagePayload {
   }
 }
 
-function pickTranslation(locale: string, translations: Record<CmsLocale, CmsPageTranslation>) {
-  return locale === 'en' ? translations.en : translations.fr
+function pickTranslation(locale: string, translations: Record<CmsLocale, CmsPageTranslation>): CmsPageTranslation | undefined {
+  return translations[locale] || translations['fr'] || translations['en'] || Object.values(translations)[0]
+}
+
+function cloneCmsTranslationValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+function mergePageTranslation(
+  primary: CmsPageTranslation | undefined,
+  fallback: CmsPageTranslation | undefined
+): CmsPageTranslation {
+  const resolvedPrimary = primary ?? createDefaultCmsPageTranslation()
+  const resolvedFallback = fallback ?? createDefaultCmsPageTranslation()
+
+  return {
+    title: resolvedPrimary.title || resolvedFallback.title,
+    navigationLabel: resolvedPrimary.navigationLabel || resolvedFallback.navigationLabel,
+    seo: {
+      ...cloneCmsTranslationValue(resolvedFallback.seo),
+      ...cloneCmsTranslationValue(resolvedPrimary.seo)
+    },
+    content: cloneCmsTranslationValue(resolvedPrimary.content ?? resolvedFallback.content)
+  }
 }
 
 function navigationRowToPayload(row: CmsNavigationItem): CmsNavigationItemPayload {
@@ -822,7 +891,7 @@ function navigationPayloadToResolved(id: number, payload: CmsNavigationItemPaylo
     menu: payload.menu,
     itemType: payload.itemType,
     labels: payload.labels,
-    label: locale === 'en' ? payload.labels.en : payload.labels.fr,
+    label: pickCmsLocalizedText(locale, payload.labels, 'fr'),
     navigationItemKey: payload.navigationItemKey,
     parentItemKey: payload.parentItemKey,
     href: payload.href,
@@ -862,10 +931,10 @@ function buildResolvedNavigationTree(items: ResolvedCmsNavigationItem[]) {
 function isFeatureEnabledForHref(href: string, featureFlags: FeatureFlags) {
   const normalizedHref = href.split('?')[0]?.split('#')[0] || href
   if (normalizedHref === '/paniers' || normalizedHref.startsWith('/paniers/') || normalizedHref === '/lots-produits' || normalizedHref.startsWith('/lots-produits/')) {
-    return featureFlags.shop.enabled && featureFlags.shop.basketsEnabled
+    return false
   }
   if (normalizedHref === '/boutique' || normalizedHref.startsWith('/boutique/')) {
-    return featureFlags.shop.enabled && featureFlags.shop.vegetablesEnabled
+    return featureFlags.shop.enabled
   }
   if (normalizedHref === '/news' || normalizedHref.startsWith('/news/')) {
     return featureFlags.newsEnabled
@@ -969,7 +1038,7 @@ function createLegacyNewsResolvedPage(locale: string): ResolvedCmsPage {
     title: locale === 'en' ? 'News' : 'Actualités',
     navigationLabel: locale === 'en' ? 'News' : 'Actualités',
     seo: {
-      metaTitle: locale === 'en' ? 'Farm news and updates' : 'Actualités de la ferme',
+      metaTitle: locale === 'en' ? 'OnSite news and updates' : 'Actualités de la ferme',
       metaDescription: locale === 'en'
         ? 'Read the latest news, updates and highlights published on the site.'
         : 'Suivez les actualités, les nouveautés et les temps forts publiés sur le site.',
@@ -1019,7 +1088,7 @@ function createLegacyPlanningResolvedPage(locale: string): ResolvedCmsPage {
     title: locale === 'en' ? 'Schedule' : 'Planning',
     navigationLabel: locale === 'en' ? 'Schedule' : 'Planning',
     seo: {
-      metaTitle: locale === 'en' ? 'Farm schedule' : 'Planning de la ferme',
+      metaTitle: locale === 'en' ? 'OnSite schedule' : 'Planning de la ferme',
       metaDescription: locale === 'en'
         ? 'Browse the farm schedule, public events and volunteer information.'
         : 'Consultez le planning de la ferme, les événements publics et les informations bénévoles.',
@@ -1360,6 +1429,30 @@ async function ensureCmsApplicationPage(path: string, slug: string, titleFr: str
     async () => null
   )
 
+  if (existing) {
+    const payload = pageRowToPayload(existing)
+    if (payload.pageType === 'APPLICATION' && payload.rendererKey === rendererKey) {
+      return existing.id
+    }
+
+    const normalizedExistingPath = payload.path?.trim() ? payload.path : path
+    const normalizedExistingSlug = payload.slug?.trim() ? payload.slug : slug
+    const normalizedTitle = payload.title?.trim() ? payload.title : titleFr
+    const created = await saveCmsPage(existing.id, {
+      ...payload,
+      path: normalizedExistingPath,
+      slug: normalizedExistingSlug,
+      pageType: 'APPLICATION',
+      status: payload.status || 'PUBLISHED',
+      rendererKey,
+      title: normalizedTitle,
+      templateKey: payload.templateKey || 'default',
+      applicationPosition: payload.applicationPosition || 'AFTER_CONTENT'
+    })
+
+    return created?.id ?? existing.id
+  }
+
   const applicationPayload: CmsPagePayload = {
     ...createDefaultCmsPagePayload(path, titleFr),
     path,
@@ -1381,18 +1474,6 @@ async function ensureCmsApplicationPage(path: string, slug: string, titleFr: str
         seo: createEmptyCmsPageSeo(),
         content: createEmptyPageBuilderContent()
       }
-    }
-  }
-
-  if (existing) {
-    const payload = pageRowToPayload(existing)
-    if (
-      payload.path === path
-      && payload.slug === slug
-      && payload.pageType === 'APPLICATION'
-      && payload.rendererKey === rendererKey
-    ) {
-      return existing.id
     }
   }
 
@@ -1460,7 +1541,6 @@ async function ensureCmsStandardPage(options: {
 export async function ensureCmsSystemPages() {
   await ensureCmsRootPage()
   await ensureCmsApplicationPage('/boutique', 'boutique', 'Boutique', 'Shop', 'shop')
-  await ensureCmsApplicationPage('/lots-produits', 'lots-produits', 'Lots de produits', 'Product lots', 'baskets')
   await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
   await ensureCmsApplicationPage('/events', 'events', 'Événements', 'Events', 'events')
   await ensureCmsApplicationPage('/planning', 'planning', 'Planning', 'Schedule', 'planning')
@@ -1491,13 +1571,13 @@ export async function ensureCmsSystemPages() {
     titleEn: 'Contact',
     seoFr: {
       metaTitle: 'Contact',
-      metaDescription: 'Contactez la Ferme du Campeyrigoux pour vos questions, paniers et horaires.',
+      metaDescription: 'Contactez le site pour vos questions, réservations et horaires.',
       ogImage: '',
       noindex: false
     },
     seoEn: {
       metaTitle: 'Contact',
-      metaDescription: 'Contact Ferme du Campeyrigoux for questions, baskets and opening hours.',
+      metaDescription: 'Contact the website for questions, reservations and opening hours.',
       ogImage: '',
       noindex: false
     },
@@ -1510,13 +1590,13 @@ export async function ensureCmsSystemPages() {
     titleEn: 'Terms of use',
     seoFr: {
       metaTitle: 'Conditions d’utilisation',
-      metaDescription: 'Consultez les conditions d’utilisation applicables aux services numériques de la Ferme du Campeyrigoux.',
+      metaDescription: 'Consultez les conditions d’utilisation applicables aux services numériques du site.',
       ogImage: '',
       noindex: false
     },
     seoEn: {
       metaTitle: 'Terms of use',
-      metaDescription: 'Read the terms of use for the Ferme du Campeyrigoux digital services.',
+      metaDescription: 'Read the terms of use for the website digital services.',
       ogImage: '',
       noindex: false
     },
@@ -1547,13 +1627,13 @@ export async function ensureCmsSystemPages() {
     titleEn: 'Privacy policy',
     seoFr: {
       metaTitle: 'Politique de confidentialité',
-      metaDescription: 'Consultez la politique de confidentialité relative aux services numériques de la Ferme du Campeyrigoux.',
+      metaDescription: 'Consultez la politique de confidentialité relative aux services numériques du site.',
       ogImage: '',
       noindex: false
     },
     seoEn: {
       metaTitle: 'Privacy policy',
-      metaDescription: 'Read the privacy policy for the Ferme du Campeyrigoux digital services.',
+      metaDescription: 'Read the privacy policy for the website digital services.',
       ogImage: '',
       noindex: false
     },
@@ -1580,7 +1660,7 @@ export async function ensureCmsSystemPages() {
 }
 
 export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCmsPage, locale: CmsLocale) {
-  if (resolvedPage.path === '/' || resolvedPage.path === '/boutique' || resolvedPage.path === '/lots-produits' || resolvedPage.path === '/paniers' || resolvedPage.path === '/news' || resolvedPage.path === '/events' || resolvedPage.path === '/planning' || resolvedPage.path === '/construction' || resolvedPage.path === '/contact' || resolvedPage.path === '/terms' || resolvedPage.path === '/privacy') {
+  if (resolvedPage.path === '/' || resolvedPage.path === '/boutique' || resolvedPage.path === '/news' || resolvedPage.path === '/events' || resolvedPage.path === '/planning' || resolvedPage.path === '/construction' || resolvedPage.path === '/contact' || resolvedPage.path === '/terms' || resolvedPage.path === '/privacy') {
     await ensureCmsSystemPages()
     return await getCmsPageByPath(resolvedPage.path)
   }
@@ -1881,7 +1961,7 @@ export async function getPublicSiteShell(locale: string, featureFlags: FeatureFl
 
 function isRendererEnabled(rendererKey: string, featureFlags: FeatureFlags) {
   if (rendererKey === 'baskets') {
-    return featureFlags.shop.enabled && featureFlags.shop.basketsEnabled
+    return false
   }
   if (rendererKey === 'news') {
     return featureFlags.newsEnabled
@@ -1890,7 +1970,7 @@ function isRendererEnabled(rendererKey: string, featureFlags: FeatureFlags) {
     return featureFlags.eventsEnabled
   }
   if (rendererKey === 'shop') {
-    return featureFlags.shop.enabled && (featureFlags.shop.basketsEnabled || featureFlags.shop.vegetablesEnabled)
+    return featureFlags.shop.enabled
   }
   return true
 }
@@ -1914,7 +1994,9 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
     if (!isRendererEnabled(payload.rendererKey, featureFlags)) {
       return null
     }
-    const localized = pickTranslation(locale, payload.translations)
+    const localized = payload.translations[locale]
+    const fallbackTranslation = payload.translations['fr'] || payload.translations['en'] || Object.values(payload.translations)[0]
+    const t = mergePageTranslation(localized, fallbackTranslation)
 
     return {
       id: rowAny.id,
@@ -1926,10 +2008,10 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
       templateKey: payload.templateKey,
       rendererKey: payload.rendererKey,
       applicationPosition: payload.applicationPosition,
-      title: localized.title || payload.title,
-      navigationLabel: localized.navigationLabel || localized.title || payload.title,
-      seo: localized.seo,
-      content: localized.content
+      title: t.title || payload.title,
+      navigationLabel: t.navigationLabel || t.title || payload.title,
+      seo: t.seo,
+      content: t.content
     }
   }
 
@@ -1942,13 +2024,6 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
       return null
     }
     return createLegacyShopResolvedPage(locale)
-  }
-
-  if (normalizedPath === '/lots-produits' || normalizedPath === '/paniers') {
-    if (!isRendererEnabled('baskets', featureFlags)) {
-      return null
-    }
-    return createLegacyBasketsResolvedPage(locale)
   }
 
   if (normalizedPath === '/news') {

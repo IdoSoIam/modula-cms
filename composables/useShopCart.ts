@@ -1,13 +1,18 @@
 export interface ShopCartItem {
   key: string
-  kind: 'product' | 'productLot'
+  kind: 'product'
+  saleType: 'SALE' | 'RENTAL'
   productId: number | null
-  productLotId: number | null
   title: string
   imageUrl?: string | null
   description?: string | null
   quantity: number
+  rentalStartDate?: string | null
+  rentalEndDate?: string | null
   availableQuantity: number | null
+  vatRate: number
+  paymentTaxCode?: string | null
+  paymentTaxBehavior?: 'inclusive' | 'exclusive' | null
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
   unitPrice: number
@@ -53,21 +58,27 @@ export function useShopCart() {
       if (raw) {
         const parsed = JSON.parse(raw)
         items.value = Array.isArray(parsed)
-          ? parsed.map((item) => ({
+          ? parsed.map<ShopCartItem>((item) => ({
               key: String(item?.key || ''),
-              kind: item?.kind === 'productLot' ? 'productLot' : 'product',
+              kind: 'product',
+              saleType: item?.saleType === 'RENTAL' ? 'RENTAL' : 'SALE',
               productId: item?.productId == null ? null : Number(item.productId),
-              productLotId: item?.productLotId == null ? null : Number(item.productLotId),
               title: String(item?.title || ''),
               imageUrl: item?.imageUrl ?? null,
               description: item?.description ?? null,
               quantity: Math.max(1, Number(item?.quantity || 1)),
+              rentalStartDate: item?.rentalStartDate?.trim() || null,
+              rentalEndDate: item?.rentalEndDate?.trim() || null,
               availableQuantity: item?.availableQuantity == null ? null : Number(item.availableQuantity),
+              vatRate: Number(item?.vatRate || 0),
+              paymentTaxCode: item?.paymentTaxCode ?? null,
+              paymentTaxBehavior: item?.paymentTaxBehavior === 'exclusive' ? 'exclusive' : item?.paymentTaxBehavior === 'inclusive' ? 'inclusive' : null,
               allowOfflinePayment: item?.allowOfflinePayment !== false,
               allowOnlinePayment: item?.allowOnlinePayment === true,
               unitPrice: Number(item?.unitPrice || 0),
               totalPrice: Number(item?.totalPrice || 0)
             }))
+            .filter((item) => item.productId != null && item.key)
           : []
       }
     } catch {
@@ -92,9 +103,15 @@ export function useShopCart() {
     const requestedQuantity = clampQuantity(item.quantity, item.availableQuantity)
     if (existing) {
       existing.title = item.title
+      existing.saleType = item.saleType
       existing.imageUrl = item.imageUrl ?? null
       existing.description = item.description ?? null
+      existing.rentalStartDate = item.rentalStartDate?.trim() || null
+      existing.rentalEndDate = item.rentalEndDate?.trim() || null
       existing.availableQuantity = item.availableQuantity
+      existing.vatRate = item.vatRate
+      existing.paymentTaxCode = item.paymentTaxCode ?? null
+      existing.paymentTaxBehavior = item.paymentTaxBehavior ?? null
       existing.allowOfflinePayment = item.allowOfflinePayment
       existing.allowOnlinePayment = item.allowOnlinePayment
       existing.quantity = clampQuantity(existing.quantity + requestedQuantity, existing.availableQuantity)

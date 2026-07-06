@@ -1,26 +1,40 @@
-import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
 import { serializeShopOrder } from '#modula/server/utils/shop'
+import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requirePermission(event, 'shop_orders', 'read')
 
-  const page = Math.max(1, Number(getQuery(event).page || 1))
-  const limit = Math.min(100, Math.max(1, Number(getQuery(event).limit || 20)))
-  const status = typeof getQuery(event).status === 'string' ? String(getQuery(event).status) : ''
-  const skip = (page - 1) * limit
+  const query = getQuery(event)
+  const page = Math.max(1, Number.parseInt(String(query.page || '1'), 10) || 1)
+  const limit = Math.min(100, Math.max(1, Number.parseInt(String(query.limit || '20'), 10) || 20))
+  const status = typeof query.status === 'string' ? query.status.trim().toUpperCase() : ''
 
-  const where = status ? { status } : undefined
-  const [total, rows] = await Promise.all([
-    db.shopOrder.count({ where }),
+  const where: Record<string, any> = {
+    status: {
+      not: 'DRAFT',
+    },
+  }
+
+  if (status) {
+    where.status = status
+  }
+
+  const [rows, total] = await Promise.all([
     db.shopOrder.findMany({
       where,
-      include: { lines: true },
+      include: {
+        pickupPoint: true,
+        deliveryTour: true,
+      },
       orderBy: [{ createdAt: 'desc' }],
       take: limit,
-      skip
-    })
+      skip: (page - 1) * limit,
+    }),
+    db.shopOrder.count({ where }),
   ])
+
+  const totalPages = Math.max(1, Math.ceil(total / limit))
 
   return {
     items: rows.map(serializeShopOrder),
@@ -28,7 +42,7 @@ export default defineEventHandler(async (event) => {
       page,
       limit,
       total,
-      totalPages: Math.max(1, Math.ceil(total / limit))
-    }
+      totalPages,
+    },
   }
 })

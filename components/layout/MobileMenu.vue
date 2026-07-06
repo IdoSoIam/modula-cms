@@ -45,8 +45,10 @@
                       :to="resolveHref(child)"
                       :target="child.newTab ? '_blank' : undefined"
                       :rel="child.newTab ? 'noopener noreferrer' : undefined"
-                      :class="navLinkClass(child)"
+                      :class="[navLinkClass(child), isActiveItem(child) ? navActiveStateClass : '']"
                       :style="navChildLinkStyle(child)"
+                      active-class=""
+                      exact-active-class=""
                       @click="closeDrawer"
                     >
                       {{ resolveLabel(child) }}
@@ -61,8 +63,10 @@
                 :to="resolveHref(item)"
                 :target="item.newTab ? '_blank' : undefined"
                 :rel="item.newTab ? 'noopener noreferrer' : undefined"
-                :class="navLinkClass(item)"
+                :class="[navLinkClass(item), isActiveItem(item) ? navActiveStateClass : '']"
                 :style="navLinkStyle(item)"
+                active-class=""
+                exact-active-class=""
                 @click="closeDrawer"
               >
                 {{ resolveLabel(item) }}
@@ -114,14 +118,18 @@
 
       <section v-if="authStore.isAuthenticated || registerEnabled" class="space-y-2">
         <div class="px-1 text-xs font-semibold uppercase tracking-[0.14em] opacity-60">
-          {{ t('layout.mobileMenu.accountGroup') }}
+          {{ publicText('auth.userMenu.accountGroup', 'Mon compte') }}
         </div>
         <div class="space-y-2">
           <template v-if="!authStore.isAuthenticated">
-            <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="showAuthModal = true">
+            <NuxtLink :to="localePath('/login')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:login" size="18" class="shrink-0" />
-              <span>{{ t('auth.login') }}</span>
-            </button>
+              <span>{{ publicText('auth.userMenu.login', 'Connexion') }}</span>
+            </NuxtLink>
+            <NuxtLink v-if="registerEnabled" :to="localePath('/register')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
+              <Icon name="mdi:account-multiple-outline" size="18" class="shrink-0" />
+              <span>{{ publicText('auth.userMenu.register', 'Inscription') }}</span>
+            </NuxtLink>
           </template>
 
           <template v-else>
@@ -132,43 +140,36 @@
 
             <NuxtLink :to="localePath('/profile')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:account-outline" size="18" class="shrink-0" />
-              <span>{{ t('auth.profile') }}</span>
+              <span>{{ publicText('auth.userMenu.profile', 'Profil') }}</span>
             </NuxtLink>
 
-            <NuxtLink v-if="authStore.canAccessAdmin" :to="localePath('/admin')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink v-if="shopEnabled && !authStore.isAdmin" :to="ordersProfileLink" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
+              <Icon name="mdi:invoice" size="18" class="shrink-0" />
+              <span>{{ publicText('auth.userMenu.orders', 'Commandes') }}</span>
+            </NuxtLink>
+
+            <NuxtLink v-if="authStore.canAccessAdmin" :to="adminLocalePath('/admin')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:shield-crown-outline" size="18" class="shrink-0" />
               <span>{{ t('admin.title') }}</span>
             </NuxtLink>
 
             <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="handleLogout">
               <Icon name="mdi:logout" size="18" class="shrink-0" />
-              <span>{{ t('auth.logout') }}</span>
+              <span>{{ publicText('auth.userMenu.logout', 'Déconnexion') }}</span>
             </button>
           </template>
         </div>
       </section>
     </aside>
 
-    <dialog id="mobile_auth_modal" class="modal" :class="{ 'modal-open': showAuthModal }">
-      <div class="modal-box relative">
-        <button class="btn btn-sm btn-circle absolute right-2 top-2" @click="showAuthModal = false">
-          x
-        </button>
-        <AuthForm @success="onAuthSuccess" />
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button @click="showAuthModal = false">close</button>
-      </form>
-    </dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { CmsHeaderNavigationStyle, CmsLocale, PublicSiteShell, ResolvedCmsNavigationItem } from '#modula/shared/cms'
+import { pickCmsLocalizedText, type CmsHeaderNavigationStyle, type CmsLocale, type PublicSiteShell, type ResolvedCmsNavigationItem } from '#modula/shared/cms'
 import { useAuthStore } from '#modula/stores/auth'
 
-type SupportedLocale = 'fr' | 'en'
-type LocaleOption = { code: SupportedLocale, name: string }
+type LocaleOption = { code: string, name: string }
 
 interface PreviewSiteConfig {
   inDevelopment?: boolean
@@ -186,19 +187,27 @@ const props = withDefaults(defineProps<{
   previewStatic: false
 })
 
-const localePath = useLocalePath()
-const { locale, locales, setLocale, t } = useI18n()
+const localePath = usePublicLocalePath()
+const adminLocalePath = useLocalePath()
+const { t } = useI18n()
+const { publicText } = usePublicDictionary()
+const { contentLocale, setContentLocale, availableLocales, localeLabels } = useContentLocale()
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const siteConfig = useSiteConfigState()
 const { theme, availableThemes, setTheme, themeControllerEnabled } = useTheme()
-const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
+const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (contentLocale.value as CmsLocale))
 const effectiveSiteConfig = computed(() => props.previewSiteConfig ?? siteConfig.value)
 const previewStatic = computed(() => props.previewStatic)
 const inDevelopment = computed(() => effectiveSiteConfig.value?.inDevelopment === true)
 const cms = computed(() => effectiveSiteConfig.value?.cms)
 const registerEnabled = computed(() => effectiveSiteConfig.value?.registerEnabled === true)
+const effectiveFeatureFlags = computed<{ shop?: { enabled?: boolean } } | null>(() => {
+  const siteConfigValue = effectiveSiteConfig.value as { featureFlags?: { shop?: { enabled?: boolean } } } | null
+  return siteConfigValue?.featureFlags ?? null
+})
+const shopEnabled = computed(() => effectiveFeatureFlags.value?.shop?.enabled === true)
 const headerSettings = computed(() => cms.value?.settings.header ?? {
   heightPx: 84,
   logoHeightPx: 48,
@@ -228,15 +237,11 @@ const headerSettings = computed(() => cms.value?.settings.header ?? {
 })
 const showNavigation = computed(() => !(inDevelopment.value && !authStore.isAuthenticated) && headerSettings.value.showPrimaryNavigation)
 const openGroupKeys = ref<string[]>([])
-const showAuthModal = ref(false)
 const isHydrated = ref(false)
+const ordersProfileLink = computed(() => localePath({ path: '/profile', query: { tab: 'orders' } }))
 
-const siteName = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings?.siteName?.en || 'Site name'
-  : cms.value?.settings?.siteName?.fr || 'Nom du site')
-const siteTagline = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings?.siteTagline?.en || ''
-  : cms.value?.settings?.siteTagline?.fr || '')
+const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteName, 'fr') || 'Site name')
+const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteTagline, 'fr'))
 const normalizeLogoSrc = (value?: string | null) => {
   const src = value?.trim()
   if (!src) return '/brand/modula-mark.svg'
@@ -245,9 +250,7 @@ const normalizeLogoSrc = (value?: string | null) => {
 }
 
 const logoSrc = computed(() => normalizeLogoSrc(cms.value?.settings.logo.src))
-const logoAlt = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings?.logo?.alt?.en || 'Logo'
-  : cms.value?.settings?.logo?.alt?.fr || 'Logo')
+const logoAlt = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.logo?.alt, 'fr') || 'Logo')
 const menuItems = computed(() => cms.value?.navigation?.primary ?? [])
 const showMobileMenuBrandText = computed(() =>
   headerSettings.value.mobileMenuShowSiteName || (headerSettings.value.mobileMenuShowSiteTagline && Boolean(siteTagline.value))
@@ -274,19 +277,35 @@ const submenuListStyle = computed(() => ({
   borderRadius: `${headerSettings.value.submenuRadiusPx}px`,
   backgroundColor: colorToCss(headerSettings.value.submenuBackgroundColor) || undefined
 }))
+const navActiveStateClass = computed(() => {
+  switch (headerSettings.value.navigationStyle) {
+    case 'underline':
+      return '[border-bottom-color:var(--nav-active-accent)]'
+    case 'outline':
+      return '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] border-transparent shadow-sm'
+    default:
+      return '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
+  }
+})
 
 const localeOptions = computed<LocaleOption[]>(() =>
-  locales.value.map((item) => ({
-    code: item.code as SupportedLocale,
-    name: item.name || item.code
+  availableLocales.value.map((code) => ({
+    code,
+    name: localeLabels.value[code]?.long || code.toUpperCase(),
   }))
 )
 
 const resolveLabel = (item: ResolvedCmsNavigationItem) =>
-  effectiveLocale.value === 'en' ? item.labels.en || item.label : item.labels.fr || item.label
+  pickCmsLocalizedText(effectiveLocale.value, item.labels, 'fr') || item.label
 
 const resolveHref = (item: ResolvedCmsNavigationItem) =>
   item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)
+
+const normalizeComparablePath = (value: string | null | undefined) => {
+  const source = String(value || '/').trim()
+  if (!source || source === '/') return '/'
+  return `/${source.replace(/^\/+|\/+$/g, '')}`
+}
 
 const isActiveItem = (item: ResolvedCmsNavigationItem): boolean => {
   if (item.children.length) {
@@ -294,69 +313,51 @@ const isActiveItem = (item: ResolvedCmsNavigationItem): boolean => {
   }
 
   if (item.itemType === 'EXTERNAL_URL') return false
-  const href = localePath(item.href)
-  return route.path === href || (item.href !== '/' && route.path.startsWith(`${href}/`))
+  const href = normalizeComparablePath(localePath(item.href))
+  const currentPath = normalizeComparablePath(route.path)
+  const localeRootPath = normalizeComparablePath(localePath('/'))
+  if (href === '/') {
+    return currentPath === '/'
+  }
+  if (href === localeRootPath) {
+    return currentPath === href
+  }
+  return currentPath === href || currentPath.startsWith(`${href}/`)
 }
 
 const navLinkClass = (item: ResolvedCmsNavigationItem) => {
-  const active = isActiveItem(item)
   const base = 'flex min-h-11 w-full items-center gap-3 px-4 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer'
   switch (headerSettings.value.navigationStyle) {
     case 'menu':
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'underline':
-      return `${base} rounded-none border-b-2 border-transparent px-2 ${active
-        ? '[border-bottom-color:var(--nav-active-accent)] [color:var(--nav-active-text)]'
-        : 'hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-none border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]`
     case 'soft':
-      return `${base} rounded-full ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-full border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'outline':
-      return `${base} rounded-full border ${active
-        ? '[border-color:var(--nav-active-accent)] [background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-full border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'solid':
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     default:
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
   }
 }
 
 const navGroupButtonClass = (item: ResolvedCmsNavigationItem) => {
-  const active = isActiveItem(item)
   const base = 'flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left text-sm font-semibold transition-colors duration-150 cursor-pointer'
   switch (headerSettings.value.navigationStyle) {
     case 'menu':
-      return `${base} rounded-xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'underline':
-      return `${base} rounded-none border-b-2 border-transparent px-2 ${active
-        ? '[border-bottom-color:var(--nav-active-accent)] [color:var(--nav-active-text)]'
-        : 'hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-none border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'soft':
-      return `${base} rounded-2xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'border border-base-300 bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-2xl border border-base-300 bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'outline':
-      return `${base} rounded-2xl border ${active
-        ? '[border-color:var(--nav-active-accent)] [background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-2xl border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'solid':
-      return `${base} rounded-2xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-2xl bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     default:
-      return `${base} rounded-2xl ${active
-        ? '[background-color:var(--nav-active-bg)] [color:var(--nav-active-text)] shadow-sm'
-        : 'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'}`
+      return `${base} rounded-2xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
   }
 }
 
@@ -408,14 +409,14 @@ const activeSelectorButtonClass = 'bg-primary text-primary-content shadow-sm'
 const themeButtonClass = (themeName: string) =>
   isHydrated.value && theme.value === themeName ? activeSelectorButtonClass : inactiveSelectorButtonClass
 
-const localeButtonClass = (localeCode: SupportedLocale) =>
-  isHydrated.value && locale.value === localeCode ? activeSelectorButtonClass : inactiveSelectorButtonClass
+const localeButtonClass = (localeCode: string) =>
+  isHydrated.value && contentLocale.value === localeCode ? activeSelectorButtonClass : inactiveSelectorButtonClass
 
 const showThemeCheck = (themeName: string) =>
   isHydrated.value && theme.value === themeName
 
-const showLocaleCheck = (localeCode: SupportedLocale) =>
-  isHydrated.value && locale.value === localeCode
+const showLocaleCheck = (localeCode: string) =>
+  isHydrated.value && contentLocale.value === localeCode
 
 const closeDrawer = () => {
   if (previewStatic.value) return
@@ -446,25 +447,18 @@ watch(
   { immediate: true, deep: true }
 )
 
-const changeLocale = async (nextLocale: SupportedLocale) => {
-  if (nextLocale === locale.value) return
-  await setLocale(nextLocale)
+const changeLocale = async (nextLocale: string) => {
+  if (nextLocale === contentLocale.value) return
+  await setContentLocale(nextLocale)
   closeDrawer()
 }
 
 const handleLogout = async () => {
   await authStore.logout()
   const { $toast } = useNuxtApp() as any
-  $toast?.success(t('layout.logoutSuccess'))
+  $toast?.success(publicText('auth.userMenu.logoutSuccess', 'Vous avez été déconnecté.'))
   closeDrawer()
   await router.push(localePath('/'))
-}
-
-const onAuthSuccess = () => {
-  showAuthModal.value = false
-  const { $toast } = useNuxtApp() as any
-  $toast?.success(t('auth.loginSuccess'))
-  closeDrawer()
 }
 
 onMounted(() => {

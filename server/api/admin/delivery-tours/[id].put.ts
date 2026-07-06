@@ -16,7 +16,6 @@ export default defineEventHandler(async (event) => {
     dayOfWeek?: number
     startTime?: string
     endTime?: string
-    monthlyPrice?: number | null
     notes?: string | null
     cities?: CityInput[]
     active?: boolean
@@ -27,19 +26,25 @@ export default defineEventHandler(async (event) => {
   if (body.dayOfWeek !== undefined) data.dayOfWeek = body.dayOfWeek
   if (body.startTime !== undefined) data.startTime = body.startTime
   if (body.endTime !== undefined) data.endTime = body.endTime
-  if (body.monthlyPrice !== undefined) data.monthlyPrice = body.monthlyPrice
   if (body.notes !== undefined) data.notes = body.notes?.trim() || null
   if (body.active !== undefined) data.active = body.active
 
+  await db.deliveryTour.update({ where: { id }, data })
+
   if (body.cities !== undefined) {
-    await db.tourCity.deleteMany({ where: { tourId: id } })
-    data.cities = {
-      create: body.cities.filter(c => c.city.trim()).map(c => ({
+    const cities = body.cities
+      .filter(c => c.city.trim())
+      .map(c => ({
+        tourId: id,
         city: c.city.trim(),
         postalCodes: c.postalCodes?.trim() || null
       }))
+
+    await db.tourCity.deleteMany({ where: { tourId: id } })
+    if (cities.length) {
+      await db.tourCity.createMany({ data: cities })
     }
   }
 
-  return db.deliveryTour.update({ where: { id }, data, include: { cities: true } })
+  return db.deliveryTour.findUnique({ where: { id }, include: { cities: true } })
 })

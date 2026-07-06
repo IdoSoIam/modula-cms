@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div>
       <h1 class="text-3xl font-bold">Réservations événement</h1>
@@ -88,15 +88,10 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.managementEventReservations
-  }
-})
+  middleware: 'auth'})
 
 const { $toast } = useNuxtApp() as any
 const tab = ref<'public' | 'internal'>('public')

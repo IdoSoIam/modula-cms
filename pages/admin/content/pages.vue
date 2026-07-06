@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -56,16 +56,11 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import type { CmsPagePayload } from '#modula/shared/cms'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.contentPages
-  }
-})
+  middleware: 'auth'})
 
 interface CmsPageListItem extends CmsPagePayload {
   id: number

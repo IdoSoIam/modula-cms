@@ -36,14 +36,18 @@
           :show-images="settings?.showImages !== false"
           :show-descriptions="settings?.showDescriptions !== false"
           :item-background-color="itemBackgroundColor"
-          :add-label="addProductLabel"
+          :view-label="viewProductLabel"
+          :add-label="addToCartLabel"
+          :rental-add-label="viewProductLabel"
           :sold-out-label="soldOutLabel"
           :sale-label="saleLabel"
           :rental-label="rentalLabel"
           :stock-label="stockLabel"
           :offline-label="offlineLabel"
           :online-label="onlineLabel"
-          @add="addProductToCart"
+          :disable-on-sold-out="false"
+          @add="handleProductAction"
+          @view="openProductDetail"
         />
 
         <div v-else class="rounded-3xl border border-dashed border-base-300 px-6 py-14 text-center opacity-60">
@@ -51,26 +55,27 @@
         </div>
       </template>
     </div>
-
   </section>
 </template>
 
 <script setup lang="ts">
 import type { CmsBasketsPageSettings } from '#modula/shared/cms'
 import { pickCmsLocalizedText } from '#modula/shared/cms'
-import type { ProductCategoryPayload, ProductPayload } from '#modula/server/utils/shop'
-import { useShopCart } from '#modula/composables/useShopCart'
 import ProductList from '#modula/components/shop/ProductList.vue'
+import { useShopCart } from '#modula/composables/useShopCart'
+import type { ProductCategoryPayload, ProductPayload } from '#modula/server/utils/shop'
 
 const props = defineProps<{
   settings?: CmsBasketsPageSettings | null
 }>()
 
-const { locale } = useI18n()
+const { contentLocale } = useContentLocale()
+const { publicText } = usePublicDictionary()
+const locale = contentLocale
 const route = useRoute()
 const router = useRouter()
+const localePath = usePublicLocalePath()
 const { $toast } = useNuxtApp() as any
-const localePath = useLocalePath()
 const { count, add } = useShopCart()
 
 const selectedCategorySlug = ref(typeof route.query.category === 'string' ? route.query.category : '')
@@ -83,19 +88,20 @@ const { data, pending, refresh } = await useFetch<{ categories: ProductCategoryP
 const categories = computed(() => data.value?.categories || [])
 const products = computed(() => data.value?.products || [])
 
-const pageTitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.title) || (locale.value === 'en' ? 'Shop' : 'Boutique'))
-const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.subtitle) || (locale.value === 'en' ? 'Browse products for sale or rental.' : 'Parcourez les produits à vendre ou à louer.'))
-const shopLabel = computed(() => locale.value === 'en' ? 'Products' : 'Produits')
-const cartButtonLabel = computed(() => locale.value === 'en' ? `Cart (${count.value})` : `Panier (${count.value})`)
-const addProductLabel = computed(() => locale.value === 'en' ? 'Add product' : 'Ajouter le produit')
-const soldOutLabel = computed(() => locale.value === 'en' ? 'Sold out' : 'Épuisé')
-const saleLabel = computed(() => locale.value === 'en' ? 'Sale' : 'Vente')
-const rentalLabel = computed(() => locale.value === 'en' ? 'Rental' : 'Location')
-const stockLabel = computed(() => locale.value === 'en' ? 'Stock' : 'Stock')
-const allCategoriesLabel = computed(() => locale.value === 'en' ? 'All categories' : 'Toutes les catégories')
-const emptyLabel = computed(() => locale.value === 'en' ? 'No product is currently published.' : 'Aucun produit n’est publié pour le moment.')
-const offlineLabel = computed(() => locale.value === 'en' ? 'Offline payment' : 'Paiement hors ligne')
-const onlineLabel = computed(() => locale.value === 'en' ? 'Online payment' : 'Paiement en ligne')
+const pageTitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.title) || publicText('shop.catalog.title', 'Boutique'))
+const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.subtitle) || publicText('shop.catalog.subtitle', 'Parcourez les produits à vendre ou à louer.'))
+const shopLabel = computed(() => publicText('shop.catalog.eyebrow', 'Produits'))
+const cartButtonLabel = computed(() => publicText('shop.catalog.cartButton', 'Panier ({count})', { count: count.value }))
+const addToCartLabel = computed(() => publicText('shop.catalog.addToCart', 'Ajouter au panier'))
+const viewProductLabel = computed(() => publicText('shop.catalog.viewProduct', 'Voir le produit'))
+const soldOutLabel = computed(() => publicText('shop.catalog.soldOut', 'Épuisé'))
+const saleLabel = computed(() => publicText('shop.catalog.sale', 'Vente'))
+const rentalLabel = computed(() => publicText('shop.catalog.rental', 'Location'))
+const stockLabel = computed(() => publicText('shop.catalog.stock', 'Stock'))
+const allCategoriesLabel = computed(() => publicText('shop.catalog.allCategories', 'Toutes les catégories'))
+const emptyLabel = computed(() => publicText('shop.catalog.empty', 'Aucun produit n’est publié pour le moment.'))
+const offlineLabel = computed(() => publicText('shop.catalog.offlinePayment', 'Paiement hors ligne'))
+const onlineLabel = computed(() => publicText('shop.catalog.onlinePayment', 'Paiement en ligne'))
 const itemBackgroundColor = computed(() => 'var(--fallback-b1,oklch(var(--b1)/1))')
 
 const selectCategory = async (slug: string) => {
@@ -109,23 +115,40 @@ const selectCategory = async (slug: string) => {
   await refresh()
 }
 
-const addProductToCart = (product: ProductPayload) => {
+const getLocalizedName = (product: ProductPayload) =>
+  pickCmsLocalizedText(contentLocale.value, product.nameLocalized) || product.name || ''
+
+const getLocalizedExcerpt = (product: ProductPayload) =>
+  pickCmsLocalizedText(contentLocale.value, product.excerptLocalized) || product.excerpt || ''
+
+const openProductDetail = (product: ProductPayload) => navigateTo(localePath(`/products/${product.slug}`))
+
+const handleProductAction = (product: ProductPayload) => {
+  if (product.saleType === 'RENTAL') {
+    openProductDetail(product)
+    return
+  }
+
   add({
     key: `product-${product.id}`,
     kind: 'product',
     productId: product.id,
-    productLotId: null,
-    title: product.name,
+    title: getLocalizedName(product),
     imageUrl: product.imageUrl,
-    description: product.excerpt || product.description,
+    description: getLocalizedExcerpt(product),
     quantity: 1,
+    saleType: product.saleType,
     availableQuantity: product.stock,
+    vatRate: product.vatRate,
+    paymentTaxCode: product.paymentTaxCode,
+    paymentTaxBehavior: product.paymentTaxBehavior,
     allowOfflinePayment: product.allowOfflinePayment,
     allowOnlinePayment: product.allowOnlinePayment,
     unitPrice: product.price,
     totalPrice: product.price
   })
-  $toast.success(locale.value === 'en' ? 'Added to cart' : 'Ajouté au panier')
+
+  $toast.success(publicText('shop.catalog.addSaleSuccess', 'Ajouté au panier'))
 }
 
 const goToCart = () => navigateTo(localePath('/panier'))

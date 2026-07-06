@@ -184,59 +184,31 @@ function getTemplateAssetUrl(templateKey: CmsSiteTemplateKey, sourceName: string
 function getTemplateBrandAssets(templateKey: CmsSiteTemplateKey, current: CmsSiteSettings) {
   const fallback = createDefaultCmsSiteSettings()
 
+  const makeLogo = (src: string, altFr: string, altEn: string) => ({
+    src,
+    alt: { fr: altFr, en: altEn }
+  })
+
+  const siteNameFr = current.siteName?.fr ?? ''
+  const siteNameEn = current.siteName?.en ?? ''
+
   if (templateKey === 'farm') {
     return {
-      logo: {
-        src: getTemplateAssetUrl(templateKey, 'preview-farm.svg'),
-        alt: {
-          fr: current.siteName.fr || 'Logo du site',
-          en: current.siteName.en || 'Site logo'
-        }
-      },
-      favicon: {
-        src: getTemplateAssetUrl(templateKey, 'preview-farm.svg'),
-        alt: {
-          fr: current.siteName.fr || 'Icône du site',
-          en: current.siteName.en || 'Site icon'
-        }
-      }
+      logo: makeLogo(getTemplateAssetUrl(templateKey, 'preview-farm.svg'), siteNameFr || 'Logo du site', siteNameEn || 'Site logo'),
+      favicon: makeLogo(getTemplateAssetUrl(templateKey, 'preview-farm.svg'), siteNameFr || 'Icône du site', siteNameEn || 'Site icon')
     }
   }
 
   if (templateKey === 'association') {
     return {
-      logo: {
-        src: getTemplateAssetUrl(templateKey, 'preview-association.svg'),
-        alt: {
-          fr: current.siteName.fr || 'Logo du site',
-          en: current.siteName.en || 'Site logo'
-        }
-      },
-      favicon: {
-        src: getTemplateAssetUrl(templateKey, 'preview-association.svg'),
-        alt: {
-          fr: current.siteName.fr || 'Icône du site',
-          en: current.siteName.en || 'Site icon'
-        }
-      }
+      logo: makeLogo(getTemplateAssetUrl(templateKey, 'preview-association.svg'), siteNameFr || 'Logo du site', siteNameEn || 'Site logo'),
+      favicon: makeLogo(getTemplateAssetUrl(templateKey, 'preview-association.svg'), siteNameFr || 'Icône du site', siteNameEn || 'Site icon')
     }
   }
 
   return {
-    logo: {
-      src: getTemplateAssetUrl(templateKey, 'modula-mark.svg'),
-      alt: {
-        fr: current.siteName.fr || fallback.logo.alt.fr,
-        en: current.siteName.en || fallback.logo.alt.en
-      }
-    },
-    favicon: {
-      src: getTemplateAssetUrl(templateKey, 'modula-mark.svg'),
-      alt: {
-        fr: current.siteName.fr || fallback.favicon.alt.fr,
-        en: current.siteName.en || fallback.favicon.alt.en
-      }
-    }
+    logo: makeLogo(getTemplateAssetUrl(templateKey, 'modula-mark.svg'), siteNameFr || (fallback.logo.alt.fr ?? ''), siteNameEn || (fallback.logo.alt.en ?? '')),
+    favicon: makeLogo(getTemplateAssetUrl(templateKey, 'modula-mark.svg'), siteNameFr || (fallback.favicon.alt.fr ?? ''), siteNameEn || (fallback.favicon.alt.en ?? ''))
   }
 }
 
@@ -316,11 +288,11 @@ function createShowcaseContent(options: {
     Object.assign(createTextItem(`${options.sectionId}-text`), { size: 'lg', text: options.body }),
     createHeroButtons(
       options.primaryHref,
-      options.primaryLabel.fr,
-      options.primaryLabel.en,
+      options.primaryLabel.fr ?? '',
+      options.primaryLabel.en ?? '',
       options.secondaryHref,
-      options.secondaryLabel.fr,
-      options.secondaryLabel.en
+      options.secondaryLabel.fr ?? '',
+      options.secondaryLabel.en ?? ''
     )
   )
   hero.columns[1]!.items.push(
@@ -337,7 +309,7 @@ function createShowcaseContent(options: {
   features.containerWidth = 'wide'
   const cards = createCardsItem(`${options.sectionId}-cards`)
   cards.display = 'grid-3'
-  cards.cards = options.cards.map((card) => createFeatureCard(card.id, card.title.fr, card.title.en, card.body.fr, card.body.en, card.icon))
+  cards.cards = options.cards.map((card) => createFeatureCard(card.id, card.title.fr ?? '', card.title.en ?? '', card.body.fr ?? '', card.body.en ?? '', card.icon))
   features.columns[0]!.items.push(cards)
 
   return {
@@ -442,7 +414,7 @@ function createContactContent(options: {
   cards.display = 'stack'
   cards.cards = [
     {
-      ...createFeatureCard('contact-details-card', options.infoCardTitle.fr, options.infoCardTitle.en, '', '', 'mdi:map-marker-outline'),
+      ...createFeatureCard('contact-details-card', options.infoCardTitle.fr ?? '', options.infoCardTitle.en ?? '', '', '', 'mdi:map-marker-outline'),
       elements: [
         {
           ...createEmptyCardElement('contact-details-title', 'title'),
@@ -474,7 +446,7 @@ function createContactContent(options: {
       ]
     },
     {
-      ...createFeatureCard('contact-social-card', options.socialTitle.fr, options.socialTitle.en, '', '', 'mdi:share-variant-outline'),
+      ...createFeatureCard('contact-social-card', options.socialTitle.fr ?? '', options.socialTitle.en ?? '', '', '', 'mdi:share-variant-outline'),
       elements: [
         {
           ...createEmptyCardElement('contact-social-title', 'title'),
@@ -574,7 +546,7 @@ function buildTemplateHomePage(key: CmsSiteTemplateKey, siteName: CmsLocalizedTe
           'Showcase your baskets, direct sales, news and seasonal events on a website that stays easy to manage.'
         ),
         imageUrl: heroImage('farm-hero.svg'),
-        imageAlt: text('Illustration ferme', 'Farm illustration'),
+        imageAlt: text('Illustration ferme', 'OnSite illustration'),
         primaryHref: '/paniers',
         primaryLabel: text('Voir les paniers', 'Browse baskets'),
         secondaryHref: '/contact',
@@ -651,7 +623,7 @@ function buildTemplateHomePage(key: CmsSiteTemplateKey, siteName: CmsLocalizedTe
           {
             id: 'template-farm',
             imageUrl: heroImage('preview-farm.svg'),
-            title: text('Template ferme', 'Farm template'),
+            title: text('Template ferme', 'OnSite template'),
             body: text('Pensé pour la vente directe, les paniers et l\'actualité terrain.', 'Designed for direct sales, baskets and field updates.')
           },
           {
@@ -774,7 +746,7 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
       basketsPage: {
         ...base.basketsPage,
         subtitle: text(
-          'Retrouvez les paniers de saison, le retrait à la ferme et les informations pratiques.',
+          'Retrouvez les paniers de saison, le Retrait sur place et les informations pratiques.',
           'Browse seasonal baskets, farm pickup and practical information.'
         )
       },
@@ -787,7 +759,7 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
       },
       eventsPage: {
         ...base.eventsPage,
-        title: text('Événements à la ferme', 'Farm events'),
+        title: text('Événements à la ferme', 'OnSite events'),
         subtitle: text(
           'Retrouvez les portes ouvertes, ateliers et rendez-vous publics.',
           'Discover open days, workshops and public events.'
@@ -795,7 +767,7 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
       },
       planningPage: {
         ...base.planningPage,
-        title: text('Planning de la ferme', 'Farm planning'),
+        title: text('Planning de la ferme', 'OnSite planning'),
         subtitle: text(
           'Consultez les rendez-vous publics et, si vous êtes connecté, les permanences bénévoles.',
           'Check public activities and, if you are logged in, volunteer shifts.'
@@ -1057,7 +1029,8 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
       inDevelopment: false,
       registerEnabled: false,
       subscriptionsEnabled: false,
-      shop: { enabled: true, basketsEnabled: true, vegetablesEnabled: true },
+      onlinePaymentsEnabled: true,
+      shop: { enabled: true },
       associationRolesEnabled: false,
       eventsEnabled: true,
       newsEnabled: true
@@ -1067,7 +1040,8 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
         inDevelopment: false,
         registerEnabled: false,
         subscriptionsEnabled: false,
-        shop: { enabled: false, basketsEnabled: false, vegetablesEnabled: false },
+        onlinePaymentsEnabled: false,
+        shop: { enabled: false },
         associationRolesEnabled: true,
         eventsEnabled: true,
         newsEnabled: true
@@ -1076,7 +1050,8 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
         inDevelopment: false,
         registerEnabled: false,
         subscriptionsEnabled: false,
-        shop: { enabled: false, basketsEnabled: false, vegetablesEnabled: false },
+        onlinePaymentsEnabled: false,
+        shop: { enabled: false },
         associationRolesEnabled: false,
         eventsEnabled: false,
         newsEnabled: false
@@ -1166,8 +1141,6 @@ export async function applyBundledSiteTemplate(
   await Promise.all([
     setSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY, templateKey),
     setSetting(SETTING_KEYS.SHOP_ENABLED, templateFeatureFlags.shop.enabled ? 'true' : 'false'),
-    setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, templateFeatureFlags.shop.basketsEnabled ? 'true' : 'false'),
-    setSetting(SETTING_KEYS.SHOP_VEGETABLES_ENABLED, templateFeatureFlags.shop.vegetablesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, templateFeatureFlags.associationRolesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.EVENTS_ENABLED, templateFeatureFlags.eventsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.NEWS_ENABLED, templateFeatureFlags.newsEnabled ? 'true' : 'false')

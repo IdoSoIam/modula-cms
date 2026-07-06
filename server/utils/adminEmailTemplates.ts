@@ -9,6 +9,7 @@ import {
 interface LocalizedText {
   fr: string
   en: string
+  [key: string]: string
 }
 
 export interface AdminEmailTemplateDefinition {
@@ -55,7 +56,7 @@ const RESERVATION_ACTIONS = new Set(
   RESERVATION_TEMPLATE_DEFINITIONS.map(definition => definition.action)
 )
 
-const CUSTOM_TEMPLATE_DEFAULTS: Record<string, Record<'fr' | 'en', EmailTemplate>> = {
+const CUSTOM_TEMPLATE_DEFAULTS: Record<string, Record<string, EmailTemplate>> = {
   event_call_for_participation: {
     fr: {
       subject: 'Appel à participation - {{eventTitle}}',
@@ -250,10 +251,10 @@ We will get back to you as soon as possible.`
   },
   user_invitation: {
     fr: {
-      subject: 'Activez votre compte - Ferme du Campeyrigoux',
+      subject: 'Activez votre compte - Le site',
       body: `Bonjour {{recipientName}},
 
-Un compte a été créé pour vous sur le site de la Ferme du Campeyrigoux.
+Un compte a été créé pour vous sur ce site.
 
 Pour choisir votre mot de passe et activer votre compte, utilisez ce lien :
 {{passwordSetupUrl}}
@@ -261,20 +262,423 @@ Pour choisir votre mot de passe et activer votre compte, utilisez ce lien :
 Ce lien expire le {{expiresAt}}.`
     },
     en: {
-      subject: 'Activate your account - Ferme du Campeyrigoux',
+      subject: 'Activate your account - The website',
       body: `Hello {{recipientName}},
 
-An account has been created for you on the Ferme du Campeyrigoux website.
+An account has been created for you on this website.
 
 To choose your password and activate your account, use this link:
 {{passwordSetupUrl}}
 
-This link expires on {{expiresAt}}.`
+      This link expires on {{expiresAt}}.`
+    }
+  },
+  shop_order_created: {
+    fr: {
+      subject: 'Commande reçue - {{orderNumber}}',
+      body: `Bonjour {{customerName}},
+
+Nous avons bien reçu votre commande {{orderNumber}}.
+
+- Facture : {{invoiceNumber}}
+- Livraison : {{deliveryMethod}}
+- Date : {{fulfillmentDate}}
+- Heure : {{fulfillmentTime}}
+- Lieu : {{fulfillmentLocation}}
+- Paiement : {{paymentProvider}}
+- Statut du paiement : {{paymentStatus}}
+- Total : {{total}}
+
+Lignes de commande :
+{{orderLines}}
+
+Si vous avez un message complémentaire, notre équipe reviendra vers vous si nécessaire.`
+    },
+    en: {
+      subject: 'Order received - {{orderNumber}}',
+      body: `Hello {{customerName}},
+
+We have received your order {{orderNumber}}.
+
+- Invoice: {{invoiceNumber}}
+- Delivery: {{deliveryMethod}}
+- Date: {{fulfillmentDate}}
+- Time: {{fulfillmentTime}}
+- Location: {{fulfillmentLocation}}
+- Payment: {{paymentProvider}}
+- Payment status: {{paymentStatus}}
+- Total: {{total}}
+
+Order lines:
+{{orderLines}}
+
+If needed, our team will get back to you with any additional information.`
+    }
+  },
+  shop_order_payment_confirmed: {
+    fr: {
+      subject: 'Paiement confirmé - {{orderNumber}}',
+      body: `Bonjour {{customerName}},
+
+Le paiement de votre commande {{orderNumber}} est confirmé.
+
+- Livraison : {{deliveryMethod}}
+- Date : {{fulfillmentDate}}
+- Heure : {{fulfillmentTime}}
+- Lieu : {{fulfillmentLocation}}
+- Total payé : {{total}}
+
+Récapitulatif :
+{{orderLines}}
+
+Merci pour votre confiance.`
+    },
+    en: {
+      subject: 'Payment confirmed - {{orderNumber}}',
+      body: `Hello {{customerName}},
+
+The payment for your order {{orderNumber}} has been confirmed.
+
+- Delivery: {{deliveryMethod}}
+- Date: {{fulfillmentDate}}
+- Time: {{fulfillmentTime}}
+- Location: {{fulfillmentLocation}}
+- Total paid: {{total}}
+
+Summary:
+{{orderLines}}
+
+Thank you for your trust.`
+    }
+  },
+  shop_order_payment_failed: {
+    fr: {
+      subject: 'Paiement échoué - {{orderNumber}}',
+      body: `Bonjour {{customerName}},
+
+Le paiement de votre commande {{orderNumber}} n’a pas pu être confirmé.
+
+- Raison : {{failureReason}}
+- Total concerné : {{total}}
+
+Récapitulatif :
+{{orderLines}}
+
+Vous pouvez recommencer le paiement si un nouveau lien vous est proposé ou contacter l’équipe du site.`
+    },
+    en: {
+      subject: 'Payment failed - {{orderNumber}}',
+      body: `Hello {{customerName}},
+
+The payment for your order {{orderNumber}} could not be confirmed.
+
+- Reason: {{failureReason}}
+- Affected total: {{total}}
+
+Summary:
+{{orderLines}}
+
+You can retry the payment if a new link is provided or contact the site team.`
+    }
+  },
+  shop_order_cancelled: {
+    fr: {
+      subject: 'Commande annulée - {{orderNumber}}',
+      body: `Bonjour {{customerName}},
+
+Votre commande {{orderNumber}} a été annulée.
+
+- Livraison : {{deliveryMethod}}
+- Date : {{fulfillmentDate}}
+- Heure : {{fulfillmentTime}}
+- Lieu : {{fulfillmentLocation}}
+
+Si besoin, vous pouvez contacter l’équipe du site pour plus d’informations.`
+    },
+    en: {
+      subject: 'Order cancelled - {{orderNumber}}',
+      body: `Hello {{customerName}},
+
+Your order {{orderNumber}} has been cancelled.
+
+- Delivery: {{deliveryMethod}}
+- Date: {{fulfillmentDate}}
+- Time: {{fulfillmentTime}}
+- Location: {{fulfillmentLocation}}
+
+If needed, you can contact the site team for more information.`
+    }
+  },
+  shop_order_admin_validated: {
+    fr: {
+      subject: 'Nouvelle commande validée - {{orderNumber}}',
+      body: `Une commande est prête à être traitée.
+
+- Commande : {{orderNumber}}
+- Client : {{customerName}}
+- Email : {{customerEmail}}
+- Téléphone : {{customerPhone}}
+- Message : {{customerMessage}}
+- Livraison : {{deliveryMethod}}
+- Date : {{fulfillmentDate}}
+- Heure : {{fulfillmentTime}}
+- Lieu : {{fulfillmentLocation}}
+- Paiement : {{paymentProvider}}
+- Statut du paiement : {{paymentStatus}}
+- Sous-total : {{subtotal}}
+- Total : {{total}}
+
+Lignes :
+{{orderLines}}
+
+Ouvrir l’admin :
+{{adminOrderUrl}}`
+    },
+    en: {
+      subject: 'New validated order - {{orderNumber}}',
+      body: `An order is ready to be processed.
+
+- Order: {{orderNumber}}
+- Customer: {{customerName}}
+- Email: {{customerEmail}}
+- Phone: {{customerPhone}}
+- Message: {{customerMessage}}
+- Delivery: {{deliveryMethod}}
+- Date: {{fulfillmentDate}}
+- Time: {{fulfillmentTime}}
+- Location: {{fulfillmentLocation}}
+- Payment: {{paymentProvider}}
+- Payment status: {{paymentStatus}}
+- Subtotal: {{subtotal}}
+- Total: {{total}}
+
+Lines:
+{{orderLines}}
+
+Open admin:
+{{adminOrderUrl}}`
+    }
+  },
+  shop_order_refunded: {
+    fr: {
+      subject: 'Commande remboursée - {{orderNumber}}',
+      body: `Bonjour {{customerName}},
+
+Votre commande {{orderNumber}} a été remboursée.
+
+- Livraison : {{deliveryMethod}}
+- Date : {{fulfillmentDate}}
+- Heure : {{fulfillmentTime}}
+- Lieu : {{fulfillmentLocation}}
+- Total remboursé : {{total}}
+
+Récapitulatif :
+{{orderLines}}`
+    },
+    en: {
+      subject: 'Order refunded - {{orderNumber}}',
+      body: `Hello {{customerName}},
+
+Your order {{orderNumber}} has been refunded.
+
+- Delivery: {{deliveryMethod}}
+- Date: {{fulfillmentDate}}
+- Time: {{fulfillmentTime}}
+- Location: {{fulfillmentLocation}}
+- Refunded total: {{total}}
+
+Summary:
+{{orderLines}}`
+    }
+  },
+  shop_order_refund_requested_customer: {
+    fr: {
+      subject: 'Demande de remboursement reçue - {{orderNumber}}',
+      body: `Bonjour {{customerName}},
+
+Nous avons bien reçu votre demande de remboursement pour la commande {{orderNumber}}.
+
+- Motif : {{refundRequestReason}}
+- Livraison : {{deliveryMethod}}
+- Date : {{fulfillmentDate}}
+- Heure : {{fulfillmentTime}}
+
+Notre équipe va l'étudier et reviendra vers vous rapidement.`
+    },
+    en: {
+      subject: 'Refund request received - {{orderNumber}}',
+      body: `Hello {{customerName}},
+
+We have received your refund request for order {{orderNumber}}.
+
+- Reason: {{refundRequestReason}}
+- Delivery: {{deliveryMethod}}
+- Date: {{fulfillmentDate}}
+- Time: {{fulfillmentTime}}
+
+Our team will review it and get back to you shortly.`
+    }
+  },
+  shop_order_refund_requested_admin: {
+    fr: {
+      subject: 'Nouvelle demande de remboursement - {{orderNumber}}',
+      body: `Une nouvelle demande de remboursement a été enregistrée.
+
+- Commande : {{orderNumber}}
+- Client : {{customerName}}
+- Email : {{customerEmail}}
+- Téléphone : {{customerPhone}}
+- Motif : {{refundRequestReason}}
+- Total : {{total}}
+
+Lignes :
+{{orderLines}}
+
+Ouvrir l’admin :
+{{adminOrderUrl}}`
+    },
+    en: {
+      subject: 'New refund request - {{orderNumber}}',
+      body: `A new refund request has been submitted.
+
+- Order: {{orderNumber}}
+- Customer: {{customerName}}
+- Email: {{customerEmail}}
+- Phone: {{customerPhone}}
+- Reason: {{refundRequestReason}}
+- Total: {{total}}
+
+Lines:
+{{orderLines}}
+
+Open admin:
+{{adminOrderUrl}}`
+    }
+  },
+  shop_order_refund_rejected: {
+    fr: {
+      subject: 'Demande de remboursement refusée - {{orderNumber}}',
+      body: `Bonjour {{customerName}},
+
+Votre demande de remboursement pour la commande {{orderNumber}} a été refusée.
+
+- Motif / note : {{refundRequestNote}}
+
+Si besoin, vous pouvez contacter l’équipe du site pour plus d’informations.`
+    },
+    en: {
+      subject: 'Refund request rejected - {{orderNumber}}',
+      body: `Hello {{customerName}},
+
+Your refund request for order {{orderNumber}} has been rejected.
+
+- Note: {{refundRequestNote}}
+
+If needed, you can contact the site team for more information.`
     }
   }
 }
 
 const SYSTEM_TEMPLATE_DEFINITIONS: AdminEmailTemplateDefinition[] = [
+  {
+    action: 'shop_order_created',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_CREATED,
+    label: localized('Commande reçue client', 'Customer order received'),
+    description: localized('Email envoyé au client dès la création d’une commande shop.', 'Email sent to the customer as soon as a shop order is created.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_CUSTOMER,
+    variables: ['orderNumber', 'customerName', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation', 'paymentProvider', 'paymentStatus', 'total', 'orderLines'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_payment_confirmed',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_PAYMENT_CONFIRMED,
+    label: localized('Paiement confirmé client', 'Customer payment confirmed'),
+    description: localized('Email envoyé au client quand le paiement d’une commande shop est confirmé.', 'Email sent to the customer when a shop order payment is confirmed.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_CUSTOMER,
+    variables: ['orderNumber', 'invoiceNumber', 'customerName', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation', 'total', 'orderLines'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_payment_failed',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_PAYMENT_FAILED,
+    label: localized('Paiement échoué client', 'Customer payment failed'),
+    description: localized('Email envoyé au client quand le paiement d’une commande shop échoue.', 'Email sent to the customer when a shop order payment fails.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_CUSTOMER,
+    variables: ['orderNumber', 'customerName', 'failureReason', 'total', 'orderLines'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_cancelled',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_CANCELLED,
+    label: localized('Commande annulée client', 'Customer order cancelled'),
+    description: localized('Email envoyé au client quand une commande shop est annulée.', 'Email sent to the customer when a shop order is cancelled.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_CUSTOMER,
+    variables: ['orderNumber', 'customerName', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_admin_validated',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_ADMIN_VALIDATED,
+    label: localized('Commande validée admin', 'Validated order admin'),
+    description: localized('Notification admin envoyée quand une commande shop est validée et prête à être traitée.', 'Admin notification sent when a shop order is validated and ready to be processed.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_ADMIN,
+    variables: ['orderNumber', 'customerName', 'customerEmail', 'customerPhone', 'customerMessage', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation', 'paymentProvider', 'paymentStatus', 'subtotal', 'total', 'orderLines', 'adminOrderUrl'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_refunded',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_REFUNDED,
+    label: localized('Commande remboursée client', 'Customer order refunded'),
+    description: localized('Email envoyé au client quand une commande est remboursée.', 'Email sent to the customer when an order is refunded.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_CUSTOMER,
+    variables: ['orderNumber', 'customerName', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation', 'total', 'orderLines'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_refund_requested_customer',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_REFUND_REQUESTED_CUSTOMER,
+    label: localized('Demande remboursement client', 'Customer refund request'),
+    description: localized('Email envoyé au client quand sa demande de remboursement est enregistrée.', 'Email sent to the customer when a refund request is recorded.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_CUSTOMER,
+    variables: ['orderNumber', 'customerName', 'refundRequestReason', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_refund_requested_admin',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_REFUND_REQUESTED_ADMIN,
+    label: localized('Demande remboursement admin', 'Admin refund request'),
+    description: localized('Notification admin envoyée quand un client demande un remboursement.', 'Admin notification sent when a customer requests a refund.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_ADMIN,
+    variables: ['orderNumber', 'customerName', 'customerEmail', 'customerPhone', 'refundRequestReason', 'total', 'orderLines', 'adminOrderUrl'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_refund_rejected',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_REFUND_REJECTED,
+    label: localized('Demande remboursement refusée client', 'Customer refund request rejected'),
+    description: localized('Email envoyé au client quand sa demande de remboursement est refusée.', 'Email sent to the customer when a refund request is rejected.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_CUSTOMER,
+    variables: ['orderNumber', 'customerName', 'refundRequestNote'],
+    locked: true,
+    system: true
+  },
   {
     action: 'confirmed',
     settingKey: SETTING_KEYS.RESERVATION_TEMPLATE_CONFIRMED,
@@ -597,22 +1001,33 @@ function getCustomTemplateSettingKey(action: string) {
   return `${CUSTOM_TEMPLATE_PREFIX}${action}`
 }
 
-function getDefaultCustomTemplate(locale: 'fr' | 'en'): EmailTemplate {
-  return locale === 'en'
+function normalizeTemplateLocaleKey(locale: string | null | undefined) {
+  const normalized = String(locale || '').trim().toLowerCase()
+  return normalized || 'fr'
+}
+
+function getDefaultCustomTemplate(locale: string): EmailTemplate {
+  return normalizeTemplateLocaleKey(locale) === 'en'
     ? { subject: '', body: '' }
     : { subject: '', body: '' }
 }
 
-function getDefaultSystemTemplate(action: string, locale: 'fr' | 'en'): EmailTemplate {
-  return CUSTOM_TEMPLATE_DEFAULTS[action]?.[locale] ?? getDefaultCustomTemplate(locale)
+function getDefaultSystemTemplate(action: string, locale: string): EmailTemplate {
+  const normalizedLocale = normalizeTemplateLocaleKey(locale)
+  return CUSTOM_TEMPLATE_DEFAULTS[action]?.[normalizedLocale as 'fr' | 'en']
+    ?? CUSTOM_TEMPLATE_DEFAULTS[action]?.en
+    ?? CUSTOM_TEMPLATE_DEFAULTS[action]?.fr
+    ?? getDefaultCustomTemplate(normalizedLocale)
 }
 
-function resolveLocalizedTemplate(raw: string | null, locale: 'fr' | 'en', fallback: EmailTemplate): EmailTemplate {
+function resolveLocalizedTemplate(raw: string | null, locale: string, fallback: EmailTemplate): EmailTemplate {
   if (!raw) return fallback
 
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>
-    const candidate = parsed?.[locale]
+    const normalizedLocale = normalizeTemplateLocaleKey(locale)
+    const languageLocale = normalizedLocale.split('-')[0] || normalizedLocale
+    const candidate = parsed?.[normalizedLocale] ?? parsed?.[languageLocale]
     if (candidate && typeof candidate === 'object') {
       const subject = typeof (candidate as Record<string, unknown>).subject === 'string'
         ? (candidate as Record<string, unknown>).subject as string
@@ -664,7 +1079,7 @@ export async function findAdminEmailTemplateDefinition(action: string) {
   return definitions.find(definition => definition.action === action) ?? null
 }
 
-export async function resolveAdminEmailTemplate(action: string, locale: 'fr' | 'en'): Promise<EmailTemplate> {
+export async function resolveAdminEmailTemplate(action: string, locale: string): Promise<EmailTemplate> {
   const definition = await findAdminEmailTemplateDefinition(action)
   if (!definition) {
     throw createError({

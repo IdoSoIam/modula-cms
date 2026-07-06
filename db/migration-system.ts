@@ -183,6 +183,25 @@ function listAppliedMigrationIds(db: Database.Database) {
   return rows.map(row => row.id)
 }
 
+function hasColumn(db: Database.Database, tableName: string, columnName: string) {
+  const rows = db.prepare(`PRAGMA table_info("${tableName}")`).all() as Array<{ name?: string }>
+  return rows.some(row => row.name === columnName)
+}
+
+function repairLegacySqliteSchema(db: Database.Database) {
+  const hasShopOrder = db.prepare(`
+    SELECT name
+    FROM sqlite_master
+    WHERE type = 'table'
+      AND name = 'ShopOrder'
+  `).get()
+
+  if (hasShopOrder && !hasColumn(db, 'ShopOrder', 'userId')) {
+    db.exec(`ALTER TABLE "ShopOrder" ADD COLUMN "userId" INTEGER;`)
+    db.exec(`CREATE INDEX IF NOT EXISTS "ShopOrder_userId_idx" ON "ShopOrder" ("userId");`)
+  }
+}
+
 function markMigrationsApplied(
   db: Database.Database,
   migrations: ResolvedMigration[],
@@ -250,6 +269,8 @@ export async function applySqliteMigrations(options: SqliteMigrationOptions & { 
       db.exec(sql)
       markMigrationsApplied(db, [migration], 'migration', migration.afterSchemaHash || options.schemaHash)
     }
+
+    repairLegacySqliteSchema(db)
   } finally {
     db.close()
   }

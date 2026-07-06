@@ -4,9 +4,9 @@ import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '#modula/sha
 import { createDefaultEventsPageSettings, createDefaultPlanningPageSettings } from '#modula/shared/events'
 import cmsProjectConfig from '#modula/cms.project.config'
 
-export const CMS_LOCALES = ['fr', 'en'] as const
+export const CMS_FALLBACK_LOCALES = ['fr', 'en'] as const
 
-export type CmsLocale = typeof CMS_LOCALES[number]
+export type CmsLocale = string
 
 export type CmsPageType = 'CMS' | 'APPLICATION' | 'HYBRID'
 export type CmsPageStatus = 'DRAFT' | 'PUBLISHED'
@@ -29,10 +29,7 @@ export const CMS_HEADER_SUBMENU_TRIGGERS: CmsHeaderSubmenuTrigger[] = ['hover', 
 export const CMS_HEADER_SUBMENU_ANIMATIONS: CmsHeaderSubmenuAnimation[] = ['none', 'fade', 'scale', 'slide']
 export const CMS_HEADER_MOBILE_LOGO_POSITIONS: CmsHeaderMobileLogoPosition[] = ['left', 'right']
 
-export interface CmsLocalizedText {
-  fr: string
-  en: string
-}
+export type CmsLocalizedText = Record<string, string>
 
 export interface CmsImageAsset {
   src: string
@@ -279,8 +276,8 @@ export interface PublicSiteShell {
   }
 }
 
-export function createEmptyCmsLocalizedText(): CmsLocalizedText {
-  return { fr: '', en: '' }
+export function createEmptyCmsLocalizedText(locales: string[] = ['fr', 'en']): CmsLocalizedText {
+  return Object.fromEntries(locales.map(l => [l, ''])) as CmsLocalizedText
 }
 
 export function createEmptyCmsPageSeo(): CmsPageSeo {
@@ -634,19 +631,6 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
     {
       menu: 'PRIMARY',
       itemType: 'APPLICATION_ROUTE',
-      title: 'Lots de produits',
-      labels: { fr: 'Lots de produits', en: 'Product lots' },
-      navigationItemKey: 'nav-baskets',
-      parentItemKey: null,
-      href: '/lots-produits',
-      pageId: null,
-      newTab: false,
-      visible: true,
-      position: 3
-    },
-    {
-      menu: 'PRIMARY',
-      itemType: 'APPLICATION_ROUTE',
       title: 'Contact',
       labels: { fr: 'Contact', en: 'Contact' },
       navigationItemKey: 'nav-contact',
@@ -655,7 +639,7 @@ export function createDefaultCmsNavigationItems(): CmsNavigationItemPayload[] {
       pageId: null,
       newTab: false,
       visible: true,
-      position: 4
+      position: 3
     },
     {
       menu: 'FOOTER',
@@ -757,9 +741,44 @@ export function createDefaultCmsPagePayload(path: string, title = ''): CmsPagePa
   }
 }
 
-export function pickCmsLocalizedText(locale: string, value: CmsLocalizedText | null | undefined) {
+function normalizeCmsLocaleCode(locale: string | null | undefined) {
+  return String(locale || '').trim().toLowerCase()
+}
+
+function localeVariants(locale: string | null | undefined) {
+  const normalized = normalizeCmsLocaleCode(locale)
+  if (!normalized) return []
+  const base = normalized.split('-')[0] || normalized
+  return normalized === base ? [normalized] : [normalized, base]
+}
+
+export function getCmsLocaleFallbacks(locale: string, defaultLocale = 'en') {
+  const requested = localeVariants(locale)
+  const english = requested.includes('en') ? [] : ['en']
+  const defaultVariants = localeVariants(defaultLocale).filter(candidate => candidate !== 'en')
+  return Array.from(new Set([...requested, ...english, ...defaultVariants])).filter(Boolean)
+}
+
+export function pickCmsLocalizedText(locale: string, value: CmsLocalizedText | null | undefined, defaultLocale = 'en') {
   if (!value) return ''
-  return locale === 'en' ? value.en : value.fr
+
+  const normalizedEntries = Object.fromEntries(
+    Object.entries(value).map(([entryLocale, text]) => [normalizeCmsLocaleCode(entryLocale), text])
+  ) as CmsLocalizedText
+
+  for (const candidate of getCmsLocaleFallbacks(locale, defaultLocale)) {
+    if (normalizedEntries[candidate]?.trim()) return normalizedEntries[candidate]
+  }
+
+  const first = Object.values(normalizedEntries).find(v => v?.trim())
+  return first || ''
+}
+
+export function resolveLocaleText(value: CmsLocalizedText | null | undefined, locales: string[], fallback = ''): string {
+  if (!value) return fallback
+
+  const [requestedLocale = '', defaultLocale = 'en'] = locales
+  return pickCmsLocalizedText(requestedLocale, value, defaultLocale) || fallback
 }
 
 export const CMS_THEME_COLOR_TOKENS: ThemeColorToken[] = [

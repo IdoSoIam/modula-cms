@@ -3,6 +3,7 @@ import { H3Event } from 'h3'
 import { getSessionConfig } from '../../utils/session'
 import { db } from '#modula/server/data/client'
 import { isRegisterEnabled } from '#modula/server/utils/settings'
+import { sendUserSignupConfirmationEmail } from '#modula/server/services/auth/userSignupConfirmation'
 
 const authService = new AuthService()
 
@@ -18,7 +19,7 @@ export default defineEventHandler(async (event: H3Event) => {
       })
     }
 
-    const { email, password, firstName, lastName, birthDate } = await readBody(event)
+    const { email, password, firstName, lastName, birthDate, language } = await readBody(event)
 
     if (!email || !password) {
       throw createError({
@@ -30,8 +31,15 @@ export default defineEventHandler(async (event: H3Event) => {
     // Convert birthDate string to Date object if provided
     const birthDateObj = birthDate ? new Date(birthDate) : undefined;
 
-    // First registered user becomes admin (bootstrap)
-    const role = userCount === 0 ? 'admin' : 'user'
+    // First registered user becomes admin (bootstrap), other public signups use the configured default role.
+    const role = userCount === 0
+      ? 'admin'
+      : (
+          (await db.role.findFirst({
+            where: { isDefault: true },
+            orderBy: { id: 'asc' }
+          }))?.slug || 'utilisateur_public'
+        )
 
     const user = await authService.createUser(email, password, firstName, lastName, birthDateObj, role)
     const session = await useSession(event, getSessionConfig(event))
@@ -39,6 +47,17 @@ export default defineEventHandler(async (event: H3Event) => {
     await session.update({
       userId: user.id
     })
+
+    try {
+      await sendUserSignupConfirmationEmail({
+        email: user.email,
+        firstName: user.firstName ?? firstName,
+        lastName: user.lastName ?? lastName,
+        locale: language === 'en' ? 'en' : 'fr'
+      })
+    } catch (mailError) {
+      console.error('Registration confirmation email failed:', mailError)
+    }
 
     return { user }
   } catch (error: any) {

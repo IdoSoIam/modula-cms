@@ -105,7 +105,8 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsFooterColumn, CmsLocalizedText, CmsLocale, CmsSocialLink, PublicSiteShell } from '#modula/shared/cms'
+import { pickCmsLocalizedText, type CmsFooterColumn, type CmsLocalizedText, type CmsLocale, type CmsSocialLink, type PublicSiteShell } from '#modula/shared/cms'
+import { formatLocalizedTimeValue, formatLocalizedWeekday } from '#modula/shared/date'
 import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
 import { useAuthStore } from '#modula/stores/auth'
 import { createDefaultCmsSiteSettings } from '#modula/shared/cms'
@@ -136,14 +137,15 @@ const siteConfigState = useSiteConfigState()
 const route = useRoute()
 const authStore = useAuthStore()
 const { openShellEditor } = useCmsLiveEdit()
-const { locale } = useI18n()
+const { contentLocale } = useContentLocale()
+const { publicText } = usePublicDictionary()
 const liveEditHydrated = ref(false)
 
 if (process.server && !siteConfigState.value) {
   await ensureSiteConfigState()
 }
 
-const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (locale.value === 'en' ? 'en' : 'fr'))
+const effectiveLocale = computed<CmsLocale>(() => props.previewLocale || (contentLocale.value as CmsLocale))
 const siteConfig = computed(() => (props.previewSiteConfig ?? siteConfigState.value) as SiteConfig | null)
 const cms = computed(() => siteConfig.value?.cms)
 const defaultSettings = createDefaultCmsSiteSettings()
@@ -182,25 +184,17 @@ const footerContainerAlignClass = computed(() => {
     default: return 'justify-between'
   }
 })
-const dayLabels = {
-  fr: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
-  en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-}
 const formatFooterSchedule = (schedule?: SiteConfig['farmPickup'] | null) => {
   if (!schedule) return ''
-  const day = dayLabels[effectiveLocale.value === 'en' ? 'en' : 'fr'][schedule.dayOfWeek] || ''
-  if (!day || !schedule.startTime || !schedule.endTime) return ''
-  return effectiveLocale.value === 'en'
-    ? `Every ${day} from ${schedule.startTime.replace(':', 'h')} to ${schedule.endTime.replace(':', 'h')}`
-    : `Tous les ${day} de ${schedule.startTime.replace(':', 'h')} à ${schedule.endTime.replace(':', 'h')}`
+  const day = formatLocalizedWeekday(schedule.dayOfWeek, effectiveLocale.value)
+  const start = formatLocalizedTimeValue(schedule.startTime, effectiveLocale.value)
+  const end = formatLocalizedTimeValue(schedule.endTime, effectiveLocale.value)
+  if (!day || !start || !end) return ''
+  return publicText('navigation.footer.recurringSchedule', 'Tous les {day} de {start} à {end}', { day, start, end })
 }
 const farmScheduleText = computed(() => formatFooterSchedule(siteConfig.value?.farmPickup || null))
-const siteName = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings.siteName.en || 'Ferme du Campeyrigoux'
-  : cms.value?.settings.siteName.fr || 'Ferme du Campeyrigoux')
-const siteTagline = computed(() => effectiveLocale.value === 'en'
-  ? cms.value?.settings.siteTagline.en || ''
-  : cms.value?.settings.siteTagline.fr || '')
+const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteName, 'fr') || 'Site')
+const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteTagline, 'fr'))
 const logoSrc = computed(() => {
   const src = cms.value?.settings.logo.src?.trim()
   if (!src) return '/brand/modula-mark.svg'
@@ -209,7 +203,7 @@ const logoSrc = computed(() => {
 })
 const copyrightText = computed(() => {
   const value = footerSettings.value.copyright
-  return effectiveLocale.value === 'en' ? value?.en || '' : value?.fr || ''
+  return pickCmsLocalizedText(effectiveLocale.value, value, 'fr')
 })
 
 const tokenToCssVar = (token: string) => {
@@ -266,8 +260,7 @@ const columnLayoutStyle = (column: CmsFooterColumn) => ({
 })
 
 const pickText = (value: CmsLocalizedText | null | undefined) => {
-  if (!value) return ''
-  return effectiveLocale.value === 'en' ? value.en : value.fr
+  return pickCmsLocalizedText(effectiveLocale.value, value, 'fr')
 }
 
 const getNavigationItems = (menu: 'PRIMARY' | 'FOOTER') => {
@@ -276,7 +269,7 @@ const getNavigationItems = (menu: 'PRIMARY' | 'FOOTER') => {
     : (cms.value?.navigation.footer || [])
 }
 
-const localePath = useLocalePath()
+const localePath = usePublicLocalePath()
 
 const handleFooterNavClick = (event: Event, key: string) => {
   if (!shellLiveEditEnabled.value) return

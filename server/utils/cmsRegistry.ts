@@ -13,9 +13,14 @@ import type {
   CmsRegistryEndpointState,
   CmsRegistryDeploymentJob,
   CmsRegistryInstanceRecord,
+  CmsRegistryPaymentConfig,
+  CmsRegistryPaymentLineItem,
+  CmsRegistryPaymentRecord,
   CmsRegistryPaginatedResult,
   CmsRegistryRollbackCapabilities,
   CmsRegistryReleaseRecord,
+  CmsRegistryTranslationBatchResult,
+  CmsRegistryTranslationRequestItem,
   CmsRegistryTemplateRecord,
   CmsRegistryTemplateSnapshot
 } from '#modula/shared/registry'
@@ -823,8 +828,6 @@ export async function importTemplateSnapshot(
     setSetting(SETTING_KEYS.REGISTER_ENABLED, prepared.featureFlags.registerEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SUBSCRIPTIONS_ENABLED, prepared.featureFlags.subscriptionsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SHOP_ENABLED, prepared.featureFlags.shop.enabled ? 'true' : 'false'),
-    setSetting(SETTING_KEYS.SHOP_BASKETS_ENABLED, prepared.featureFlags.shop.basketsEnabled ? 'true' : 'false'),
-    setSetting(SETTING_KEYS.SHOP_VEGETABLES_ENABLED, prepared.featureFlags.shop.vegetablesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, prepared.featureFlags.associationRolesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.EVENTS_ENABLED, prepared.featureFlags.eventsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.NEWS_ENABLED, prepared.featureFlags.newsEnabled ? 'true' : 'false')
@@ -1299,4 +1302,74 @@ export async function triggerUpdateAgentRollback(mode: 'fast' | 'full' = 'fast')
     method: 'POST',
     body: { mode }
   })
+}
+
+export async function getRegistryPaymentConfig() {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {}, scope)
+}
+
+export async function getRegistryStripeWebhookUrl() {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  const config = await resolveRegistryConfig(scope)
+  if (!config.url) return ''
+  return `${config.url.replace(/\/$/, '')}/v1/payments/webhooks/stripe`
+}
+
+export async function saveRegistryPaymentConfig(settings: Partial<CmsRegistryPaymentConfig>) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {
+    method: 'PUT',
+    body: settings
+  }, scope)
+}
+
+export async function createRegistryCheckoutSession(body: {
+  orderId: string
+  orderNumber?: string
+  successUrl: string
+  cancelUrl: string
+  customerEmail?: string
+  locale?: string
+  currency?: string
+  metadata?: Record<string, string>
+  lineItems: CmsRegistryPaymentLineItem[]
+}) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentRecord>('/v1/payments/checkout', {
+    method: 'POST',
+    body
+  }, scope)
+}
+
+export async function getRegistryPaymentBySession(sessionId: string) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentRecord>(`/v1/payments/sessions/${encodeURIComponent(sessionId)}`, {}, scope)
+}
+
+export async function getRegistryPaymentByOrder(orderId: string) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentRecord>(`/v1/payments/orders/${encodeURIComponent(orderId)}`, {}, scope)
+}
+
+export async function cancelRegistryPaymentByOrder(orderId: string) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentRecord>(`/v1/payments/orders/${encodeURIComponent(orderId)}/cancel`, {
+    method: 'POST',
+  }, scope)
+}
+
+export async function refundRegistryPaymentByOrder(orderId: string) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentRecord>(`/v1/payments/orders/${encodeURIComponent(orderId)}/refund`, {
+    method: 'POST',
+  }, scope)
+}
+
+export async function translateRegistryTexts(items: CmsRegistryTranslationRequestItem[]) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryTranslationBatchResult>('/v1/translations/text', {
+    method: 'POST',
+    body: { items }
+  }, scope)
 }

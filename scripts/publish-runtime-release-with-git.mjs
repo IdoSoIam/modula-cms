@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 const cwd = process.cwd()
@@ -24,6 +25,8 @@ if (worktreeStatus) {
 
 const mainBranch = 'main'
 const releaseMessage = `release: ${version}`
+
+await syncPackageVersion(version)
 
 await run('git fetch origin')
 
@@ -77,4 +80,12 @@ function runCapture(command) {
     child.on('exit', code => code === 0 ? resolve(stdout) : reject(new Error(stderr || `Command failed: ${command}`)))
     child.on('error', reject)
   })
+}
+
+async function syncPackageVersion(nextVersion) {
+  const packagePath = path.join(cwd, 'package.json')
+  const pkg = JSON.parse(await readFile(packagePath, 'utf8'))
+  if (pkg.version === nextVersion) return
+  pkg.version = nextVersion
+  await writeFile(packagePath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8')
 }

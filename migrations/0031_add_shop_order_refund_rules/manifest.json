@@ -1,0 +1,42 @@
+{
+  "id": "0031_add_shop_order_refund_rules",
+  "name": "add_shop_order_refund_rules",
+  "description": "",
+  "beforeSchemaHash": "fd734708544714b271017da8c8c6ad54ddcc0ebca44bdfbce87588490f7deaff",
+  "afterSchemaHash": "4e4234e824d5588b7a205eda5404b999e9b5bb4770a7c5c79531d18ea252ab67",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "BillingDocumentTemplate",
+        "changes": [
+          "field added: invoiceColumnsJson"
+        ]
+      },
+      {
+        "model": "Product",
+        "changes": [
+          "field added: allowCustomerCancellation",
+          "field added: allowRefundRequestAfterEngagement"
+        ]
+      },
+      {
+        "model": "ShopOrder",
+        "changes": [
+          "field added: afterSalesStatus",
+          "field added: refundRequestedAt",
+          "field added: refundRequestNote",
+          "field added: refundRequestReason",
+          "field added: refundReviewedAt",
+          "field changed: status"
+        ]
+      }
+    ]
+  }
+}

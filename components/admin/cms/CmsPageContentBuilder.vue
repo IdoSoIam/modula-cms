@@ -161,7 +161,7 @@
                     />
                     <div class="form-control">
                       <label class="label"><span class="label-text">Alignement</span></label>
-                      <select v-model="item.align" class="select select-bordered w-full">
+                      <select :value="standaloneItemAlign(item)" class="select select-bordered w-full" @change="setStandaloneItemAlign(item, ($event.target as HTMLSelectElement).value)">
                         <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
                       </select>
                     </div>
@@ -231,7 +231,7 @@
                     />
                     <div class="form-control">
                       <label class="label"><span class="label-text">Alignement</span></label>
-                      <select v-model="item.align" class="select select-bordered w-full">
+                      <select :value="standaloneItemAlign(item)" class="select select-bordered w-full" @change="setStandaloneItemAlign(item, ($event.target as HTMLSelectElement).value)">
                         <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
                       </select>
                     </div>
@@ -758,7 +758,7 @@ import AdminPageBuilderCarouselFields from '#modula/components/admin/page-builde
 import AdminPageBuilderCardFields from '#modula/components/admin/page-builder/CardFields.vue'
 import AdminPageBuilderSectionBackgroundFields from '#modula/components/admin/page-builder/SectionBackgroundFields.vue'
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
-import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderSectionItem, SectionColumnCount } from '#modula/shared/pageBuilder'
+import type { ContentAlign, PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderSectionItem, SectionColumnCount } from '#modula/shared/pageBuilder'
 import {
   CARDS_DISPLAY_LABELS,
   CARDS_DISPLAYS,
@@ -800,6 +800,13 @@ import ImageInput from '#modula/components/ImageInput.vue'
 const props = defineProps<{
   content: PageBuilderContent
 }>()
+
+const standaloneItemAlign = (item: PageBuilderSectionItem) => item.type === 'title' || item.type === 'text' ? item.align : 'start'
+const setStandaloneItemAlign = (item: PageBuilderSectionItem, value: string) => {
+  if (item.type === 'title' || item.type === 'text') {
+    item.align = value as ContentAlign
+  }
+}
 
 const selectedSectionId = ref(props.content.sections[0]?.id || '')
 const sectionColumnTab = ref(0)
@@ -996,16 +1003,19 @@ const toggleItemPanel = (id: string) => {
   openPanel(id)
 }
 
+const firstLocalizedValue = (value: Record<string, string> | null | undefined) =>
+  Object.values(value || {}).find(entry => entry?.trim()) || ''
+
 const itemSummary = (item: PageBuilderColumnItem) => {
   switch (item.type) {
     case 'badge':
     case 'title':
     case 'text':
-      return item.text.fr || item.text.en || 'Sans contenu'
+      return firstLocalizedValue(item.text) || 'Sans contenu'
     case 'buttons':
       return [
-        item.primaryButton?.label.fr || item.primaryButton?.label.en || '',
-        item.secondaryButton?.label.fr || item.secondaryButton?.label.en || ''
+        firstLocalizedValue(item.primaryButton?.label),
+        firstLocalizedValue(item.secondaryButton?.label)
       ].filter(Boolean).join(' • ') || 'Aucun bouton'
     case 'image':
       return item.imageUrl || 'Image vide'
@@ -1018,14 +1028,14 @@ const itemSummary = (item: PageBuilderColumnItem) => {
   }
 }
 
-const cardSummary = (card: { elements?: Array<{ title: { fr: string, en: string }, text: { fr: string, en: string } }>, title: { fr: string, en: string }, text: { fr: string, en: string } }) =>
-  card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.title.fr
-  || card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.title.en
-  || card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.text.fr
-  || card.elements?.find(element => element.title.fr || element.title.en || element.text.fr || element.text.en)?.text.en
-  || card.title.fr || card.title.en || card.text.fr || card.text.en || 'Carte sans contenu'
+const cardSummary = (card: PageBuilderCard) =>
+  firstLocalizedValue(card.elements?.find(element => firstLocalizedValue(element.title) || firstLocalizedValue(element.text))?.title)
+  || firstLocalizedValue(card.elements?.find(element => firstLocalizedValue(element.title) || firstLocalizedValue(element.text))?.text)
+  || firstLocalizedValue(card.title)
+  || firstLocalizedValue(card.text)
+  || 'Carte sans contenu'
 
-const addCard = (cards: Array<{ id: string, elements: Array<{ id: string, source: string, title: { fr: string, en: string }, text: { fr: string, en: string } }> }>) => {
+const addCard = (cards: PageBuilderCard[]) => {
   const newId = createId('card')
   cards.push({
     ...createEmptyCard(newId),

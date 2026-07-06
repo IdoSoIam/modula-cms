@@ -8,8 +8,6 @@ export interface CmsProjectModulesConfig {
   planning: boolean
   events: boolean
   shop: boolean
-  shopBaskets: boolean
-  shopVegetables: boolean
   associationRoles: boolean
 }
 

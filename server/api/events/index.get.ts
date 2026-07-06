@@ -3,6 +3,7 @@ import { canAccessEvent, eventOccurrenceToListItem, eventToListItem } from '#mod
 import { AuthService } from '#modula/server/services/auth/authService'
 import { syncEventOccurrencesForEvent } from '#modula/server/utils/planning'
 import { getFeatureFlags } from '#modula/server/utils/settings'
+import { formatLocalizedDateValue } from '#modula/shared/date'
 import type {
   EventListItem,
   PlanningCalendarDay,
@@ -129,11 +130,10 @@ function toWeekColumn(
   const totalPages = Math.max(1, Math.ceil(total / options.perDayLimit))
   const safePage = Math.min(page, totalPages)
   const start = (safePage - 1) * options.perDayLimit
-  const localeCode = options.locale === 'en' ? 'en-GB' : 'fr-FR'
   return {
     iso,
-    label: new Intl.DateTimeFormat(localeCode, { weekday: 'long', day: '2-digit', month: 'long' }).format(date),
-    shortLabel: new Intl.DateTimeFormat(localeCode, { weekday: 'short' }).format(date),
+    label: formatLocalizedDateValue(date, options.locale, { weekday: 'long', day: '2-digit', month: 'long' }),
+    shortLabel: formatLocalizedDateValue(date, options.locale, { weekday: 'short' }),
     dayNumber: date.getDate(),
     page: safePage,
     total,
@@ -267,7 +267,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const dayNames = Array.from({ length: 7 }, (_, index) =>
-      new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'short' }).format(addDays(firstGridDay, index))
+      formatLocalizedDateValue(addDays(firstGridDay, index), locale, { weekday: 'short' })
     )
     const todayIso = formatIsoDate(new Date())
     const days: PlanningCalendarDay[] = []
@@ -284,7 +284,7 @@ export default defineEventHandler(async (event) => {
     const response: PlanningCalendarResponse = {
       view: 'calendar',
       month: formatIsoDate(monthStart).slice(0, 7),
-      monthLabel: new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { month: 'long', year: 'numeric' }).format(monthStart),
+      monthLabel: formatLocalizedDateValue(monthStart, locale, { month: 'long', year: 'numeric' }),
       monthInput: formatIsoDate(monthStart).slice(0, 7),
       dayNames,
       days

@@ -1,9 +1,9 @@
-import type { Reservation } from '#modula/server/data/types'
 import { formatDateLabel } from './dateFormat'
 import { formatFulfillmentDate } from './orderFulfillment'
 import { SETTING_KEYS } from './settings'
 
-export type ReservationLocale = 'fr' | 'en'
+export type ReservationLocale = string
+type ReservationDeliveryType = 'ONSITE' | 'PICKUP' | 'TOUR' | 'FARM' | null
 
 export interface EmailTemplate {
   subject: string
@@ -37,10 +37,10 @@ export interface TemplateDefinition {
   variables: string[]
 }
 
-const DEFAULT_TEMPLATE_MAP: Record<ReservationLocale, Record<TemplateAction, EmailTemplate>> = {
+const DEFAULT_TEMPLATE_MAP: Record<'fr' | 'en', Record<TemplateAction, EmailTemplate>> & Record<string, Record<TemplateAction, EmailTemplate>> = {
   fr: {
     confirmed: {
-      subject: 'Votre réservation de panier est confirmée - Ferme du Campeyrigoux',
+      subject: 'Votre réservation de panier est confirmée - Le site',
       body: `Bonjour {{customerName}},
 
 Votre réservation pour le panier "{{basketName}}" est confirmée !
@@ -58,10 +58,10 @@ Le paiement se fait en espèces au retrait ou à la remise du panier.
 Si vous avez la moindre question, vous pouvez répondre à cet email.
 
 À bientôt,
-La Ferme du Campeyrigoux`
+L'équipe du site`
     },
     rejected: {
-      subject: 'Concernant votre réservation de panier - Ferme du Campeyrigoux',
+      subject: 'Concernant votre réservation de panier - Le site',
       body: `Bonjour {{customerName}},
 
 Nous sommes désolés, votre réservation pour le panier "{{basketName}}" n'a pas pu être confirmée.
@@ -70,10 +70,10 @@ Raison : {{adminNote}}
 
 N'hésitez pas à nous recontacter pour une prochaine réservation.
 
-La Ferme du Campeyrigoux`
+L'équipe du site`
     },
     cancelled: {
-      subject: 'Votre réservation a été annulée - Ferme du Campeyrigoux',
+      subject: 'Votre réservation a été annulée - Le site',
       body: `Bonjour {{customerName}},
 
 Votre réservation pour le panier "{{basketName}}" a été annulée.
@@ -82,10 +82,10 @@ Raison : {{adminNote}}
 
 Si besoin, vous pouvez nous contacter directement pour en discuter.
 
-La Ferme du Campeyrigoux`
+L'équipe du site`
     },
     proposed: {
-      subject: 'Proposition de créneau pour votre retrait à la ferme - Ferme du Campeyrigoux',
+      subject: 'Proposition de créneau pour votre Retrait sur place - Le site',
       body: `Bonjour {{customerName}},
 
 Nous vous proposons le créneau suivant pour votre panier "{{basketName}}" :
@@ -96,7 +96,7 @@ Nous vous proposons le créneau suivant pour votre panier "{{basketName}}" :
 
 Merci de confirmer ce créneau ou de proposer une autre date et heure depuis le lien présent dans notre email.
 
-La Ferme du Campeyrigoux`
+L'équipe du site`
     },
     created: {
       subject: 'Nous avons bien reçu votre demande - {{basketName}}',
@@ -114,15 +114,15 @@ Récapitulatif :
 
 Important :
 
-- Votre demande doit encore être confirmée par la ferme
+- Votre demande doit encore être confirmée par l'équipe du site
 - Le paiement se fait en espèces au retrait ou à la remise
 - Aucun paiement en ligne n'est demandé
-- Pour un retrait à la ferme, ce créneau reste une proposition tant que la ferme ne l'a pas validé
+- Pour un Retrait sur place, ce créneau reste une proposition tant que l'équipe du site ne l'a pas validé
 
 Nous vous recontacterons par email avec la confirmation finale.`
     },
     accepted_proposal: {
-      subject: 'Votre retrait à la ferme est confirmé - Ferme du Campeyrigoux',
+      subject: 'Votre Retrait sur place est confirmé - Le site',
       body: `Bonjour {{customerName}},
 
 Votre réservation est maintenant confirmée pour le créneau suivant :
@@ -134,7 +134,7 @@ Votre réservation est maintenant confirmée pour le créneau suivant :
 Le paiement se fait en espèces au retrait.`
     },
     cancelled_by_customer: {
-      subject: 'Votre réservation a été annulée - Ferme du Campeyrigoux',
+      subject: 'Votre réservation a été annulée - Le site',
       body: `Bonjour {{customerName}},
 
 Votre réservation a bien été annulée.
@@ -142,7 +142,7 @@ Votre réservation a bien été annulée.
 Si besoin, vous pouvez nous recontacter pour refaire une demande ultérieurement.`
     },
     stopped_subscription: {
-      subject: 'Votre abonnement a été arrêté - Ferme du Campeyrigoux',
+      subject: 'Votre abonnement a été arrêté - Le site',
       body: `Bonjour {{customerName}},
 
 Votre abonnement a bien été arrêté.
@@ -265,7 +265,7 @@ Ouvrir la gestion admin :
   },
   en: {
     confirmed: {
-      subject: 'Your basket reservation is confirmed - Ferme du Campeyrigoux',
+      subject: 'Your basket reservation is confirmed - The website',
       body: `Hello {{customerName}},
 
 Your reservation for the "{{basketName}}" basket is confirmed.
@@ -283,10 +283,10 @@ Payment is made in cash when you collect or receive your basket.
 If you have any questions, you can reply to this email.
 
 See you soon,
-Ferme du Campeyrigoux`
+The site team`
     },
     rejected: {
-      subject: 'About your basket reservation - Ferme du Campeyrigoux',
+      subject: 'About your basket reservation - The website',
       body: `Hello {{customerName}},
 
 We are sorry, but your reservation for the "{{basketName}}" basket could not be confirmed.
@@ -295,10 +295,10 @@ Reason: {{adminNote}}
 
 Please feel free to contact us again for a future reservation.
 
-Ferme du Campeyrigoux`
+The site team`
     },
     cancelled: {
-      subject: 'Your reservation has been cancelled - Ferme du Campeyrigoux',
+      subject: 'Your reservation has been cancelled - The website',
       body: `Hello {{customerName}},
 
 Your reservation for the "{{basketName}}" basket has been cancelled.
@@ -307,10 +307,10 @@ Reason: {{adminNote}}
 
 If needed, you can contact us directly to discuss it.
 
-Ferme du Campeyrigoux`
+The site team`
     },
     proposed: {
-      subject: 'Pickup slot proposal for your farm collection - Ferme du Campeyrigoux',
+      subject: 'Pickup slot proposal for your on-site collection - The website',
       body: `Hello {{customerName}},
 
 We would like to offer you the following pickup slot for your "{{basketName}}" basket:
@@ -321,7 +321,7 @@ We would like to offer you the following pickup slot for your "{{basketName}}" b
 
 Please confirm this slot or suggest another date and time using the link in our email.
 
-Ferme du Campeyrigoux`
+The site team`
     },
     created: {
       subject: 'We have received your request - {{basketName}}',
@@ -339,15 +339,15 @@ Summary:
 
 Important:
 
-- Your request still needs to be confirmed by the farm
+- Your request still needs to be confirmed by the site team
 - Payment is made in cash when you collect or receive the basket
 - No online payment is required
-- For farm pickup, this slot remains a proposal until the farm confirms it
+- For on-site pickup, this slot remains a proposal until the site team confirms it
 
 We will contact you again by email with the final confirmation.`
     },
     accepted_proposal: {
-      subject: 'Your farm pickup is confirmed - Ferme du Campeyrigoux',
+      subject: 'Your on-site pickup is confirmed - The website',
       body: `Hello {{customerName}},
 
 Your reservation is now confirmed for the following slot:
@@ -359,7 +359,7 @@ Your reservation is now confirmed for the following slot:
 Payment is made in cash when you collect your basket.`
     },
     cancelled_by_customer: {
-      subject: 'Your reservation has been cancelled - Ferme du Campeyrigoux',
+      subject: 'Your reservation has been cancelled - The website',
       body: `Hello {{customerName}},
 
 Your reservation has been cancelled successfully.
@@ -367,7 +367,7 @@ Your reservation has been cancelled successfully.
 If needed, you can contact us again to place a new request later.`
     },
     stopped_subscription: {
-      subject: 'Your subscription has been stopped - Ferme du Campeyrigoux',
+      subject: 'Your subscription has been stopped - The website',
       body: `Hello {{customerName}},
 
 Your subscription has been stopped successfully.
@@ -491,19 +491,40 @@ Open admin:
 }
 
 export function normalizeReservationLocale(value: string | null | undefined): ReservationLocale {
-  return value === 'en' ? 'en' : 'fr'
+  const normalized = String(value || '').trim().toLowerCase()
+  if (DEFAULT_TEMPLATE_MAP[normalized]) return normalized
+  return DEFAULT_TEMPLATE_MAP.en ? 'en' : 'fr'
 }
 
 export function getReservationDateLocale(locale: string | null | undefined) {
-  return normalizeReservationLocale(locale) === 'en' ? 'en-US' : 'fr-FR'
+  const target = normalizeReservationLocale(locale)
+  if (target === 'en') return 'en-US'
+  if (target === 'fr') return 'fr-FR'
+  if (/^[a-z]{2}-[a-z]{2}$/i.test(target)) {
+    const [lang = target, regionRaw] = target.split('-')
+    const region = regionRaw || lang
+    return `${lang}-${region.toUpperCase()}`
+  }
+  return `${target}-${target.toUpperCase()}`
 }
 
 export function getReservationEmailHtmlLang(locale: string | null | undefined) {
-  return normalizeReservationLocale(locale) === 'en' ? 'en' : 'fr'
+  const normalized = String(locale || '').trim().toLowerCase()
+  return normalized || 'fr'
 }
 
 export function getReservationLanguageLabel(locale: string | null | undefined) {
-  return normalizeReservationLocale(locale) === 'en' ? 'English' : 'Français'
+  const target = normalizeReservationLocale(locale)
+  const labels: Record<string, string> = {
+    fr: 'Français',
+    en: 'English',
+    de: 'Deutsch',
+    es: 'Español',
+    it: 'Italiano',
+    pt: 'Português',
+    nl: 'Nederlands',
+  }
+  return labels[target] || target || 'Français'
 }
 
 function parseTemplateObject(value: unknown): EmailTemplate | null {
@@ -514,7 +535,10 @@ function parseTemplateObject(value: unknown): EmailTemplate | null {
 }
 
 export function getDefaultReservationTemplate(action: TemplateAction, locale: string | null | undefined) {
-  return DEFAULT_TEMPLATE_MAP[normalizeReservationLocale(locale)][action]
+  const targetLocale = normalizeReservationLocale(locale)
+  return DEFAULT_TEMPLATE_MAP[targetLocale]?.[action]
+    ?? DEFAULT_TEMPLATE_MAP.en?.[action]
+    ?? DEFAULT_TEMPLATE_MAP.fr[action]
 }
 
 export const TEMPLATE_ACTION_SETTING_KEYS: Record<TemplateAction, string> = {
@@ -583,7 +607,7 @@ export const TEMPLATE_DEFINITIONS: TemplateDefinition[] = [
     action: 'accepted_proposal',
     settingKey: SETTING_KEYS.RESERVATION_TEMPLATE_ACCEPTED_PROPOSAL,
     label: 'Acceptation de proposition client',
-    description: 'Email envoyé quand le client accepte un créneau proposé par la ferme.',
+    description: 'Email envoyé quand le client accepte un créneau proposé par l’équipe du site.',
     variables: ['customerName', 'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation']
   },
   {
@@ -682,17 +706,23 @@ export function resolveReservationTemplate(
   locale: string | null | undefined
 ) {
   const normalized = normalizeReservationLocale(locale)
-  const fallback = DEFAULT_TEMPLATE_MAP[normalized][action]
+  const fallback = DEFAULT_TEMPLATE_MAP[normalized]?.[action]
+    ?? DEFAULT_TEMPLATE_MAP.en?.[action]
+    ?? DEFAULT_TEMPLATE_MAP.fr[action]
 
   if (!raw) return fallback
 
   try {
     const parsed = JSON.parse(raw)
-    const localized = parseTemplateObject((parsed as Record<string, unknown>)?.[normalized])
+    const exactLocale = String(locale || '').trim().toLowerCase()
+    const languageLocale = exactLocale.split('-')[0] || exactLocale
+    const localized = parseTemplateObject((parsed as Record<string, unknown>)?.[exactLocale])
+      || parseTemplateObject((parsed as Record<string, unknown>)?.[languageLocale])
+      || parseTemplateObject((parsed as Record<string, unknown>)?.[normalized])
     if (localized) return localized
 
     const legacy = parseTemplateObject(parsed)
-    if (legacy) return normalized === 'fr' ? legacy : fallback
+    if (legacy) return legacy
   } catch {
     return fallback
   }
@@ -737,7 +767,7 @@ export function buildReservationCreatedCustomerEmail(options: {
   fulfillmentDate: Date | null
   fulfillmentTime: string | null
   basketPrice: number
-  deliveryType: Reservation['deliveryType']
+  deliveryType: ReservationDeliveryType
 }) {
   const normalized = normalizeReservationLocale(options.locale)
   const localeCode = getReservationDateLocale(normalized)
@@ -763,10 +793,10 @@ Summary:
 
 Important:
 
-- Your request still needs to be confirmed by the farm
+- Your request still needs to be confirmed by the site team
 - Payment is made in cash when you collect or receive the basket
 - No online payment is required
-- For farm pickup, this slot remains a proposal until the farm confirms it
+- For on-site pickup, this slot remains a proposal until the site team confirms it
 
 We will contact you again by email with the final confirmation.`
     }
@@ -788,10 +818,10 @@ Récapitulatif :
 
 Important :
 
-- Votre demande doit encore être confirmée par la ferme
+- Votre demande doit encore être confirmée par l'équipe du site
 - Le paiement se fait en espèces au retrait ou à la remise
 - Aucun paiement en ligne n'est demandé
-- Pour un retrait à la ferme, ce créneau reste une proposition tant que la ferme ne l'a pas validé
+- Pour un Retrait sur place, ce créneau reste une proposition tant que l'équipe du site ne l'a pas validé
 
 Nous vous recontacterons par email avec la confirmation finale.`
   }
@@ -807,11 +837,11 @@ export function buildReservationAcceptedProposalCustomerEmail(options: {
   const normalized = normalizeReservationLocale(options.locale)
   const dateLabel = options.fulfillmentDate ? formatDateLabel(options.fulfillmentDate, getReservationDateLocale(normalized)) : (normalized === 'en' ? 'to be confirmed' : 'à confirmer')
   const timeLabel = options.fulfillmentTime ?? (normalized === 'en' ? 'to be confirmed' : 'à confirmer')
-  const locationLabel = options.fulfillmentLocation ?? 'Ferme du Campeyrigoux'
+  const locationLabel = options.fulfillmentLocation ?? (normalized === 'en' ? 'On-site pickup' : 'Retrait sur place')
 
   if (normalized === 'en') {
     return {
-      subject: 'Your farm pickup is confirmed - Ferme du Campeyrigoux',
+      subject: 'Your on-site pickup is confirmed - The website',
       body: `Hello ${options.customerName},
 
 Your reservation is now confirmed for the following slot:
@@ -825,7 +855,7 @@ Payment is made in cash when you collect your basket.`
   }
 
   return {
-    subject: 'Votre retrait à la ferme est confirmé - Ferme du Campeyrigoux',
+    subject: 'Votre Retrait sur place est confirmé - Le site',
     body: `Bonjour ${options.customerName},
 
 Votre réservation est maintenant confirmée pour le créneau suivant :
@@ -848,7 +878,7 @@ export function buildReservationCancelledByCustomerEmail(options: {
   if (normalized === 'en') {
     return options.monthlySubscription
       ? {
-        subject: 'Your subscription has been stopped - Ferme du Campeyrigoux',
+        subject: 'Your subscription has been stopped - The website',
         body: `Hello ${options.customerName},
 
 Your subscription has been stopped successfully.
@@ -856,7 +886,7 @@ Your subscription has been stopped successfully.
 If needed, you can contact us again to start deliveries later on.`
       }
       : {
-        subject: 'Your reservation has been cancelled - Ferme du Campeyrigoux',
+        subject: 'Your reservation has been cancelled - The website',
         body: `Hello ${options.customerName},
 
 Your reservation has been cancelled successfully.
@@ -867,7 +897,7 @@ If needed, you can contact us again to place a new request later.`
 
   return options.monthlySubscription
     ? {
-      subject: 'Votre abonnement a été arrêté - Ferme du Campeyrigoux',
+      subject: 'Votre abonnement a été arrêté - Le site',
       body: `Bonjour ${options.customerName},
 
 Votre abonnement a bien été arrêté.
@@ -875,7 +905,7 @@ Votre abonnement a bien été arrêté.
 Si besoin, vous pouvez nous recontacter pour remettre en place une livraison plus tard.`
     }
     : {
-      subject: 'Votre réservation a été annulée - Ferme du Campeyrigoux',
+      subject: 'Votre réservation a été annulée - Le site',
       body: `Bonjour ${options.customerName},
 
 Votre réservation a bien été annulée.
@@ -892,7 +922,7 @@ export function buildReservationStoppedCustomerEmail(options: {
 
   if (normalized === 'en') {
     return {
-      subject: 'Your subscription has been stopped - Ferme du Campeyrigoux',
+      subject: 'Your subscription has been stopped - The website',
       body: `Hello ${options.customerName},
 
 Your subscription has been stopped successfully.
@@ -902,7 +932,7 @@ Thank you for your trust.`
   }
 
   return {
-    subject: 'Votre abonnement a été arrêté - Ferme du Campeyrigoux',
+    subject: 'Votre abonnement a été arrêté - Le site',
     body: `Bonjour ${options.customerName},
 
 Votre abonnement a bien été arrêté.

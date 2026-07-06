@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6" v-if="page">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -9,7 +9,7 @@
       </div>
 
       <div class="flex gap-2">
-        <NuxtLink class="btn btn-outline" :to="localePath('/admin/content/pages')">{{ t('admin.pageEditorPage.back') }}</NuxtLink>
+        <NuxtLink class="btn btn-outline" :to="localePath(contentPagesPath)">{{ t('admin.pageEditorPage.back') }}</NuxtLink>
         <a
           v-if="liveEditAvailable"
           class="btn btn-outline"
@@ -149,7 +149,7 @@
           <div v-else class="rounded-b-box rounded-tr-box border border-base-300 border-t-0 bg-base-200 p-5">
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div class="text-sm opacity-70">
-                {{ t('admin.pageEditorPage.previewLanguage', { locale: activeLocale === 'fr' ? 'FR' : 'EN' }) }}
+                {{ t('admin.pageEditorPage.previewLanguage', { locale: activeLocale.toUpperCase() }) }}
               </div>
             </div>
 
@@ -183,17 +183,13 @@ import CmsPageContentBuilder from '#modula/components/admin/cms/CmsPageContentBu
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
 import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
 import ImageInput from '#modula/components/ImageInput.vue'
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
-import type { CmsLocale, CmsNavigationItemPayload, CmsPagePayload, CmsSiteSettings } from '#modula/shared/cms'
-import { clonePageBuilderContent, type PageBuilderContent } from '#modula/shared/pageBuilder'
+import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
+import { createEmptyPageBuilderContent, type CmsLocale, type CmsNavigationItemPayload, type CmsPagePayload, type CmsSiteSettings } from '#modula/shared/cms'
+import { clonePageBuilderContent, type PageBuilderContent, type LocalizedText } from '#modula/shared/pageBuilder'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.pageEditor
-  }
-})
+  middleware: 'auth'})
 
 interface CmsPageEditor extends CmsPagePayload {
   id: number
@@ -202,7 +198,10 @@ interface CmsPageEditor extends CmsPagePayload {
 const route = useRoute()
 const localePath = useLocalePath()
 const { $toast } = useNuxtApp() as any
-const { t } = useI18n()
+const { locale, t } = useI18n()
+const { locales: siteLocales } = useSiteLocales()
+const contentPagesPath = computed(() => getAdminRoutePath('contentPages', normalizeAdminRouteLocale(locale.value)))
+const resolvedLocales = computed<CmsLocale[]>(() => siteLocales.value.length ? [...siteLocales.value] as CmsLocale[] : ['fr', 'en'])
 const activeLocale = ref<CmsLocale>('fr')
 const contentTab = ref<'editor' | 'preview'>('editor')
 const saving = ref(false)
@@ -210,7 +209,6 @@ const openPanelIds = ref<string[]>([])
 const allPageRendererOptions = [
   { value: 'cms', label: t('admin.pageEditorPage.rendererCms') },
   { value: 'news', label: t('admin.pageEditorPage.rendererNews') },
-  { value: 'baskets', label: t('admin.pageEditorPage.rendererBaskets') },
   { value: 'shop', label: t('admin.pageEditorPage.rendererShop') },
   { value: 'events', label: t('admin.pageEditorPage.rendererEvents') },
   { value: 'planning', label: t('admin.pageEditorPage.rendererPlanning') }
@@ -223,8 +221,6 @@ const { data: siteShellData } = await useFetch<{ settings: CmsSiteSettings, navi
   subscriptionsEnabled: boolean
   shop: {
     enabled: boolean
-    basketsEnabled: boolean
-    vegetablesEnabled: boolean
   }
   associationRolesEnabled: boolean
   eventsEnabled: boolean
@@ -251,20 +247,20 @@ const isEmptyPageBuilderContent = (content: PageBuilderContent | null | undefine
   !content || !Array.isArray(content.sections) || content.sections.length === 0
 
 const resolveSharedContent = () => {
-  if (!isEmptyPageBuilderContent(page.translations.fr.content)) {
-    return clonePageBuilderContent(page.translations.fr.content)
+  for (const locale of resolvedLocales.value) {
+    const content = page.translations[locale]?.content
+    if (!isEmptyPageBuilderContent(content)) {
+      return clonePageBuilderContent(content!)
+    }
   }
-
-  if (!isEmptyPageBuilderContent(page.translations.en.content)) {
-    return clonePageBuilderContent(page.translations.en.content)
-  }
-
-  return clonePageBuilderContent(page.translations.fr.content)
+  return clonePageBuilderContent(page.translations[resolvedLocales.value[0] || 'fr']?.content ?? createEmptyPageBuilderContent())
 }
 
 const synchronizeSharedContent = (content: PageBuilderContent) => {
-  page.translations.fr.content = clonePageBuilderContent(content)
-  page.translations.en.content = clonePageBuilderContent(content)
+  for (const locale of resolvedLocales.value) {
+    if (!page.translations[locale]) continue
+    page.translations[locale].content = clonePageBuilderContent(content)
+  }
 }
 
 synchronizeSharedContent(resolveSharedContent())
@@ -272,13 +268,12 @@ synchronizeSharedContent(resolveSharedContent())
 const selectedPageRenderer = computed({
   get: () => {
     if (page.rendererKey === 'news') return 'news'
-    if (page.rendererKey === 'baskets') return 'baskets'
     if (page.rendererKey === 'shop') return 'shop'
     if (page.rendererKey === 'events') return 'events'
     if (page.rendererKey === 'planning') return 'planning'
     return 'cms'
   },
-  set: (value: 'cms' | 'news' | 'baskets' | 'shop' | 'events' | 'planning') => {
+  set: (value: 'cms' | 'news' | 'shop' | 'events' | 'planning') => {
     if (value === 'cms') {
       page.pageType = 'CMS'
       page.templateKey = 'default'
@@ -296,8 +291,7 @@ const selectedPageRenderer = computed({
 
 const pageRendererOptions = computed(() => allPageRendererOptions.filter((option) => {
   if (option.value === 'news') return featureFlags.value.newsEnabled
-  if (option.value === 'baskets') return featureFlags.value.shop.enabled && featureFlags.value.shop.basketsEnabled
-  if (option.value === 'shop') return featureFlags.value.shop.enabled && (featureFlags.value.shop.basketsEnabled || featureFlags.value.shop.vegetablesEnabled)
+  if (option.value === 'shop') return featureFlags.value.shop.enabled
   if (option.value === 'events' || option.value === 'planning') return featureFlags.value.eventsEnabled
   return true
 }))
@@ -306,52 +300,80 @@ const selectedPageRendererLabel = computed(() =>
   pageRendererOptions.value.find(option => option.value === selectedPageRenderer.value)?.label || page.rendererKey || 'Page CMS'
 )
 
-const activeTranslation = computed(() => page.translations[activeLocale.value])
-const sharedContent = computed(() => page.translations.fr.content)
+const adminLocale = computed<CmsLocale>(() => (locale.value === 'en' ? 'en' : 'fr'))
+
+const activeTranslation = computed(() => page.translations[activeLocale.value] ?? page.translations[resolvedLocales.value[0] || 'fr']!)
+const sharedContent = computed(() => page.translations[resolvedLocales.value[0] || 'fr']?.content ?? createEmptyPageBuilderContent())
 const localizedTitle = computed({
-  get: () => ({
-    fr: page.translations.fr.title,
-    en: page.translations.en.title
-  }),
-  set: (value: { fr: string, en: string }) => {
-    page.translations.fr.title = value.fr
-    page.translations.en.title = value.en
+  get: (): LocalizedText => Object.fromEntries(
+    resolvedLocales.value.map((localeCode) => [localeCode, page.translations[localeCode]?.title ?? ''])
+  ) as LocalizedText,
+  set: (value: LocalizedText) => {
+    for (const localeCode of resolvedLocales.value) {
+      if (!page.translations[localeCode]) continue
+      page.translations[localeCode].title = value[localeCode] ?? ''
+    }
   }
 })
-const applicationLocalizedTitle = computed<null | { fr: string, en: string }>(() => {
-  if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.title
+const applicationLocalizedTitle = computed<null | LocalizedText>(() => {
   if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.title
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.title
   if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.title
   if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.title
   return null
 })
-const applicationLocalizedSubtitle = computed<null | { fr: string, en: string }>(() => {
-  if (selectedPageRenderer.value === 'baskets') return siteShellModel.settings.basketsPage.subtitle
+const applicationLocalizedSubtitle = computed<null | LocalizedText>(() => {
   if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.subtitle
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.subtitle
   if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.subtitle
   if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.subtitle
   return null
 })
+
+const getApplicationLocalizedTitleTarget = () => {
+  if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.title
+  if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.title
+  if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.title
+  if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.title
+  return null
+}
+
+const syncInternalTitleFromApplicationSettings = () => {
+  if (selectedPageRenderer.value === 'cms') return
+  const target = getApplicationLocalizedTitleTarget()
+  if (!target) return
+  page.title = target[adminLocale.value]?.trim()
+    || target.fr?.trim()
+    || target.en?.trim()
+    || page.title
+}
+
+const syncApplicationSettingsFromInternalTitle = () => {
+  if (selectedPageRenderer.value === 'cms') return
+  const target = getApplicationLocalizedTitleTarget()
+  if (!target) return
+  target[adminLocale.value] = page.title.trim()
+}
 const localizedMetaTitle = computed({
-  get: () => ({
-    fr: page.translations.fr.seo.metaTitle,
-    en: page.translations.en.seo.metaTitle
-  }),
-  set: (value: { fr: string, en: string }) => {
-    page.translations.fr.seo.metaTitle = value.fr
-    page.translations.en.seo.metaTitle = value.en
+  get: (): LocalizedText => Object.fromEntries(
+    resolvedLocales.value.map((localeCode) => [localeCode, page.translations[localeCode]?.seo.metaTitle ?? ''])
+  ) as LocalizedText,
+  set: (value: LocalizedText) => {
+    for (const localeCode of resolvedLocales.value) {
+      if (!page.translations[localeCode]) continue
+      page.translations[localeCode].seo.metaTitle = value[localeCode] ?? ''
+    }
   }
 })
 const localizedMetaDescription = computed({
-  get: () => ({
-    fr: page.translations.fr.seo.metaDescription,
-    en: page.translations.en.seo.metaDescription
-  }),
-  set: (value: { fr: string, en: string }) => {
-    page.translations.fr.seo.metaDescription = value.fr
-    page.translations.en.seo.metaDescription = value.en
+  get: (): LocalizedText => Object.fromEntries(
+    resolvedLocales.value.map((localeCode) => [localeCode, page.translations[localeCode]?.seo.metaDescription ?? ''])
+  ) as LocalizedText,
+  set: (value: LocalizedText) => {
+    for (const localeCode of resolvedLocales.value) {
+      if (!page.translations[localeCode]) continue
+      page.translations[localeCode].seo.metaDescription = value[localeCode] ?? ''
+    }
   }
 })
 
@@ -362,7 +384,7 @@ const normalizePublicPath = (path: string) => {
 }
 
 const liveEditUrl = computed(() => {
-  const publicPath = localePath(normalizePublicPath(page.path))
+  const publicPath = String(localePath(normalizePublicPath(page.path)))
   const separator = publicPath.includes('?') ? '&' : '?'
   return `${publicPath}${separator}liveEdit=1`
 })
@@ -380,11 +402,7 @@ const togglePanel = (id: string) => {
   openPanelIds.value = [...openPanelIds.value, id]
 }
 
-const updateVisibleTitle = (value: { fr: string, en: string }) => {
-  if (selectedPageRenderer.value === 'baskets') {
-    siteShellModel.settings.basketsPage.title = structuredClone(value)
-    return
-  }
+const updateVisibleTitle = (value: LocalizedText) => {
   if (selectedPageRenderer.value === 'shop') {
     siteShellModel.settings.basketsPage.title = structuredClone(value)
     return
@@ -404,11 +422,7 @@ const updateVisibleTitle = (value: { fr: string, en: string }) => {
   localizedTitle.value = value
 }
 
-const updateVisibleSubtitle = (value: { fr: string, en: string }) => {
-  if (selectedPageRenderer.value === 'baskets') {
-    siteShellModel.settings.basketsPage.subtitle = structuredClone(value)
-    return
-  }
+const updateVisibleSubtitle = (value: LocalizedText) => {
   if (selectedPageRenderer.value === 'shop') {
     siteShellModel.settings.basketsPage.subtitle = structuredClone(value)
     return
@@ -429,6 +443,7 @@ const updateVisibleSubtitle = (value: { fr: string, en: string }) => {
 const save = async () => {
   saving.value = true
   try {
+    syncApplicationSettingsFromInternalTitle()
     synchronizeSharedContent(sharedContent.value)
     await Promise.all([
       $fetch(`/api/admin/cms/pages/${page.id}`, {
@@ -449,8 +464,19 @@ const save = async () => {
 }
 
 watch(selectedPageRenderer, () => {
+  syncInternalTitleFromApplicationSettings()
   if (selectedPageRenderer.value !== 'cms' && contentTab.value !== 'editor') {
     contentTab.value = 'editor'
+  }
+}, { immediate: true })
+
+watch(adminLocale, () => {
+  syncInternalTitleFromApplicationSettings()
+})
+
+watch(resolvedLocales, (locales) => {
+  if (!locales.includes(activeLocale.value)) {
+    activeLocale.value = locales[0] || 'fr'
   }
 }, { immediate: true })
 </script>

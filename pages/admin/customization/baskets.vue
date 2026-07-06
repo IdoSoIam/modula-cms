@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -69,26 +69,21 @@
         <h2 class="text-xl font-semibold">{{ t('admin.customizationBasketsPage.previewTitle') }}</h2>
         <p class="mt-1 text-sm opacity-70">{{ t('admin.customizationBasketsPage.previewDescription') }}</p>
       </div>
-      <ProductLotsPage :preview="true" :settings="model.settings.basketsPage" />
+      <ShopPage :settings="model.settings.basketsPage" />
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import ProductLotsPage from '#modula/components/pages/ProductLotsPage.vue'
+import ShopPage from '#modula/components/pages/ShopPage.vue'
 import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import { CMS_APPLICATION_GRID_COLUMNS, CMS_APPLICATION_GRID_COLUMN_LABELS, CMS_THEME_COLOR_TOKENS, type CmsNavigationItemPayload, type CmsSiteSettings } from '#modula/shared/cms'
 import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS } from '#modula/shared/pageBuilder'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.customizationBaskets
-  }
-})
+  middleware: 'auth'})
 
 interface SiteShellModel {
   settings: CmsSiteSettings

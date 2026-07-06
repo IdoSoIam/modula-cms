@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   if (!img) throw createError({ statusCode: 404, statusMessage: 'Image introuvable' })
   await syncImageUsageTable()
   const references = await countImageReferences(img.url)
-  const linkedCount = references.vegetables + references.baskets + references.articles + references.articleContent + references.rootPage.count
+  const linkedCount = references.products + references.productLots + references.articles + references.articleContent + references.rootPage.count
   if (linkedCount > 0 && !force) {
     throw createError({ statusCode: 409, statusMessage: 'Image encore utilisee, remplacez-la ou retirez les associations avant suppression' })
   }

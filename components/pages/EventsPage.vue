@@ -26,7 +26,7 @@
     </div>
 
     <div v-else-if="eventItems.length === 0" class="rounded-3xl border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
-      {{ locale === 'en' ? 'No events published yet.' : 'Aucun événement publié pour le moment.' }}
+      {{ publicText('events.list.empty', 'Aucun événement publié pour le moment.') }}
     </div>
 
     <template v-else>
@@ -51,7 +51,7 @@
             </div>
             <p v-if="effectiveSettings.showExcerpt && eventItem.excerpt" :class="excerptClass">{{ eventItem.excerpt }}</p>
             <div class="flex flex-wrap gap-3">
-              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm">{{ detailLabel }}</NuxtLink>
+              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm" active-class="" exact-active-class="">{{ detailLabel }}</NuxtLink>
               <span v-if="eventItem.publicReservationEnabled" class="badge badge-outline">{{ publicReservationLabel }}</span>
             </div>
           </div>
@@ -79,7 +79,7 @@
             </div>
             <p v-if="effectiveSettings.showExcerpt && eventItem.excerpt" :class="excerptClass">{{ eventItem.excerpt }}</p>
             <div class="flex flex-wrap gap-3">
-              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm">{{ detailLabel }}</NuxtLink>
+              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm" active-class="" exact-active-class="">{{ detailLabel }}</NuxtLink>
               <span v-if="eventItem.publicReservationEnabled" class="badge badge-outline">{{ publicReservationLabel }}</span>
             </div>
           </div>
@@ -105,6 +105,7 @@
 import type { CmsLocale } from '#modula/shared/cms'
 import type { CmsEventsPageSettings, EventListItem, EventsPageViewMode, PublicEventsListResponse } from '#modula/shared/events'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
+import { formatLocalizedDateTimeValue } from '#modula/shared/date'
 
 const props = withDefaults(defineProps<{
   settings?: CmsEventsPageSettings | null
@@ -114,8 +115,10 @@ const props = withDefaults(defineProps<{
   preview: false
 })
 
-const { locale } = useI18n()
-const localePath = useLocalePath()
+const { contentLocale } = useContentLocale()
+const locale = contentLocale
+const localePath = usePublicLocalePath()
+const { publicText } = usePublicDictionary()
 const siteConfig = await useSiteConfig()
 const defaultSettings = createDefaultCmsSiteSettings().eventsPage
 const effectiveSettings = computed(() => props.settings || siteConfig.value?.cms?.settings?.eventsPage || defaultSettings)
@@ -157,7 +160,7 @@ const previewItems = computed<EventListItem[]>(() => [
     visibility: 'PUBLIC',
     startsAt: new Date().toISOString(),
     endsAt: null,
-    placeName: locale.value === 'en' ? 'Farm courtyard' : 'Cour de la ferme',
+    placeName: locale.value === 'en' ? 'OnSite courtyard' : 'Cour de la ferme',
     placeCity: 'Saint-Sébastien-d’Aigrefeuille',
     coverImageUrl: '',
     publicReservationEnabled: true,
@@ -221,12 +224,14 @@ const cardStyle = computed(() => ({
 }))
 
 const detailHref = (slug: string) => localePath(`/events/${slug}`)
-const modeLabel = (mode: EventsPageViewMode) => mode === 'list' ? (locale.value === 'en' ? 'List' : 'Liste') : (locale.value === 'en' ? 'Grid' : 'Grille')
-const formatDate = (value: string) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', {
+const modeLabel = (mode: EventsPageViewMode) => mode === 'list'
+  ? publicText('events.list.listMode', 'Liste')
+  : publicText('events.list.gridMode', 'Grille')
+const formatDate = (value: string) => formatLocalizedDateTimeValue(value, locale.value, {
   weekday: 'long',
   day: '2-digit',
   month: 'long',
   hour: '2-digit',
   minute: '2-digit'
-}).format(new Date(value))
+})
 </script>

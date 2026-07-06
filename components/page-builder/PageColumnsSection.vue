@@ -25,7 +25,7 @@
                 :is="item.type === 'title' ? titleTag(item) : 'p'"
                 :class="[
                   item.type === 'title' ? ['font-bold', titleSizeClass(item.size)] : ['opacity-80', textSizeClass(item.size)],
-                  standaloneItemAlignClass(item.align)
+                  standaloneItemAlignClass(item.type === 'title' || item.type === 'text' ? item.align : 'start')
                 ]"
                 :style="textColorStyle(item.textColor)"
               >
@@ -104,6 +104,8 @@
                         class="btn"
                         :class="[buttonClass(item.primaryButton!.tone), buttonSizeClass(item.primaryButton!.size)]"
                         :style="buttonStyle(item.primaryButton!)"
+                        active-class=""
+                        exact-active-class=""
                       >
                         {{ pickLocalizedText(locale, item.primaryButton!.label) }}
                       </NuxtLink>
@@ -121,6 +123,8 @@
                         class="btn"
                         :class="[buttonClass(item.secondaryButton!.tone), buttonSizeClass(item.secondaryButton!.size)]"
                         :style="buttonStyle(item.secondaryButton!)"
+                        active-class=""
+                        exact-active-class=""
                       >
                         {{ pickLocalizedText(locale, item.secondaryButton!.label) }}
                       </NuxtLink>
@@ -263,6 +267,8 @@
                               class="btn"
                               :class="[buttonClass(card.primaryButton!.tone), buttonSizeClass(card.primaryButton!.size)]"
                               :style="buttonStyle(card.primaryButton!)"
+                              active-class=""
+                              exact-active-class=""
                             >
                               {{ pickLocalizedText(locale, card.primaryButton!.label) }}
                             </NuxtLink>
@@ -280,6 +286,8 @@
                               class="btn"
                               :class="[buttonClass(card.secondaryButton!.tone), buttonSizeClass(card.secondaryButton!.size)]"
                               :style="buttonStyle(card.secondaryButton!)"
+                              active-class=""
+                              exact-active-class=""
                             >
                               {{ pickLocalizedText(locale, card.secondaryButton!.label) }}
                             </NuxtLink>
@@ -342,7 +350,7 @@
                 :is="item.type === 'title' ? titleTag(item) : 'p'"
                 :class="[
                   item.type === 'title' ? ['font-bold', titleSizeClass(item.size)] : ['opacity-80', textSizeClass(item.size)],
-                  standaloneItemAlignClass(item.align)
+                  standaloneItemAlignClass(item.type === 'title' || item.type === 'text' ? item.align : 'start')
                 ]"
                 :style="textColorStyle(item.textColor)"
               >
@@ -397,10 +405,10 @@ const emit = defineEmits<{
   edit: [target: PageBuilderEditTarget]
 }>()
 
-const localePath = useLocalePath()
+const localePath = usePublicLocalePath()
 const siteConfigState = useSiteConfigState()
 const lightboxOpen = ref(false)
-const lightboxSlides = ref<Array<{ id: string, imageUrl: string, alt: { fr: string, en: string }, fit: 'cover' | 'contain', verticalAlign: 'start' | 'center' | 'end' }>>([])
+const lightboxSlides = ref<Array<{ id: string, imageUrl: string, alt: Record<string, string>, fit: 'cover' | 'contain', verticalAlign: 'start' | 'center' | 'end' }>>([])
 const lightboxIndex = ref(0)
 
 if (process.server && !siteConfigState.value) {
@@ -746,7 +754,7 @@ const publicSocialLinks = computed(() =>
 )
 const toLightboxSlide = (
   imageUrl: string,
-  alt: { fr: string; en: string },
+  alt: Record<string, string>,
   fit: 'cover' | 'contain',
   verticalAlign: 'start' | 'center' | 'end'
 ) => ({
@@ -783,7 +791,7 @@ const resolvedCardElementText = (element: PageBuilderCard['elements'][number]) =
 }
 
 const openLightbox = (
-  slides: Array<{ id: string, imageUrl: string, alt: { fr: string, en: string }, fit: 'cover' | 'contain', verticalAlign: 'start' | 'center' | 'end' }>,
+  slides: Array<{ id: string, imageUrl: string, alt: Record<string, string>, fit: 'cover' | 'contain', verticalAlign: 'start' | 'center' | 'end' }>,
   index: number
 ) => {
   if (!slides.length) return

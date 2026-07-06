@@ -30,6 +30,7 @@ interface RegisterData extends LoginCredentials {
   firstName?: string
   lastName?: string
   birthDate?: string
+  language?: string
 }
 
 export const useAuthStore = defineStore('auth', () => {

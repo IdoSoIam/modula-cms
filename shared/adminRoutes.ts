@@ -1,133 +1,157 @@
-export const ADMIN_I18N_PATHS = {
+export const ADMIN_ROUTE_PATHS = {
   dashboard: {
-    fr: '/admin',
-    en: '/admin'
+    fr: "/admin",
+    en: "/admin",
   },
   rootPage: {
-    fr: '/admin/page-racine',
-    en: '/admin/root-page'
+    fr: "/admin/root-page",
+    en: "/admin/root-page",
   },
   contentPages: {
-    fr: '/admin/contenu/pages',
-    en: '/admin/content/pages'
+    fr: "/admin/content/pages",
+    en: "/admin/content/pages",
   },
   contentNews: {
-    fr: '/admin/contenu/actualites',
-    en: '/admin/content/news'
+    fr: "/admin/content/news",
+    en: "/admin/content/news",
   },
   contentEvents: {
-    fr: '/admin/contenu/evenements',
-    en: '/admin/content/events'
+    fr: "/admin/content/events",
+    en: "/admin/content/events",
   },
   contentPlanning: {
-    fr: '/admin/contenu/planning',
-    en: '/admin/content/planning'
+    fr: "/admin/content/planning",
+    en: "/admin/content/planning",
   },
-  shopVegetables: {
-    fr: '/admin/boutique/produits',
-    en: '/admin/shop/products'
+  shopProducts: {
+    fr: "/admin/shop/products",
+    en: "/admin/shop/products",
   },
   shopProductCategories: {
-    fr: '/admin/boutique/categories-produits',
-    en: '/admin/shop/product-categories'
-  },
-  shopBaskets: {
-    fr: '/admin/boutique/lots-produits',
-    en: '/admin/shop/product-lots'
+    fr: "/admin/shop/product-categories",
+    en: "/admin/shop/product-categories",
   },
   shopOrders: {
-    fr: '/admin/boutique/commandes',
-    en: '/admin/shop/orders'
+    fr: "/admin/shop/orders",
+    en: "/admin/shop/orders",
+  },
+  shopBillingDocuments: {
+    fr: "/admin/shop/billing-documents",
+    en: "/admin/shop/billing-documents",
   },
   shopDelivery: {
-    fr: '/admin/boutique/livraison',
-    en: '/admin/shop/delivery'
+    fr: "/admin/shop/delivery",
+    en: "/admin/shop/delivery",
   },
   managementEventReservations: {
-    fr: '/admin/gestions/reservations',
-    en: '/admin/management/reservations'
+    fr: "/admin/management/reservations",
+    en: "/admin/management/reservations",
   },
   managementMemberRoles: {
-    fr: '/admin/gestions/roles-associatifs',
-    en: '/admin/management/member-roles'
+    fr: "/admin/management/member-roles",
+    en: "/admin/management/member-roles",
   },
   customizationLayout: {
-    fr: '/admin/personnalisation/mise-en-page',
-    en: '/admin/customization/layout'
+    fr: "/admin/customization/layout",
+    en: "/admin/customization/layout",
   },
   customizationNavigation: {
-    fr: '/admin/personnalisation/navigation',
-    en: '/admin/customization/navigation'
-  },
-  customizationBaskets: {
-    fr: '/admin/personnalisation/paniers',
-    en: '/admin/customization/baskets'
+    fr: "/admin/customization/navigation",
+    en: "/admin/customization/navigation",
   },
   customizationNews: {
-    fr: '/admin/personnalisation/actualites',
-    en: '/admin/customization/news'
+    fr: "/admin/customization/news",
+    en: "/admin/customization/news",
   },
   customizationEvents: {
-    fr: '/admin/personnalisation/evenements',
-    en: '/admin/customization/events'
+    fr: "/admin/customization/events",
+    en: "/admin/customization/events",
   },
   customizationPlanning: {
-    fr: '/admin/personnalisation/planning',
-    en: '/admin/customization/planning'
+    fr: "/admin/customization/planning",
+    en: "/admin/customization/planning",
   },
   customizationThemes: {
-    fr: '/admin/personnalisation/themes',
-    en: '/admin/customization/themes'
+    fr: "/admin/customization/themes",
+    en: "/admin/customization/themes",
   },
   customizationImages: {
-    fr: '/admin/personnalisation/images',
-    en: '/admin/customization/images'
+    fr: "/admin/customization/images",
+    en: "/admin/customization/images",
   },
   customizationEmails: {
-    fr: '/admin/personnalisation/emails',
-    en: '/admin/customization/emails'
+    fr: "/admin/customization/emails",
+    en: "/admin/customization/emails",
   },
   settingsGlobal: {
-    fr: '/admin/reglages/global',
-    en: '/admin/settings/global'
+    fr: "/admin/settings/global",
+    en: "/admin/settings/global",
   },
   settingsSiteTemplate: {
-    fr: '/admin/reglages/modele-site',
-    en: '/admin/settings/site-template'
+    fr: "/admin/settings/site-template",
+    en: "/admin/settings/site-template",
+  },
+  settingsOnlinePayments: {
+    fr: "/admin/settings/online-payments",
+    en: "/admin/settings/online-payments",
   },
   settingsUpdates: {
-    fr: '/admin/reglages/mises-a-jour',
-    en: '/admin/settings/updates'
+    fr: "/admin/settings/updates",
+    en: "/admin/settings/updates",
+  },
+  settingsSystemInfo: {
+    fr: "/admin/settings/system-info",
+    en: "/admin/settings/system-info",
   },
   settingsFeatures: {
-    fr: '/admin/reglages/fonctionnalites',
-    en: '/admin/settings/features'
+    fr: "/admin/settings/features",
+    en: "/admin/settings/features",
   },
   settingsEmailConnectors: {
-    fr: '/admin/reglages/emails-connecteurs',
-    en: '/admin/settings/email-connectors'
+    fr: "/admin/settings/email-connectors",
+    en: "/admin/settings/email-connectors",
   },
   settingsUsers: {
-    fr: '/admin/reglages/utilisateurs',
-    en: '/admin/settings/users'
+    fr: "/admin/settings/users",
+    en: "/admin/settings/users",
   },
   settingsRoles: {
-    fr: '/admin/reglages/roles',
-    en: '/admin/settings/roles'
+    fr: "/admin/settings/roles",
+    en: "/admin/settings/roles",
+  },
+  settingsLanguages: {
+    fr: "/admin/settings/languages",
+    en: "/admin/settings/languages",
   },
   pageEditor: {
-    fr: '/admin/pages/[id]',
-    en: '/admin/pages/[id]'
-  }
-} as const
+    fr: "/admin/pages/[id]",
+    en: "/admin/pages/[id]",
+  },
+} as const;
 
-export type AdminRouteKey = keyof typeof ADMIN_I18N_PATHS
-export type AdminRouteLocale = keyof (typeof ADMIN_I18N_PATHS)[AdminRouteKey]
+export type AdminRouteKey = keyof typeof ADMIN_ROUTE_PATHS;
+export type AdminRouteLocale = keyof (typeof ADMIN_ROUTE_PATHS)[AdminRouteKey];
+
+export const normalizeAdminRouteLocale = (
+  locale?: string | null,
+): AdminRouteLocale => (locale === "fr" ? "fr" : "en");
 
 export const getAdminRoutePaths = (routeKey: AdminRouteKey) => {
-  const paths = ADMIN_I18N_PATHS[routeKey]
-  return Array.from(new Set([paths.fr, paths.en]))
-}
+  const paths = ADMIN_ROUTE_PATHS[routeKey];
+  return Array.from(new Set([paths.fr, paths.en]));
+};
 
-export const getAdminRoutePath = (routeKey: AdminRouteKey, locale: AdminRouteLocale = 'en') =>
-  ADMIN_I18N_PATHS[routeKey][locale]
+export const getAdminRoutePath = (
+  routeKey: AdminRouteKey,
+  locale: AdminRouteLocale = "en",
+) => ADMIN_ROUTE_PATHS[routeKey][locale];
+
+export const interpolateAdminRoutePath = (
+  path: string,
+  params: Record<string, string | number> = {},
+) =>
+  Object.entries(params).reduce(
+    (resolvedPath, [key, value]) =>
+      resolvedPath.replaceAll(`[${key}]`, encodeURIComponent(String(value))),
+    path,
+  );

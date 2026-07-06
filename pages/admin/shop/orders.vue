@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
@@ -105,10 +105,61 @@
             </div>
             <div class="rounded-xl bg-base-200 p-4">
               <div class="font-medium">{{ t('admin.ordersPage.checkoutDetails') }}</div>
-              <div class="mt-2 text-sm space-y-1">
-                <div>{{ t('admin.ordersPage.total') }}: <strong>{{ $formatPrice(details.total) }}</strong></div>
-                <div>{{ t('admin.ordersPage.providerLabel') }}: <strong>{{ details.paymentProvider }}</strong></div>
-                <div v-if="details.stripeCheckoutSessionId">Stripe: <code>{{ details.stripeCheckoutSessionId }}</code></div>
+              <div class="mt-2 space-y-1 text-sm">
+                <div>{{ t('admin.ordersPage.total') }} : <strong>{{ $formatPrice(details.total) }}</strong></div>
+                <div>{{ t('admin.ordersPage.providerLabel') }} : <strong>{{ details.paymentProvider }}</strong></div>
+                <div v-if="details.providerSessionId">Session : <code class="break-all">{{ details.providerSessionId }}</code></div>
+                <div v-if="details.providerPaymentIntentId">{{ t('admin.ordersPage.intentIdLabel') }} : <code class="text-xs break-all">{{ details.providerPaymentIntentId }}</code></div>
+                <div v-if="details.providerPaymentStatus">{{ t('admin.ordersPage.intentStatusLabel') }}: <strong>{{ paymentStatusLabel(details.providerPaymentStatus.toUpperCase() as any) }}</strong></div>
+                <div v-if="details.providerLastEventId">{{ t('admin.ordersPage.eventIdLabel') }}: <code class="text-xs break-all">{{ details.providerLastEventId }}</code></div>
+                <div v-if="details.paymentFailureReason">{{ t('admin.ordersPage.failureReasonLabel') }}: <strong>{{ details.paymentFailureReason }}</strong></div>
+                <div v-if="details.refundedAt">{{ t('admin.ordersPage.refundedAtLabel') }}: <strong>{{ $formatDate(details.refundedAt) }}</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-if="details.paymentStatus === 'FAILED' || details.paymentFailureReason"
+            class="mt-4 rounded-xl border border-error/30 bg-error/10 p-4"
+          >
+            <div class="font-medium text-error">{{ t('admin.ordersPage.failureDetailsTitle') }}</div>
+            <div class="mt-2 space-y-1 text-sm">
+              <div>
+                {{ t('admin.ordersPage.failureReasonLabel') }}:
+                <strong>{{ details.paymentFailureReason || t('admin.ordersPage.failureUnknown') }}</strong>
+              </div>
+              <div v-if="details.providerPaymentStatus">
+                {{ t('admin.ordersPage.intentStatusLabel') }}:
+                <strong>{{ paymentStatusLabel(details.providerPaymentStatus.toUpperCase() as any) }}</strong>
+              </div>
+              <div v-if="details.providerSessionId">
+                Session:
+                <code class="break-all">{{ details.providerSessionId }}</code>
+              </div>
+              <div v-if="details.providerPaymentIntentId">
+                {{ t('admin.ordersPage.intentIdLabel') }}:
+                <code class="break-all">{{ details.providerPaymentIntentId }}</code>
+              </div>
+              <div v-if="details.providerLastEventId">
+                {{ t('admin.ordersPage.eventIdLabel') }}:
+                <code class="break-all">{{ details.providerLastEventId }}</code>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-xl bg-base-200 p-4">
+            <div class="font-medium">{{ t('admin.ordersPage.deliveryTitle') }}</div>
+            <div class="mt-2 space-y-1 text-sm">
+              <div>{{ t('admin.ordersPage.deliveryTypeLabel') }}: <strong>{{ deliveryTypeLabel(details.deliveryType) }}</strong></div>
+              <div v-if="details.pickupPoint">{{ t('admin.ordersPage.pickupPointLabel') }}: <strong>{{ details.pickupPoint.name }}</strong></div>
+              <div v-if="details.deliveryTour">{{ t('admin.ordersPage.homeDeliverySlotLabel') }}: <strong>{{ details.deliveryTour.name }}</strong></div>
+              <div v-if="deliveryAddressLine(details)">
+                {{ t('admin.ordersPage.deliveryAddressLabel') }}: <strong>{{ deliveryAddressLine(details) }}</strong>
+              </div>
+              <div v-if="details.fulfillmentLocation">{{ t('admin.ordersPage.fulfillmentLabel') }}: <strong>{{ details.fulfillmentLocation }}</strong></div>
+              <div v-if="details.fulfillmentDate || details.fulfillmentTime">
+                {{ t('admin.ordersPage.deliveryDateLabel') }}:
+                <strong>{{ [details.fulfillmentDate ? $formatDate(details.fulfillmentDate) : '', details.fulfillmentTime || ''].filter(Boolean).join(' · ') }}</strong>
               </div>
             </div>
           </div>
@@ -138,15 +189,95 @@
           </div>
 
           <div class="mt-6 flex flex-wrap gap-2">
-            <button class="btn btn-success btn-sm" :disabled="actionPending || details.status === 'PAID'" @click="updateStatus('PAID', 'PAID')">
-              {{ t('admin.ordersPage.markPaid') }}
+            <a
+              v-if="details.paymentStatus === 'PAID' || details.paymentStatus === 'REFUNDED'"
+              class="btn btn-outline btn-sm"
+              :href="`/api/admin/orders/${details.id}/invoice`"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Icon name="mdi:file-document-outline" size="16" />
+              {{ t('admin.ordersPage.viewInvoice') }}
+            </a>
+            <button class="btn btn-success btn-sm" :disabled="actionPending || details.status === 'CONFIRMED'" @click="updateStatus('CONFIRMED', details.paymentStatus)">
+              {{ t('admin.ordersPage.markConfirmed') }}
             </button>
-            <button class="btn btn-warning btn-sm" :disabled="actionPending || details.status === 'PENDING'" @click="updateStatus('PENDING', details.paymentStatus)">
+            <button class="btn btn-warning btn-sm" :disabled="actionPending || details.status === 'IN_PREPARATION'" @click="updateStatus('IN_PREPARATION', details.paymentStatus)">
+              {{ t('admin.ordersPage.markInPreparation') }}
+            </button>
+            <button class="btn btn-info btn-sm" :disabled="actionPending || details.status === 'READY'" @click="updateStatus('READY', details.paymentStatus)">
+              {{ t('admin.ordersPage.markReady') }}
+            </button>
+            <button class="btn btn-secondary btn-sm" :disabled="actionPending || details.status === 'IN_DELIVERY'" @click="updateStatus('IN_DELIVERY', details.paymentStatus)">
+              {{ t('admin.ordersPage.markInDelivery') }}
+            </button>
+            <button class="btn btn-neutral btn-sm" :disabled="actionPending || details.status === 'COMPLETED'" @click="updateStatus('COMPLETED', details.paymentStatus)">
+              {{ t('admin.ordersPage.markCompleted') }}
+            </button>
+            <button class="btn btn-ghost btn-sm" :disabled="actionPending || details.status === 'PENDING'" @click="updateStatus('PENDING', details.paymentStatus)">
               {{ t('admin.ordersPage.markPending') }}
             </button>
-            <button class="btn btn-error btn-sm" :disabled="actionPending || details.status === 'CANCELLED'" @click="updateStatus('CANCELLED', details.paymentStatus === 'PAID' ? 'REFUNDED' : 'FAILED')">
+            <button
+              v-if="details.afterSalesStatus === 'REFUND_REQUESTED'"
+              class="btn btn-warning btn-sm"
+              :disabled="actionPending"
+              @click="refundOrder"
+            >
+              {{ t('admin.ordersPage.approveRefundRequest') }}
+            </button>
+            <button
+              v-if="details.afterSalesStatus === 'REFUND_REQUESTED'"
+              class="btn btn-outline btn-sm"
+              :disabled="actionPending"
+              @click="rejectRefundRequest"
+            >
+              {{ t('admin.ordersPage.rejectRefundRequest') }}
+            </button>
+            <button
+              v-else-if="details.paymentStatus === 'PAID'"
+              class="btn btn-error btn-sm"
+              :disabled="actionPending"
+              @click="refundOrder"
+            >
+              {{ t('admin.ordersPage.refundOrder') }}
+            </button>
+            <button
+              v-else
+              class="btn btn-error btn-sm"
+              :disabled="actionPending || details.status === 'CANCELLED'"
+              @click="cancelOrder"
+            >
               {{ t('admin.ordersPage.cancelOrder') }}
             </button>
+          </div>
+
+          <div
+            v-if="details.afterSalesStatus !== 'NONE'"
+            class="mt-4 rounded-xl border border-base-300 bg-base-200 p-4 text-sm"
+          >
+            <div class="font-medium">{{ t('admin.ordersPage.afterSalesTitle') }}</div>
+            <div class="mt-2 space-y-1">
+              <div>
+                {{ t('admin.ordersPage.afterSalesStatusLabel') }}:
+                <strong>{{ afterSalesStatusLabel(details.afterSalesStatus) }}</strong>
+              </div>
+              <div v-if="details.refundRequestedAt">
+                {{ t('admin.ordersPage.refundRequestedAtLabel') }}:
+                <strong>{{ $formatDate(details.refundRequestedAt) }}</strong>
+              </div>
+              <div v-if="details.refundReviewedAt">
+                {{ t('admin.ordersPage.refundReviewedAtLabel') }}:
+                <strong>{{ $formatDate(details.refundReviewedAt) }}</strong>
+              </div>
+              <div v-if="details.refundRequestReason">
+                {{ t('admin.ordersPage.refundRequestReasonLabel') }}:
+                <strong>{{ details.refundRequestReason }}</strong>
+              </div>
+              <div v-if="details.refundRequestNote">
+                {{ t('admin.ordersPage.refundRequestNoteLabel') }}:
+                <strong>{{ details.refundRequestNote }}</strong>
+              </div>
+            </div>
           </div>
         </template>
 
@@ -160,15 +291,10 @@
 </template>
 
 <script setup lang="ts">
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.shopOrders
-  }
-})
+  middleware: 'auth'})
 
 interface ShopOrderLine {
   id: number
@@ -181,15 +307,36 @@ interface ShopOrderLine {
 interface ShopOrder {
   id: number
   orderNumber: string
-  status: 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED'
+  status: 'DRAFT' | 'PENDING' | 'CONFIRMED' | 'IN_PREPARATION' | 'READY' | 'IN_DELIVERY' | 'COMPLETED' | 'CANCELLED'
   paymentProvider: 'OFFLINE' | 'STRIPE'
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
-  stripeCheckoutSessionId: string | null
+  afterSalesStatus: 'NONE' | 'REFUND_REQUESTED' | 'REFUND_REJECTED'
+  providerSessionId: string | null
+  providerPaymentIntentId: string | null
+  providerPaymentStatus: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
+  providerLastEventId: string | null
+  paymentFailureReason: string | null
+  refundRequestReason: string | null
+  refundRequestNote: string | null
+  refundRequestedAt: string | null
+  refundReviewedAt: string | null
   customerName: string
   email: string
   phone: string | null
   message: string | null
+  deliveryType: 'ONSITE' | 'PICKUP' | 'TOUR'
+  deliveryAddress: string | null
+  deliveryCity: string | null
+  deliveryPostalCode: string | null
+  fulfillmentDate: string | null
+  fulfillmentTime: string | null
+  fulfillmentLocation: string | null
+  pickupPoint: { id: number, name: string, address: string | null } | null
+  deliveryTour: { id: number, name: string, dayOfWeek: number, startTime: string, endTime: string } | null
   total: number
+  paidAt: string | null
+  refundedAt: string | null
+  cancelledAt: string | null
   createdAt: string
   lines: ShopOrderLine[]
 }
@@ -225,14 +372,22 @@ watch(selectedStatus, () => {
 const statusOptions = computed(() => [
   { value: '', label: t('admin.ordersPage.filterAll') },
   { value: 'PENDING', label: t('admin.ordersPage.status.pending') },
-  { value: 'PAID', label: t('admin.ordersPage.status.confirmed') },
+  { value: 'CONFIRMED', label: t('admin.ordersPage.status.confirmed') },
+  { value: 'IN_PREPARATION', label: t('admin.ordersPage.status.inPreparation') },
+  { value: 'READY', label: t('admin.ordersPage.status.ready') },
+  { value: 'IN_DELIVERY', label: t('admin.ordersPage.status.inDelivery') },
+  { value: 'COMPLETED', label: t('admin.ordersPage.status.completed') },
   { value: 'CANCELLED', label: t('admin.ordersPage.status.cancelled') }
 ])
 
 const statusLabel = (status: ShopOrder['status']) => ({
   DRAFT: t('admin.ordersPage.status.draft'),
   PENDING: t('admin.ordersPage.status.pending'),
-  PAID: t('admin.ordersPage.status.confirmed'),
+  CONFIRMED: t('admin.ordersPage.status.confirmed'),
+  IN_PREPARATION: t('admin.ordersPage.status.inPreparation'),
+  READY: t('admin.ordersPage.status.ready'),
+  IN_DELIVERY: t('admin.ordersPage.status.inDelivery'),
+  COMPLETED: t('admin.ordersPage.status.completed'),
   CANCELLED: t('admin.ordersPage.status.cancelled')
 }[status] || status)
 
@@ -247,9 +402,19 @@ const paymentStatusLabel = (status: ShopOrder['paymentStatus']) => ({
 const statusBadgeClass = (status: ShopOrder['status']) => ({
   DRAFT: 'badge-ghost',
   PENDING: 'badge-warning',
-  PAID: 'badge-success',
+  CONFIRMED: 'badge-success',
+  IN_PREPARATION: 'badge-warning',
+  READY: 'badge-info',
+  IN_DELIVERY: 'badge-secondary',
+  COMPLETED: 'badge-success',
   CANCELLED: 'badge-error'
 }[status] || 'badge-ghost')
+
+const afterSalesStatusLabel = (status: ShopOrder['afterSalesStatus']) => ({
+  NONE: t('admin.ordersPage.afterSalesStatus.none'),
+  REFUND_REQUESTED: t('admin.ordersPage.afterSalesStatus.refundRequested'),
+  REFUND_REJECTED: t('admin.ordersPage.afterSalesStatus.refundRejected'),
+}[status] || status)
 
 const paymentBadgeClass = (status: ShopOrder['paymentStatus']) => ({
   UNPAID: 'badge-ghost',
@@ -258,6 +423,15 @@ const paymentBadgeClass = (status: ShopOrder['paymentStatus']) => ({
   FAILED: 'badge-error',
   REFUNDED: 'badge-info'
 }[status] || 'badge-ghost')
+
+const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => ({
+  ONSITE: t('admin.ordersPage.deliveryTypeOnSite'),
+  PICKUP: t('admin.ordersPage.deliveryTypePickup'),
+  TOUR: t('admin.ordersPage.deliveryTypeHome')
+}[value])
+
+const deliveryAddressLine = (order: ShopOrder) =>
+  [order.deliveryAddress, [order.deliveryPostalCode, order.deliveryCity].filter(Boolean).join(' ')].filter(Boolean).join(', ')
 
 const openDetails = async (id: number) => {
   loadingDetails.value = true
@@ -289,6 +463,66 @@ const updateStatus = async (status: ShopOrder['status'], paymentStatus: ShopOrde
     $toast.success(t('admin.ordersPage.saved'))
   } catch (error: any) {
     $toast.error(error?.statusMessage || t('common.error'))
+  } finally {
+    actionPending.value = false
+  }
+}
+
+const cancelOrder = async () => {
+  if (!details.value || actionPending.value) return
+  if (!globalThis.confirm(t('admin.ordersPage.cancelConfirm'))) return
+
+  actionPending.value = true
+  try {
+    details.value = await $fetch<ShopOrder>(`/api/admin/orders/${details.value.id}/cancel`, {
+      method: 'POST',
+    })
+    await refresh()
+    $toast.success(t('admin.ordersPage.cancelSuccess'))
+  } catch (error: any) {
+    $toast.error(error?.data?.message || error?.statusMessage || t('admin.ordersPage.cancelError'))
+  } finally {
+    actionPending.value = false
+  }
+}
+
+const refundOrder = async () => {
+  if (!details.value || actionPending.value) return
+  if (!globalThis.confirm(
+    details.value.afterSalesStatus === 'REFUND_REQUESTED'
+      ? t('admin.ordersPage.refundApproveConfirm')
+      : t('admin.ordersPage.refundConfirm')
+  )) return
+
+  actionPending.value = true
+  try {
+    details.value = await $fetch<ShopOrder>(`/api/admin/orders/${details.value.id}/refund`, {
+      method: 'POST',
+    })
+    await refresh()
+    $toast.success(t('admin.ordersPage.refundSuccess'))
+  } catch (error: any) {
+    $toast.error(error?.data?.message || error?.statusMessage || t('admin.ordersPage.refundError'))
+  } finally {
+    actionPending.value = false
+  }
+}
+
+const rejectRefundRequest = async () => {
+  if (!details.value || actionPending.value) return
+  const note = globalThis.prompt(t('admin.ordersPage.rejectRefundPrompt'))
+  if (note === null) return
+
+  actionPending.value = true
+  try {
+    details.value = await $fetch<ShopOrder>(`/api/admin/orders/${details.value.id}/refund-request/reject`, {
+      method: 'POST',
+      body: { note },
+    })
+    await refresh()
+    $toast.success(t('admin.ordersPage.rejectRefundSuccess'))
+  } catch (error: any) {
+    $toast.error(error?.data?.message || error?.statusMessage || t('admin.ordersPage.rejectRefundError'))
   } finally {
     actionPending.value = false
   }

@@ -43,6 +43,24 @@ export const SETTING_KEYS = {
   RESEND_FROM_EMAIL: 'resend_from_email',
   MAIL_PRIMARY_PROVIDER: 'mail_primary_provider',
   MAIL_SECONDARY_PROVIDER: 'mail_secondary_provider',
+  PAYMENTS_ENABLED: 'payments_enabled',
+  PAYMENT_PROVIDER: 'payment_provider',
+  STRIPE_PUBLISHABLE_KEY: 'stripe_publishable_key',
+  STRIPE_SECRET_KEY: 'stripe_secret_key',
+  STRIPE_WEBHOOK_SECRET: 'stripe_webhook_secret',
+  STRIPE_AUTOMATIC_TAX_ENABLED: 'stripe_automatic_tax_enabled',
+  STRIPE_DEFAULT_TAX_CODE: 'stripe_default_tax_code',
+  STRIPE_DEFAULT_TAX_BEHAVIOR: 'stripe_default_tax_behavior',
+  SHOP_DEFAULT_VAT_RATE: 'shop_default_vat_rate',
+  SHOP_ORDER_TEMPLATE_CREATED: 'shop_order_template_created',
+  SHOP_ORDER_TEMPLATE_PAYMENT_CONFIRMED: 'shop_order_template_payment_confirmed',
+  SHOP_ORDER_TEMPLATE_PAYMENT_FAILED: 'shop_order_template_payment_failed',
+  SHOP_ORDER_TEMPLATE_CANCELLED: 'shop_order_template_cancelled',
+  SHOP_ORDER_TEMPLATE_ADMIN_VALIDATED: 'shop_order_template_admin_validated',
+  SHOP_ORDER_TEMPLATE_REFUNDED: 'shop_order_template_refunded',
+  SHOP_ORDER_TEMPLATE_REFUND_REQUESTED_CUSTOMER: 'shop_order_template_refund_requested_customer',
+  SHOP_ORDER_TEMPLATE_REFUND_REQUESTED_ADMIN: 'shop_order_template_refund_requested_admin',
+  SHOP_ORDER_TEMPLATE_REFUND_REJECTED: 'shop_order_template_refund_rejected',
   GOOGLE_CALENDAR_ID: 'google_calendar_id',
   GOOGLE_CALENDAR_NAME: 'google_calendar_name',
   PAGE_BUILDER_CONTENT: 'home_page_content_v1',
@@ -51,6 +69,7 @@ export const SETTING_KEYS = {
   CMS_REGISTRY_URL: 'cms_registry_url_v1',
   CMS_REGISTRY_API_KEY: 'cms_registry_api_key_v1',
   IMAGE_PERSIST_VARIANTS: 'image_persist_variants_v1',
+  PDF_RENDERER_MODE: 'pdf_renderer_mode_v1',
   DAISYUI_THEME_CONFIG: 'daisyui_theme_config_v1',
   EMAIL_VISUAL_TEMPLATE_CONFIG: 'email_visual_template_config_v1',
   IN_DEVELOPMENT: 'in_development',
@@ -60,8 +79,6 @@ export const SETTING_KEYS = {
   REGISTER_ENABLED: 'register_enabled',
   SUBSCRIPTIONS_ENABLED: 'subscriptions_enabled',
   SHOP_ENABLED: 'shop_enabled',
-  SHOP_BASKETS_ENABLED: 'shop_baskets_enabled',
-  SHOP_VEGETABLES_ENABLED: 'shop_vegetables_enabled',
   ASSOCIATION_ROLES_ENABLED: 'association_roles_enabled',
   EVENTS_ENABLED: 'events_enabled',
   NEWS_ENABLED: 'news_enabled',
@@ -69,7 +86,12 @@ export const SETTING_KEYS = {
   FARM_PICKUP_DAY_OF_WEEK: 'farm_pickup_day_of_week',
   FARM_PICKUP_START_TIME: 'farm_pickup_start_time',
   FARM_PICKUP_END_TIME: 'farm_pickup_end_time',
-  FARM_PICKUP_TIME: 'farm_pickup_time'
+  FARM_PICKUP_TIME: 'farm_pickup_time',
+  SITE_LOCALES: 'site_locales',
+  SITE_DEFAULT_LOCALE: 'site_default_locale',
+  SITE_LOCALE_LABELS: 'site_locale_labels',
+  SITE_LLM_API_KEY: 'site_llm_api_key',
+  PUBLIC_LOCALE_DICTIONARY: 'public_locale_dictionary_v1'
 } as const
 
 export async function getGmailSenderEmail(): Promise<string | null> {
@@ -130,10 +152,9 @@ export interface FeatureFlags {
   inDevelopment: boolean
   registerEnabled: boolean
   subscriptionsEnabled: boolean
+  onlinePaymentsEnabled: boolean
   shop: {
     enabled: boolean
-    basketsEnabled: boolean
-    vegetablesEnabled: boolean
   }
   associationRolesEnabled: boolean
   eventsEnabled: boolean
@@ -153,10 +174,9 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   inDevelopment: false,
   registerEnabled: false,
   subscriptionsEnabled: false,
+  onlinePaymentsEnabled: true,
   shop: {
-    enabled: cmsProjectConfig.modules.shop,
-    basketsEnabled: cmsProjectConfig.modules.shop && cmsProjectConfig.modules.shopBaskets,
-    vegetablesEnabled: cmsProjectConfig.modules.shop && cmsProjectConfig.modules.shopVegetables
+    enabled: cmsProjectConfig.modules.shop
   },
   associationRolesEnabled: cmsProjectConfig.modules.associationRoles,
   eventsEnabled: cmsProjectConfig.modules.events || cmsProjectConfig.modules.planning,
@@ -164,7 +184,7 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
 }
 
 const DEFAULT_FARM_PICKUP_CONFIG: FarmPickupConfig = {
-  label: 'Retrait à la ferme',
+  label: 'Retrait sur place',
   address: cmsProjectConfig.site.defaultFarmPickupAddress,
   dayOfWeek: 5,
   startTime: '17:30',
@@ -212,9 +232,20 @@ function parseIntegerSetting(value: string | null | undefined, fallback: number)
   return Number.isInteger(parsed) ? parsed : fallback
 }
 
+function parseDecimalSetting(value: string | null | undefined, fallback: number) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+export function normalizeVatRate(value: unknown, fallback = 20) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.max(0, Math.min(100, Math.round(parsed * 100) / 100))
+}
+
 export const DEFAULT_TEMPLATES = {
   confirmed: {
-    subject: 'Votre réservation de panier est confirmée - Ferme du Campeyrigoux',
+    subject: 'Votre réservation de panier est confirmée - Le site',
     body: `Bonjour {{customerName}},
 
 Votre réservation pour le panier "{{basketName}}" est confirmée !
@@ -232,10 +263,10 @@ Le paiement se fait en espèces au retrait ou à la remise du panier.
 Si vous avez la moindre question, vous pouvez répondre à cet email.
 
 À bientôt,
-La Ferme du Campeyrigoux`
+L'équipe du site`
   },
   rejected: {
-    subject: 'Concernant votre réservation de panier - Ferme du Campeyrigoux',
+    subject: 'Concernant votre réservation de panier - Le site',
     body: `Bonjour {{customerName}},
 
 Nous sommes désolés, votre réservation pour le panier "{{basketName}}" n'a pas pu être confirmée.
@@ -244,10 +275,10 @@ Raison : {{adminNote}}
 
 N'hésitez pas à nous recontacter pour une prochaine réservation.
 
-La Ferme du Campeyrigoux`
+L'équipe du site`
   },
   cancelled: {
-    subject: 'Votre réservation a été annulée - Ferme du Campeyrigoux',
+    subject: 'Votre réservation a été annulée - Le site',
     body: `Bonjour {{customerName}},
 
 Votre réservation pour le panier "{{basketName}}" a été annulée.
@@ -256,7 +287,7 @@ Raison : {{adminNote}}
 
 Si besoin, vous pouvez nous contacter directement pour en discuter.
 
-La Ferme du Campeyrigoux`
+L'équipe du site`
   }
 }
 
@@ -294,26 +325,22 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     SETTING_KEYS.IN_DEVELOPMENT,
     SETTING_KEYS.REGISTER_ENABLED,
     SETTING_KEYS.SUBSCRIPTIONS_ENABLED,
+    SETTING_KEYS.PAYMENTS_ENABLED,
     SETTING_KEYS.SHOP_ENABLED,
-    SETTING_KEYS.SHOP_BASKETS_ENABLED,
-    SETTING_KEYS.SHOP_VEGETABLES_ENABLED,
     SETTING_KEYS.ASSOCIATION_ROLES_ENABLED,
     SETTING_KEYS.EVENTS_ENABLED,
     SETTING_KEYS.NEWS_ENABLED
   ])
 
   const shopEnabled = parseBooleanSetting(settings[SETTING_KEYS.SHOP_ENABLED], DEFAULT_FEATURE_FLAGS.shop.enabled)
-  const basketsEnabled = parseBooleanSetting(settings[SETTING_KEYS.SHOP_BASKETS_ENABLED], DEFAULT_FEATURE_FLAGS.shop.basketsEnabled)
-  const vegetablesEnabled = parseBooleanSetting(settings[SETTING_KEYS.SHOP_VEGETABLES_ENABLED], DEFAULT_FEATURE_FLAGS.shop.vegetablesEnabled)
 
   return {
     inDevelopment: parseBooleanSetting(settings[SETTING_KEYS.IN_DEVELOPMENT], DEFAULT_FEATURE_FLAGS.inDevelopment),
     registerEnabled: parseBooleanSetting(settings[SETTING_KEYS.REGISTER_ENABLED], DEFAULT_FEATURE_FLAGS.registerEnabled),
     subscriptionsEnabled: parseBooleanSetting(settings[SETTING_KEYS.SUBSCRIPTIONS_ENABLED], DEFAULT_FEATURE_FLAGS.subscriptionsEnabled),
+    onlinePaymentsEnabled: parseBooleanSetting(settings[SETTING_KEYS.PAYMENTS_ENABLED], DEFAULT_FEATURE_FLAGS.onlinePaymentsEnabled),
     shop: {
-      enabled: shopEnabled,
-      basketsEnabled: shopEnabled && basketsEnabled,
-      vegetablesEnabled: shopEnabled && vegetablesEnabled
+      enabled: shopEnabled
     },
     associationRolesEnabled: parseBooleanSetting(settings[SETTING_KEYS.ASSOCIATION_ROLES_ENABLED], DEFAULT_FEATURE_FLAGS.associationRolesEnabled),
     eventsEnabled: parseBooleanSetting(settings[SETTING_KEYS.EVENTS_ENABLED], DEFAULT_FEATURE_FLAGS.eventsEnabled),
@@ -325,9 +352,7 @@ export function normalizeFeatureFlags(flags: FeatureFlags): FeatureFlags {
   return {
     ...flags,
     shop: {
-      enabled: flags.shop.enabled,
-      basketsEnabled: flags.shop.enabled && flags.shop.basketsEnabled,
-      vegetablesEnabled: flags.shop.enabled && flags.shop.vegetablesEnabled
+      enabled: flags.shop.enabled
     }
   }
 }
@@ -338,6 +363,71 @@ export async function isRegisterEnabled() {
 
 export async function isSubscriptionsEnabled() {
   return (await getFeatureFlags()).subscriptionsEnabled
+}
+
+export type PaymentProvider = 'stripe' | 'none'
+export type StripeTaxBehavior = 'inclusive' | 'exclusive'
+
+export interface OnlinePaymentsSettings {
+  provider: PaymentProvider
+  stripePublishableKey: string
+  stripeSecretKey: string
+  stripeWebhookSecret: string
+  stripeAutomaticTaxEnabled: boolean
+  stripeDefaultTaxCode: string
+  stripeDefaultTaxBehavior: StripeTaxBehavior
+}
+
+export function normalizeStripeTaxCode(value: unknown) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+export function normalizeStripeTaxBehavior(
+  value: unknown,
+  fallback: StripeTaxBehavior = 'inclusive'
+): StripeTaxBehavior {
+  return value === 'exclusive' ? 'exclusive' : value === 'inclusive' ? 'inclusive' : fallback
+}
+
+export async function getOnlinePaymentsSettings(): Promise<OnlinePaymentsSettings> {
+  const settings = await getSettings([
+    SETTING_KEYS.PAYMENT_PROVIDER,
+    SETTING_KEYS.STRIPE_PUBLISHABLE_KEY,
+    SETTING_KEYS.STRIPE_SECRET_KEY,
+    SETTING_KEYS.STRIPE_WEBHOOK_SECRET,
+    SETTING_KEYS.STRIPE_AUTOMATIC_TAX_ENABLED,
+    SETTING_KEYS.STRIPE_DEFAULT_TAX_CODE,
+    SETTING_KEYS.STRIPE_DEFAULT_TAX_BEHAVIOR
+  ])
+
+  return {
+    provider: settings[SETTING_KEYS.PAYMENT_PROVIDER] === 'stripe' ? 'stripe' : 'none',
+    stripePublishableKey: settings[SETTING_KEYS.STRIPE_PUBLISHABLE_KEY]?.trim() || '',
+    stripeSecretKey: settings[SETTING_KEYS.STRIPE_SECRET_KEY]?.trim() || '',
+    stripeWebhookSecret: settings[SETTING_KEYS.STRIPE_WEBHOOK_SECRET]?.trim() || '',
+    stripeAutomaticTaxEnabled: parseBooleanSetting(settings[SETTING_KEYS.STRIPE_AUTOMATIC_TAX_ENABLED], false),
+    stripeDefaultTaxCode: normalizeStripeTaxCode(settings[SETTING_KEYS.STRIPE_DEFAULT_TAX_CODE]),
+    stripeDefaultTaxBehavior: normalizeStripeTaxBehavior(settings[SETTING_KEYS.STRIPE_DEFAULT_TAX_BEHAVIOR], 'inclusive')
+  }
+}
+
+export async function saveOnlinePaymentsSettings(settings: OnlinePaymentsSettings) {
+  await setSetting(SETTING_KEYS.PAYMENT_PROVIDER, settings.provider === 'stripe' ? 'stripe' : 'none')
+  await setSetting(SETTING_KEYS.STRIPE_PUBLISHABLE_KEY, settings.stripePublishableKey.trim())
+  await setSetting(SETTING_KEYS.STRIPE_SECRET_KEY, settings.stripeSecretKey.trim())
+  await setSetting(SETTING_KEYS.STRIPE_WEBHOOK_SECRET, settings.stripeWebhookSecret.trim())
+  await setSetting(SETTING_KEYS.STRIPE_AUTOMATIC_TAX_ENABLED, settings.stripeAutomaticTaxEnabled ? 'true' : 'false')
+  await setSetting(SETTING_KEYS.STRIPE_DEFAULT_TAX_CODE, normalizeStripeTaxCode(settings.stripeDefaultTaxCode))
+  await setSetting(SETTING_KEYS.STRIPE_DEFAULT_TAX_BEHAVIOR, normalizeStripeTaxBehavior(settings.stripeDefaultTaxBehavior))
+}
+
+export async function getShopDefaultVatRate() {
+  const raw = await getSetting(SETTING_KEYS.SHOP_DEFAULT_VAT_RATE)
+  return normalizeVatRate(parseDecimalSetting(raw, 20), 20)
+}
+
+export async function saveShopDefaultVatRate(value: unknown) {
+  await setSetting(SETTING_KEYS.SHOP_DEFAULT_VAT_RATE, String(normalizeVatRate(value, 20)))
 }
 
 export interface EmailVisualTemplateConfig {
@@ -432,6 +522,8 @@ export interface ImageVariantSettings {
   runtimeTarget: 'server' | 'cloudflare'
 }
 
+export type PdfRendererMode = 'local' | 'external'
+
 function getResolvedPlatformConfig() {
   return resolveCmsPlatformConfig(process.env, cmsProjectConfig)
 }
@@ -460,6 +552,19 @@ export async function getImageVariantSettings(): Promise<ImageVariantSettings> {
 
 export async function arePersistentImageVariantsEnabled() {
   return (await getImageVariantSettings()).persistVariants
+}
+
+export async function getStoredPdfRendererMode(): Promise<PdfRendererMode | null> {
+  const raw = (await getSetting(SETTING_KEYS.PDF_RENDERER_MODE))?.trim().toLowerCase()
+  return raw === 'external' ? 'external' : raw === 'local' ? 'local' : null
+}
+
+export async function savePdfRendererMode(mode: PdfRendererMode | null | undefined) {
+  if (mode === 'local' || mode === 'external') {
+    await setSetting(SETTING_KEYS.PDF_RENDERER_MODE, mode)
+    return
+  }
+  await deleteSetting(SETTING_KEYS.PDF_RENDERER_MODE)
 }
 
 export async function isAssociationRolesEnabled() {
@@ -497,4 +602,69 @@ export async function getFarmPickupConfig(): Promise<FarmPickupConfig> {
     endTime,
     slotLabel: `${startTime}-${endTime}`
   }
+}
+
+export type OnSitePickupConfig = FarmPickupConfig
+
+export async function getOnSitePickupConfig(): Promise<OnSitePickupConfig> {
+  return getFarmPickupConfig()
+}
+
+export async function getSiteLocales(): Promise<string[]> {
+  const raw = await getSetting(SETTING_KEYS.SITE_LOCALES)
+  if (!raw) return ['fr', 'en']
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed
+  } catch { /* fall through */ }
+  return ['fr', 'en']
+}
+
+export async function getSiteDefaultLocale(): Promise<string> {
+  const [rawDefaultLocale, locales] = await Promise.all([
+    getSetting(SETTING_KEYS.SITE_DEFAULT_LOCALE),
+    getSiteLocales()
+  ])
+
+  const normalizedDefaultLocale = rawDefaultLocale?.trim().toLowerCase()
+  if (normalizedDefaultLocale && locales.includes(normalizedDefaultLocale)) {
+    return normalizedDefaultLocale
+  }
+
+  return locales[0] || cmsProjectConfig.site.defaultLocale
+}
+
+export async function saveSiteLocales(locales: string[], defaultLocale?: string | null) {
+  const normalizedLocales = locales
+    .map(locale => String(locale || '').trim().toLowerCase())
+    .filter((locale, index, list) => locale && list.indexOf(locale) === index)
+
+  const safeLocales = normalizedLocales.length > 0 ? normalizedLocales : ['fr', 'en']
+  const normalizedDefaultLocale = String(defaultLocale || '').trim().toLowerCase()
+  const resolvedDefaultLocale = safeLocales.includes(normalizedDefaultLocale)
+    ? normalizedDefaultLocale
+    : safeLocales[0]!
+
+  await setSetting(SETTING_KEYS.SITE_LOCALES, JSON.stringify(safeLocales))
+  await setSetting(SETTING_KEYS.SITE_DEFAULT_LOCALE, resolvedDefaultLocale)
+}
+
+export async function getLlmApiKey(): Promise<string | null> {
+  const raw = await getSetting(SETTING_KEYS.SITE_LLM_API_KEY)
+  return raw?.trim() || null
+}
+
+export interface LocaleLabel {
+  short: string
+  long: string
+}
+
+export async function getSiteLocaleLabels(): Promise<Record<string, LocaleLabel>> {
+  const raw = await getSetting(SETTING_KEYS.SITE_LOCALE_LABELS)
+  if (!raw) return {}
+  try {
+    const parsed = JSON.parse(raw)
+    if (typeof parsed === 'object' && parsed !== null) return parsed as Record<string, LocaleLabel>
+  } catch { /* fall through */ }
+  return {}
 }

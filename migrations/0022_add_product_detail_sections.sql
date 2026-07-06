@@ -1,0 +1,1 @@
+ALTER TABLE "Product" ADD COLUMN "detailsJson" TEXT NOT NULL DEFAULT '[]';

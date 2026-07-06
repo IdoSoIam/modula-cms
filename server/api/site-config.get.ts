@@ -1,6 +1,7 @@
 import cmsProjectConfig from '#modula/cms.project.config'
 import { getCmsSpecialPagePath, getPublicSiteShell } from '#modula/server/utils/cms'
-import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getDefaultFeatureFlags, getOrdersWindow, getFeatureFlags, getFarmPickupConfig } from '#modula/server/utils/settings'
+import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getDefaultFeatureFlags, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSiteDefaultLocale, getSiteLocales, getSiteLocaleLabels } from '#modula/server/utils/settings'
+import { getResolvedPublicDictionary } from '#modula/server/utils/publicDictionary'
 import { getPublicDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import { getCmsInstallStatus } from '#modula/server/utils/install'
 import { listSiteTemplates } from '#modula/server/utils/siteTemplates'
@@ -12,12 +13,19 @@ export default defineEventHandler(async (event) => {
 
   const installStatus = await getCmsInstallStatus()
   const installRequired = !installStatus.installed
+  const requestedLocale = normalizeRequestedLocale(getQuery(event).locale)
 
   if (!installStatus.databaseReady || !installStatus.installed) {
     const siteTemplates = await listSiteTemplates().catch(() => [])
     const installTemplate = siteTemplates.find(template => template.key === FALLBACK_SITE_TEMPLATE_KEY) || siteTemplates[0]
     const installPreviewImage = installTemplate?.previewImage || '/brand/modula-mark.svg'
     const defaultSettings = createDefaultCmsSiteSettings()
+    const [defaultLocales, defaultLocale, defaultLabels] = await Promise.all([
+      getSiteLocales().catch(() => ['fr', 'en']),
+      getSiteDefaultLocale().catch(() => cmsProjectConfig.site.defaultLocale),
+      getSiteLocaleLabels().catch(() => ({}))
+    ])
+    const publicDictionary = await getResolvedPublicDictionary(requestedLocale || defaultLocale || 'fr', defaultLocales, defaultLocale || 'fr')
     const preInstallShell = {
       settings: {
         ...defaultSettings,
@@ -45,7 +53,7 @@ export default defineEventHandler(async (event) => {
       project: {
         key: cmsProjectConfig.site.key,
         displayName: cmsProjectConfig.site.displayName,
-        defaultLocale: cmsProjectConfig.site.defaultLocale
+        defaultLocale
       },
       installRequired,
       runtimeCompatible: installStatus.runtimeCompatible,
@@ -67,21 +75,28 @@ export default defineEventHandler(async (event) => {
       adminPhone: null,
       cms: preInstallShell,
       themes: await getPublicDaisyUiThemeConfig(),
-      constructionPagePath: '/construction'
+      constructionPagePath: '/construction',
+      siteLocales: defaultLocales,
+      siteDefaultLocale: defaultLocale,
+      localeLabels: defaultLabels,
+      publicDictionary
     }
   }
 
   const featureFlags = await getFeatureFlags()
-  const [ordersWindow, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath] = await Promise.all([
+  const [ordersWindow, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath, siteLocales, defaultLocale, localeLabels] = await Promise.all([
     getOrdersWindow(),
     getFarmPickupConfig(),
     getContactEmail(),
     getAdminPhone(),
-    getPublicSiteShell('fr', featureFlags),
+    getPublicSiteShell(requestedLocale || 'fr', featureFlags),
     getPublicDaisyUiThemeConfig(),
-    getCmsSpecialPagePath('construction')
+    getCmsSpecialPagePath('construction'),
+    getSiteLocales().catch(() => ['fr', 'en']),
+    getSiteDefaultLocale().catch(() => cmsProjectConfig.site.defaultLocale),
+    getSiteLocaleLabels().catch(() => ({}))
   ])
-  const defaultLocale = cmsProjectConfig.site.defaultLocale
+  const publicDictionary = await getResolvedPublicDictionary(requestedLocale || defaultLocale || 'fr', siteLocales, defaultLocale || 'fr')
   const configuredSiteName =
     (defaultLocale === 'en' ? siteShell?.settings?.siteName?.en : siteShell?.settings?.siteName?.fr)
     || siteShell?.settings?.siteName?.fr
@@ -92,7 +107,7 @@ export default defineEventHandler(async (event) => {
     project: {
       key: cmsProjectConfig.site.key,
       displayName: cmsProjectConfig.site.displayName,
-      defaultLocale: cmsProjectConfig.site.defaultLocale
+      defaultLocale
     },
     installRequired: false,
     runtimeCompatible: installStatus.runtimeCompatible,
@@ -109,6 +124,15 @@ export default defineEventHandler(async (event) => {
     adminPhone,
     cms: siteShell,
     themes,
-    constructionPagePath
+    constructionPagePath,
+    siteLocales,
+    siteDefaultLocale: defaultLocale,
+    localeLabels,
+    publicDictionary
   }
 })
+
+function normalizeRequestedLocale(value: unknown) {
+  const normalized = String(value || '').trim().toLowerCase()
+  return /^[a-z]{2}(?:-[a-z]{2})?$/.test(normalized) ? normalized : null
+}

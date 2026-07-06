@@ -1,0 +1,44 @@
+{
+  "id": "0030_add_billing_document_invoice_options",
+  "name": "add_billing_document_invoice_options",
+  "description": "",
+  "beforeSchemaHash": null,
+  "afterSchemaHash": "fd734708544714b271017da8c8c6ad54ddcc0ebca44bdfbce87588490f7deaff",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [
+      "Article",
+      "BillingDocumentTemplate",
+      "CmsNavigationItem",
+      "CmsPage",
+      "DeliveryTour",
+      "Event",
+      "EventAudienceMemberRole",
+      "EventInternalParticipation",
+      "EventOccurrence",
+      "EventPublicReservation",
+      "Image",
+      "ImageUsage",
+      "ImageVariant",
+      "MemberRole",
+      "PasswordSetupToken",
+      "PickupPoint",
+      "Product",
+      "ProductCategory",
+      "Role",
+      "RolePermission",
+      "ShopOrder",
+      "ShopOrderLine",
+      "SiteParams",
+      "TourCity",
+      "User",
+      "UserMemberRole"
+    ],
+    "removedModels": [],
+    "changedModels": []
+  }
+}

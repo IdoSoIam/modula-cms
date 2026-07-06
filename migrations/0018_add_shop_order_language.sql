@@ -1,0 +1,1 @@
+ALTER TABLE "ShopOrder" ADD COLUMN "language" TEXT NOT NULL DEFAULT 'fr';

@@ -30,7 +30,7 @@
     </div>
 
     <div v-else-if="isEmpty" class="rounded-3xl border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
-      {{ locale === 'en' ? 'No public schedule published yet.' : 'Aucun élément de planning public pour le moment.' }}
+      {{ publicText('planning.page.empty', 'Aucun élément de planning public pour le moment.') }}
     </div>
 
     <template v-else-if="viewMode === 'week'">
@@ -44,7 +44,7 @@
             <Icon name="mdi:chevron-right" size="18" />
           </button>
         </div>
-        <button type="button" class="btn btn-sm btn-outline" @click="goCurrentWeek">{{ locale === 'en' ? 'Current week' : 'Semaine en cours' }}</button>
+        <button type="button" class="btn btn-sm btn-outline" @click="goCurrentWeek">{{ publicText('planning.page.currentWeek', 'Semaine en cours') }}</button>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
@@ -89,7 +89,7 @@
           </div>
 
           <div v-else class="rounded-2xl border border-dashed border-base-300 bg-base-100/60 px-3 py-6 text-center text-xs opacity-65">
-            {{ locale === 'en' ? 'Nothing planned.' : 'Rien de prévu.' }}
+            {{ publicText('planning.page.nothingPlanned', 'Rien de prévu.') }}
           </div>
         </section>
       </div>
@@ -102,8 +102,8 @@
         :month-input="calendarMonthInput"
         :show-month-picker="showMonthPicker"
         :day-names="calendarDayNames"
-        :today-label="locale === 'en' ? 'Current month' : 'Mois en cours'"
-        :month-picker-label="locale === 'en' ? 'Choose a month' : 'Choisir un mois'"
+        :today-label="publicText('planning.page.currentMonth', 'Mois en cours')"
+        :month-picker-label="publicText('planning.page.monthPicker', 'Choisir un mois')"
         :item-class="calendarItemClass"
         :item-title="calendarItemTitle"
         :item-subtitle="calendarItemSubtitle"
@@ -132,6 +132,7 @@ import type {
   PlanningWeekResponse
 } from '#modula/shared/events'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
+import { formatLocalizedDateValue, formatLocalizedTimeValue } from '#modula/shared/date'
 import { useAuthStore } from '#modula/stores/auth'
 
 const props = withDefaults(defineProps<{
@@ -142,8 +143,10 @@ const props = withDefaults(defineProps<{
   preview: false
 })
 
-const { locale } = useI18n()
-const localePath = useLocalePath()
+const { contentLocale } = useContentLocale()
+const locale = contentLocale
+const localePath = usePublicLocalePath()
+const { publicText } = usePublicDictionary()
 const siteConfig = await useSiteConfig()
 const authStore = useAuthStore()
 const defaultSettings = createDefaultCmsSiteSettings().planningPage
@@ -173,7 +176,9 @@ const query = computed(() => ({
   dayPages: JSON.stringify(dayPages)
 }))
 
-const { data, pending } = await useFetch<PlanningWeekResponse | PlanningCalendarResponse>('/api/events', {
+type PlanningResponse = PlanningWeekResponse | PlanningCalendarResponse | null
+
+const { data, pending } = await useFetch<PlanningResponse>('/api/events', {
   query,
   immediate: !props.preview,
   default: () => null
@@ -189,7 +194,7 @@ const previewItems = computed<EventListItem[]>(() => [
     visibility: 'PRIVATE',
     startsAt: new Date().toISOString(),
     endsAt: null,
-    placeName: locale.value === 'en' ? 'Farm kitchen' : 'Cuisine de la ferme',
+    placeName: locale.value === 'en' ? 'OnSite kitchen' : 'Cuisine de la ferme',
     placeCity: 'Saint-Sébastien-d’Aigrefeuille',
     coverImageUrl: '',
     publicReservationEnabled: false,
@@ -225,8 +230,8 @@ const previewWeekResponse = computed<PlanningWeekResponse>(() => {
     const items = previewItems.value.filter(item => formatIsoDate(new Date(item.startsAt)) === iso)
     return {
       iso,
-      label: new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'long', day: '2-digit', month: 'long' }).format(day),
-      shortLabel: new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'short' }).format(day),
+      label: formatLocalizedDateValue(day, locale.value, { weekday: 'long', day: '2-digit', month: 'long' }),
+      shortLabel: formatLocalizedDateValue(day, locale.value, { weekday: 'short' }),
       dayNumber: day.getDate(),
       page: 1,
       total: items.length,
@@ -262,29 +267,31 @@ const previewCalendarResponse = computed<PlanningCalendarResponse>(() => {
   return {
     view: 'calendar',
     month: formatMonth(monthStart),
-    monthLabel: new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { month: 'long', year: 'numeric' }).format(monthStart),
+    monthLabel: formatLocalizedDateValue(monthStart, locale.value, { month: 'long', year: 'numeric' }),
     monthInput: formatMonth(monthStart),
-    dayNames: Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'short' }).format(addDays(firstGridDay, index))),
+    dayNames: Array.from({ length: 7 }, (_, index) => formatLocalizedDateValue(addDays(firstGridDay, index), locale.value, { weekday: 'short' })),
     days
   }
 })
 
 const currentWeekResponse = computed<PlanningWeekResponse | null>(() => {
+  const response = data.value as PlanningResponse
   if (viewMode.value !== 'week') return null
-  if (data.value?.view === 'week') return data.value
+  if (response?.view === 'week') return response
   return props.preview ? previewWeekResponse.value : null
 })
 
 const currentCalendarResponse = computed<PlanningCalendarResponse | null>(() => {
+  const response = data.value as PlanningResponse
   if (viewMode.value !== 'calendar') return null
-  if (data.value?.view === 'calendar') return data.value
+  if (response?.view === 'calendar') return response
   return props.preview ? previewCalendarResponse.value : null
 })
 
 const weekColumns = computed(() => currentWeekResponse.value?.columns || [])
 const calendarDays = computed(() => currentCalendarResponse.value?.days || [])
 const calendarDayNames = computed(() => currentCalendarResponse.value?.dayNames || [])
-const calendarMonthLabel = computed(() => currentCalendarResponse.value?.monthLabel || new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', { month: 'long', year: 'numeric' }).format(calendarMonth.value))
+const calendarMonthLabel = computed(() => currentCalendarResponse.value?.monthLabel || formatLocalizedDateValue(calendarMonth.value, locale.value, { month: 'long', year: 'numeric' }))
 const calendarMonthInput = computed(() => currentCalendarResponse.value?.monthInput || formatMonth(calendarMonth.value))
 const isEmpty = computed(() => viewMode.value === 'week'
   ? weekColumns.value.every(column => column.total === 0)
@@ -318,8 +325,7 @@ const cardStyle = computed(() => ({
 const weekRangeLabel = computed(() => {
   const start = weekStart.value
   const end = addDays(start, 6)
-  const localeCode = locale.value === 'en' ? 'en-GB' : 'fr-FR'
-  return `${new Intl.DateTimeFormat(localeCode, { day: '2-digit', month: 'long' }).format(start)} - ${new Intl.DateTimeFormat(localeCode, { day: '2-digit', month: 'long' }).format(end)}`
+  return `${formatLocalizedDateValue(start, locale.value, { day: '2-digit', month: 'long' })} - ${formatLocalizedDateValue(end, locale.value, { day: '2-digit', month: 'long' })}`
 })
 
 function startOfWeek(value: Date) {
@@ -335,6 +341,10 @@ function addDays(value: Date, amount: number) {
   const next = new Date(value)
   next.setDate(next.getDate() + amount)
   return next
+}
+
+function endOfWeek(value: Date) {
+  return addDays(startOfWeek(value), 6)
 }
 
 function formatIsoDate(value: Date) {
@@ -416,9 +426,11 @@ const detailHref = (slug: string, occurrenceId?: number | null) => localePath({
   path: `/events/${slug}`,
   query: occurrenceId ? { occurrenceId: String(occurrenceId) } : {}
 })
-const modeLabel = (mode: PlanningPageViewMode) => mode === 'week' ? (locale.value === 'en' ? 'Week' : 'Semaine') : (locale.value === 'en' ? 'Calendar' : 'Calendrier')
-const formatTime = (value: string) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'fr-FR', {
+const modeLabel = (mode: PlanningPageViewMode) => mode === 'week'
+  ? publicText('planning.page.weekMode', 'Semaine')
+  : publicText('planning.page.calendarMode', 'Calendrier')
+const formatTime = (value: string) => formatLocalizedTimeValue(value, locale.value, {
   hour: '2-digit',
   minute: '2-digit'
-}).format(new Date(value))
+})
 </script>

@@ -87,10 +87,15 @@ const PageEditModal = defineAsyncComponent(() => import('#modula/components/page
 
 const route = useRoute()
 const router = useRouter()
-const { locale } = useI18n()
+const { contentLocale } = useContentLocale()
+const { locales: siteLocales } = useSiteLocales()
 const authStore = useAuthStore()
 const { $toast } = useNuxtApp() as any
 const cloneCmsData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+
+const locale = computed(() => contentLocale.value)
+const currentLocale = computed<CmsLocale>(() => contentLocale.value)
+const resolvedLocales = computed<CmsLocale[]>(() => siteLocales.value.length ? siteLocales.value as CmsLocale[] : ['fr', 'en'])
 
 const editableResolvedPage = ref<ResolvedCmsPage>(cloneCmsData(props.resolvedPage))
 const editorPage = ref<CmsPageEditor | null>(null)
@@ -102,8 +107,6 @@ const liveEditHydrated = ref(false)
 const savedEditorSnapshot = ref('')
 const savedResolvedPageState = ref<ResolvedCmsPage | null>(null)
 const savedEditorPageState = ref<CmsPageEditor | null>(null)
-
-const currentLocale = computed<CmsLocale>(() => locale.value === 'en' ? 'en' : 'fr')
 const wantsLiveEdit = computed(() => route.query.liveEdit === '1')
 const liveEditEnabled = computed(() =>
   liveEditHydrated.value
@@ -152,8 +155,10 @@ usePageSeo({
 function syncLocalizedContentFromEditor() {
   if (!editorPage.value) return
   const translation = editorPage.value.translations?.[currentLocale.value]
-    ?? editorPage.value.translations?.fr
-    ?? editorPage.value.translations?.en
+    ?? resolvedLocales.value
+      .map(localeCode => editorPage.value?.translations?.[localeCode])
+      .find(Boolean)
+    ?? Object.values(editorPage.value.translations || {}).find(Boolean)
 
   if (!translation) return
 
@@ -291,11 +296,13 @@ function findCardById(id: string) {
 }
 
 function sameButton(a: PageBuilderButton | null | undefined, b: PageBuilderButton | null | undefined) {
+  const sameLabels = resolvedLocales.value.every(localeCode =>
+    (a?.label?.[localeCode] || '') === (b?.label?.[localeCode] || '')
+  )
   return Boolean(
     a && b
     && a.href === b.href
-    && a.label.fr === b.label.fr
-    && a.label.en === b.label.en
+    && sameLabels
     && a.tone === b.tone
     && a.size === b.size
   )
@@ -433,14 +440,9 @@ async function saveLiveEdit() {
   saving.value = true
   try {
     if (!page.translations?.[currentLocale.value]) {
-      page.translations = {
-        fr: page.translations?.fr ?? {
-          title: page.title,
-          navigationLabel: page.title,
-          seo: cloneCmsData(editableResolvedPage.value.seo),
-          content: cloneCmsData(editableResolvedPage.value.content)
-        },
-        en: page.translations?.en ?? {
+      page.translations = page.translations || {}
+      for (const localeCode of resolvedLocales.value) {
+        page.translations[localeCode] = page.translations[localeCode] ?? {
           title: page.title,
           navigationLabel: page.title,
           seo: cloneCmsData(editableResolvedPage.value.seo),
@@ -449,7 +451,15 @@ async function saveLiveEdit() {
       }
     }
 
-    page.translations[currentLocale.value].content = cloneCmsData(editableResolvedPage.value.content)
+    if (!page.translations[currentLocale.value]) {
+      page.translations[currentLocale.value] = {
+        title: page.title,
+        navigationLabel: page.title,
+        seo: cloneCmsData(editableResolvedPage.value.seo),
+        content: cloneCmsData(editableResolvedPage.value.content)
+      }
+    }
+    page.translations[currentLocale.value]!.content = cloneCmsData(editableResolvedPage.value.content)
     const saved = await $fetch<CmsPageEditor>(`/api/admin/cms/pages/${page.id}`, {
       method: 'PUT',
       body: page

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { access, readFile } from 'node:fs/promises'
+import { access, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 
@@ -12,6 +12,7 @@ if (!version) {
 }
 
 const localEnvPath = path.join(cwd, '.env')
+await syncPackageVersion(version)
 const localEnv = await loadEnv(localEnvPath)
 const env = {
   ...localEnv,
@@ -123,4 +124,12 @@ function run(command) {
     child.on('exit', (code) => code === 0 ? resolve(undefined) : reject(new Error(`Command failed: ${command}`)))
     child.on('error', reject)
   })
+}
+
+async function syncPackageVersion(nextVersion) {
+  const packagePath = path.join(cwd, 'package.json')
+  const pkg = JSON.parse(await readFile(packagePath, 'utf8'))
+  if (pkg.version === nextVersion) return
+  pkg.version = nextVersion
+  await writeFile(packagePath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8')
 }

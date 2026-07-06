@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -89,17 +89,12 @@
 import NewsListPage from '#modula/components/pages/NewsListPage.vue'
 import ThemeColorPicker from '#modula/components/admin/ThemeColorPicker.vue'
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
-import { ADMIN_I18N_PATHS } from '#modula/shared/adminRoutes'
 import { CMS_APPLICATION_VIEW_MODE_LABELS, CMS_APPLICATION_VIEW_MODES, CMS_THEME_COLOR_TOKENS, type CmsNavigationItemPayload, type CmsSiteSettings } from '#modula/shared/cms'
 import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS } from '#modula/shared/pageBuilder'
 
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
-  i18n: {
-    paths: ADMIN_I18N_PATHS.customizationNews
-  }
-})
+  middleware: 'auth'})
 
 interface SiteShellModel {
   settings: CmsSiteSettings

@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-base-200 text-base-content">
+    <PageLoader />
     <aside
       class="fixed inset-y-0 left-0 z-50 flex flex-col border-r border-base-300 bg-base-100 transition-all duration-300"
       :class="[
@@ -8,7 +9,7 @@
       ]"
     >
       <div class="flex min-h-18 items-center gap-3 border-b border-base-300 px-4">
-        <NuxtLink :to="localePath('/admin')" class="flex min-w-0 items-center gap-3">
+        <NuxtLink :to="localePath(adminHomePath)" class="flex min-w-0 items-center gap-3">
           <div class="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
             <Icon name="mdi:storefront-outline" size="22" />
           </div>
@@ -51,7 +52,7 @@
 
           <div class="flex items-center gap-0">
             <ThemeSelector />
-            <LanguageSelector />
+            <LanguageSelector context="admin" />
             <LayoutUserMenu />
           </div>
         </div>
@@ -72,17 +73,22 @@
 
 <script setup lang="ts">
 import AdminNavigationMenu from '#modula/components/admin/AdminNavigationMenu.vue'
+import PageLoader from '#modula/components/PageLoader.vue'
+import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
 import { getAdminNavigationSections } from '#modula/shared/adminNavigation'
 import { useAuthStore } from '#modula/stores/auth'
 
 useNoIndexSeo('Administration')
 
 const localePath = useLocalePath()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const siteConfig = useSiteConfigState()
 const authStore = useAuthStore()
+const adminRouteLocale = computed(() => normalizeAdminRouteLocale(locale.value))
+const adminHomePath = computed(() => getAdminRoutePath('dashboard', adminRouteLocale.value))
 const adminSections = computed(() => getAdminNavigationSections({
-  featureFlags: siteConfig.value?.featureFlags
+  featureFlags: siteConfig.value?.featureFlags,
+  locale: locale.value
 }).map(section => ({
   ...section,
   items: section.items.filter((item) => {

@@ -1,6 +1,6 @@
 {
   "name": "modula-cms",
-  "version": "0.1.0",
+  "version": "0.1.38",
   "private": false,
   "description": "CMS modulaire Nuxt avec pages éditoriales, admin et installation guidée.",
   "license": "GPL-3.0-only",
@@ -9,17 +9,14 @@
     "dev": "node ./scripts/dev-install-local.mjs",
     "dev:reset": "node ./scripts/dev-install-local.mjs --reset",
     "postinstall": "node ./scripts/postinstall.mjs",
-    
     "release:build": "node ./scripts/build-runtime-release.mjs",
     "release:publish": "node ./scripts/publish-runtime-release.mjs",
     "release:publish:git": "node ./scripts/publish-runtime-release-with-git.mjs",
     "registry:seed:bundled": "node ./scripts/seed-bundled-registry-templates.mjs",
-
     "db:generate:internal": "node --experimental-strip-types ./generator/generate-db-artifacts.ts",
     "db:migrate:status": "node --experimental-strip-types ./scripts/db-migrate.mjs sqlite --status",
     "db:migrate:scaffold": "node --experimental-strip-types ./scripts/db-migration-scaffold.mjs",
     "db:migrate": "node --experimental-strip-types ./scripts/db-migrate.mjs sqlite",
-
     "cms:dev:cloudflare": "node ./scripts/run-platform-command.mjs cloudflare dev",
     "cms:build:cloudflare": "node ./scripts/run-platform-command.mjs cloudflare build",
     "cms:deploy:cloudflare": "node ./scripts/run-platform-command.mjs cloudflare deploy",
@@ -37,7 +34,6 @@
     "@nuxt/devtools": "3.2.4",
     "@nuxt/icon": "^2.2.3",
     "@nuxt/image": "^2.0.0",
-    "@nuxtjs/i18n": "^10.4.0",
     "@pinia/nuxt": "^0.11.3",
     "@tailwindcss/vite": "^4.3.1",
     "@tanstack/vue-query": "^5.101.0",
@@ -51,15 +47,16 @@
     "dotenv": "^17.4.2",
     "nuxt": "^4.4.8",
     "pinia": "^3.0.4",
-    "stripe": "^22.2.1",
     "tailwindcss": "^4.3.1",
     "vue": "^3.5.38",
+    "vue-i18n": "^11.4.6",
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.9.3",
     "nitro-cloudflare-dev": "^0.2.2",
+    "playwright-core": "^1.61.1",
     "typescript": "^6.0.3",
     "wrangler": "^4.100.0"
   }

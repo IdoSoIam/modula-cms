@@ -218,14 +218,77 @@ const itemAlignLabel = (align: string) => {
 
 const TranslationFields = defineComponent({
   props: {
-    modelValue: { type: Object as PropType<{ fr: string; en: string }>, required: true },
+    modelValue: { type: Object as PropType<Record<string, string>>, required: true },
     label: { type: String, required: true },
     size: { type: [String, Object] as PropType<any>, default: undefined },
     multiline: { type: Boolean, default: false }
   },
   emits: ['update:size'],
   setup(props, { emit }) {
-    const lang = ref<'fr' | 'en'>('fr')
+    const { locales } = useSiteLocales()
+    const { $toast } = useNuxtApp() as any
+    const resolvedLocales = computed(() => locales.value.length ? locales.value : ['fr', 'en'])
+    const lang = ref<string>(resolvedLocales.value[0] || 'fr')
+    const translating = ref(false)
+
+    watch(resolvedLocales, (value) => {
+      const next = value[0] || 'fr'
+      if (!value.includes(lang.value)) {
+        lang.value = next
+      }
+      for (const localeCode of value) {
+        if (typeof props.modelValue[localeCode] !== 'string') {
+          props.modelValue[localeCode] = ''
+        }
+      }
+    }, { immediate: true })
+
+    const tabLabel = (localeCode: string) => localeCode.toUpperCase()
+    const translationSourceLocale = computed(() => {
+      if (props.modelValue[lang.value]?.trim()) return lang.value
+      return resolvedLocales.value.find((localeCode) => props.modelValue[localeCode]?.trim()) || lang.value
+    })
+    const emptyTargetLocales = computed(() =>
+      resolvedLocales.value.filter((localeCode) =>
+        localeCode !== translationSourceLocale.value
+        && !props.modelValue[localeCode]?.trim()
+      )
+    )
+    const showAutoTranslateButton = computed(() =>
+      Boolean(props.modelValue[translationSourceLocale.value]?.trim())
+      && emptyTargetLocales.value.length > 0
+    )
+
+    const translateMissingLocales = async () => {
+      const sourceLocale = translationSourceLocale.value
+      const text = props.modelValue[sourceLocale]?.trim()
+      if (!text || !emptyTargetLocales.value.length) return
+
+      translating.value = true
+      try {
+        const result = await $fetch<{ translations?: Record<string, string> }>('/api/admin/translate', {
+          method: 'POST',
+          body: {
+            text,
+            sourceLocale,
+            targetLocales: emptyTargetLocales.value,
+            context: props.label
+          }
+        })
+
+        for (const localeCode of emptyTargetLocales.value) {
+          const translated = result?.translations?.[localeCode]?.trim()
+          if (translated && !props.modelValue[localeCode]?.trim()) {
+            props.modelValue[localeCode] = translated
+          }
+        }
+      } catch (error: any) {
+        $toast?.error(error?.data?.statusMessage || error?.statusMessage || 'Traduction impossible.')
+      } finally {
+        translating.value = false
+      }
+    }
+
     return () => h('div', { class: 'form-control' }, [
       h('div', { class: 'mb-2 flex items-center justify-between gap-2' }, [
         h('div', { class: 'flex items-center gap-2' }, [
@@ -240,9 +303,20 @@ const TranslationFields = defineComponent({
             }
           }, TYPOGRAPHY_SIZES.map(size => h('option', { value: size }, TYPOGRAPHY_SIZE_LABELS[size]))) : null
         ]),
-        h('div', { class: 'tabs tabs-box tabs-xs' }, [
-          h('button', { type: 'button', class: ['tab cursor-pointer', lang.value === 'fr' ? 'tab-active' : 'border-0'], onClick: () => { lang.value = 'fr' } }, 'FR'),
-          h('button', { type: 'button', class: ['tab cursor-pointer', lang.value === 'en' ? 'tab-active' : 'border-0'], onClick: () => { lang.value = 'en' } }, 'EN')
+        h('div', { class: 'flex items-center gap-2' }, [
+          showAutoTranslateButton.value ? h('button', {
+            type: 'button',
+            class: 'btn btn-xs btn-outline',
+            disabled: translating.value,
+            onClick: () => { void translateMissingLocales() }
+          }, translating.value ? '...' : 'Trad auto') : null,
+          h('div', { class: 'tabs tabs-box tabs-xs' }, resolvedLocales.value.map(localeCode =>
+            h('button', {
+              type: 'button',
+              class: ['tab cursor-pointer', lang.value === localeCode ? 'tab-active' : 'border-0'],
+              onClick: () => { lang.value = localeCode }
+            }, tabLabel(localeCode))
+          ))
         ])
       ]),
       props.multiline
@@ -667,7 +741,7 @@ const SectionEditor = defineComponent({
         }, [
           h('div', { class: 'mb-3 flex flex-wrap items-start justify-between gap-3' }, [
             h('div', { class: 'min-w-0 flex-1' }, [
-              h('div', { class: 'font-medium' }, standaloneItemLabel(item.type)),
+              h('div', { class: 'font-medium' }, standaloneItemLabel(item.type === 'badge' ? 'text' : item.type)),
               h('div', { class: 'mt-1 text-xs opacity-65' }, item.text.fr || item.text.en || 'Sans contenu')
             ]),
             h('div', { class: 'flex flex-wrap gap-2' }, [
@@ -689,8 +763,12 @@ const SectionEditor = defineComponent({
               h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement')]),
               h('select', {
                 class: 'select select-bordered w-full',
-                value: item.align || 'start',
-                onChange: (e: Event) => { item.align = (e.target as HTMLSelectElement).value as any }
+                value: item.type === 'title' || item.type === 'text' ? item.align : 'start',
+                onChange: (e: Event) => {
+                  if (item.type === 'title' || item.type === 'text') {
+                    item.align = (e.target as HTMLSelectElement).value as any
+                  }
+                }
               }, CONTENT_ALIGNS.map(align => h('option', { value: align }, itemAlignLabel(align))))
             ]),
             h(ThemeColorPicker, {

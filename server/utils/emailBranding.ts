@@ -32,8 +32,8 @@ export async function getEmailBrandingConfig(): Promise<EmailBrandingConfig> {
   ])
 
   const brandName = emailConfig.brandName.trim()
-    || siteSettings.siteName.fr.trim()
-    || siteSettings.siteName.en.trim()
+    || (siteSettings.siteName?.['fr'] ?? '').trim()
+    || (siteSettings.siteName?.['en'] ?? '').trim()
     || cmsProjectConfig.site.displayName
 
   const globalLogoSrc = siteSettings.logo.src?.trim() || ''

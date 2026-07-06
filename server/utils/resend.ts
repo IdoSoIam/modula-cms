@@ -5,6 +5,7 @@ interface ResendAttachment {
   filename: string
   mimeType: string
   content: string
+  contentBase64?: string
 }
 
 export interface ResendCalendarInvite {
@@ -45,7 +46,7 @@ export async function sendResend(opts: {
   const attachments = [
     ...(opts.attachments ?? []).map((attachment) => ({
       filename: attachment.filename,
-      content: Buffer.from(attachment.content, 'utf-8').toString('base64'),
+      content: attachment.contentBase64 || Buffer.from(attachment.content, 'utf-8').toString('base64'),
       type: attachment.mimeType
     })),
     ...(opts.calendarInvite ? [{
