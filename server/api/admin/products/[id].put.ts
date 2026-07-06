@@ -38,6 +38,8 @@ interface Body {
   unitLabelLocalized?: CmsLocalizedText | null
   allowOfflinePayment?: boolean
   allowOnlinePayment?: boolean
+  allowCustomerCancellation?: boolean
+  allowRefundRequestAfterEngagement?: boolean
   active?: boolean
   position?: number
 }
@@ -97,6 +99,8 @@ export default defineEventHandler(async (event) => {
   }
   if (body.allowOfflinePayment !== undefined) data.allowOfflinePayment = effectiveAllowOfflinePayment
   if (body.allowOnlinePayment !== undefined) data.allowOnlinePayment = effectiveAllowOnlinePayment
+  if (body.allowCustomerCancellation !== undefined) data.allowCustomerCancellation = Boolean(body.allowCustomerCancellation)
+  if (body.allowRefundRequestAfterEngagement !== undefined) data.allowRefundRequestAfterEngagement = Boolean(body.allowRefundRequestAfterEngagement)
   if (body.active !== undefined) data.active = body.active
   if (body.position !== undefined) data.position = body.position
   if (body.price !== undefined) {

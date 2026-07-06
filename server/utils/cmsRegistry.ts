@@ -1352,6 +1352,20 @@ export async function getRegistryPaymentByOrder(orderId: string) {
   return await registryFetch<CmsRegistryPaymentRecord>(`/v1/payments/orders/${encodeURIComponent(orderId)}`, {}, scope)
 }
 
+export async function cancelRegistryPaymentByOrder(orderId: string) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentRecord>(`/v1/payments/orders/${encodeURIComponent(orderId)}/cancel`, {
+    method: 'POST',
+  }, scope)
+}
+
+export async function refundRegistryPaymentByOrder(orderId: string) {
+  const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
+  return await registryFetch<CmsRegistryPaymentRecord>(`/v1/payments/orders/${encodeURIComponent(orderId)}/refund`, {
+    method: 'POST',
+  }, scope)
+}
+
 export async function translateRegistryTexts(items: CmsRegistryTranslationRequestItem[]) {
   const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
   return await registryFetch<CmsRegistryTranslationBatchResult>('/v1/translations/text', {

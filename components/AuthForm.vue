@@ -24,9 +24,8 @@
         <label class="label">
           <span class="label-text">{{ passwordLabel }}</span>
         </label>
-        <input
+        <PasswordField
           v-model="loginForm.password"
-          type="password"
           required
           class="input input-bordered w-full"
           placeholder="********"

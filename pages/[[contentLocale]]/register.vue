@@ -28,11 +28,11 @@
           <div class="grid gap-4 md:grid-cols-2">
             <div class="form-control flex flex-col gap-3">
                 <label class="label"><span class="label-text">{{ publicText('auth.register.password', 'Mot de passe') }}</span></label>
-              <input v-model="form.password" type="password" class="input input-bordered" autocomplete="new-password" required />
+              <PasswordField v-model="form.password" class="input input-bordered" autocomplete="new-password" required />
             </div>
             <div class="form-control flex flex-col gap-3">
                 <label class="label"><span class="label-text">{{ publicText('auth.register.confirmPassword', 'Confirmation') }}</span></label>
-              <input v-model="form.confirmPassword" type="password" class="input input-bordered" autocomplete="new-password" required />
+              <PasswordField v-model="form.confirmPassword" class="input input-bordered" autocomplete="new-password" required />
             </div>
           </div>
 

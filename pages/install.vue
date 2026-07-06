@@ -68,7 +68,7 @@
 
                 <label class="form-control md:col-span-2">
                   <span class="label-text mb-1 font-medium">Clé API du registre</span>
-                  <input v-model.trim="form.registryApiKey" class="input input-bordered w-full" type="password" placeholder="Laisser vide pour lecture seule" />
+                  <PasswordField v-model.trim="form.registryApiKey" class="input input-bordered w-full" placeholder="Laisser vide pour lecture seule" />
                 </label>
               </div>
             </section>
@@ -231,7 +231,7 @@
 
                 <label class="form-control md:col-span-2">
                   <span class="label-text mb-1 font-medium">{{ t('install.adminPassword') }}</span>
-                  <input v-model="form.adminPassword" type="password" class="input input-bordered w-full" :placeholder="t('install.adminPasswordPlaceholder')" />
+                  <PasswordField v-model="form.adminPassword" class="input input-bordered w-full" :placeholder="t('install.adminPasswordPlaceholder')" />
                 </label>
               </div>
             </section>

@@ -248,8 +248,69 @@
 
             <div class="rounded-2xl border border-base-300 bg-base-200/60 p-4 text-sm">
               <div class="mb-2 text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.actionsTitle', 'Actions') }}</div>
-              <div v-if="canCancel(selectedOrder)" class="opacity-80">
-                {{ publicText('orders.cancelComingSoon', 'L’annulation en ligne sera disponible prochainement pour cette commande.') }}
+              <div v-if="selectedOrder.customerAction.kind === 'CANCEL'" class="space-y-3">
+                <p class="opacity-80">
+                  {{ publicText('orders.cancelHelp', 'Vous pouvez encore annuler cette commande tant qu’elle n’est pas engagée.') }}
+                </p>
+                <button
+                  type="button"
+                  class="btn btn-error btn-sm"
+                  :disabled="detailActionPending"
+                  @click="cancelSelectedOrder"
+                >
+                  <span v-if="detailActionPending" class="loading loading-spinner loading-xs"></span>
+                  {{ publicText('orders.manage.cancelReservation', 'Annuler la commande') }}
+                </button>
+              </div>
+              <div v-else-if="selectedOrder.customerAction.kind === 'CANCEL_AND_REFUND'" class="space-y-3">
+                <p class="opacity-80">
+                  {{ publicText('orders.refundDirectHelp', 'Cette commande payée peut encore être annulée et remboursée automatiquement.') }}
+                </p>
+                <button
+                  type="button"
+                  class="btn btn-error btn-sm"
+                  :disabled="detailActionPending"
+                  @click="cancelSelectedOrder"
+                >
+                  <span v-if="detailActionPending" class="loading loading-spinner loading-xs"></span>
+                  {{ publicText('orders.directRefundAction', 'Annuler et rembourser') }}
+                </button>
+              </div>
+              <div v-else-if="selectedOrder.customerAction.kind === 'REQUEST_REFUND'" class="space-y-3">
+                <p class="opacity-80">
+                  {{ publicText('orders.refundRequestHelp', 'La commande est déjà engagée. Vous pouvez envoyer une demande de remboursement qui sera étudiée par l’équipe.') }}
+                </p>
+                <div class="form-control flex flex-col gap-2">
+                  <label class="label px-0 pb-0">
+                    <span class="label-text">{{ publicText('orders.refundRequestReasonLabel', 'Motif de la demande') }}</span>
+                  </label>
+                  <textarea
+                    v-model="refundRequestReason"
+                    class="textarea textarea-bordered min-h-28"
+                    :placeholder="publicText('orders.refundRequestReasonPlaceholder', 'Expliquez pourquoi vous souhaitez être remboursé.')"
+                  />
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-warning btn-sm"
+                  :disabled="detailActionPending || !refundRequestReason.trim()"
+                  @click="requestRefundForSelectedOrder"
+                >
+                  <span v-if="detailActionPending" class="loading loading-spinner loading-xs"></span>
+                  {{ publicText('orders.requestRefundAction', 'Demander un remboursement') }}
+                </button>
+              </div>
+              <div v-else-if="selectedOrder.afterSalesStatus === 'REFUND_REQUESTED'" class="opacity-70">
+                {{ publicText('orders.refundRequestedState', 'Votre demande de remboursement a bien été transmise. Elle est en cours d’examen.') }}
+              </div>
+              <div v-else-if="selectedOrder.afterSalesStatus === 'REFUND_REJECTED'" class="space-y-2 opacity-80">
+                <div>{{ publicText('orders.refundRejectedState', 'Votre demande de remboursement a été refusée.') }}</div>
+                <div v-if="selectedOrder.refundRequestNote" class="text-sm">
+                  <strong>{{ publicText('orders.refundRejectedNote', 'Motif') }}:</strong> {{ selectedOrder.refundRequestNote }}
+                </div>
+              </div>
+              <div v-else-if="selectedOrder.customerAction.reason" class="opacity-70">
+                {{ customerActionReasonLabel(selectedOrder.customerAction.reason) }}
               </div>
               <div v-else class="opacity-70">
                 {{ publicText('orders.noActions', 'Aucune action disponible pour cette commande.') }}
@@ -281,10 +342,15 @@ interface ShopOrderLine {
 interface ShopOrder {
   id: number
   orderNumber: string
-  status: 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED'
+  status: 'DRAFT' | 'PENDING' | 'CONFIRMED' | 'IN_PREPARATION' | 'READY' | 'IN_DELIVERY' | 'COMPLETED' | 'CANCELLED'
   paymentProvider: 'OFFLINE' | 'STRIPE'
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
+  afterSalesStatus: 'NONE' | 'REFUND_REQUESTED' | 'REFUND_REJECTED'
   paymentFailureReason: string | null
+  refundRequestReason: string | null
+  refundRequestNote: string | null
+  refundRequestedAt: string | null
+  refundReviewedAt: string | null
   customerName: string
   email: string
   phone: string | null
@@ -298,6 +364,10 @@ interface ShopOrder {
   refundedAt: string | null
   createdAt: string
   lines: ShopOrderLine[]
+  customerAction: {
+    kind: 'NONE' | 'CANCEL' | 'CANCEL_AND_REFUND' | 'REQUEST_REFUND'
+    reason: 'ACTION_DISABLED' | 'ALREADY_CANCELLED' | 'ALREADY_REFUNDED' | 'REFUND_REQUEST_PENDING' | 'REFUND_REQUEST_REJECTED' | 'FULFILLMENT_COMPLETED' | 'PICKUP_POINT_AVAILABLE' | 'PICKUP_WINDOW_PASSED' | 'DELIVERY_IN_PROGRESS' | 'AFTER_ENGAGEMENT_NOT_REFUNDABLE' | null
+  }
 }
 
 const props = defineProps<{
@@ -314,21 +384,32 @@ const loading = ref(false)
 const detailLoading = ref(false)
 const ordersLoaded = ref(false)
 const detailOpen = ref(false)
+const detailActionPending = ref(false)
 const orders = ref<ShopOrder[]>([])
 const selectedOrder = ref<ShopOrder | null>(null)
 const errorMessage = ref('')
 const detailError = ref('')
+const refundRequestReason = ref('')
 const openedOrderIds = ref<number[]>([])
 
 const latestOrder = computed(() => orders.value[0] ?? null)
 
+const { $toast } = useNuxtApp() as any
 const formatPrice = (value: number) => (useNuxtApp() as any).$formatPrice(value) as string
 const formatDate = (value: string) => (useNuxtApp() as any).$formatDate(value) as string
 const formatDateTime = (value: string) => (useNuxtApp() as any).$formatDateTime(value) as string
 const formatTime = (value: string) => (useNuxtApp() as any).$formatTime(value) as string
 
 const orderStatusLabel = (value: ShopOrder['status']) => {
-  const key = value === 'PAID' ? 'paid' : value === 'CANCELLED' ? 'cancelled' : value === 'DRAFT' ? 'draft' : 'pending'
+  const key =
+    value === 'CANCELLED' ? 'cancelled'
+      : value === 'DRAFT' ? 'draft'
+        : value === 'PENDING' ? 'pending'
+          : value === 'CONFIRMED' ? 'confirmed'
+            : value === 'IN_PREPARATION' ? 'inPreparation'
+              : value === 'READY' ? 'ready'
+                : value === 'IN_DELIVERY' ? 'inDelivery'
+                  : 'completed'
   return publicText(`orders.shopStatus.${key}`, key)
 }
 
@@ -359,7 +440,10 @@ const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => {
 }
 
 const orderStatusBadgeClass = (value: ShopOrder['status']) => {
-  if (value === 'PAID') return 'badge-success'
+  if (value === 'CONFIRMED') return 'badge-success'
+  if (value === 'COMPLETED') return 'badge-success'
+  if (value === 'READY') return 'badge-info'
+  if (value === 'IN_DELIVERY' || value === 'IN_PREPARATION') return 'badge-warning'
   if (value === 'CANCELLED') return 'badge-error'
   if (value === 'DRAFT') return 'badge-neutral'
   return 'badge-warning'
@@ -402,7 +486,25 @@ const lineDescription = (line: ShopOrderLine) => {
   return pieces.length ? pieces.join(' - ') : publicText('orders.standardLine', 'Ligne standard')
 }
 
-const canCancel = (order: ShopOrder) => order.status === 'PENDING' && order.paymentStatus !== 'PAID' && order.paymentStatus !== 'REFUNDED'
+const customerActionReasonLabel = (reason: ShopOrder['customerAction']['reason']) => {
+  if (!reason) return publicText('orders.noActions', 'Aucune action disponible pour cette commande.')
+
+  const key = `orders.customerActionReason.${reason}`
+  const fallbacks: Record<NonNullable<ShopOrder['customerAction']['reason']>, string> = {
+    ACTION_DISABLED: 'Un ou plusieurs produits de cette commande ne permettent pas cette action.',
+    ALREADY_CANCELLED: 'Cette commande est déjà annulée.',
+    ALREADY_REFUNDED: 'Cette commande a déjà été remboursée.',
+    REFUND_REQUEST_PENDING: 'Une demande de remboursement est déjà en cours.',
+    REFUND_REQUEST_REJECTED: 'La demande de remboursement a été refusée pour cette commande.',
+    FULFILLMENT_COMPLETED: 'La commande est terminée. Cette action n’est plus disponible.',
+    PICKUP_POINT_AVAILABLE: 'La commande est déjà prête ou remise. Cette action n’est plus disponible.',
+    PICKUP_WINDOW_PASSED: 'Le créneau de retrait est dépassé. Cette action n’est plus disponible.',
+    DELIVERY_IN_PROGRESS: 'La commande est déjà en cours de livraison. Cette action n’est plus disponible.',
+    AFTER_ENGAGEMENT_NOT_REFUNDABLE: 'La commande est déjà engagée et n’autorise pas de demande de remboursement.',
+  }
+
+  return publicText(key, fallbacks[reason])
+}
 
 const loadOrders = async () => {
   if (loading.value) return
@@ -428,6 +530,7 @@ const openOrder = async (orderId: number) => {
   detailOpen.value = true
   detailLoading.value = true
   detailError.value = ''
+  refundRequestReason.value = ''
 
   try {
     selectedOrder.value = await $fetch<ShopOrder>(`/api/profile/orders/${orderId}`)
@@ -443,6 +546,65 @@ const closeOrder = () => {
   detailOpen.value = false
   detailError.value = ''
   selectedOrder.value = null
+  refundRequestReason.value = ''
+}
+
+const cancelSelectedOrder = async () => {
+  if (!selectedOrder.value || detailActionPending.value) return
+  const confirmed = globalThis.confirm?.(
+    publicText('orders.cancelConfirm', 'Confirmer l?annulation de cette commande ?')
+  )
+  if (confirmed === false) return
+
+  detailActionPending.value = true
+  try {
+    const updated = await $fetch<ShopOrder>(`/api/profile/orders/${selectedOrder.value.id}/cancel`, {
+      method: 'POST',
+    })
+    selectedOrder.value = updated
+    orders.value = orders.value.map((entry) => (entry.id === updated.id ? updated : entry))
+    $toast?.success(
+      updated.paymentStatus === 'REFUNDED'
+        ? publicText('orders.directRefundSuccess', 'Commande remboursée.')
+        : publicText('orders.manage.toastCancelSuccess', 'Commande annulée.')
+    )
+  } catch (error: unknown) {
+    const resolvedError = error as { data?: { message?: string }, statusMessage?: string }
+    $toast?.error(
+      resolvedError?.data?.message
+      || resolvedError?.statusMessage
+      || publicText('orders.manage.toastCancelError', 'Impossible d?annuler la commande.')
+    )
+  } finally {
+    detailActionPending.value = false
+  }
+}
+
+const requestRefundForSelectedOrder = async () => {
+  if (!selectedOrder.value || detailActionPending.value || !refundRequestReason.value.trim()) return
+
+  detailActionPending.value = true
+  try {
+    const updated = await $fetch<ShopOrder>(`/api/profile/orders/${selectedOrder.value.id}/refund-request`, {
+      method: 'POST',
+      body: {
+        reason: refundRequestReason.value.trim(),
+      },
+    })
+    selectedOrder.value = updated
+    orders.value = orders.value.map((entry) => (entry.id === updated.id ? updated : entry))
+    refundRequestReason.value = ''
+    $toast?.success(publicText('orders.refundRequestSuccess', 'Votre demande de remboursement a été envoyée.'))
+  } catch (error: unknown) {
+    const resolvedError = error as { data?: { message?: string }, statusMessage?: string }
+    $toast?.error(
+      resolvedError?.data?.message
+      || resolvedError?.statusMessage
+      || publicText('orders.refundRequestError', 'Impossible d’envoyer la demande de remboursement.')
+    )
+  } finally {
+    detailActionPending.value = false
+  }
 }
 
 watch(

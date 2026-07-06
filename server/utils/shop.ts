@@ -30,6 +30,8 @@ export interface ProductPayload {
   unitLabelLocalized: CmsLocalizedText
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
+  allowCustomerCancellation: boolean
+  allowRefundRequestAfterEngagement: boolean
   active: boolean
   position: number
 }
@@ -52,14 +54,19 @@ export interface ShopOrderPayload {
   id: number
   orderNumber: string
   language: string
-  status: 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED'
+  status: 'DRAFT' | 'PENDING' | 'CONFIRMED' | 'IN_PREPARATION' | 'READY' | 'IN_DELIVERY' | 'COMPLETED' | 'CANCELLED'
   paymentProvider: 'OFFLINE' | 'STRIPE'
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
+  afterSalesStatus: 'NONE' | 'REFUND_REQUESTED' | 'REFUND_REJECTED'
   providerSessionId: string | null
   providerPaymentIntentId: string | null
   providerPaymentStatus: string | null
   providerLastEventId: string | null
   paymentFailureReason: string | null
+  refundRequestReason: string | null
+  refundRequestNote: string | null
+  refundRequestedAt: string | null
+  refundReviewedAt: string | null
   customerName: string
   email: string
   phone: string | null
@@ -96,6 +103,7 @@ export interface ShopOrderPayload {
   cancelledAt: string | null
   createdAt: string
   updatedAt: string
+  customerAction: ShopOrderCustomerActionState
   lines: Array<{
     id: number
     orderId: number
@@ -108,6 +116,27 @@ export interface ShopOrderPayload {
     rentalEndDate: string | null
     meta: Record<string, any>
   }>
+}
+
+export type ShopOrderCustomerActionKind = 'NONE' | 'CANCEL' | 'CANCEL_AND_REFUND' | 'REQUEST_REFUND'
+
+export type ShopOrderCustomerActionReason =
+  | 'ACTION_DISABLED'
+  | 'ALREADY_CANCELLED'
+  | 'ALREADY_REFUNDED'
+  | 'REFUND_REQUEST_PENDING'
+  | 'REFUND_REQUEST_REJECTED'
+  | 'FULFILLMENT_COMPLETED'
+  | 'DELIVERY_IN_PROGRESS'
+  | 'PICKUP_POINT_AVAILABLE'
+  | 'PICKUP_WINDOW_PASSED'
+  | 'AFTER_ENGAGEMENT_NOT_REFUNDABLE'
+  | null
+
+export interface ShopOrderCustomerActionState {
+  kind: ShopOrderCustomerActionKind
+  reason: ShopOrderCustomerActionReason
+  engaged: boolean
 }
 
 export interface ProductDetailField {
@@ -187,6 +216,8 @@ export function serializeProduct(row: any): ProductPayload {
     unitLabelLocalized,
     allowOfflinePayment: toBoolean(row.allowOfflinePayment),
     allowOnlinePayment: toBoolean(row.allowOnlinePayment),
+    allowCustomerCancellation: toBoolean(row.allowCustomerCancellation ?? true),
+    allowRefundRequestAfterEngagement: toBoolean(row.allowRefundRequestAfterEngagement ?? false),
     active: toBoolean(row.active),
     position: Number(row.position || 0)
   }
@@ -211,11 +242,18 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
     status: row.status,
     paymentProvider: row.paymentProvider,
     paymentStatus: row.paymentStatus,
+    afterSalesStatus: row.afterSalesStatus === 'REFUND_REQUESTED' || row.afterSalesStatus === 'REFUND_REJECTED'
+      ? row.afterSalesStatus
+      : 'NONE',
     providerSessionId: row.providerSessionId ?? null,
     providerPaymentIntentId: row.providerPaymentIntentId ?? null,
     providerPaymentStatus: row.providerPaymentStatus ?? null,
     providerLastEventId: row.providerLastEventId ?? null,
     paymentFailureReason: row.paymentFailureReason ?? null,
+    refundRequestReason: row.refundRequestReason ?? null,
+    refundRequestNote: row.refundRequestNote ?? null,
+    refundRequestedAt: row.refundRequestedAt ? new Date(row.refundRequestedAt).toISOString() : null,
+    refundReviewedAt: row.refundReviewedAt ? new Date(row.refundReviewedAt).toISOString() : null,
     customerName: String(row.customerName),
     email: String(row.email),
     phone: row.phone ?? null,
@@ -258,6 +296,17 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
     cancelledAt: row.cancelledAt ?? null,
     createdAt: new Date(row.createdAt).toISOString(),
     updatedAt: new Date(row.updatedAt).toISOString(),
+    customerAction: computeShopOrderCustomerActionState({
+      status: row.status,
+      paymentStatus: row.paymentStatus,
+      afterSalesStatus: row.afterSalesStatus,
+      deliveryType: row.deliveryType,
+      fulfillmentDate: row.fulfillmentDate ? new Date(row.fulfillmentDate).toISOString() : null,
+      fulfillmentTime: row.fulfillmentTime ?? null,
+      lines: Array.isArray(row.lines)
+        ? row.lines.map((line: any) => ({ meta: safeParseJson(line.metaJson) }))
+        : []
+    }),
     lines: Array.isArray(row.lines)
       ? row.lines.map((line: any) => ({
           id: Number(line.id),
@@ -355,6 +404,110 @@ function normalizeProductDetailField(value: unknown): ProductDetailField | null 
     mediaDocumentName,
     mediaDocumentKind
   }
+}
+
+export function computeShopOrderCustomerActionState(order: {
+  status: string | null | undefined
+  paymentStatus: string | null | undefined
+  afterSalesStatus?: string | null | undefined
+  deliveryType?: string | null | undefined
+  fulfillmentDate?: string | null | undefined
+  fulfillmentTime?: string | null | undefined
+  lines?: Array<{ meta?: Record<string, any> | null | undefined }>
+}): ShopOrderCustomerActionState {
+  const status = String(order.status || '').toUpperCase()
+  const paymentStatus = String(order.paymentStatus || '').toUpperCase()
+  const afterSalesStatus = String(order.afterSalesStatus || 'NONE').toUpperCase()
+  const deliveryType = String(order.deliveryType || '').toUpperCase()
+  const lineMetas = Array.isArray(order.lines) ? order.lines.map(line => line?.meta || {}) : []
+  const cancellationEnabled = lineMetas.every(meta => meta.allowCustomerCancellation !== false)
+  const allowRefundAfterEngagement = lineMetas.length > 0 && lineMetas.every(meta => meta.allowRefundRequestAfterEngagement === true)
+  const fulfillmentEndAt = resolveOrderFulfillmentEnd(order.fulfillmentDate, order.fulfillmentTime)
+
+  if (!cancellationEnabled) {
+    return { kind: 'NONE', reason: 'ACTION_DISABLED', engaged: false }
+  }
+
+  if (status === 'CANCELLED') {
+    return { kind: 'NONE', reason: 'ALREADY_CANCELLED', engaged: false }
+  }
+
+  if (paymentStatus === 'REFUNDED') {
+    return { kind: 'NONE', reason: 'ALREADY_REFUNDED', engaged: true }
+  }
+
+  if (afterSalesStatus === 'REFUND_REQUESTED') {
+    return { kind: 'NONE', reason: 'REFUND_REQUEST_PENDING', engaged: true }
+  }
+
+  if (afterSalesStatus === 'REFUND_REJECTED') {
+    return { kind: 'NONE', reason: 'REFUND_REQUEST_REJECTED', engaged: true }
+  }
+
+  const paid = paymentStatus === 'PAID'
+  const engaged = isOrderEngaged(status, deliveryType, fulfillmentEndAt)
+
+  if (!engaged) {
+    return {
+      kind: paid ? 'CANCEL_AND_REFUND' : 'CANCEL',
+      reason: null,
+      engaged: false
+    }
+  }
+
+  if (paid && allowRefundAfterEngagement && deliveryType !== 'PICKUP' && status !== 'COMPLETED') {
+    return {
+      kind: 'REQUEST_REFUND',
+      reason: null,
+      engaged: true
+    }
+  }
+
+  return {
+    kind: 'NONE',
+    reason: resolveBlockedReason(status, deliveryType, fulfillmentEndAt, allowRefundAfterEngagement),
+    engaged: true
+  }
+}
+
+function isOrderEngaged(status: string, deliveryType: string, fulfillmentEndAt: Date | null) {
+  if (status === 'COMPLETED' || status === 'IN_DELIVERY') return true
+
+  if (deliveryType === 'ONSITE') {
+    return Boolean(fulfillmentEndAt && fulfillmentEndAt.getTime() <= Date.now())
+  }
+
+  if (deliveryType === 'PICKUP') {
+    return status === 'READY' || status === 'COMPLETED'
+  }
+
+  if (deliveryType === 'TOUR') {
+    return ['IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED'].includes(status)
+  }
+
+  return ['IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED'].includes(status)
+}
+
+function resolveBlockedReason(status: string, deliveryType: string, fulfillmentEndAt: Date | null, allowRefundAfterEngagement: boolean): ShopOrderCustomerActionReason {
+  if (status === 'COMPLETED') return 'FULFILLMENT_COMPLETED'
+  if (deliveryType === 'PICKUP' && status === 'READY') return 'PICKUP_POINT_AVAILABLE'
+  if (deliveryType === 'ONSITE' && fulfillmentEndAt && fulfillmentEndAt.getTime() <= Date.now()) return 'PICKUP_WINDOW_PASSED'
+  if (deliveryType === 'TOUR' && status === 'IN_DELIVERY') return allowRefundAfterEngagement ? null : 'DELIVERY_IN_PROGRESS'
+  return allowRefundAfterEngagement ? null : 'AFTER_ENGAGEMENT_NOT_REFUNDABLE'
+}
+
+function resolveOrderFulfillmentEnd(fulfillmentDate: string | null | undefined, fulfillmentTime: string | null | undefined) {
+  if (!fulfillmentDate) return null
+  const date = new Date(fulfillmentDate)
+  if (Number.isNaN(date.getTime())) return null
+  const endTime = String(fulfillmentTime || '').split('-').map(part => part.trim()).filter(Boolean).at(-1) || ''
+  const [hours, minutes] = endTime.split(':').map(value => Number(value))
+  if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+    date.setHours(Number(hours), Number(minutes), 0, 0)
+    return date
+  }
+  date.setHours(23, 59, 59, 999)
+  return date
 }
 
 export function normalizeProductLocalizedText(value: unknown, fallback = ''): CmsLocalizedText {

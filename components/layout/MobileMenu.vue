@@ -203,7 +203,11 @@ const previewStatic = computed(() => props.previewStatic)
 const inDevelopment = computed(() => effectiveSiteConfig.value?.inDevelopment === true)
 const cms = computed(() => effectiveSiteConfig.value?.cms)
 const registerEnabled = computed(() => effectiveSiteConfig.value?.registerEnabled === true)
-const shopEnabled = computed(() => effectiveSiteConfig.value?.featureFlags?.shop?.enabled === true)
+const effectiveFeatureFlags = computed<{ shop?: { enabled?: boolean } } | null>(() => {
+  const siteConfigValue = effectiveSiteConfig.value as { featureFlags?: { shop?: { enabled?: boolean } } } | null
+  return siteConfigValue?.featureFlags ?? null
+})
+const shopEnabled = computed(() => effectiveFeatureFlags.value?.shop?.enabled === true)
 const headerSettings = computed(() => cms.value?.settings.header ?? {
   heightPx: 84,
   logoHeightPx: 48,

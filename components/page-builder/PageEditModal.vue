@@ -741,7 +741,7 @@ const SectionEditor = defineComponent({
         }, [
           h('div', { class: 'mb-3 flex flex-wrap items-start justify-between gap-3' }, [
             h('div', { class: 'min-w-0 flex-1' }, [
-              h('div', { class: 'font-medium' }, standaloneItemLabel(item.type)),
+              h('div', { class: 'font-medium' }, standaloneItemLabel(item.type === 'badge' ? 'text' : item.type)),
               h('div', { class: 'mt-1 text-xs opacity-65' }, item.text.fr || item.text.en || 'Sans contenu')
             ]),
             h('div', { class: 'flex flex-wrap gap-2' }, [
@@ -763,8 +763,12 @@ const SectionEditor = defineComponent({
               h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement')]),
               h('select', {
                 class: 'select select-bordered w-full',
-                value: item.align || 'start',
-                onChange: (e: Event) => { item.align = (e.target as HTMLSelectElement).value as any }
+                value: item.type === 'title' || item.type === 'text' ? item.align : 'start',
+                onChange: (e: Event) => {
+                  if (item.type === 'title' || item.type === 'text') {
+                    item.align = (e.target as HTMLSelectElement).value as any
+                  }
+                }
               }, CONTENT_ALIGNS.map(align => h('option', { value: align }, itemAlignLabel(align))))
             ]),
             h(ThemeColorPicker, {

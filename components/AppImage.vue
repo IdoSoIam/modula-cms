@@ -51,7 +51,7 @@ defineOptions({
 type ImageFit = 'cover' | 'contain' | 'fill' | 'inside' | 'outside'
 type FetchPriority = 'auto' | 'high' | 'low'
 type Decoding = 'async' | 'auto' | 'sync'
-type ImageProvider = 'ipx' | 'cloudflare' | 'none'
+type ImageProvider = 'ipx' | 'cloudflare'
 
 const props = withDefaults(defineProps<{
   src: string

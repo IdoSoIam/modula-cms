@@ -161,7 +161,7 @@
                     />
                     <div class="form-control">
                       <label class="label"><span class="label-text">Alignement</span></label>
-                      <select v-model="item.align" class="select select-bordered w-full">
+                      <select :value="standaloneItemAlign(item)" class="select select-bordered w-full" @change="setStandaloneItemAlign(item, ($event.target as HTMLSelectElement).value)">
                         <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
                       </select>
                     </div>
@@ -231,7 +231,7 @@
                     />
                     <div class="form-control">
                       <label class="label"><span class="label-text">Alignement</span></label>
-                      <select v-model="item.align" class="select select-bordered w-full">
+                      <select :value="standaloneItemAlign(item)" class="select select-bordered w-full" @change="setStandaloneItemAlign(item, ($event.target as HTMLSelectElement).value)">
                         <option v-for="align in CONTENT_ALIGNS" :key="align" :value="align">{{ align }}</option>
                       </select>
                     </div>
@@ -758,7 +758,7 @@ import AdminPageBuilderCarouselFields from '#modula/components/admin/page-builde
 import AdminPageBuilderCardFields from '#modula/components/admin/page-builder/CardFields.vue'
 import AdminPageBuilderSectionBackgroundFields from '#modula/components/admin/page-builder/SectionBackgroundFields.vue'
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
-import type { PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderSectionItem, SectionColumnCount } from '#modula/shared/pageBuilder'
+import type { ContentAlign, PageBuilderCard, PageBuilderColumn, PageBuilderColumnItem, PageBuilderContent, PageBuilderFormField, PageBuilderFormItem, PageBuilderFormRow, PageBuilderSectionItem, SectionColumnCount } from '#modula/shared/pageBuilder'
 import {
   CARDS_DISPLAY_LABELS,
   CARDS_DISPLAYS,
@@ -800,6 +800,13 @@ import ImageInput from '#modula/components/ImageInput.vue'
 const props = defineProps<{
   content: PageBuilderContent
 }>()
+
+const standaloneItemAlign = (item: PageBuilderSectionItem) => item.type === 'title' || item.type === 'text' ? item.align : 'start'
+const setStandaloneItemAlign = (item: PageBuilderSectionItem, value: string) => {
+  if (item.type === 'title' || item.type === 'text') {
+    item.align = value as ContentAlign
+  }
+}
 
 const selectedSectionId = ref(props.content.sections[0]?.id || '')
 const sectionColumnTab = ref(0)

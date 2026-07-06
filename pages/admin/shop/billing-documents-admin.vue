@@ -283,13 +283,13 @@
                 </div>
 
                 <label class="form-control flex gap-3">
-                  <input v-model="form.invoiceColumns[index].enabled" class="toggle toggle-primary" type="checkbox">
+                  <input v-model="form.invoiceColumns[index]!.enabled" class="toggle toggle-primary" type="checkbox">
                   <span class="label-text">{{ t('admin.billingDocumentsPage.invoiceColumns.enabled') }}</span>
                 </label>
               </div>
 
               <AdminPageBuilderTranslationTabs
-                v-model="form.invoiceColumns[index].labelLocalized"
+                v-model="form.invoiceColumns[index]!.labelLocalized"
                 :locales="siteLocales"
                 :label="t('admin.billingDocumentsPage.invoiceColumns.labelField')"
               />

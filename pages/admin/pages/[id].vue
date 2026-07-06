@@ -384,7 +384,7 @@ const normalizePublicPath = (path: string) => {
 }
 
 const liveEditUrl = computed(() => {
-  const publicPath = localePath(normalizePublicPath(page.path))
+  const publicPath = String(localePath(normalizePublicPath(page.path)))
   const separator = publicPath.includes('?') ? '&' : '?'
   return `${publicPath}${separator}liveEdit=1`
 })

@@ -1,7 +1,7 @@
 import type { CmsRegistryPaymentRecord } from '#modula/shared/registry'
 import { db } from '#modula/server/data/client'
 
-type ShopOrderStatus = 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED'
+type ShopOrderStatus = 'DRAFT' | 'PENDING' | 'CONFIRMED' | 'IN_PREPARATION' | 'READY' | 'IN_DELIVERY' | 'COMPLETED' | 'CANCELLED'
 type ShopPaymentStatus = 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
 
 interface SyncedOrderResult {
@@ -46,11 +46,12 @@ export async function syncShopOrderFromRegistryPayment(
   }
 
   if (payment.paymentStatus === 'PAID' && order.status !== 'CANCELLED') {
-    data.status = 'PAID'
+    data.status = order.status === 'DRAFT' || order.status === 'PENDING' ? 'CONFIRMED' : order.status
     data.paidAt = new Date()
   } else if (payment.paymentStatus === 'FAILED') {
     data.status = order.status === 'CANCELLED' ? 'CANCELLED' : 'PENDING'
   } else if (payment.paymentStatus === 'REFUNDED') {
+    data.status = 'CANCELLED'
     data.refundedAt = new Date()
   }
 

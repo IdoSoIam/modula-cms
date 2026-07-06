@@ -287,9 +287,8 @@
                 <label class="label">
                   <span class="label-text">{{ publicText('profile.currentPassword', 'Mot de passe actuel') }}</span>
                 </label>
-                <input
+                <PasswordField
                   v-model="passwordForm.currentPassword"
-                  type="password"
                   class="input input-bordered w-full"
                   required
                 />
@@ -298,9 +297,8 @@
                 <label class="label">
                   <span class="label-text">{{ publicText('profile.newPassword', 'Nouveau mot de passe') }}</span>
                 </label>
-                <input
+                <PasswordField
                   v-model="passwordForm.newPassword"
-                  type="password"
                   class="input input-bordered w-full"
                   minlength="8"
                   required
@@ -310,9 +308,8 @@
                 <label class="label">
                   <span class="label-text">{{ publicText('profile.confirmNewPassword', 'Confirmer le nouveau mot de passe') }}</span>
                 </label>
-                <input
+                <PasswordField
                   v-model="passwordForm.confirmPassword"
-                  type="password"
                   class="input input-bordered w-full"
                   minlength="8"
                   required
@@ -366,9 +363,8 @@
           <label class="label">
             <span class="label-text">{{ publicText('profile.enterPasswordToDelete', 'Saisissez votre mot de passe pour confirmer') }}</span>
           </label>
-          <input
+          <PasswordField
             v-model="deleteForm.password"
-            type="password"
             class="input input-bordered w-full"
             required
           />

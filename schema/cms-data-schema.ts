@@ -3,9 +3,10 @@ import { defineModel, defineSchema, field, index, relation, unique } from './dsl
 const deliveryTypes = ['ONSITE', 'PICKUP', 'TOUR']
 const productSaleTypes = ['SALE', 'RENTAL']
 const billingDocumentKinds = ['INVOICE', 'CONTRACT', 'ASSURANCE']
-const shopOrderStatuses = ['DRAFT', 'PENDING', 'PAID', 'CANCELLED']
+const shopOrderStatuses = ['DRAFT', 'PENDING', 'CONFIRMED', 'IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED', 'CANCELLED']
 const shopPaymentProviders = ['OFFLINE', 'STRIPE']
 const shopPaymentStatuses = ['UNPAID', 'PENDING', 'PAID', 'FAILED', 'REFUNDED']
+const shopAfterSalesStatuses = ['NONE', 'REFUND_REQUESTED', 'REFUND_REJECTED']
 const stripeTaxBehaviors = ['inclusive', 'exclusive']
 const eventStatuses = ['DRAFT', 'PUBLISHED', 'ARCHIVED', 'CANCELLED']
 const eventVisibilities = ['PUBLIC', 'PRIVATE']
@@ -244,6 +245,8 @@ export const cmsDataSchema = defineSchema({
         unitLabelJson: field.string({ default: '{"fr":"","en":""}' }),
         allowOfflinePayment: field.boolean({ default: true }),
         allowOnlinePayment: field.boolean({ default: false }),
+        allowCustomerCancellation: field.boolean({ default: true }),
+        allowRefundRequestAfterEngagement: field.boolean({ default: false }),
         active: field.boolean({ default: true }),
         position: field.int({ default: 0 }),
         createdAt: field.datetime({ default: 'now' }),
@@ -323,6 +326,11 @@ export const cmsDataSchema = defineSchema({
         providerPaymentStatus: field.string({ nullable: true }),
         providerLastEventId: field.string({ nullable: true }),
         paymentFailureReason: field.string({ nullable: true }),
+        afterSalesStatus: field.enum(shopAfterSalesStatuses, { default: 'NONE' }),
+        refundRequestReason: field.string({ nullable: true }),
+        refundRequestNote: field.string({ nullable: true }),
+        refundRequestedAt: field.datetime({ nullable: true }),
+        refundReviewedAt: field.datetime({ nullable: true }),
         customerName: field.string(),
         email: field.string(),
         phone: field.string({ nullable: true }),

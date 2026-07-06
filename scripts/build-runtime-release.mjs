@@ -7,6 +7,10 @@ import { createHash } from 'node:crypto'
 const cwd = process.cwd()
 const pkg = JSON.parse(await readFile(path.join(cwd, 'package.json'), 'utf8'))
 const version = process.argv[2] || pkg.version || '0.0.0'
+if (pkg.version !== version) {
+  pkg.version = version
+  await writeFile(path.join(cwd, 'package.json'), `${JSON.stringify(pkg, null, 2)}\n`, 'utf8')
+}
 const distDir = path.join(cwd, 'dist-releases')
 const archivePath = path.join(distDir, `modula-cms-runtime-${version}.tar.gz`)
 const manifestPath = path.join(cwd, '.release-manifest.json')

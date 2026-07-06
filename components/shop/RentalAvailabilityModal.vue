@@ -77,6 +77,20 @@
 <script setup lang="ts">
 import OrdersCalendar from '#modula/components/admin/OrdersCalendar.vue'
 
+interface RentalAvailabilityResponse {
+  month: string
+  monthLabel: string
+  monthInput: string
+  dayNames: string[]
+  source: {
+    saleType: 'SALE' | 'RENTAL'
+    stock: number
+    rentalMinDays: number
+    rentalMaxDays: number | null
+  }
+  days: any[]
+}
+
 const props = defineProps<{
   open: boolean
   sourceKind: 'product'
@@ -108,7 +122,7 @@ const query = computed(() => ({
   locale: locale.value,
 }))
 
-const { data, pending, refresh } = await useFetch('/api/shop/rental-availability', {
+const { data, pending, refresh } = await useFetch<RentalAvailabilityResponse>('/api/shop/rental-availability', {
   query,
   immediate: false,
 })

@@ -45,34 +45,34 @@
             <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.generalCard') }}</h2>
             <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div class="form-control flex flex-col gap-3 md:col-span-2">
-                <AdminPageBuilderTranslationTabs v-model="editing.nameLocalized" :label="t('admin.vegetablesPage.fieldName')" />
+                <AdminPageBuilderTranslationTabs v-model="editing.nameLocalized" :label="t('admin.productsPage.fieldName')" />
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldSlug') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldSlug') }}</span></label>
                 <input v-model="editing.slug" class="input input-bordered" :placeholder="t('admin.productEditorPage.slugPlaceholder')" />
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldCategory') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldCategory') }}</span></label>
                 <select v-model.number="editing.categoryId" class="select select-bordered">
-                  <option :value="0">{{ t('admin.vegetablesPage.noCategory') }}</option>
+                  <option :value="0">{{ t('admin.productsPage.noCategory') }}</option>
                   <option v-for="category in categories || []" :key="category.id" :value="category.id">{{ category.name }}</option>
                 </select>
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldSaleType') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldSaleType') }}</span></label>
                 <select v-model="editing.saleType" class="select select-bordered">
-                  <option value="SALE">{{ t('admin.vegetablesPage.saleTypeSale') }}</option>
-                  <option value="RENTAL">{{ t('admin.vegetablesPage.saleTypeRental') }}</option>
+                  <option value="SALE">{{ t('admin.productsPage.saleTypeSale') }}</option>
+                  <option value="RENTAL">{{ t('admin.productsPage.saleTypeRental') }}</option>
                 </select>
               </div>
               <div class="form-control flex flex-col gap-3">
-                <AdminPageBuilderTranslationTabs v-model="editing.unitLabelLocalized" :label="t('admin.vegetablesPage.fieldUnit')" />
+                <AdminPageBuilderTranslationTabs v-model="editing.unitLabelLocalized" :label="t('admin.productsPage.fieldUnit')" />
               </div>
               <div class="form-control flex flex-col gap-3 md:col-span-2">
-                <AdminPageBuilderTranslationTabs v-model="editing.excerptLocalized" :label="t('admin.vegetablesPage.fieldExcerpt')" multiline />
+                <AdminPageBuilderTranslationTabs v-model="editing.excerptLocalized" :label="t('admin.productsPage.fieldExcerpt')" multiline />
               </div>
               <div class="form-control flex flex-col gap-3 md:col-span-2">
-                <AdminPageBuilderTranslationTabs v-model="editing.descriptionLocalized" :label="t('admin.vegetablesPage.fieldDescription')" multiline />
+                <AdminPageBuilderTranslationTabs v-model="editing.descriptionLocalized" :label="t('admin.productsPage.fieldDescription')" multiline />
               </div>
             </div>
           </section>
@@ -81,7 +81,7 @@
             <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.mediaCard') }}</h2>
             <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div class="form-control flex flex-col gap-3 md:col-span-2">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldImage') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldImage') }}</span></label>
                 <ImageInput v-model="editing.imageUrl" />
               </div>
               <div v-if="editing.imageUrl" class="md:col-span-2">
@@ -94,36 +94,51 @@
             <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.commerceCard') }}</h2>
             <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldPrice') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldPrice') }}</span></label>
                 <input v-model.number="editing.price" type="number" min="0" step="0.01" class="input input-bordered" />
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldVatRate') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldVatRate') }}</span></label>
                 <input v-model.number="editing.vatRate" type="number" min="0" max="100" step="0.01" class="input input-bordered" />
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldAvailable') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldAvailable') }}</span></label>
                 <input v-model.number="editing.stock" type="number" min="0" step="1" class="input input-bordered" />
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldPosition') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldPosition') }}</span></label>
                 <input v-model.number="editing.position" type="number" min="0" step="1" class="input input-bordered" />
               </div>
               <div class="form-control flex gap-3">
                 <label class="label cursor-pointer justify-start gap-3">
                   <input v-model="editing.allowOfflinePayment" type="checkbox" class="checkbox" />
-                  <span class="label-text">{{ t('admin.vegetablesPage.paymentOffline') }}</span>
+                  <span class="label-text">{{ t('admin.productsPage.paymentOffline') }}</span>
                 </label>
                 <label class="label cursor-pointer justify-start gap-3">
                   <input v-model="editing.allowOnlinePayment" type="checkbox" class="checkbox" />
-                  <span class="label-text">{{ t('admin.vegetablesPage.paymentOnline') }}</span>
+                  <span class="label-text">{{ t('admin.productsPage.paymentOnline') }}</span>
                 </label>
               </div>
               <div class="form-control flex gap-3">
                 <label class="label cursor-pointer justify-start gap-3">
                   <input v-model="editing.active" type="checkbox" class="checkbox" />
-                  <span class="label-text">{{ t('admin.vegetablesPage.fieldActive') }}</span>
+                  <span class="label-text">{{ t('admin.productsPage.fieldActive') }}</span>
                 </label>
+              </div>
+              <div class="form-control flex gap-3 md:col-span-2">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input v-model="editing.allowCustomerCancellation" type="checkbox" class="checkbox" />
+                  <span class="label-text">{{ t('admin.productEditorPage.allowCustomerCancellation') }}</span>
+                </label>
+              </div>
+              <div class="form-control flex gap-3 md:col-span-2">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input v-model="editing.allowRefundRequestAfterEngagement" type="checkbox" class="checkbox" />
+                  <span class="label-text">{{ t('admin.productEditorPage.allowRefundRequestAfterEngagement') }}</span>
+                </label>
+              </div>
+              <div class="md:col-span-2 text-sm opacity-70">
+                {{ t('admin.productEditorPage.refundPolicyHelp') }}
               </div>
             </div>
           </section>
@@ -132,23 +147,23 @@
             <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.rentalCard') }}</h2>
             <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldRentalAvailableFrom') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldRentalAvailableFrom') }}</span></label>
                 <input v-model="editing.rentalAvailableFrom" type="date" class="input input-bordered" />
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldRentalAvailableTo') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldRentalAvailableTo') }}</span></label>
                 <input v-model="editing.rentalAvailableTo" type="date" class="input input-bordered" />
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldRentalMinDays') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldRentalMinDays') }}</span></label>
                 <input v-model.number="editing.rentalMinDays" type="number" min="1" step="1" class="input input-bordered" />
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.vegetablesPage.fieldRentalMaxDays') }}</span></label>
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldRentalMaxDays') }}</span></label>
                 <input v-model.number="editing.rentalMaxDays" type="number" min="1" step="1" class="input input-bordered" />
               </div>
               <div class="md:col-span-2 text-sm opacity-70">
-                {{ t('admin.vegetablesPage.rentalHelp') }}
+                {{ t('admin.productsPage.rentalHelp') }}
               </div>
             </div>
           </section>
@@ -251,23 +266,23 @@
             <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.summaryCard') }}</h2>
             <dl class="mt-5 space-y-4 text-sm">
               <div class="flex items-start justify-between gap-4">
-                <dt class="font-medium">{{ t('admin.vegetablesPage.headers.status') }}</dt>
+                <dt class="font-medium">{{ t('admin.productsPage.headers.status') }}</dt>
                 <dd>
                   <span class="badge" :class="editing.active ? 'badge-success' : 'badge-ghost'">
-                    {{ editing.active ? t('admin.vegetablesPage.active') : t('admin.vegetablesPage.inactive') }}
+                    {{ editing.active ? t('admin.productsPage.active') : t('admin.productsPage.inactive') }}
                   </span>
                 </dd>
               </div>
               <div class="flex items-start justify-between gap-4">
-                <dt class="font-medium">{{ t('admin.vegetablesPage.headers.saleType') }}</dt>
-                <dd>{{ editing.saleType === 'RENTAL' ? t('admin.vegetablesPage.saleTypeRental') : t('admin.vegetablesPage.saleTypeSale') }}</dd>
+                <dt class="font-medium">{{ t('admin.productsPage.headers.saleType') }}</dt>
+                <dd>{{ editing.saleType === 'RENTAL' ? t('admin.productsPage.saleTypeRental') : t('admin.productsPage.saleTypeSale') }}</dd>
               </div>
               <div class="flex items-start justify-between gap-4">
-                <dt class="font-medium">{{ t('admin.vegetablesPage.headers.price') }}</dt>
+                <dt class="font-medium">{{ t('admin.productsPage.headers.price') }}</dt>
                 <dd>{{ $formatPrice(editing.price || 0) }}</dd>
               </div>
               <div class="flex items-start justify-between gap-4">
-                <dt class="font-medium">{{ t('admin.vegetablesPage.fieldAvailable') }}</dt>
+                <dt class="font-medium">{{ t('admin.productsPage.fieldAvailable') }}</dt>
                 <dd>{{ editing.stock || 0 }}</dd>
               </div>
               <div class="flex items-start justify-between gap-4">
@@ -326,6 +341,8 @@ interface ProductEditorState {
   unitLabelLocalized: CmsLocalizedText
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
+  allowCustomerCancellation: boolean
+  allowRefundRequestAfterEngagement: boolean
   active: boolean
   position: number
   detailSections: ProductDetailSection[]
@@ -445,6 +462,8 @@ async function save() {
       unitLabelLocalized: editing.unitLabelLocalized,
       allowOfflinePayment: editing.allowOfflinePayment,
       allowOnlinePayment: editing.allowOnlinePayment,
+      allowCustomerCancellation: editing.allowCustomerCancellation,
+      allowRefundRequestAfterEngagement: editing.allowRefundRequestAfterEngagement,
       active: editing.active,
       position: editing.position,
       detailSections: normalizeDetailSectionsForSave(editing.detailSections, editorLocales.value)
@@ -454,7 +473,7 @@ async function save() {
       ? await $fetch<ProductPayload>('/api/admin/products', { method: 'POST', body: payload })
       : await $fetch<ProductPayload>(`/api/admin/products/${editing.id}`, { method: 'PUT', body: payload })
 
-    $toast.success(t('admin.vegetablesPage.saved'))
+    $toast.success(t('admin.productsPage.saved'))
 
     if (isCreateMode.value) {
       await navigateTo(localePath(`${productsBasePath.value}/${response.id}`))
@@ -471,7 +490,7 @@ async function save() {
 
 async function removeProduct() {
   if (!editing.id) return
-  if (!confirm(t('admin.vegetablesPage.deleteConfirm', { name: localizedName.value || `#${editing.id}` }))) return
+  if (!confirm(t('admin.productsPage.deleteConfirm', { name: localizedName.value || `#${editing.id}` }))) return
 
   deleting.value = true
   try {
@@ -505,6 +524,8 @@ function createEmptyEditorState(vatRate: number, translate: (key: string) => str
     unitLabelLocalized: createEmptyCmsLocalizedText(locales),
     allowOfflinePayment: true,
     allowOnlinePayment: false,
+    allowCustomerCancellation: true,
+    allowRefundRequestAfterEngagement: false,
     active: true,
     position: 0,
     detailSections: [
@@ -535,6 +556,8 @@ function mapProductToEditor(product: ProductPayload): ProductEditorState {
     unitLabelLocalized: structuredClone(product.unitLabelLocalized),
     allowOfflinePayment: product.allowOfflinePayment,
     allowOnlinePayment: product.allowOnlinePayment,
+    allowCustomerCancellation: product.allowCustomerCancellation,
+    allowRefundRequestAfterEngagement: product.allowRefundRequestAfterEngagement,
     active: product.active,
     position: product.position,
     detailSections: Array.isArray(product.detailSections) && product.detailSections.length

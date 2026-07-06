@@ -36,7 +36,8 @@
           :show-images="settings?.showImages !== false"
           :show-descriptions="settings?.showDescriptions !== false"
           :item-background-color="itemBackgroundColor"
-          :add-label="viewProductLabel"
+          :view-label="viewProductLabel"
+          :add-label="addToCartLabel"
           :rental-add-label="viewProductLabel"
           :sold-out-label="soldOutLabel"
           :sale-label="saleLabel"
@@ -45,7 +46,8 @@
           :offline-label="offlineLabel"
           :online-label="onlineLabel"
           :disable-on-sold-out="false"
-          @add="openProductDetail"
+          @add="handleProductAction"
+          @view="openProductDetail"
         />
 
         <div v-else class="rounded-3xl border border-dashed border-base-300 px-6 py-14 text-center opacity-60">
@@ -73,7 +75,8 @@ const locale = contentLocale
 const route = useRoute()
 const router = useRouter()
 const localePath = usePublicLocalePath()
-const { count } = useShopCart()
+const { $toast } = useNuxtApp() as any
+const { count, add } = useShopCart()
 
 const selectedCategorySlug = ref(typeof route.query.category === 'string' ? route.query.category : '')
 const { data, pending, refresh } = await useFetch<{ categories: ProductCategoryPayload[], products: ProductPayload[] }>('/api/shop/catalog', {
@@ -89,6 +92,7 @@ const pageTitle = computed(() => pickCmsLocalizedText(locale.value, props.settin
 const pageSubtitle = computed(() => pickCmsLocalizedText(locale.value, props.settings?.subtitle) || publicText('shop.catalog.subtitle', 'Parcourez les produits à vendre ou à louer.'))
 const shopLabel = computed(() => publicText('shop.catalog.eyebrow', 'Produits'))
 const cartButtonLabel = computed(() => publicText('shop.catalog.cartButton', 'Panier ({count})', { count: count.value }))
+const addToCartLabel = computed(() => publicText('shop.catalog.addToCart', 'Ajouter au panier'))
 const viewProductLabel = computed(() => publicText('shop.catalog.viewProduct', 'Voir le produit'))
 const soldOutLabel = computed(() => publicText('shop.catalog.soldOut', 'Épuisé'))
 const saleLabel = computed(() => publicText('shop.catalog.sale', 'Vente'))
@@ -111,7 +115,41 @@ const selectCategory = async (slug: string) => {
   await refresh()
 }
 
+const getLocalizedName = (product: ProductPayload) =>
+  pickCmsLocalizedText(contentLocale.value, product.nameLocalized) || product.name || ''
+
+const getLocalizedExcerpt = (product: ProductPayload) =>
+  pickCmsLocalizedText(contentLocale.value, product.excerptLocalized) || product.excerpt || ''
+
 const openProductDetail = (product: ProductPayload) => navigateTo(localePath(`/products/${product.slug}`))
+
+const handleProductAction = (product: ProductPayload) => {
+  if (product.saleType === 'RENTAL') {
+    openProductDetail(product)
+    return
+  }
+
+  add({
+    key: `product-${product.id}`,
+    kind: 'product',
+    productId: product.id,
+    title: getLocalizedName(product),
+    imageUrl: product.imageUrl,
+    description: getLocalizedExcerpt(product),
+    quantity: 1,
+    saleType: product.saleType,
+    availableQuantity: product.stock,
+    vatRate: product.vatRate,
+    paymentTaxCode: product.paymentTaxCode,
+    paymentTaxBehavior: product.paymentTaxBehavior,
+    allowOfflinePayment: product.allowOfflinePayment,
+    allowOnlinePayment: product.allowOnlinePayment,
+    unitPrice: product.price,
+    totalPrice: product.price
+  })
+
+  $toast.success(publicText('shop.catalog.addSaleSuccess', 'Ajouté au panier'))
+}
 
 const goToCart = () => navigateTo(localePath('/panier'))
 </script>

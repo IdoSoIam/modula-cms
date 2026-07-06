@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
     db.shopOrder.count({
       where: {
         userId: id,
-        status: { in: ['PENDING', 'PAID'] }
+        status: { in: ['PENDING', 'CONFIRMED', 'IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED'] }
       }
     }),
     db.article.count({

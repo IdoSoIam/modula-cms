@@ -47,6 +47,8 @@ export const MDI_ICON_CATALOG = [
   'mdi:email-edit-outline',
   'mdi:email-fast-outline',
   'mdi:email-outline',
+  'mdi:eye-off-outline',
+  'mdi:eye-outline',
   'mdi:facebook',
   'mdi:file-document-edit-outline',
   'mdi:file-document-outline',

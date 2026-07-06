@@ -243,7 +243,7 @@
               {{ localeCode.toUpperCase() }}
             </button>
           </div>
-          <CmsPageContentBuilder :content="editor.translations[contentLocale].content" />
+          <CmsPageContentBuilder :content="editor.translations[contentLocale]?.content ?? editor.translations.fr.content" />
         </section>
 
         <section v-if="editor.id" class="space-y-4 rounded-2xl border border-base-300 bg-base-200 p-5">

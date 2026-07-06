@@ -143,9 +143,8 @@
               <label class="label">
                 <span class="label-text">{{ t('admin.emailConnectorsPage.resendApiKey') }}</span>
               </label>
-              <input
+              <PasswordField
                 v-model="form.resendApiKey"
-                type="password"
                 class="input input-bordered w-full"
                 placeholder="re_..."
                 autocomplete="off"

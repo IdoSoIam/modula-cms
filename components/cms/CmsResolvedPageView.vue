@@ -451,7 +451,15 @@ async function saveLiveEdit() {
       }
     }
 
-    page.translations[currentLocale.value].content = cloneCmsData(editableResolvedPage.value.content)
+    if (!page.translations[currentLocale.value]) {
+      page.translations[currentLocale.value] = {
+        title: page.title,
+        navigationLabel: page.title,
+        seo: cloneCmsData(editableResolvedPage.value.seo),
+        content: cloneCmsData(editableResolvedPage.value.content)
+      }
+    }
+    page.translations[currentLocale.value]!.content = cloneCmsData(editableResolvedPage.value.content)
     const saved = await $fetch<CmsPageEditor>(`/api/admin/cms/pages/${page.id}`, {
       method: 'PUT',
       body: page

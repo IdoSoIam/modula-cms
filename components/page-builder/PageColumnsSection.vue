@@ -25,7 +25,7 @@
                 :is="item.type === 'title' ? titleTag(item) : 'p'"
                 :class="[
                   item.type === 'title' ? ['font-bold', titleSizeClass(item.size)] : ['opacity-80', textSizeClass(item.size)],
-                  standaloneItemAlignClass(item.align)
+                  standaloneItemAlignClass(item.type === 'title' || item.type === 'text' ? item.align : 'start')
                 ]"
                 :style="textColorStyle(item.textColor)"
               >
@@ -350,7 +350,7 @@
                 :is="item.type === 'title' ? titleTag(item) : 'p'"
                 :class="[
                   item.type === 'title' ? ['font-bold', titleSizeClass(item.size)] : ['opacity-80', textSizeClass(item.size)],
-                  standaloneItemAlignClass(item.align)
+                  standaloneItemAlignClass(item.type === 'title' || item.type === 'text' ? item.align : 'start')
                 ]"
                 :style="textColorStyle(item.textColor)"
               >

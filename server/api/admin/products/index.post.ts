@@ -38,6 +38,8 @@ interface Body {
   unitLabelLocalized?: CmsLocalizedText | null
   allowOfflinePayment?: boolean
   allowOnlinePayment?: boolean
+  allowCustomerCancellation?: boolean
+  allowRefundRequestAfterEngagement?: boolean
   active?: boolean
   position?: number
 }
@@ -72,6 +74,8 @@ export default defineEventHandler(async (event) => {
     : normalizeStripeTaxBehavior(body.paymentTaxBehavior, 'inclusive')
   const allowOfflinePayment = body.allowOfflinePayment ?? true
   const allowOnlinePayment = body.allowOnlinePayment ?? false
+  const allowCustomerCancellation = body.allowCustomerCancellation ?? true
+  const allowRefundRequestAfterEngagement = body.allowRefundRequestAfterEngagement ?? false
   if (!Number.isFinite(price) || price < 0) {
     throw createError({ statusCode: 400, statusMessage: 'Prix invalide' })
   }
@@ -115,6 +119,8 @@ export default defineEventHandler(async (event) => {
       unitLabelJson: unitLabelPayload.json,
       allowOfflinePayment,
       allowOnlinePayment,
+      allowCustomerCancellation,
+      allowRefundRequestAfterEngagement,
       active: body.active ?? true,
       position: body.position ?? 0
     },

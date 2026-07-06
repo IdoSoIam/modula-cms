@@ -2,11 +2,11 @@
   <div class="card bg-base-100 p-6">
     <div class="mb-6 flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold">{{ t('admin.vegetablesPage.title') }}</h1>
-        <p class="mt-1 text-sm opacity-70">{{ t('admin.vegetablesPage.description') }}</p>
+        <h1 class="text-3xl font-bold">{{ t('admin.productsPage.title') }}</h1>
+        <p class="mt-1 text-sm opacity-70">{{ t('admin.productsPage.description') }}</p>
       </div>
       <button class="btn btn-primary" @click="openNew">
-        <Icon name="mdi:plus" size="20" /> {{ t('admin.vegetablesPage.new') }}
+        <Icon name="mdi:plus" size="20" /> {{ t('admin.productsPage.new') }}
       </button>
     </div>
 
@@ -17,15 +17,15 @@
         <thead>
           <tr>
             <th class="w-16"></th>
-            <th>{{ t('admin.vegetablesPage.headers.name') }}</th>
-            <th>{{ t('admin.vegetablesPage.headers.slug') }}</th>
-            <th>{{ t('admin.vegetablesPage.headers.category') }}</th>
-            <th class="text-right">{{ t('admin.vegetablesPage.headers.price') }}</th>
-            <th class="text-right">{{ t('admin.vegetablesPage.headers.vatRate') }}</th>
-            <th class="text-right">{{ t('admin.vegetablesPage.fieldAvailable') }}</th>
-            <th>{{ t('admin.vegetablesPage.headers.saleType') }}</th>
-            <th>{{ t('admin.vegetablesPage.headers.unit') }}</th>
-            <th>{{ t('admin.vegetablesPage.headers.status') }}</th>
+            <th>{{ t('admin.productsPage.headers.name') }}</th>
+            <th>{{ t('admin.productsPage.headers.slug') }}</th>
+            <th>{{ t('admin.productsPage.headers.category') }}</th>
+            <th class="text-right">{{ t('admin.productsPage.headers.price') }}</th>
+            <th class="text-right">{{ t('admin.productsPage.headers.vatRate') }}</th>
+            <th class="text-right">{{ t('admin.productsPage.fieldAvailable') }}</th>
+            <th>{{ t('admin.productsPage.headers.saleType') }}</th>
+            <th>{{ t('admin.productsPage.headers.unit') }}</th>
+            <th>{{ t('admin.productsPage.headers.status') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -43,11 +43,11 @@
             <td class="text-right">{{ $formatPrice(product.price) }}</td>
             <td class="text-right">{{ formatVatRate(product.vatRate) }}</td>
             <td class="text-right">{{ product.stock }}</td>
-            <td>{{ product.saleType === 'RENTAL' ? t('admin.vegetablesPage.saleTypeRental') : t('admin.vegetablesPage.saleTypeSale') }}</td>
+            <td>{{ product.saleType === 'RENTAL' ? t('admin.productsPage.saleTypeRental') : t('admin.productsPage.saleTypeSale') }}</td>
             <td>{{ getLocalizedUnitLabel(product) || '-' }}</td>
             <td>
               <span class="badge" :class="product.active ? 'badge-success' : 'badge-ghost'">
-                {{ product.active ? t('admin.vegetablesPage.active') : t('admin.vegetablesPage.inactive') }}
+                {{ product.active ? t('admin.productsPage.active') : t('admin.productsPage.inactive') }}
               </span>
             </td>
             <td class="text-right">
@@ -61,7 +61,7 @@
           </tr>
           <tr v-if="!products?.length">
             <td colspan="11" class="py-8 text-center opacity-60">
-              {{ t('admin.vegetablesPage.empty') }}
+              {{ t('admin.productsPage.empty') }}
             </td>
           </tr>
         </tbody>
@@ -90,7 +90,7 @@ const openNew = () => navigateTo(localePath(`${productsBasePath.value}/new`))
 const openEdit = (product: ProductPayload) => navigateTo(localePath(`${productsBasePath.value}/${product.id}`))
 
 const remove = async (product: ProductPayload) => {
-  if (!confirm(t('admin.vegetablesPage.deleteConfirm', { name: getLocalizedProductName(product) }))) return
+  if (!confirm(t('admin.productsPage.deleteConfirm', { name: getLocalizedProductName(product) }))) return
   try {
     await $fetch(`/api/admin/products/${product.id}`, { method: 'DELETE' })
     await refresh()

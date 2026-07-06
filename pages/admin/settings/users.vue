@@ -76,7 +76,7 @@
           <input v-model="createForm.firstName" class="input input-bordered w-full" placeholder="Prénom" />
           <input v-model="createForm.lastName" class="input input-bordered w-full" placeholder="Nom" />
           <input v-model="createForm.email" class="input input-bordered w-full md:col-span-2" placeholder="Email" />
-          <input v-if="createMode === 'password'" v-model="createForm.password" class="input input-bordered w-full md:col-span-2" placeholder="Mot de passe temporaire (optionnel)" />
+          <PasswordField v-if="createMode === 'password'" v-model="createForm.password" class="input input-bordered w-full md:col-span-2" placeholder="Mot de passe temporaire (optionnel)" />
           <select v-model.number="createForm.roleId" class="select select-bordered w-full md:col-span-2">
             <option :value="null">Rôle d'accès par défaut</option>
             <option v-for="role in accessRoles" :key="role.id" :value="role.id">{{ role.name }}</option>
@@ -307,7 +307,7 @@ const resolvePasswordSetupLink = (response: CreateUserResponse) => {
   if (rawLink) return absoluteLink(rawLink)
 
   const token = response.passwordSetupToken || response.setupToken || response.token
-  return token ? absoluteLink(localePath(`/password-setup/${token}`)) : ''
+  return token ? absoluteLink(String(localePath(`/password-setup/${token}`))) : ''
 }
 
 const copyInvitationLink = async () => {

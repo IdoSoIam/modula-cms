@@ -98,7 +98,10 @@ export default defineEventHandler(async (event) => {
         statusMessage: "Cette commande ne correspond pas à cet email",
       });
     }
-    if (retryOrder.paymentStatus === "PAID" || retryOrder.status === "PAID") {
+    if (
+      retryOrder.paymentStatus === "PAID"
+      || ["CONFIRMED", "IN_PREPARATION", "READY", "IN_DELIVERY", "COMPLETED"].includes(String(retryOrder.status || ""))
+    ) {
       throw createError({
         statusCode: 400,
         statusMessage: "Cette commande est déjà payée",
@@ -163,6 +166,8 @@ export default defineEventHandler(async (event) => {
         vatRate: product.vatRate,
         paymentTaxCode: product.paymentTaxCode,
         paymentTaxBehavior: product.paymentTaxBehavior,
+        allowCustomerCancellation: product.allowCustomerCancellation,
+        allowRefundRequestAfterEngagement: product.allowRefundRequestAfterEngagement,
         linkedBillingDocuments: product.detailSections
           .flatMap((section) => section.items)
           .filter((item) => item.mediaKind === "billingDocument" && item.mediaDocumentId)

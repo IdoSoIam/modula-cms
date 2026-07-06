@@ -41,9 +41,19 @@
               <span v-if="product.allowOnlinePayment" class="badge badge-outline">{{ onlineLabel }}</span>
             </div>
           </div>
-          <button class="btn btn-outline mt-5 w-full lg:mt-auto" :disabled="disableOnSoldOut && product.stock <= 0" @click="$emit('add', product)">
-            {{ product.stock <= 0 && disableOnSoldOut ? soldOutLabel : product.saleType === 'RENTAL' ? rentalAddLabel : addLabel }}
-          </button>
+          <div class="mt-5 grid gap-3 lg:mt-auto" :class="product.saleType === 'RENTAL' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'">
+            <button class="btn btn-ghost" @click="$emit('view', product)">
+              {{ viewLabel }}
+            </button>
+            <button
+              class="btn btn-outline"
+              :class="product.saleType === 'RENTAL' ? 'sm:col-span-1' : ''"
+              :disabled="disableOnSoldOut && product.stock <= 0"
+              @click="$emit('add', product)"
+            >
+              {{ product.stock <= 0 && disableOnSoldOut ? soldOutLabel : product.saleType === 'RENTAL' ? rentalAddLabel : addLabel }}
+            </button>
+          </div>
         </div>
       </div>
     </article>
@@ -59,6 +69,7 @@ const props = defineProps<{
   showImages?: boolean
   showDescriptions?: boolean
   itemBackgroundColor?: string
+  viewLabel: string
   addLabel: string
   rentalAddLabel: string
   soldOutLabel: string
@@ -72,6 +83,7 @@ const props = defineProps<{
 
 defineEmits<{
   add: [product: ProductPayload]
+  view: [product: ProductPayload]
 }>()
 
 const { contentLocale } = useContentLocale()

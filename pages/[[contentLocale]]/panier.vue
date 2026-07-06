@@ -104,6 +104,10 @@
               <input v-model="checkoutForm.phone" class="input input-bordered" />
             </div>
 
+            <div class="rounded-2xl bg-base-200 p-4 text-sm opacity-80">
+              {{ accountProvisioningNotice }}
+            </div>
+
             <div v-if="hasRentalItems" class="rounded-2xl bg-base-200 p-4 text-sm opacity-80">
               {{ rentalHelpLabel }}
             </div>
@@ -382,6 +386,10 @@ const countLabel = computed(() => publicText('checkout.cart.count', '{count} art
 const fullNameLabel = computed(() => publicText('checkout.cart.fullName', 'Nom complet'))
 const emailLabel = computed(() => publicText('checkout.cart.email', 'Email'))
 const phoneLabel = computed(() => publicText('checkout.cart.phone', 'Téléphone'))
+const accountProvisioningNotice = computed(() => authStore.user
+  ? publicText('checkout.cart.accountLinkedNotice', 'Cette commande sera rattachée à votre compte utilisateur.')
+  : publicText('checkout.cart.accountProvisioningNotice', 'Si aucun compte n’existe avec cet email, un compte utilisateur sera créé automatiquement et un email d’activation vous sera envoyé.')
+)
 const rentalHelpLabel = computed(() => publicText('checkout.cart.rentalHelp', 'Les dates de location sont choisies avant l’ajout de chaque location au panier. La disponibilité est revérifiée lors de la création de la commande.'))
 const rentalPeriodLabel = computed(() => publicText('checkout.cart.rentalPeriod', 'Période de location'))
 const deliveryLabel = computed(() => publicText('checkout.cart.deliveryMethod', 'Mode de livraison'))

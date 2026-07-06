@@ -142,7 +142,7 @@ export async function computeAvailabilityForSource(
   const rangeEnd = endOfDay(endAt)
   const overlappingOrders = await db.shopOrder.findMany({
     where: {
-      status: { in: ['PENDING', 'PAID'] },
+      status: { in: ['PENDING', 'CONFIRMED', 'IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED'] },
     },
     select: { id: true },
   })

@@ -114,7 +114,7 @@
       <div class="pointer-events-auto flex items-center gap-3 rounded-2xl border border-base-300 bg-base-100/95 px-4 py-3 shadow-xl backdrop-blur">
         <div class="text-sm">
           <div class="font-semibold">{{ publicText('events.detail.liveEditTitle', 'LiveEdit événement') }}</div>
-          <div class="opacity-65">{{ translation.title || displayEvent.slug }}</div>
+          <div class="opacity-65">{{ translation.title || displayEvent?.slug || '' }}</div>
         </div>
 
         <button type="button" class="btn btn-sm btn-outline" @click="reloadLiveEdit">
@@ -141,6 +141,7 @@ import PageRenderer from '#modula/components/page-builder/PageRenderer.vue'
 import type { EventPayload } from '#modula/shared/events'
 import type { CmsLocale } from '#modula/shared/cms'
 import type { PageBuilderEditTarget } from '#modula/shared/pageBuilderEditor'
+import { createDefaultPageBuilderContent } from '#modula/shared/pageBuilder'
 import { formatLocalizedDateTimeValue } from '#modula/shared/date'
 import { useAuthStore } from '#modula/stores/auth'
 
@@ -202,13 +203,13 @@ watch(eventData, (value) => {
 const translation = computed(() => {
   const item = displayEvent.value
   if (!item) {
-    return { title: '', subtitle: '', excerpt: '', content: { version: 1, sections: [] } }
+    return { title: '', subtitle: '', excerpt: '', content: createDefaultPageBuilderContent('') }
   }
   return item.translations[contentLocale.value]
     || item.translations.fr
     || item.translations.en
     || Object.values(item.translations)[0]
-    || { title: '', subtitle: '', excerpt: '', content: { version: 1, sections: [] } }
+    || { title: '', subtitle: '', excerpt: '', content: createDefaultPageBuilderContent('') }
 })
 
 const formattedDate = computed(() => displayEvent.value

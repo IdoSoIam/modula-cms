@@ -70,7 +70,7 @@
           </label>
           <label class="form-control md:col-span-2 flex flex-col">
             <span class="label-text">{{ t('admin.settingsSiteTemplatePage.registryApiKeyLabel') }}</span>
-            <input v-model.trim="registryForm.registryApiKey" class="input input-bordered" type="password" :placeholder="t('admin.settingsSiteTemplatePage.registryApiKeyPlaceholder')">
+            <PasswordField v-model.trim="registryForm.registryApiKey" class="input input-bordered" :placeholder="t('admin.settingsSiteTemplatePage.registryApiKeyPlaceholder')"/>
           </label>
         </div>
       </article>

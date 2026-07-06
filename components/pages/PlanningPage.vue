@@ -176,7 +176,9 @@ const query = computed(() => ({
   dayPages: JSON.stringify(dayPages)
 }))
 
-const { data, pending } = await useFetch<PlanningWeekResponse | PlanningCalendarResponse>('/api/events', {
+type PlanningResponse = PlanningWeekResponse | PlanningCalendarResponse | null
+
+const { data, pending } = await useFetch<PlanningResponse>('/api/events', {
   query,
   immediate: !props.preview,
   default: () => null
@@ -273,14 +275,16 @@ const previewCalendarResponse = computed<PlanningCalendarResponse>(() => {
 })
 
 const currentWeekResponse = computed<PlanningWeekResponse | null>(() => {
+  const response = data.value as PlanningResponse
   if (viewMode.value !== 'week') return null
-  if (data.value?.view === 'week') return data.value
+  if (response?.view === 'week') return response
   return props.preview ? previewWeekResponse.value : null
 })
 
 const currentCalendarResponse = computed<PlanningCalendarResponse | null>(() => {
+  const response = data.value as PlanningResponse
   if (viewMode.value !== 'calendar') return null
-  if (data.value?.view === 'calendar') return data.value
+  if (response?.view === 'calendar') return response
   return props.preview ? previewCalendarResponse.value : null
 })
 
@@ -337,6 +341,10 @@ function addDays(value: Date, amount: number) {
   const next = new Date(value)
   next.setDate(next.getDate() + amount)
   return next
+}
+
+function endOfWeek(value: Date) {
+  return addDays(startOfWeek(value), 6)
 }
 
 function formatIsoDate(value: Date) {

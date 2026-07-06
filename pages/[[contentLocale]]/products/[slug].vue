@@ -403,12 +403,13 @@ const rentalMaxSummary = computed(() => {
   return publicText('shop.product.dayCount', '{count} jour(s)', { count: value })
 })
 
-const canAddRentalToCart = computed(() =>
-  Boolean(product.value)
-  && product.value.stock > 0
-  && selectedRentalStartDate.value.trim().length > 0
-  && selectedRentalEndDate.value.trim().length > 0
-)
+const canAddRentalToCart = computed(() => {
+  const currentProduct = product.value
+  return Boolean(currentProduct)
+    && (currentProduct?.stock ?? 0) > 0
+    && selectedRentalStartDate.value.trim().length > 0
+    && selectedRentalEndDate.value.trim().length > 0
+})
 
 watch(product, (value) => {
   quantity.value = 1

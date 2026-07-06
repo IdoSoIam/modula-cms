@@ -18,6 +18,10 @@ type ShopOrderTemplateAction =
   | 'shop_order_payment_failed'
   | 'shop_order_cancelled'
   | 'shop_order_admin_validated'
+  | 'shop_order_refunded'
+  | 'shop_order_refund_requested_customer'
+  | 'shop_order_refund_requested_admin'
+  | 'shop_order_refund_rejected'
 
 type ShopOrderEmailLocale = string
 
@@ -25,6 +29,7 @@ interface ShopOrderTransition {
   previousStatus?: ShopOrderPayload['status'] | null
   previousPaymentStatus?: ShopOrderPayload['paymentStatus'] | null
   previousPaymentFailureReason?: string | null
+  previousAfterSalesStatus?: ShopOrderPayload['afterSalesStatus'] | null
 }
 
 export async function sendShopOrderCreatedNotifications(
@@ -84,7 +89,21 @@ export async function sendShopOrderTransitionNotifications(
     })
   }
 
-  if (transition.previousStatus !== 'CANCELLED' && order.status === 'CANCELLED') {
+  if (transition.previousPaymentStatus !== 'REFUNDED' && order.paymentStatus === 'REFUNDED') {
+    await sendShopOrderEmail({
+      action: 'shop_order_refunded',
+      order,
+      to: order.email,
+      locale,
+      accent: '#2563eb',
+    })
+  }
+
+  if (
+    transition.previousStatus !== 'CANCELLED'
+    && order.status === 'CANCELLED'
+    && order.paymentStatus !== 'REFUNDED'
+  ) {
     await sendShopOrderEmail({
       action: 'shop_order_cancelled',
       order,
@@ -93,6 +112,44 @@ export async function sendShopOrderTransitionNotifications(
       accent: '#d97706',
     })
   }
+}
+
+export async function sendShopOrderRefundRequestNotifications(orderId: number) {
+  const order = await getShopOrderForEmail(orderId)
+  if (!order) return
+
+  const locale = normalizeShopOrderLocale(order.language)
+  await sendShopOrderEmail({
+    action: 'shop_order_refund_requested_customer',
+    order,
+    to: order.email,
+    locale,
+    accent: '#d97706',
+  })
+
+  const notificationEmail = await getReservationNotificationEmail()
+  if (!notificationEmail) return
+
+  await sendShopOrderEmail({
+    action: 'shop_order_refund_requested_admin',
+    order,
+    to: notificationEmail,
+    locale: 'fr',
+    accent: '#d97706',
+  })
+}
+
+export async function sendShopOrderRefundRejectedNotifications(orderId: number) {
+  const order = await getShopOrderForEmail(orderId)
+  if (!order) return
+
+  await sendShopOrderEmail({
+    action: 'shop_order_refund_rejected',
+    order,
+    to: order.email,
+    locale: normalizeShopOrderLocale(order.language),
+    accent: '#dc2626',
+  })
 }
 
 async function sendShopOrderValidatedAdminEmail(order: ShopOrderPayload, attachments: PdfAttachment[] = []) {
@@ -219,9 +276,11 @@ function buildShopOrderTemplateVars(order: ShopOrderPayload, locale: ShopOrderEm
   const failureReason = order.paymentFailureReason
     || (isEnglish ? 'Payment could not be confirmed.' : 'Le paiement n’a pas pu être confirmé.')
   const adminOrderUrl = `${getSiteOrigin()}/admin/shop/orders?open=${order.id}`
+  const invoiceNumber = buildInvoiceNumberLabel(order)
 
   return {
     orderNumber: order.orderNumber,
+    invoiceNumber,
     customerName: order.customerName,
     customerEmail: order.email,
     customerPhone: order.phone || '-',
@@ -236,8 +295,20 @@ function buildShopOrderTemplateVars(order: ShopOrderPayload, locale: ShopOrderEm
     total: formatPrice(order.total),
     orderLines,
     failureReason,
+    refundRequestReason: order.refundRequestReason || '-',
+    refundRequestNote: order.refundRequestNote || '-',
     adminOrderUrl,
   }
+}
+
+function buildInvoiceNumberLabel(order: ShopOrderPayload) {
+  if (/^CMD-/i.test(order.orderNumber)) {
+    return order.orderNumber
+  }
+
+  const sourceDate = order.paidAt || order.createdAt || new Date().toISOString()
+  const year = new Date(sourceDate).getUTCFullYear()
+  return `FAC-${year}-${String(order.id).padStart(6, '0')}`
 }
 
 function buildFallbackFulfillmentLocation(order: ShopOrderPayload) {

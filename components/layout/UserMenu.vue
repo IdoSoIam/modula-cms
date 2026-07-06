@@ -1,10 +1,16 @@
 <template>
   <div v-if="authStore.isAuthenticated || registerEnabled" class="dropdown dropdown-end mx-2">
-    <label tabindex="0" class="btn btn-ghost btn-circle">
+    <label tabindex="0" class="btn btn-ghost btn-circle relative overflow-visible">
       <Icon
         name="mdi:account-circle"
         size="24"
       />
+      <span
+        v-if="shopEnabled && cartCount > 0"
+        class="badge badge-primary badge-sm absolute -right-1 -top-1 min-w-5 px-1.5"
+      >
+        {{ cartCount }}
+      </span>
     </label>
     <ul
       tabindex="0"

@@ -54,9 +54,8 @@
             <div class="grid gap-4 md:grid-cols-2">
               <label class="form-control gap-2">
                 <span class="label-text">{{ publicText('auth.passwordSetup.newPassword', 'Nouveau mot de passe') }}</span>
-                <input
+                <PasswordField
                   v-model="form.password"
-                  type="password"
                   autocomplete="new-password"
                   class="input input-bordered w-full"
                   :class="showPasswordError ? 'input-error' : ''"
@@ -65,9 +64,8 @@
               </label>
               <label class="form-control gap-2">
                 <span class="label-text">{{ publicText('auth.passwordSetup.confirmation', 'Confirmation') }}</span>
-                <input
+                <PasswordField
                   v-model="form.passwordConfirmation"
-                  type="password"
                   autocomplete="new-password"
                   class="input input-bordered w-full"
                   :class="showConfirmationError ? 'input-error' : ''"

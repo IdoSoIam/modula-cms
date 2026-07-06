@@ -3,7 +3,7 @@ import { sendShopOrderTransitionNotifications } from '#modula/server/services/sh
 import { serializeShopOrder } from '#modula/server/utils/shop'
 import { requirePermission } from '#modula/server/utils/permissions'
 
-const ORDER_STATUSES = new Set(['DRAFT', 'PENDING', 'PAID', 'CANCELLED'])
+const ORDER_STATUSES = new Set(['DRAFT', 'PENDING', 'CONFIRMED', 'IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED', 'CANCELLED'])
 const PAYMENT_STATUSES = new Set(['UNPAID', 'PENDING', 'PAID', 'FAILED', 'REFUNDED'])
 
 export default defineEventHandler(async (event) => {
@@ -46,6 +46,7 @@ export default defineEventHandler(async (event) => {
       status: true,
       paymentStatus: true,
       paymentFailureReason: true,
+      afterSalesStatus: true,
       paidAt: true,
       refundedAt: true,
       cancelledAt: true,
@@ -62,6 +63,7 @@ export default defineEventHandler(async (event) => {
   const previousStatus = existing.status
   const previousPaymentStatus = existing.paymentStatus
   const previousPaymentFailureReason = existing.paymentFailureReason
+  const previousAfterSalesStatus = existing.afterSalesStatus ?? 'NONE'
 
   const data: Record<string, any> = {
     status,
@@ -86,6 +88,8 @@ export default defineEventHandler(async (event) => {
   if (paymentStatus === 'REFUNDED') {
     data.refundedAt = existing.refundedAt || new Date()
     data.checkoutUrl = null
+    data.afterSalesStatus = 'NONE'
+    data.refundReviewedAt = new Date()
   } else if (status !== 'CANCELLED') {
     data.refundedAt = null
   }
@@ -111,6 +115,7 @@ export default defineEventHandler(async (event) => {
     previousStatus,
     previousPaymentStatus,
     previousPaymentFailureReason,
+    previousAfterSalesStatus,
   })
 
   return serializeShopOrder(updated)

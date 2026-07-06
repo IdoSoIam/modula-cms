@@ -280,6 +280,7 @@ To choose your password and activate your account, use this link:
 
 Nous avons bien reçu votre commande {{orderNumber}}.
 
+- Facture : {{invoiceNumber}}
 - Livraison : {{deliveryMethod}}
 - Date : {{fulfillmentDate}}
 - Heure : {{fulfillmentTime}}
@@ -299,6 +300,7 @@ Si vous avez un message complémentaire, notre équipe reviendra vers vous si n�
 
 We have received your order {{orderNumber}}.
 
+- Invoice: {{invoiceNumber}}
 - Delivery: {{deliveryMethod}}
 - Date: {{fulfillmentDate}}
 - Time: {{fulfillmentTime}}
@@ -456,6 +458,124 @@ Lines:
 Open admin:
 {{adminOrderUrl}}`
     }
+  },
+  shop_order_refunded: {
+    fr: {
+      subject: 'Commande remboursée - {{orderNumber}}',
+      body: `Bonjour {{customerName}},
+
+Votre commande {{orderNumber}} a été remboursée.
+
+- Livraison : {{deliveryMethod}}
+- Date : {{fulfillmentDate}}
+- Heure : {{fulfillmentTime}}
+- Lieu : {{fulfillmentLocation}}
+- Total remboursé : {{total}}
+
+Récapitulatif :
+{{orderLines}}`
+    },
+    en: {
+      subject: 'Order refunded - {{orderNumber}}',
+      body: `Hello {{customerName}},
+
+Your order {{orderNumber}} has been refunded.
+
+- Delivery: {{deliveryMethod}}
+- Date: {{fulfillmentDate}}
+- Time: {{fulfillmentTime}}
+- Location: {{fulfillmentLocation}}
+- Refunded total: {{total}}
+
+Summary:
+{{orderLines}}`
+    }
+  },
+  shop_order_refund_requested_customer: {
+    fr: {
+      subject: 'Demande de remboursement reçue - {{orderNumber}}',
+      body: `Bonjour {{customerName}},
+
+Nous avons bien reçu votre demande de remboursement pour la commande {{orderNumber}}.
+
+- Motif : {{refundRequestReason}}
+- Livraison : {{deliveryMethod}}
+- Date : {{fulfillmentDate}}
+- Heure : {{fulfillmentTime}}
+
+Notre équipe va l'étudier et reviendra vers vous rapidement.`
+    },
+    en: {
+      subject: 'Refund request received - {{orderNumber}}',
+      body: `Hello {{customerName}},
+
+We have received your refund request for order {{orderNumber}}.
+
+- Reason: {{refundRequestReason}}
+- Delivery: {{deliveryMethod}}
+- Date: {{fulfillmentDate}}
+- Time: {{fulfillmentTime}}
+
+Our team will review it and get back to you shortly.`
+    }
+  },
+  shop_order_refund_requested_admin: {
+    fr: {
+      subject: 'Nouvelle demande de remboursement - {{orderNumber}}',
+      body: `Une nouvelle demande de remboursement a été enregistrée.
+
+- Commande : {{orderNumber}}
+- Client : {{customerName}}
+- Email : {{customerEmail}}
+- Téléphone : {{customerPhone}}
+- Motif : {{refundRequestReason}}
+- Total : {{total}}
+
+Lignes :
+{{orderLines}}
+
+Ouvrir l’admin :
+{{adminOrderUrl}}`
+    },
+    en: {
+      subject: 'New refund request - {{orderNumber}}',
+      body: `A new refund request has been submitted.
+
+- Order: {{orderNumber}}
+- Customer: {{customerName}}
+- Email: {{customerEmail}}
+- Phone: {{customerPhone}}
+- Reason: {{refundRequestReason}}
+- Total: {{total}}
+
+Lines:
+{{orderLines}}
+
+Open admin:
+{{adminOrderUrl}}`
+    }
+  },
+  shop_order_refund_rejected: {
+    fr: {
+      subject: 'Demande de remboursement refusée - {{orderNumber}}',
+      body: `Bonjour {{customerName}},
+
+Votre demande de remboursement pour la commande {{orderNumber}} a été refusée.
+
+- Motif / note : {{refundRequestNote}}
+
+Si besoin, vous pouvez contacter l’équipe du site pour plus d’informations.`
+    },
+    en: {
+      subject: 'Refund request rejected - {{orderNumber}}',
+      body: `Hello {{customerName}},
+
+Your refund request for order {{orderNumber}} has been rejected.
+
+- Note: {{refundRequestNote}}
+
+If needed, you can contact the site team for more information.`
+    }
   }
 }
 
@@ -478,7 +598,7 @@ const SYSTEM_TEMPLATE_DEFINITIONS: AdminEmailTemplateDefinition[] = [
     description: localized('Email envoyé au client quand le paiement d’une commande shop est confirmé.', 'Email sent to the customer when a shop order payment is confirmed.'),
     group: GROUP_ORDERS,
     subgroup: SUBGROUP_ORDER_CUSTOMER,
-    variables: ['orderNumber', 'customerName', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation', 'total', 'orderLines'],
+    variables: ['orderNumber', 'invoiceNumber', 'customerName', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation', 'total', 'orderLines'],
     locked: true,
     system: true
   },
@@ -512,6 +632,50 @@ const SYSTEM_TEMPLATE_DEFINITIONS: AdminEmailTemplateDefinition[] = [
     group: GROUP_ORDERS,
     subgroup: SUBGROUP_ORDER_ADMIN,
     variables: ['orderNumber', 'customerName', 'customerEmail', 'customerPhone', 'customerMessage', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation', 'paymentProvider', 'paymentStatus', 'subtotal', 'total', 'orderLines', 'adminOrderUrl'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_refunded',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_REFUNDED,
+    label: localized('Commande remboursée client', 'Customer order refunded'),
+    description: localized('Email envoyé au client quand une commande est remboursée.', 'Email sent to the customer when an order is refunded.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_CUSTOMER,
+    variables: ['orderNumber', 'customerName', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation', 'total', 'orderLines'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_refund_requested_customer',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_REFUND_REQUESTED_CUSTOMER,
+    label: localized('Demande remboursement client', 'Customer refund request'),
+    description: localized('Email envoyé au client quand sa demande de remboursement est enregistrée.', 'Email sent to the customer when a refund request is recorded.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_CUSTOMER,
+    variables: ['orderNumber', 'customerName', 'refundRequestReason', 'deliveryMethod', 'fulfillmentDate', 'fulfillmentTime'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_refund_requested_admin',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_REFUND_REQUESTED_ADMIN,
+    label: localized('Demande remboursement admin', 'Admin refund request'),
+    description: localized('Notification admin envoyée quand un client demande un remboursement.', 'Admin notification sent when a customer requests a refund.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_ADMIN,
+    variables: ['orderNumber', 'customerName', 'customerEmail', 'customerPhone', 'refundRequestReason', 'total', 'orderLines', 'adminOrderUrl'],
+    locked: true,
+    system: true
+  },
+  {
+    action: 'shop_order_refund_rejected',
+    settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_REFUND_REJECTED,
+    label: localized('Demande remboursement refusée client', 'Customer refund request rejected'),
+    description: localized('Email envoyé au client quand sa demande de remboursement est refusée.', 'Email sent to the customer when a refund request is rejected.'),
+    group: GROUP_ORDERS,
+    subgroup: SUBGROUP_ORDER_CUSTOMER,
+    variables: ['orderNumber', 'customerName', 'refundRequestNote'],
     locked: true,
     system: true
   },
