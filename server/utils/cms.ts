@@ -65,6 +65,10 @@ import { getPageBuilderContent, normalizePageBuilderContent } from '#modula/serv
 import { getSetting, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { createCustomAdminEmailTemplate, findAdminEmailTemplateDefinition, syncCustomAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
 
+const CMS_SYSTEM_PAGES_CACHE_TTL_MS = 5 * 60 * 1000
+let cmsSystemPagesReadyAt = 0
+let cmsSystemPagesReadyPromise: Promise<void> | null = null
+
 
 function isMissingCmsTableError(error: unknown) {
   return Boolean(
@@ -1566,12 +1570,23 @@ async function ensureCmsStandardPage(options: {
 }
 
 export async function ensureCmsSystemPages() {
-  await ensureCmsRootPage()
-  await ensureCmsApplicationPage('/boutique', 'boutique', 'Boutique', 'Shop', 'shop')
-  await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
-  await ensureCmsApplicationPage('/events', 'events', 'Événements', 'Events', 'events')
-  await ensureCmsApplicationPage('/planning', 'planning', 'Planning', 'Schedule', 'planning')
-  await ensureCmsStandardPage({
+  const now = Date.now()
+  if (cmsSystemPagesReadyAt && (now - cmsSystemPagesReadyAt) < CMS_SYSTEM_PAGES_CACHE_TTL_MS) {
+    return
+  }
+
+  if (cmsSystemPagesReadyPromise) {
+    await cmsSystemPagesReadyPromise
+    return
+  }
+
+  cmsSystemPagesReadyPromise = (async () => {
+    await ensureCmsRootPage()
+    await ensureCmsApplicationPage('/boutique', 'boutique', 'Boutique', 'Shop', 'shop')
+    await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
+    await ensureCmsApplicationPage('/events', 'events', 'Événements', 'Events', 'events')
+    await ensureCmsApplicationPage('/planning', 'planning', 'Planning', 'Schedule', 'planning')
+    await ensureCmsStandardPage({
     path: '/construction',
     slug: 'construction',
     titleFr: 'Site en construction',
@@ -1591,7 +1606,7 @@ export async function ensureCmsSystemPages() {
     },
     content: createDefaultConstructionPageContent()
   })
-  await ensureCmsStandardPage({
+    await ensureCmsStandardPage({
     path: '/contact',
     slug: 'contact',
     titleFr: 'Contact',
@@ -1610,7 +1625,7 @@ export async function ensureCmsSystemPages() {
     },
     content: createDefaultContactPageContent()
   })
-  await ensureCmsStandardPage({
+    await ensureCmsStandardPage({
     path: '/terms',
     slug: 'terms',
     titleFr: 'Conditions d’utilisation',
@@ -1647,7 +1662,7 @@ export async function ensureCmsSystemPages() {
       ]
     })
   })
-  await ensureCmsStandardPage({
+    await ensureCmsStandardPage({
     path: '/privacy',
     slug: 'privacy',
     titleFr: 'Politique de confidentialité',
@@ -1683,7 +1698,14 @@ export async function ensureCmsSystemPages() {
         }
       ]
     })
-  })
+    })
+    cmsSystemPagesReadyAt = Date.now()
+  })()
+    .finally(() => {
+      cmsSystemPagesReadyPromise = null
+    })
+
+  await cmsSystemPagesReadyPromise
 }
 
 export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCmsPage, locale: CmsLocale) {
