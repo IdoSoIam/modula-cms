@@ -52,6 +52,18 @@ function dedupeImageUsages(usages: ImageUsageSeed[]) {
   return [...unique.values()]
 }
 
+function escapeSqlString(value: string) {
+  return value.replace(/'/g, "''")
+}
+
+function formatSqlDate(value: Date) {
+  return value.toISOString().replace('T', ' ').replace('Z', '')
+}
+
+function buildUsageIdentityKey(usage: Pick<ImageUsageSeed, 'imageId' | 'scopeType' | 'scopeId' | 'fieldKey'>) {
+  return [usage.imageId, usage.scopeType, usage.scopeId, usage.fieldKey].join('::')
+}
+
 function getSectionLabel(section: PageBuilderSection) {
   for (const column of section.columns) {
     const titleItem = column.items.find((item): item is Extract<PageBuilderColumnItem, { type: 'title' }> => item.type === 'title')
@@ -501,12 +513,41 @@ export async function syncImageUsageTable() {
   }
 
   const dedupedUsages = dedupeImageUsages(usages)
+  const existingUsages = await db.imageUsage.findMany({
+    select: {
+      imageId: true,
+      scopeType: true,
+      scopeId: true,
+      fieldKey: true
+    }
+  }).catch(() => [])
 
-  await db.imageUsage.deleteMany()
+  for (const usage of dedupedUsages) {
+    const sql = [
+      'INSERT INTO "ImageUsage" ("imageId", "scopeType", "scopeId", "fieldKey", "label", "createdAt", "updatedAt")',
+      `VALUES (${Number(usage.imageId)}, '${escapeSqlString(usage.scopeType)}', '${escapeSqlString(usage.scopeId)}', '${escapeSqlString(usage.fieldKey)}', '${escapeSqlString(usage.label)}', '${formatSqlDate(usage.createdAt)}', '${formatSqlDate(usage.updatedAt)}')`,
+      'ON CONFLICT("imageId", "scopeType", "scopeId", "fieldKey") DO UPDATE SET',
+      `"label" = excluded."label", "updatedAt" = excluded."updatedAt"`
+    ].join(' ')
+    await db.$executeRawUnsafe(sql)
+  }
 
-  if (dedupedUsages.length) {
-    await db.imageUsage.createMany({
-      data: dedupedUsages
+  const expectedKeys = new Set(dedupedUsages.map((usage) => buildUsageIdentityKey(usage)))
+  for (const usage of existingUsages) {
+    const key = buildUsageIdentityKey({
+      imageId: Number(usage.imageId),
+      scopeType: String(usage.scopeType),
+      scopeId: String(usage.scopeId),
+      fieldKey: String(usage.fieldKey)
+    })
+    if (expectedKeys.has(key)) continue
+    await db.imageUsage.deleteMany({
+      where: {
+        imageId: Number(usage.imageId),
+        scopeType: String(usage.scopeType),
+        scopeId: String(usage.scopeId),
+        fieldKey: String(usage.fieldKey)
+      }
     })
   }
 }

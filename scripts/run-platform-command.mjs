@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
 
 const [platformMode, commandName] = process.argv.slice(2)
 
@@ -40,6 +42,31 @@ function run(command, args) {
   })
 }
 
+function assertCloudflareBuildArtifacts() {
+  const outputDir = path.resolve(process.cwd(), '.output')
+  const requiredPaths = [
+    path.join(outputDir, 'wrangler.json')
+  ]
+  const runtimeCandidates = [
+    path.join(outputDir, '_worker.js'),
+    path.join(outputDir, 'server', 'index.mjs')
+  ]
+
+  if (!fs.existsSync(outputDir)) {
+    throw new Error('Cloudflare build incomplete: .output is missing.')
+  }
+
+  for (const requiredPath of requiredPaths) {
+    if (!fs.existsSync(requiredPath)) {
+      throw new Error(`Cloudflare build incomplete: missing artifact ${path.relative(process.cwd(), requiredPath)}`)
+    }
+  }
+
+  if (!runtimeCandidates.some((candidate) => fs.existsSync(candidate))) {
+    throw new Error('Cloudflare build incomplete: no worker runtime artifact found in .output.')
+  }
+}
+
 async function main() {
   switch (commandName) {
     case 'dev':
@@ -53,6 +80,7 @@ async function main() {
         throw new Error('preview is only supported for the cloudflare mode')
       }
       await run('npx', ['nuxt', 'build'])
+      assertCloudflareBuildArtifacts()
       await run('wrangler', ['--cwd', '.output', 'dev', '--local'])
       break
     case 'deploy':
@@ -60,6 +88,7 @@ async function main() {
         throw new Error('deploy is only supported for the cloudflare mode')
       }
       await run('npx', ['nuxt', 'build'])
+      assertCloudflareBuildArtifacts()
       await run('wrangler', ['--cwd', '.output', 'deploy'])
       break
     case 'start':
