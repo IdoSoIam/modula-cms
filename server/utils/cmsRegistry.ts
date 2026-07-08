@@ -270,8 +270,9 @@ export async function getRegistryEndpointState(scope: RegistryScope): Promise<Cm
 
 function collectStringUrls(value: unknown, collected = new Set<string>()) {
   if (typeof value === 'string') {
-    if (value.startsWith('/uploads/') || value.startsWith('/site-templates/') || value.startsWith('/brand/')) {
-      collected.add(value)
+    const normalized = normalizeTemplateAssetSourceUrl(value)
+    if (isRegistryManagedTemplateSourceUrl(normalized)) {
+      collected.add(normalized)
     }
     return collected
   }
@@ -283,6 +284,40 @@ function collectStringUrls(value: unknown, collected = new Set<string>()) {
     for (const item of Object.values(value)) collectStringUrls(item, collected)
   }
   return collected
+}
+
+function normalizeTemplateAssetSourceUrl(value: string | null | undefined) {
+  const raw = (value || '').trim()
+  if (!raw) return ''
+
+  let normalized = raw
+  if (/^[a-z]+:\/\//i.test(raw)) {
+    try {
+      const parsed = new URL(raw)
+      normalized = parsed.pathname || ''
+    } catch {
+      normalized = raw
+    }
+  }
+
+  normalized = normalized.split('#')[0]!.split('?')[0]!.trim()
+  if (!normalized.startsWith('/')) {
+    normalized = `/${normalized.replace(/^\/+/, '')}`
+  }
+  if (normalized.startsWith('/media/uploads/')) {
+    normalized = normalized.replace(/^\/media\/uploads\//, '/uploads/')
+  }
+  return normalized
+}
+
+function isRegistryManagedTemplateSourceUrl(value: string) {
+  return value.startsWith('/uploads/')
+    || value.startsWith('/site-templates/')
+    || value.startsWith('/brand/')
+}
+
+function extractUploadStorageKey(value: string) {
+  return normalizeTemplateAssetSourceUrl(value).replace(/^\/uploads\//, '')
 }
 
 async function readBundledAsset(url: string) {
@@ -354,7 +389,7 @@ export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTempl
   for (const url of urls) {
     try {
       if (url.startsWith('/uploads/')) {
-        const key = url.replace(/^\/uploads\//, '')
+        const key = extractUploadStorageKey(url)
         const object = await getUploadObject(key)
         if (!object?.body) continue
         const body = object.body
@@ -414,7 +449,8 @@ export async function exportCurrentTemplateSnapshot(): Promise<CmsRegistryTempla
 }
 
 function resolveSnapshotAssetUrl(value: string, assets: CmsRegistryAssetReference[]) {
-  const matched = assets.find(asset => asset.sourceUrl === value)
+  const normalizedValue = normalizeTemplateAssetSourceUrl(value)
+  const matched = assets.find(asset => normalizeTemplateAssetSourceUrl(asset.sourceUrl) === normalizedValue)
   if (!matched) return value
   return matched.downloadUrl
 }
@@ -471,7 +507,7 @@ function sanitizeTemplateFilenamePart(value: string) {
 }
 
 function buildTemplateManagedTargetName(asset: CmsRegistryAssetReference) {
-  const sourceUrl = asset.sourceUrl?.trim() || ''
+  const sourceUrl = normalizeTemplateAssetSourceUrl(asset.sourceUrl)
   const sourceBase = sourceUrl ? basename(sourceUrl) : ''
   const filenameBase = asset.filename?.trim() || ''
   const candidate = sanitizeTemplateFilenamePart(sourceBase || filenameBase || '')
@@ -526,7 +562,7 @@ async function registerImportedTemplateImage(filename: string, contentType: stri
 }
 
 async function findRegistryAssetBySourceUrl(sourceUrl: string, scope: RegistryScope = 'custom') {
-  const query = new URLSearchParams({ sourceUrl })
+  const query = new URLSearchParams({ sourceUrl: normalizeTemplateAssetSourceUrl(sourceUrl) })
   return await registryFetch<CmsRegistryAssetReference>(`/v1/template-assets/by-source?${query.toString()}`, {}, scope)
 }
 
@@ -658,21 +694,22 @@ async function importTemplateAssetFromSourceUrl(
   scope: RegistryScope,
   context: TemplateAssetMaterializationContext
 ) {
-  const cached = context.cache.get(sourceUrl)
+  const normalizedSourceUrl = normalizeTemplateAssetSourceUrl(sourceUrl)
+  const cached = context.cache.get(normalizedSourceUrl)
   if (cached) {
     return cached
   }
 
   try {
-    const remoteAsset = await findRegistryAssetBySourceUrl(sourceUrl, scope)
+    const remoteAsset = await findRegistryAssetBySourceUrl(normalizedSourceUrl, scope)
     const materialized = await importRegistryAsset(remoteAsset)
-    context.cache.set(sourceUrl, materialized)
+    context.cache.set(normalizedSourceUrl, materialized)
     context.preservedFilenames.add(buildTemplateManagedTargetName(remoteAsset))
     return materialized
   } catch {}
 
-  const localAsset = await registerTemplateManagedLocalAsset(sourceUrl)
-  context.cache.set(sourceUrl, localAsset)
+  const localAsset = await registerTemplateManagedLocalAsset(normalizedSourceUrl)
+  context.cache.set(normalizedSourceUrl, localAsset)
   context.preservedFilenames.add(localAsset.replace(/^\/uploads\//, ''))
   return localAsset
 }
@@ -686,8 +723,9 @@ async function materializeBundledTemplateAssetUrls<T>(
   }
 ): Promise<T> {
   if (typeof value === 'string') {
-    if (value.startsWith('/site-templates/') || value.startsWith('/brand/')) {
-      return await importTemplateAssetFromSourceUrl(value, scope, context) as T
+    const normalizedValue = normalizeTemplateAssetSourceUrl(value)
+    if (normalizedValue.startsWith('/site-templates/') || normalizedValue.startsWith('/brand/')) {
+      return await importTemplateAssetFromSourceUrl(normalizedValue, scope, context) as T
     }
     return value
   }
@@ -728,7 +766,9 @@ async function cleanupUnusedTemplateManagedImages(preservedFilenames: Set<string
   })
 
   for (const image of managedImages) {
-    if (!isTemplateManagedFilename(image.filename)) continue
+    const isTemplateManaged = isTemplateManagedFilename(image.filename)
+    const isOrphanImportedUpload = image.uploadedById == null && image.url.startsWith('/uploads/')
+    if (!isTemplateManaged && !isOrphanImportedUpload) continue
     if (preservedFilenames.has(image.filename)) continue
 
     const usages = await listImageUsageAssociations(image.id)
@@ -848,7 +888,7 @@ function buildRegistryAssetPublicUrlMap(records: CmsRegistryTemplateRecord[], sc
 
   for (const record of records) {
     for (const asset of record.snapshot?.assetManifest || []) {
-      const sourceUrl = asset.sourceUrl?.trim() || ''
+      const sourceUrl = normalizeTemplateAssetSourceUrl(asset.sourceUrl)
       if (!sourceUrl) continue
 
       const publicUrl = asset.publicUrl?.trim()
@@ -871,15 +911,14 @@ function normalizeTemplatePreviewImage(
   const previewImage = record.previewImage?.trim() || ''
   if (!previewImage) return previewImage
 
-  const normalizedPreviewPath = previewImage.replace(/^https?:\/\/[^/]+/i, '')
+  const normalizedPreviewPath = normalizeTemplateAssetSourceUrl(previewImage)
   const sharedPublicUrl = sharedAssetUrls.get(normalizedPreviewPath)
   if (sharedPublicUrl) {
     return sharedPublicUrl
   }
 
   const previewAsset = record.snapshot?.assetManifest?.find((asset) => {
-    const sourceUrl = asset.sourceUrl?.trim() || ''
-    const normalizedSourcePath = sourceUrl.replace(/^https?:\/\/[^/]+/i, '')
+    const normalizedSourcePath = normalizeTemplateAssetSourceUrl(asset.sourceUrl)
     return normalizedSourcePath === normalizedPreviewPath
   })
 
