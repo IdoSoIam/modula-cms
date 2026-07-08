@@ -44,8 +44,9 @@ function run(command, args) {
 
 function assertCloudflareBuildArtifacts() {
   const outputDir = path.resolve(process.cwd(), '.output')
-  const requiredPaths = [
-    path.join(outputDir, 'wrangler.json')
+  const requiredPathCandidates = [
+    [path.join(outputDir, 'wrangler.json')],
+    [path.join(outputDir, 'server', 'wrangler.json')]
   ]
   const runtimeCandidates = [
     path.join(outputDir, '_worker.js'),
@@ -56,10 +57,14 @@ function assertCloudflareBuildArtifacts() {
     throw new Error('Cloudflare build incomplete: .output is missing.')
   }
 
-  for (const requiredPath of requiredPaths) {
-    if (!fs.existsSync(requiredPath)) {
-      throw new Error(`Cloudflare build incomplete: missing artifact ${path.relative(process.cwd(), requiredPath)}`)
-    }
+  const hasWranglerManifest = requiredPathCandidates.some((candidates) =>
+    candidates.every((candidate) => fs.existsSync(candidate))
+  )
+
+  if (!hasWranglerManifest) {
+    throw new Error(
+      `Cloudflare build incomplete: missing artifact ${path.relative(process.cwd(), path.join(outputDir, 'server', 'wrangler.json'))}`
+    )
   }
 
   if (!runtimeCandidates.some((candidate) => fs.existsSync(candidate))) {
