@@ -572,8 +572,15 @@ export async function isAssociationRolesEnabled() {
 }
 
 export async function requireAssociationRolesEnabled() {
-  if (await isAssociationRolesEnabled()) return
-  throw createError({ statusCode: 404, statusMessage: 'Rôles associatifs désactivés' })
+  if (await isAssociationRolesEnabled()) {
+    return
+  }
+
+  throw createError({
+    statusCode: 404,
+    statusMessage: 'Not Found',
+    message: 'Rôles associatifs désactivés'
+  })
 }
 
 export async function getFarmPickupConfig(): Promise<FarmPickupConfig> {
