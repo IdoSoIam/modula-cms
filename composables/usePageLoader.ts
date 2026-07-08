@@ -3,7 +3,7 @@ import { ref, type Ref } from 'vue'
 const isLoading: Ref<boolean> = ref(false)
 let registered = false
 let timer: ReturnType<typeof setTimeout> | null = null
-let navigationCount = 0
+let loadingToken = 0
 
 function clearTimer() {
   if (timer !== null) {
@@ -13,18 +13,18 @@ function clearTimer() {
 }
 
 function onStartLoading() {
-  navigationCount++
-  const currentCount = navigationCount
+  loadingToken += 1
+  const currentToken = loadingToken
   clearTimer()
   timer = setTimeout(() => {
-    if (currentCount === navigationCount) {
+    if (currentToken === loadingToken) {
       isLoading.value = true
     }
   }, 500)
 }
 
 function onStopLoading() {
-  navigationCount++
+  loadingToken += 1
   clearTimer()
   isLoading.value = false
 }
@@ -36,16 +36,17 @@ export function usePageLoader() {
 
   if (!registered) {
     registered = true
-    const router = useRouter()
-    router.beforeEach((to, from) => {
-      if (to.path !== from.path) {
-        onStartLoading()
-      }
+    const nuxtApp = useNuxtApp()
+    nuxtApp.hook('page:start', () => {
+      onStartLoading()
     })
-    router.afterEach(() => {
+    nuxtApp.hook('page:finish', () => {
       onStopLoading()
     })
-    router.onError(() => {
+    nuxtApp.hook('page:loading:end', () => {
+      onStopLoading()
+    })
+    nuxtApp.hook('app:error', () => {
       onStopLoading()
     })
   }

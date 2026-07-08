@@ -3,9 +3,8 @@
     <div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div class="max-w-3xl">
-          <div class="text-sm uppercase tracking-[0.22em] opacity-60">{{ shopLabel }}</div>
-          <h1 class="mt-3 text-4xl font-semibold">{{ pageTitle }}</h1>
-          <p class="mt-3 text-base opacity-80">{{ pageSubtitle }}</p>
+          <h1 class="text-4xl font-semibold">{{ pageTitle }}</h1>
+          <p v-if="pageSubtitle" class="mt-3 text-base opacity-80">{{ pageSubtitle }}</p>
         </div>
         <button class="btn btn-primary gap-2" @click="goToCart">
           <Icon name="mdi:cart-outline" size="20" />
@@ -15,8 +14,13 @@
 
       <div v-if="pending" class="loading loading-spinner" />
       <template v-else>
-        <div class="mb-6 flex flex-wrap gap-2">
-          <button class="btn btn-sm" :class="selectedCategorySlug ? 'btn-ghost' : 'btn-primary'" @click="selectCategory('')">
+        <div v-if="showCategoryFilters" class="mb-6 flex flex-wrap gap-2">
+          <button
+            v-if="showAllCategoriesButton"
+            class="btn btn-sm"
+            :class="selectedCategorySlug ? 'btn-ghost' : 'btn-primary'"
+            @click="selectCategory('')"
+          >
             {{ allCategoriesLabel }}
           </button>
           <button
@@ -87,32 +91,34 @@ const { data, pending, refresh } = await useFetch<{ categories: ProductCategoryP
     category: selectedCategorySlug.value || undefined
   }))
 })
+
 const categories = computed(() => data.value?.categories || [])
 const products = computed(() => data.value?.products || [])
 
 const pageTitle = computed(() =>
-  String(props.pageTitleOverride || '').trim()
-  || pickCmsLocalizedText(locale.value, props.settings?.title)
+  pickCmsLocalizedText(locale.value, props.settings?.title)
+  || String(props.pageTitleOverride || '').trim()
   || publicText('shop.catalog.title', 'Boutique')
 )
 const pageSubtitle = computed(() =>
-  String(props.pageSubtitleOverride || '').trim()
-  || pickCmsLocalizedText(locale.value, props.settings?.subtitle)
-  || publicText('shop.catalog.subtitle', 'Parcourez les produits à vendre ou à louer.')
+  pickCmsLocalizedText(locale.value, props.settings?.subtitle)
+  || String(props.pageSubtitleOverride || '').trim()
+  || publicText('shop.catalog.subtitle', 'Parcourez les produits a vendre ou a louer.')
 )
-const shopLabel = computed(() => publicText('shop.catalog.eyebrow', 'Produits'))
 const cartButtonLabel = computed(() => publicText('shop.catalog.cartButton', 'Panier ({count})', { count: count.value }))
 const addToCartLabel = computed(() => publicText('shop.catalog.addToCart', 'Ajouter au panier'))
 const viewProductLabel = computed(() => publicText('shop.catalog.viewProduct', 'Voir le produit'))
-const soldOutLabel = computed(() => publicText('shop.catalog.soldOut', 'Épuisé'))
+const soldOutLabel = computed(() => publicText('shop.catalog.soldOut', 'Epuise'))
 const saleLabel = computed(() => publicText('shop.catalog.sale', 'Vente'))
 const rentalLabel = computed(() => publicText('shop.catalog.rental', 'Location'))
 const stockLabel = computed(() => publicText('shop.catalog.stock', 'Stock'))
-const allCategoriesLabel = computed(() => publicText('shop.catalog.allCategories', 'Toutes les catégories'))
-const emptyLabel = computed(() => publicText('shop.catalog.empty', 'Aucun produit n’est publié pour le moment.'))
+const allCategoriesLabel = computed(() => publicText('shop.catalog.allCategories', 'Toutes les categories'))
+const emptyLabel = computed(() => publicText('shop.catalog.empty', 'Aucun produit n est publie pour le moment.'))
 const offlineLabel = computed(() => publicText('shop.catalog.offlinePayment', 'Paiement hors ligne'))
 const onlineLabel = computed(() => publicText('shop.catalog.onlinePayment', 'Paiement en ligne'))
 const itemBackgroundColor = computed(() => 'var(--fallback-b1,oklch(var(--b1)/1))')
+const showCategoryFilters = computed(() => categories.value.length > 0)
+const showAllCategoriesButton = computed(() => categories.value.length > 1)
 
 const selectCategory = async (slug: string) => {
   selectedCategorySlug.value = slug
@@ -158,7 +164,7 @@ const handleProductAction = (product: ProductPayload) => {
     totalPrice: product.price
   })
 
-  $toast.success(publicText('shop.catalog.addSaleSuccess', 'Ajouté au panier'))
+  $toast.success(publicText('shop.catalog.addSaleSuccess', 'Ajoute au panier'))
 }
 
 const goToCart = () => navigateTo(localePath('/panier'))

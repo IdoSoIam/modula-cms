@@ -107,9 +107,7 @@ interface MemberRolePayload {
 const { $toast } = useNuxtApp() as any
 const siteConfig = await useSiteConfig()
 const associationRolesEnabled = computed(() => siteConfig.value?.featureFlags?.associationRolesEnabled !== false)
-const { data: rolesData, refresh } = await useFetch<MemberRolePayload[]>('/api/admin/member-roles', {
-  default: () => []
-})
+const rolesData = ref<MemberRolePayload[]>([])
 
 const roles = computed(() => rolesData.value || [])
 const selectedId = ref<number | null>(null)
@@ -134,6 +132,15 @@ const buildEmptyRole = (): MemberRolePayload => ({
   isSystem: false,
   isDefault: false
 })
+
+const refreshRoles = async () => {
+  if (!associationRolesEnabled.value) {
+    rolesData.value = []
+    return
+  }
+
+  rolesData.value = await $fetch<MemberRolePayload[]>('/api/admin/member-roles').catch(() => [])
+}
 
 const newRole = () => {
   if (!associationRolesEnabled.value) return
@@ -166,7 +173,7 @@ const saveRole = async () => {
     })
     selectedId.value = created.id
   }
-  await refresh()
+  await refreshRoles()
   if (selectedId.value) {
     openRole(selectedId.value)
   }
@@ -183,14 +190,18 @@ const deleteRole = async () => {
   await $fetch(`/api/admin/member-roles/${editor.value.id}`, { method: 'DELETE' })
   selectedId.value = null
   editor.value = null
-  await refresh()
+  await refreshRoles()
   $toast?.success('Rôle associatif supprimé')
 }
 
 watch(associationRolesEnabled, (enabled) => {
   if (!enabled) {
+    rolesData.value = []
     selectedId.value = null
     editor.value = null
+    return
   }
-})
+
+  refreshRoles()
+}, { immediate: true })
 </script>
