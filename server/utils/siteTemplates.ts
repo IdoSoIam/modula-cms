@@ -1073,7 +1073,7 @@ function replaceTemplateUploadUrlsWithBundledUrls<T>(value: T): T {
   return value
 }
 
-export async function buildBundledSystemTemplateSnapshot(templateKey: BundledSystemSiteTemplateKey): Promise<CmsRegistryTemplateSnapshot> {
+export async function buildBundledSystemTemplateSnapshot(templateKey: BundledSystemSiteTemplateKey, registryScope: 'custom' | 'system' = 'custom'): Promise<CmsRegistryTemplateSnapshot> {
   const baseSettings = createDefaultCmsSiteSettings()
   baseSettings.siteName = {
     fr: cmsProjectConfig.seed.defaultSiteName.fr,
@@ -1102,7 +1102,7 @@ export async function buildBundledSystemTemplateSnapshot(templateKey: BundledSys
     featureFlags: buildTemplateFeatureFlags(templateKey)
   })
 
-  const assetManifest = await exportTemplateAssets(partialSnapshot)
+  const assetManifest = await exportTemplateAssets(partialSnapshot, registryScope)
   return {
     ...partialSnapshot,
     assetManifest

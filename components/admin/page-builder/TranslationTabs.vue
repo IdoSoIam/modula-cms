@@ -83,6 +83,11 @@ const resolvedLocales = computed(() =>
   props.locales?.length ? props.locales : (siteLocales.value.length ? siteLocales.value : ['fr', 'en'])
 )
 const activeLang = ref<string>(resolvedLocales.value[0] || 'fr')
+const localValue = ref<LocalizedText>({ ...(props.modelValue || {}) })
+
+watch(() => props.modelValue, (value) => {
+  localValue.value = { ...(value || {}) }
+}, { deep: true, immediate: true })
 
 watch(resolvedLocales, (newLocales) => {
   if (!activeLang.value || !newLocales.includes(activeLang.value)) {
@@ -91,36 +96,42 @@ watch(resolvedLocales, (newLocales) => {
 })
 
 const translating = ref(false)
-const currentValue = computed(() => props.modelValue?.[activeLang.value] ?? '')
+const currentValue = computed(() => localValue.value?.[activeLang.value] ?? '')
 
 const translationSourceLocale = computed(() => {
-  if (props.modelValue?.[activeLang.value]?.trim()) return activeLang.value
-  return resolvedLocales.value.find((locale) => props.modelValue?.[locale]?.trim()) || activeLang.value
+  if (localValue.value?.[activeLang.value]?.trim()) return activeLang.value
+  return resolvedLocales.value.find((locale) => localValue.value?.[locale]?.trim()) || activeLang.value
 })
 
 const emptyTargetLocales = computed(() =>
   resolvedLocales.value.filter((locale) =>
     locale !== translationSourceLocale.value
-    && !props.modelValue?.[locale]?.trim()
+    && !localValue.value?.[locale]?.trim()
   )
 )
 
 const showAutoTranslateButton = computed(() =>
-  Boolean(props.modelValue?.[translationSourceLocale.value]?.trim())
+  Boolean(localValue.value?.[translationSourceLocale.value]?.trim())
   && emptyTargetLocales.value.length > 0
 )
 
 function updateLocalizedValue(lang: string, value: string) {
-  emit('update:modelValue', {
-    ...(props.modelValue || {}),
+  const next = {
+    ...(localValue.value || {}),
     [lang]: value,
-  })
+  }
+  if (props.modelValue && typeof props.modelValue === 'object') {
+    props.modelValue[lang] = value
+  }
+  localValue.value = next
+  emit('update:modelValue', next)
 }
 
 async function translateMissingLocales() {
   const sourceLocale = translationSourceLocale.value
-  const text = props.modelValue?.[sourceLocale]?.trim()
-  if (!text || !emptyTargetLocales.value.length) return
+  const text = localValue.value?.[sourceLocale]?.trim()
+  const targetLocales = [...emptyTargetLocales.value]
+  if (!text || !targetLocales.length) return
 
   translating.value = true
   try {
@@ -129,15 +140,15 @@ async function translateMissingLocales() {
       body: {
         text,
         sourceLocale,
-        targetLocales: emptyTargetLocales.value,
+        targetLocales,
         context: props.label,
       },
     })
 
-    const next = { ...(props.modelValue || {}) }
+    const next = { ...(localValue.value || {}) }
     let changed = false
 
-    for (const locale of emptyTargetLocales.value) {
+    for (const locale of targetLocales) {
       const translated = result?.translations?.[locale]?.trim()
       if (translated && !next[locale]?.trim()) {
         next[locale] = translated
@@ -146,6 +157,10 @@ async function translateMissingLocales() {
     }
 
     if (changed) {
+      if (props.modelValue && typeof props.modelValue === 'object') {
+        Object.assign(props.modelValue, next)
+      }
+      localValue.value = next
       emit('update:modelValue', next)
     }
   } catch (error: any) {

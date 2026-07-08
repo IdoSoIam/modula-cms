@@ -157,6 +157,7 @@
                       :label="item.type === 'title' ? 'Titre' : 'Texte'"
                       :size="item.size"
                       :multiline="item.type === 'text'"
+                      @update:model-value="item.text = $event"
                       @update:size="item.size = $event as typeof item.size"
                     />
                     <div class="form-control">
@@ -227,6 +228,7 @@
                       :label="item.type === 'title' ? 'Titre' : 'Texte'"
                       :size="item.size"
                       :multiline="item.type === 'text'"
+                      @update:model-value="item.text = $event"
                       @update:size="item.size = $event as typeof item.size"
                     />
                     <div class="form-control">
@@ -338,6 +340,7 @@
                       :label="item.type === 'badge' ? 'Badge' : item.type === 'title' ? 'Titre' : 'Texte'"
                       :size="item.size"
                       :multiline="item.type === 'text'"
+                      @update:model-value="item.text = $event"
                       @update:size="item.size = $event as typeof item.size"
                     />
                     <div v-if="item.type === 'title' || item.type === 'text'" class="form-control">
@@ -401,7 +404,7 @@
                       <ImageInput v-model="item.imageUrl" />
                     </div>
 
-                    <AdminPageBuilderTranslationTabs :model-value="item.alt" label="Alt" />
+                    <AdminPageBuilderTranslationTabs :model-value="item.alt" label="Alt" @update:model-value="item.alt = $event" />
 
                     <div class="grid gap-4 md:grid-cols-2">
                       <div class="form-control">
@@ -533,10 +536,10 @@
                         <ThemeColorPicker v-model="item.submitButtonBorderColor" label="Bordure du bouton d’envoi" default-token="transparent" />
                       </div>
 
-                      <AdminPageBuilderTranslationTabs :model-value="item.title" label="Titre du formulaire" />
-                      <AdminPageBuilderTranslationTabs :model-value="item.intro" label="Introduction" multiline />
-                      <AdminPageBuilderTranslationTabs :model-value="item.submitLabel" label="Libellé du bouton" />
-                      <AdminPageBuilderTranslationTabs :model-value="item.successMessage" label="Message de succès" multiline />
+                      <AdminPageBuilderTranslationTabs :model-value="item.title" label="Titre du formulaire" @update:model-value="item.title = $event" />
+                      <AdminPageBuilderTranslationTabs :model-value="item.intro" label="Introduction" multiline @update:model-value="item.intro = $event" />
+                      <AdminPageBuilderTranslationTabs :model-value="item.submitLabel" label="Libellé du bouton" @update:model-value="item.submitLabel = $event" />
+                      <AdminPageBuilderTranslationTabs :model-value="item.successMessage" label="Message de succès" multiline @update:model-value="item.successMessage = $event" />
                     </div>
 
                     <div v-else-if="getFormEditorTab(item.id) === 'action'" class="rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 space-y-4">
@@ -687,10 +690,10 @@
                               </label>
                             </div>
 
-                            <AdminPageBuilderTranslationTabs :model-value="field.label" label="Label" />
-                            <AdminPageBuilderTranslationTabs :model-value="field.placeholder" label="Placeholder" />
-                            <AdminPageBuilderTranslationTabs :model-value="field.helpText" label="Aide" multiline />
-                            <AdminPageBuilderTranslationTabs :model-value="field.errorMessage" label="Message d’erreur" multiline />
+                            <AdminPageBuilderTranslationTabs :model-value="field.label" label="Label" @update:model-value="field.label = $event" />
+                            <AdminPageBuilderTranslationTabs :model-value="field.placeholder" label="Placeholder" @update:model-value="field.placeholder = $event" />
+                            <AdminPageBuilderTranslationTabs :model-value="field.helpText" label="Aide" multiline @update:model-value="field.helpText = $event" />
+                            <AdminPageBuilderTranslationTabs :model-value="field.errorMessage" label="Message d’erreur" multiline @update:model-value="field.errorMessage = $event" />
 
                             <div class="grid gap-4 md:grid-cols-2">
                               <label class="form-control">
@@ -729,7 +732,7 @@
                                   <span class="label"><span class="label-text">Valeur</span></span>
                                   <input v-model="option.value" class="input input-bordered w-full" />
                                 </label>
-                                <AdminPageBuilderTranslationTabs :model-value="option.label" label="Label de l’option" />
+                                <AdminPageBuilderTranslationTabs :model-value="option.label" label="Label de l’option" @update:model-value="option.label = $event" />
                               </div>
                             </div>
                           </template>

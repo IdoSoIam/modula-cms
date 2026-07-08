@@ -173,7 +173,7 @@ async function registryFetch<T>(path: string, options: RegistryFetchOptions = {}
   return await response.json() as T
 }
 
-async function registryUploadAsset(filename: string, contentType: string, bytes: Uint8Array, sourceUrl: string) {
+async function registryUploadAsset(filename: string, contentType: string, bytes: Uint8Array, sourceUrl: string, scope: RegistryScope = 'custom') {
   const checksum = createHash('sha256').update(bytes).digest('hex')
   return await registryFetch<CmsRegistryAssetReference>('/v1/template-assets', {
     method: 'POST',
@@ -184,7 +184,7 @@ async function registryUploadAsset(filename: string, contentType: string, bytes:
       checksum,
       sourceUrl
     }
-  })
+  }, scope)
 }
 
 export async function introspectRegistry(scope: RegistryScope): Promise<CmsRegistryCapabilities> {
@@ -382,7 +382,7 @@ function resolveBundledAssetPath(url: string) {
   return baseCandidates[0]!
 }
 
-export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTemplateSnapshot, 'assetManifest'>) {
+export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTemplateSnapshot, 'assetManifest'>, scope: RegistryScope = 'custom') {
   const urls = [...collectStringUrls(snapshotSource)]
   const manifest: CmsRegistryAssetReference[] = []
 
@@ -394,14 +394,14 @@ export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTempl
         if (!object?.body) continue
         const body = object.body
         const bytes = body instanceof Uint8Array ? body : body instanceof ArrayBuffer ? new Uint8Array(body) : new Uint8Array(await new Response(body as any).arrayBuffer())
-        const asset = await registryUploadAsset(key, object.httpMetadata?.contentType || 'application/octet-stream', bytes, url)
+        const asset = await registryUploadAsset(key, object.httpMetadata?.contentType || 'application/octet-stream', bytes, url, scope)
         manifest.push(asset)
         continue
       }
 
       if (url.startsWith('/site-templates/') || url.startsWith('/brand/')) {
         const asset = await readBundledAsset(url)
-        manifest.push(await registryUploadAsset(asset.filename, asset.contentType, asset.bytes, url))
+        manifest.push(await registryUploadAsset(asset.filename, asset.contentType, asset.bytes, url, scope))
       }
     } catch {
       continue
@@ -411,7 +411,7 @@ export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTempl
   return manifest
 }
 
-export async function exportCurrentTemplateSnapshot(): Promise<CmsRegistryTemplateSnapshot> {
+export async function exportCurrentTemplateSnapshot(scope: RegistryScope = 'custom'): Promise<CmsRegistryTemplateSnapshot> {
   const [siteSettings, navigation, pages, themeConfig, featureFlags] = await Promise.all([
     getCmsSiteSettings(),
     listCmsNavigationItems(),
@@ -441,7 +441,7 @@ export async function exportCurrentTemplateSnapshot(): Promise<CmsRegistryTempla
     featureFlags
   }
 
-  const assetManifest = await exportTemplateAssets(partialSnapshot)
+  const assetManifest = await exportTemplateAssets(partialSnapshot, scope)
   return {
     ...partialSnapshot,
     assetManifest
@@ -1079,7 +1079,7 @@ export async function createRegistryTemplate(input: {
   highlights?: CmsLocalizedText[]
   themeNames?: string[]
 }, scope: RegistryScope = 'custom') {
-  const snapshot = await exportCurrentTemplateSnapshot()
+  const snapshot = await exportCurrentTemplateSnapshot(scope)
   return await createRegistryTemplateFromSnapshot(input, snapshot, scope)
 }
 
@@ -1110,7 +1110,7 @@ export async function updateRegistryTemplate(slug: string, input: {
   highlights?: CmsLocalizedText[]
   themeNames?: string[]
 }, scope: RegistryScope = 'custom') {
-  const snapshot = await exportCurrentTemplateSnapshot()
+  const snapshot = await exportCurrentTemplateSnapshot(scope)
   return await updateRegistryTemplateFromSnapshot(slug, input, snapshot, scope)
 }
 
