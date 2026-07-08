@@ -213,7 +213,7 @@ const localePath = useLocalePath()
 const requestUrl = useRequestURL()
 const { data: usersData, refresh } = await useFetch<UserRow[]>('/api/admin/users', { default: () => [] })
 const { data: rolesData } = await useFetch<AccessRoleSummary[]>('/api/admin/roles', { default: () => [] })
-const { data: memberRolesData } = await useFetch<MemberRoleSummary[]>('/api/admin/member-roles', { default: () => [] })
+const memberRolesData = ref<MemberRoleSummary[]>([])
 
 const users = computed<UserTableRow[]>(() => (usersData.value || []).map(user => ({
   ...user,
@@ -260,6 +260,15 @@ const refreshUsers = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const refreshMemberRoles = async () => {
+  if (!associationRolesEnabled.value) {
+    memberRolesData.value = []
+    return
+  }
+
+  memberRolesData.value = await $fetch<MemberRoleSummary[]>('/api/admin/member-roles').catch(() => [])
 }
 
 const openEditModal = (user: UserRow) => {
@@ -359,6 +368,10 @@ const createUser = async () => {
 watch(associationRolesEnabled, (enabled) => {
   if (!enabled) {
     createForm.memberRoleIds = []
+    memberRolesData.value = []
+    return
   }
-})
+
+  refreshMemberRoles()
+}, { immediate: true })
 </script>
