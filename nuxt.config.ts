@@ -40,10 +40,6 @@ export default defineNuxtConfig({
   features: {
     inlineStyles: true
   },
-  routeRules: {
-    '/admin': { ssr: false },
-    '/admin/**': { ssr: false }
-  },
   nitro: {
     preset: isCloudflareRuntime ? 'cloudflare_module' : 'node_server',
     experimental: {
