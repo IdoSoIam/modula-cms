@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { getCmsPageByPath, getCmsSiteSettings, listCmsNavigationItems, listCmsPages, saveCmsNavigationItems, saveCmsPage, saveCmsSiteSettings } from '#modula/server/utils/cms'
-import { getCmsRegistryInstanceSettings, getFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { getCmsRegistryInstanceSettings, getFeatureFlags, getSetting, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { getDaisyUiThemeConfig, saveDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import { getUploadObject, putUploadObject } from '#modula/server/utils/uploadStorage'
 import type {
@@ -1343,9 +1343,63 @@ export async function triggerUpdateAgentRollback(mode: 'fast' | 'full' = 'fast')
   })
 }
 
+function createDefaultRegistryPaymentConfig(): CmsRegistryPaymentConfig {
+  return {
+    provider: 'none',
+    configured: false,
+    connectedAccountId: '',
+    connectedAccountLabel: '',
+    commissionPercent: 0,
+    automaticTaxEnabled: false,
+    defaultTaxBehavior: 'inclusive',
+    defaultTaxCode: '',
+    publishableKey: ''
+  }
+}
+
+function normalizeRegistryPaymentConfig(value: Partial<CmsRegistryPaymentConfig> | null | undefined): CmsRegistryPaymentConfig {
+  const fallback = createDefaultRegistryPaymentConfig()
+  return {
+    provider: value?.provider === 'stripe_connect' ? 'stripe_connect' : 'none',
+    configured: Boolean(value?.configured),
+    connectedAccountId: String(value?.connectedAccountId || ''),
+    connectedAccountLabel: String(value?.connectedAccountLabel || ''),
+    commissionPercent: Number.isFinite(Number(value?.commissionPercent)) ? Number(value?.commissionPercent) : 0,
+    automaticTaxEnabled: Boolean(value?.automaticTaxEnabled),
+    defaultTaxBehavior: value?.defaultTaxBehavior === 'exclusive' ? 'exclusive' : fallback.defaultTaxBehavior,
+    defaultTaxCode: String(value?.defaultTaxCode || ''),
+    publishableKey: String(value?.publishableKey || '')
+  }
+}
+
+async function getCachedRegistryPaymentConfig() {
+  const raw = await getSetting(SETTING_KEYS.CMS_REGISTRY_PAYMENT_CONFIG_CACHE)
+  if (!raw) return null
+  try {
+    return normalizeRegistryPaymentConfig(JSON.parse(raw))
+  } catch {
+    return null
+  }
+}
+
+async function cacheRegistryPaymentConfig(config: CmsRegistryPaymentConfig) {
+  await setSetting(
+    SETTING_KEYS.CMS_REGISTRY_PAYMENT_CONFIG_CACHE,
+    JSON.stringify(normalizeRegistryPaymentConfig(config))
+  )
+}
+
 export async function getRegistryPaymentConfig() {
   const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
-  return await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {}, scope)
+  try {
+    const config = await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {}, scope)
+    await cacheRegistryPaymentConfig(config)
+    return config
+  } catch (error) {
+    const cached = await getCachedRegistryPaymentConfig()
+    if (cached) return cached
+    throw error
+  }
 }
 
 export async function getRegistryStripeWebhookUrl() {
@@ -1357,10 +1411,12 @@ export async function getRegistryStripeWebhookUrl() {
 
 export async function saveRegistryPaymentConfig(settings: Partial<CmsRegistryPaymentConfig>) {
   const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
-  return await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {
+  const config = await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {
     method: 'PUT',
     body: settings
   }, scope)
+  await cacheRegistryPaymentConfig(config)
+  return config
 }
 
 export async function createRegistryCheckoutSession(body: {

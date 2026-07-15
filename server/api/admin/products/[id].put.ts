@@ -1,5 +1,4 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
 import {
   buildLocalizedProductTextPayload,
@@ -159,6 +158,5 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  await syncImageUsageTable()
   return serializeProduct(row)
 })

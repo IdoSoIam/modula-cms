@@ -3,7 +3,7 @@
     <article
       v-for="product in products"
       :key="`product-${product.id}`"
-      class="rounded-[1.75rem] border border-base-300 bg-base-100 p-5 shadow-sm"
+      class="flex h-full flex-col rounded-[1.75rem] border border-base-300 bg-base-100 p-5 shadow-sm"
       :class="articleClass"
       :style="{ backgroundColor: itemBackgroundColor }"
     >
@@ -41,7 +41,7 @@
               <span v-if="product.allowOnlinePayment" class="badge badge-outline">{{ onlineLabel }}</span>
             </div>
           </div>
-          <div class="mt-5 grid gap-3 lg:mt-auto" :class="product.saleType === 'RENTAL' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'">
+          <div class="mt-auto grid gap-3 pt-8" :class="product.saleType === 'RENTAL' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'">
             <button class="btn btn-ghost" @click="$emit('view', product)">
               {{ viewLabel }}
             </button>
@@ -92,7 +92,9 @@ const containerClass = computed(() => isSingleProduct.value
   ? 'grid grid-cols-1 gap-6'
   : 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4')
 const articleClass = computed(() => isSingleProduct.value ? 'overflow-hidden xl:col-span-1' : '')
-const contentClass = computed(() => isSingleProduct.value ? 'flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)] lg:gap-8' : '')
+const contentClass = computed(() => isSingleProduct.value
+  ? 'flex h-full flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)] lg:gap-8'
+  : 'flex h-full flex-col')
 const imageClass = computed(() => isSingleProduct.value ? 'h-72 lg:h-full lg:min-h-[24rem]' : 'mb-4 h-44')
 const imageSizes = computed(() => isSingleProduct.value
   ? '(min-width: 1024px) 55vw, 100vw'

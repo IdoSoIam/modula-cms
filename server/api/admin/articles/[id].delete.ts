@@ -1,5 +1,4 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
@@ -7,6 +6,5 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
   await db.article.delete({ where: { id } })
-  await syncImageUsageTable()
   return { ok: true }
 })

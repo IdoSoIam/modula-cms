@@ -582,8 +582,6 @@ export async function updateImageReferences(oldUrl: string, newUrl: string) {
   if (replaceUrlInRootPage(rootPageContent, oldUrl, newUrl)) {
     await savePageBuilderContent(rootPageContent)
   }
-
-  await syncImageUsageTable()
 }
 
 export async function removeImageReferences(url: string) {
@@ -608,8 +606,6 @@ export async function removeImageReferences(url: string) {
   if (removeUrlFromRootPage(rootPageContent, url)) {
     await savePageBuilderContent(rootPageContent)
   }
-
-  await syncImageUsageTable()
 }
 
 export async function countImageReferences(url: string) {

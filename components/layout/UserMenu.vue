@@ -1,12 +1,12 @@
 <template>
-  <div v-if="authStore.isAuthenticated || registerEnabled" class="dropdown dropdown-end mx-2">
+  <div v-if="accountMenuVisible" class="dropdown dropdown-end mx-2">
     <label tabindex="0" class="btn btn-ghost btn-circle relative overflow-visible">
       <Icon
         name="mdi:account-circle"
         size="24"
       />
       <span
-        v-if="shopEnabled && cartCount > 0"
+        v-if="shopVisible && cartCount > 0"
         class="badge badge-primary badge-sm absolute -right-1 -top-1 min-w-5 px-1.5"
       >
         {{ cartCount }}
@@ -17,7 +17,7 @@
       class="dropdown-content z-[1] w-72 rounded-box bg-base-100 p-2 shadow"
     >
       <template v-if="!authStore.isAuthenticated">
-        <div v-if="shopEnabled" class="px-3 py-2 hover:bg-base-200">
+        <div v-if="shopVisible" class="px-3 py-2 hover:bg-base-200">
           <NuxtLink :to="localePath('/panier')" class="inline-flex h-full w-full items-center justify-between text-sm text-primary">
             <span>{{ publicText('auth.userMenu.viewCart', 'Voir le panier') }}</span>
             <span v-if="cartCount > 0" class="badge badge-primary badge-sm">{{ cartCount }}</span>
@@ -26,7 +26,7 @@
         <div class="px-3 py-2 hover:bg-base-200">
           <NuxtLink :to="localePath('/login')" class="inline-flex h-full w-full text-sm text-primary">{{ publicText('auth.userMenu.login', 'Connexion') }}</NuxtLink>
         </div>
-        <div v-if="registerEnabled" class="px-3 py-2 hover:bg-base-200">
+        <div v-if="registerVisible" class="px-3 py-2 hover:bg-base-200">
           <NuxtLink :to="localePath('/register')" class="inline-flex h-full w-full text-sm text-primary">{{ publicText('auth.userMenu.register', 'Inscription') }}</NuxtLink>
         </div>
       </template>
@@ -35,10 +35,10 @@
           <div class="text-sm font-semibold">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</div>
           <NuxtLink :to="localePath('/profile')" class="inline-flex h-full w-full text-sm text-primary">{{ publicText('auth.userMenu.profile', 'Profil') }}</NuxtLink>
         </div>
-        <div v-if="shopEnabled && !authStore.isAdmin" class="px-3 py-2 hover:bg-base-200">
+        <div v-if="shopVisible && !authStore.isAdmin" class="px-3 py-2 hover:bg-base-200">
           <NuxtLink :to="ordersProfileLink" class="inline-flex h-full w-full text-sm text-primary">{{ publicText('auth.userMenu.orders', 'Commandes') }}</NuxtLink>
         </div>
-        <div v-if="shopEnabled" class="px-3 py-2 hover:bg-base-200">
+        <div v-if="shopVisible" class="px-3 py-2 hover:bg-base-200">
           <NuxtLink :to="localePath('/panier')" class="inline-flex h-full w-full items-center justify-between text-sm text-primary">
             <span>{{ publicText('auth.userMenu.viewCart', 'Voir le panier') }}</span>
             <span v-if="cartCount > 0" class="badge badge-primary badge-sm">{{ cartCount }}</span>
@@ -71,6 +71,14 @@ const { publicText } = usePublicDictionary()
 const siteConfig = useSiteConfigState()
 const registerEnabled = computed(() => siteConfig.value?.registerEnabled === true)
 const shopEnabled = computed(() => siteConfig.value?.featureFlags?.shop?.enabled === true)
+const constructionMode = computed(() => siteConfig.value?.inDevelopment === true)
+const registerVisible = computed(() => registerEnabled.value && !constructionMode.value)
+const shopVisible = computed(() => shopEnabled.value && !constructionMode.value)
+const accountMenuVisible = computed(() => {
+  if (authStore.isAuthenticated) return true
+  if (constructionMode.value) return registerEnabled.value
+  return registerVisible.value || shopVisible.value
+})
 const ordersProfileLink = computed(() => localePath({ path: '/profile', query: { tab: 'orders' } }))
 
 const handleLogout = async () => {

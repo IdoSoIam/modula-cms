@@ -1,6 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
-import { countImageReferences, removeImageReferences, syncImageUsageTable } from '#modula/server/utils/imageReferences'
+import { countImageReferences, removeImageReferences } from '#modula/server/utils/imageReferences'
 import { deleteUploadObject } from '#modula/server/utils/uploadStorage'
 import { deleteImageVariants } from '#modula/server/utils/imageVariants'
 
@@ -11,7 +11,6 @@ export default defineEventHandler(async (event) => {
   if (!id) throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
   const img = await db.image.findUnique({ where: { id } })
   if (!img) throw createError({ statusCode: 404, statusMessage: 'Image introuvable' })
-  await syncImageUsageTable()
   const references = await countImageReferences(img.url)
   const linkedCount = references.products + references.productLots + references.articles + references.articleContent + references.rootPage.count
   if (linkedCount > 0 && !force) {
@@ -25,6 +24,5 @@ export default defineEventHandler(async (event) => {
   await deleteImageVariants(img.id)
   await deleteUploadObject(img.filename)
   await db.image.delete({ where: { id } })
-  await syncImageUsageTable()
   return { ok: true }
 })

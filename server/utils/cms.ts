@@ -1362,8 +1362,6 @@ function normalizePlanningPageSettings(value: unknown, fallback: CmsPlanningPage
 
 export async function saveCmsSiteSettings(settings: CmsSiteSettings) {
   await setSetting(SETTING_KEYS.CMS_SITE_SETTINGS, JSON.stringify(settings))
-  const { syncImageUsageTable } = await import('./imageReferences')
-  await syncImageUsageTable()
 }
 
 export async function listCmsPages() {
@@ -1838,10 +1836,6 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
       }),
       async () => null
     )
-    if (updated) {
-      const { syncImageUsageTable } = await import('./imageReferences')
-      await syncImageUsageTable()
-    }
     return updated
   }
 
@@ -1851,10 +1845,6 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
     }),
     async () => null
   )
-  if (created) {
-    const { syncImageUsageTable } = await import('./imageReferences')
-    await syncImageUsageTable()
-  }
   return created
 }
 
@@ -1870,8 +1860,6 @@ export async function deleteCmsPage(id: number) {
     })
   }, async () => undefined)
 
-  const { syncImageUsageTable } = await import('./imageReferences')
-  await syncImageUsageTable()
 }
 
 export async function duplicateCmsPage(id: number) {

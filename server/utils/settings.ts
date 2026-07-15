@@ -68,6 +68,7 @@ export const SETTING_KEYS = {
   CMS_SITE_TEMPLATE_KEY: 'cms_site_template_key_v1',
   CMS_REGISTRY_URL: 'cms_registry_url_v1',
   CMS_REGISTRY_API_KEY: 'cms_registry_api_key_v1',
+  CMS_REGISTRY_PAYMENT_CONFIG_CACHE: 'cms_registry_payment_config_cache_v1',
   IMAGE_PERSIST_VARIANTS: 'image_persist_variants_v1',
   PDF_RENDERER_MODE: 'pdf_renderer_mode_v1',
   DAISYUI_THEME_CONFIG: 'daisyui_theme_config_v1',
@@ -297,11 +298,17 @@ export async function getSetting(key: string): Promise<string | null> {
 }
 
 export async function setSetting(key: string, value: string): Promise<void> {
-  await db.siteParams.upsert({
+  const existing = await db.siteParams.findUnique({
     where: { key },
-    update: { value },
-    create: { key, value }
+    select: { value: true }
   })
+  if (existing?.value === value) return
+
+  await db.$executeRawUnsafe(
+    'INSERT INTO "SiteParams" ("key", "value") VALUES (?, ?) ON CONFLICT("key") DO UPDATE SET "value" = excluded."value"',
+    key,
+    value
+  )
 }
 
 export async function deleteSetting(key: string): Promise<void> {

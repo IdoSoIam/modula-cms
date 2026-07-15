@@ -1123,6 +1123,16 @@ export async function buildBrandedDocumentPdf(options: BrandedDocumentPdfOptions
     footer: options.footer,
   }
 
+  if (getCurrentCmsRuntimeTarget() === 'cloudflare') {
+    const externalPdf = await renderExternalPdf(payload)
+    if (externalPdf) return externalPdf
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'PDF document rendering unavailable',
+      message: 'Le runtime Cloudflare doit utiliser un service PDF externe configure via CMS_PDF_SERVICE_URL.',
+    })
+  }
+
   const accentColor = normalizeColor(options.accentColor)
   const logoDataUri = bytesToDataUri(options.logoBytes, options.logoMimeType)
   const body = `
@@ -1201,6 +1211,16 @@ export async function buildInvoicePdf(options: InvoicePdfOptions) {
     notes: options.notes,
     footer: options.footer,
     labels: options.labels,
+  }
+
+  if (getCurrentCmsRuntimeTarget() === 'cloudflare') {
+    const externalPdf = await renderExternalPdf(payload)
+    if (externalPdf) return externalPdf
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'PDF invoice rendering unavailable',
+      message: 'Le runtime Cloudflare doit utiliser un service PDF externe configure via CMS_PDF_SERVICE_URL.',
+    })
   }
 
   const accentColor = normalizeColor(options.accentColor)

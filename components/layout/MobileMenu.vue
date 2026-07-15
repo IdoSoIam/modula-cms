@@ -116,7 +116,7 @@
         </div>
       </section>
 
-      <section v-if="authStore.isAuthenticated || registerEnabled" class="space-y-2">
+      <section v-if="accountMenuVisible" class="space-y-2">
         <div class="px-1 text-xs font-semibold uppercase tracking-[0.14em] opacity-60">
           {{ publicText('auth.userMenu.accountGroup', 'Mon compte') }}
         </div>
@@ -126,7 +126,7 @@
               <Icon name="mdi:login" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.login', 'Connexion') }}</span>
             </NuxtLink>
-            <NuxtLink v-if="registerEnabled" :to="localePath('/register')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink v-if="registerVisible" :to="localePath('/register')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:account-multiple-outline" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.register', 'Inscription') }}</span>
             </NuxtLink>
@@ -143,7 +143,7 @@
               <span>{{ publicText('auth.userMenu.profile', 'Profil') }}</span>
             </NuxtLink>
 
-            <NuxtLink v-if="shopEnabled && !authStore.isAdmin" :to="ordersProfileLink" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink v-if="shopVisible && !authStore.isAdmin" :to="ordersProfileLink" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:invoice" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.orders', 'Commandes') }}</span>
             </NuxtLink>
@@ -208,6 +208,13 @@ const effectiveFeatureFlags = computed<{ shop?: { enabled?: boolean } } | null>(
   return siteConfigValue?.featureFlags ?? null
 })
 const shopEnabled = computed(() => effectiveFeatureFlags.value?.shop?.enabled === true)
+const registerVisible = computed(() => registerEnabled.value && !inDevelopment.value)
+const shopVisible = computed(() => shopEnabled.value && !inDevelopment.value)
+const accountMenuVisible = computed(() => {
+  if (authStore.isAuthenticated) return true
+  if (inDevelopment.value) return registerEnabled.value
+  return registerVisible.value
+})
 const headerSettings = computed(() => cms.value?.settings.header ?? {
   heightPx: 84,
   logoHeightPx: 48,
