@@ -209,7 +209,7 @@ const effectiveFeatureFlags = computed<{ shop?: { enabled?: boolean } } | null>(
 })
 const shopEnabled = computed(() => effectiveFeatureFlags.value?.shop?.enabled === true)
 const registerVisible = computed(() => registerEnabled.value && !inDevelopment.value)
-const shopVisible = computed(() => shopEnabled.value && !inDevelopment.value)
+const shopVisible = computed(() => shopEnabled.value && (!inDevelopment.value || authStore.isAuthenticated))
 const accountMenuVisible = computed(() => {
   if (authStore.isAuthenticated) return true
   if (inDevelopment.value) return registerEnabled.value

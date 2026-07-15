@@ -73,7 +73,7 @@ const registerEnabled = computed(() => siteConfig.value?.registerEnabled === tru
 const shopEnabled = computed(() => siteConfig.value?.featureFlags?.shop?.enabled === true)
 const constructionMode = computed(() => siteConfig.value?.inDevelopment === true)
 const registerVisible = computed(() => registerEnabled.value && !constructionMode.value)
-const shopVisible = computed(() => shopEnabled.value && !constructionMode.value)
+const shopVisible = computed(() => shopEnabled.value && (!constructionMode.value || authStore.isAuthenticated))
 const accountMenuVisible = computed(() => {
   if (authStore.isAuthenticated) return true
   if (constructionMode.value) return registerEnabled.value

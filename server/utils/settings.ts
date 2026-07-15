@@ -304,10 +304,13 @@ export async function setSetting(key: string, value: string): Promise<void> {
   })
   if (existing?.value === value) return
 
+  const now = new Date().toISOString()
   await db.$executeRawUnsafe(
-    'INSERT INTO "SiteParams" ("key", "value") VALUES (?, ?) ON CONFLICT("key") DO UPDATE SET "value" = excluded."value"',
+    'INSERT INTO "SiteParams" ("key", "value", "createdAt", "updatedAt") VALUES (?, ?, ?, ?) ON CONFLICT("key") DO UPDATE SET "value" = excluded."value", "updatedAt" = excluded."updatedAt"',
     key,
-    value
+    value,
+    now,
+    now
   )
 }
 

@@ -444,9 +444,9 @@ export const db = {
   $transaction<T>(operations: Promise<T>[]) {
     return Promise.all(operations)
   },
-  async $executeRawUnsafe(sql: string) {
+  async $executeRawUnsafe(sql: string, ...bindings: unknown[]) {
     const runtime = getRuntime()
-    return await runtime.adapter.execute(sql, [])
+    return await runtime.adapter.execute(sql, bindings)
   }
 } as Record<string, any>
 

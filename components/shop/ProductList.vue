@@ -24,7 +24,7 @@
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <h3 class="text-lg font-semibold">{{ getLocalizedName(product) }}</h3>
-              <p v-if="showDescriptions && getLocalizedExcerpt(product)" class="mt-2 text-sm opacity-75">{{ getLocalizedExcerpt(product) }}</p>
+              <p v-if="showDescriptions && getLocalizedExcerpt(product)" class="mt-2 text-sm opacity-75 wrap-break-word">{{ getLocalizedExcerpt(product) }}</p>
             </div>
             <div class="text-right">
               <div class="text-lg font-semibold text-primary">{{ $formatPrice(product.price) }}</div>
@@ -42,7 +42,7 @@
             </div>
           </div>
           <div class="mt-auto grid gap-3 pt-8" :class="product.saleType === 'RENTAL' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'">
-            <button class="btn btn-ghost" @click="$emit('view', product)">
+            <button class="btn btn-ghost p-0" @click="$emit('view', product)">
               {{ viewLabel }}
             </button>
             <button
