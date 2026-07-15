@@ -128,6 +128,7 @@ interface ExternalInvoicePdfPayload {
     city?: string
   }
   customer: {
+    title?: string
     name?: string
     email?: string
     phone?: string
@@ -1189,6 +1190,7 @@ export async function buildInvoicePdf(options: InvoicePdfOptions) {
       city: options.sellerLines.slice(3).join('\n'),
     },
     customer: {
+      title: options.customerTitle || 'Client',
       name: options.customerLines[0] || '',
       email: options.customerLines[1] || '',
       phone: options.customerLines[2] || '',
