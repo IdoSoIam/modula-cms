@@ -1,12 +1,12 @@
 <template>
   <div class="space-y-1">
-    <div class="dropdown dropdown-end">
-      <label tabindex="0" class="btn btn-outline btn-sm gap-2" :class="{ 'btn-disabled': disabled }">
+    <FloatingDropdown :disabled="disabled" trigger-class="btn btn-outline btn-sm gap-2">
+      <template #trigger>
         <span>{{ selectedCountText }}</span>
         <Icon name="mdi:chevron-down" size="16" />
-      </label>
+      </template>
 
-      <div tabindex="0" class="dropdown-content z-[101] menu p-3 shadow-lg bg-base-200 rounded-box w-72">
+      <div class="p-1">
         <div class="mb-2">
           <input
             v-model="search"
@@ -35,7 +35,7 @@
 
         <p v-if="!filteredOptions.length" class="text-xs opacity-50 text-center py-2">Aucun résultat</p>
       </div>
-    </div>
+    </FloatingDropdown>
 
     <div v-if="selectedOptions.length" class="flex flex-wrap gap-1">
       <span

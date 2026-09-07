@@ -1,11 +1,7 @@
-import { createOrUpdateEvent, normalizeEventPayload } from '#modula/server/utils/events'
-import { syncEventOccurrencesForEvent } from '#modula/server/utils/planning'
+import { saveEvent } from '#modula/server/services/events/saveEvent'
 import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
   const user = await requirePermission(event, 'events', 'create')
-  const payload = normalizeEventPayload(await readBody(event))
-  const saved = await createOrUpdateEvent(payload, user.id)
-  await syncEventOccurrencesForEvent(saved as any)
-  return { id: saved.id, slug: saved.slug }
+  return saveEvent(await readBody(event), user.id)
 })

@@ -46,7 +46,6 @@ export async function sendShopOrderCreatedNotifications(
     order,
     to: order.email,
     locale: normalizeShopOrderLocale(order.language),
-    accent: order.paymentProvider === 'STRIPE' ? '#4b56d2' : '#2563eb',
   })
 
   if (options?.notifyAdmin) {
@@ -70,7 +69,6 @@ export async function sendShopOrderTransitionNotifications(
       order,
       to: order.email,
       locale,
-      accent: '#16a34a',
       attachments,
     })
 
@@ -85,7 +83,6 @@ export async function sendShopOrderTransitionNotifications(
       order,
       to: order.email,
       locale,
-      accent: '#dc2626',
     })
   }
 
@@ -95,7 +92,6 @@ export async function sendShopOrderTransitionNotifications(
       order,
       to: order.email,
       locale,
-      accent: '#2563eb',
     })
   }
 
@@ -109,7 +105,6 @@ export async function sendShopOrderTransitionNotifications(
       order,
       to: order.email,
       locale,
-      accent: '#d97706',
     })
   }
 }
@@ -124,7 +119,6 @@ export async function sendShopOrderRefundRequestNotifications(orderId: number) {
     order,
     to: order.email,
     locale,
-    accent: '#d97706',
   })
 
   const notificationEmail = await getReservationNotificationEmail()
@@ -135,7 +129,6 @@ export async function sendShopOrderRefundRequestNotifications(orderId: number) {
     order,
     to: notificationEmail,
     locale: 'fr',
-    accent: '#d97706',
   })
 }
 
@@ -148,7 +141,6 @@ export async function sendShopOrderRefundRejectedNotifications(orderId: number) 
     order,
     to: order.email,
     locale: normalizeShopOrderLocale(order.language),
-    accent: '#dc2626',
   })
 }
 
@@ -161,7 +153,6 @@ async function sendShopOrderValidatedAdminEmail(order: ShopOrderPayload, attachm
     order,
     to: notificationEmail,
     locale: 'fr',
-    accent: '#4b56d2',
     attachments,
   })
 }
@@ -171,7 +162,6 @@ async function sendShopOrderEmail(options: {
   order: ShopOrderPayload
   to: string
   locale: ShopOrderEmailLocale
-  accent: string
   attachments?: PdfAttachment[]
 }) {
   try {
@@ -185,7 +175,7 @@ async function sendShopOrderEmail(options: {
       htmlBody: await buildGenericEmail({
         title: draft.subject,
         body: draft.body,
-        accent: options.accent,
+        templateAction: options.action,
         lang: options.locale,
       }),
       attachments: options.attachments || [],

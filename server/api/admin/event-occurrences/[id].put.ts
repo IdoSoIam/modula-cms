@@ -1,5 +1,6 @@
 import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
+import { notifyEventStatusChange } from '#modula/server/services/events/notifications'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'events', 'update')
@@ -15,11 +16,14 @@ export default defineEventHandler(async (event) => {
   if (!occurrence) {
     throw createError({ statusCode: 404, statusMessage: 'Occurrence introuvable' })
   }
+  if (body?.status !== undefined && !['SCHEDULED', 'CANCELLED'].includes(body.status)) {
+    throw createError({ statusCode: 400, message: 'Statut de créneau invalide' })
+  }
 
   const updated = await db.eventOccurrence.update({
     where: { id },
     data: {
-      status: body?.status === 'CANCELLED' ? 'CANCELLED' : 'SCHEDULED',
+      status: body?.status === undefined ? occurrence.status : body.status === 'CANCELLED' ? 'CANCELLED' : 'SCHEDULED',
       startsAt: typeof body?.startsAt === 'string' && body.startsAt ? new Date(body.startsAt) : occurrence.startsAt,
       endsAt: typeof body?.endsAt === 'string' && body.endsAt ? new Date(body.endsAt) : (body?.endsAt === null ? null : occurrence.endsAt),
       isOverride: true,
@@ -49,5 +53,7 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  return { id: updated.id }
+  const parent = await db.event.findUniqueOrThrow({ where: { id: updated.eventId } })
+  const notification = await notifyEventStatusChange(occurrence.status, parent, updated)
+  return { id: updated.id, notification }
 })

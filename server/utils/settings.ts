@@ -1,6 +1,7 @@
 import cmsProjectConfig from '#modula/cms.project.config'
 import { db } from '#modula/server/data/client'
 import { resolveCmsPlatformConfig } from '#modula/shared/platform'
+import { normalizeEmailAccentColors } from '#modula/shared/emailCustomization'
 
 export const SETTING_KEYS = {
   ADMIN_EMAIL: 'admin_email',
@@ -449,6 +450,7 @@ export interface EmailVisualTemplateConfig {
   textColor: string
   footerText: string
   buttonRadiusPx: number
+  templateAccentColors: Record<string, string>
 }
 
 const DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG: EmailVisualTemplateConfig = {
@@ -459,11 +461,15 @@ const DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG: EmailVisualTemplateConfig = {
   cardColor: '#ffffff',
   textColor: '#1f2937',
   footerText: cmsProjectConfig.site.displayName,
-  buttonRadiusPx: 10
+  buttonRadiusPx: 10,
+  templateAccentColors: {}
 }
 
 export function getDefaultEmailVisualTemplateConfig(): EmailVisualTemplateConfig {
-  return { ...DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG }
+  return {
+    ...DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG,
+    templateAccentColors: { ...DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.templateAccentColors }
+  }
 }
 
 export async function getEmailVisualTemplateConfig(): Promise<EmailVisualTemplateConfig> {
@@ -481,7 +487,11 @@ export async function getEmailVisualTemplateConfig(): Promise<EmailVisualTemplat
       footerText: typeof parsed.footerText === 'string' ? parsed.footerText : DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.footerText,
       buttonRadiusPx: typeof parsed.buttonRadiusPx === 'number' && Number.isFinite(parsed.buttonRadiusPx)
         ? Math.max(0, Math.min(28, Math.round(parsed.buttonRadiusPx)))
-        : DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.buttonRadiusPx
+        : DEFAULT_EMAIL_VISUAL_TEMPLATE_CONFIG.buttonRadiusPx,
+      templateAccentColors: normalizeEmailAccentColors(
+        parsed.templateAccentColors
+        ?? (parsed as Partial<EmailVisualTemplateConfig> & { eventAccentColors?: unknown }).eventAccentColors
+      )
     }
   } catch {
     return getDefaultEmailVisualTemplateConfig()

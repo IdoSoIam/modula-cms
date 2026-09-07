@@ -8,6 +8,7 @@ export interface EmailBrandingConfig {
   logoUrl: string
   footerText: string
   accentColor: string
+  templateAccentColors: Record<string, string>
 }
 
 function normalizePublicAssetUrl(value: string | null | undefined) {
@@ -44,6 +45,7 @@ export async function getEmailBrandingConfig(): Promise<EmailBrandingConfig> {
     brandName,
     logoUrl,
     footerText,
-    accentColor: emailConfig.accentColor
+    accentColor: emailConfig.accentColor,
+    templateAccentColors: emailConfig.templateAccentColors
   }
 }

@@ -286,7 +286,7 @@ function inferRoutePermission(event: H3Event): RoutePermissionMatch | null {
     { pattern: /^\/api\/admin\/users/, modules: ['users'] },
     { pattern: /^\/api\/admin\/roles/, modules: ['roles'] },
     { pattern: /^\/api\/admin\/cms\/site-shell/, modules: ['layout_customization', 'navigation', 'settings'] },
-    { pattern: /^\/api\/admin\/stats/, modules: ['cms_pages', 'news', 'events', 'shop_orders', 'settings'] }
+    { pattern: /^\/api\/admin\/stats/, modules: ['cms_pages', 'news', 'events', 'shop_orders', 'settings', 'themes_images', 'users'] }
   ]
 
   const match = mappings.find(entry => entry.pattern.test(path))

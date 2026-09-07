@@ -1,12 +1,13 @@
 import { db } from '#modula/server/data/client'
 import { listAudienceEligibleUsers, sendParticipationCall } from '#modula/server/utils/events'
 import { requireSpecialPermission } from '#modula/server/utils/permissions'
+import { resolveEventEmailLocale } from '#modula/server/services/events/notifications'
 
 export default defineEventHandler(async (event) => {
   await requireSpecialPermission(event, 'send_event_participation_emails')
   const body = await readBody<{
     eventId?: number
-    locale?: 'fr' | 'en'
+    locale?: string
     selectedUserIds?: number[]
     manualEmails?: string[]
     subject?: string
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
 
   const sent = await sendParticipationCall({
     eventRow,
-    locale: body.locale === 'en' ? 'en' : 'fr',
+    locale: await resolveEventEmailLocale(body.locale),
     selectedUserIds: Array.isArray(body.selectedUserIds) ? body.selectedUserIds.map(Number).filter(id => Number.isInteger(id) && id > 0) : [],
     manualEmails: Array.isArray(body.manualEmails) ? body.manualEmails : [],
     subject: body.subject,

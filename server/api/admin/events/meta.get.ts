@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   await requirePermission(event, 'events', 'read')
   const associationRolesEnabled = await isAssociationRolesEnabled()
 
-  const [memberRoles, users] = await Promise.all([
+  const [memberRoles, users, memberships] = await Promise.all([
     associationRolesEnabled ? db.memberRole.findMany({
       orderBy: [
         { isSystem: 'desc' },
@@ -15,7 +15,8 @@ export default defineEventHandler(async (event) => {
       select: {
         id: true,
         slug: true,
-        name: true
+        name: true,
+        color: true
       }
     }) : Promise.resolve([]),
     db.user.findMany({
@@ -29,15 +30,21 @@ export default defineEventHandler(async (event) => {
         id: true,
         email: true,
         firstName: true,
-        lastName: true,
-        memberRoles: {
-          include: {
-            memberRole: true
-          }
-        }
+        lastName: true
       }
-    })
+    }),
+    associationRolesEnabled ? db.userMemberRole.findMany({ select: { userId: true, memberRoleId: true } }) : Promise.resolve([])
   ])
+
+  const rolesById = new Map<number, { id: number; name: string; slug: string; color: string | null }>(memberRoles.map((role: any) => [role.id, role]))
+  const rolesByUser = new Map<number, Array<NonNullable<ReturnType<typeof rolesById.get>>>>()
+  for (const membership of memberships) {
+    const role = rolesById.get(membership.memberRoleId)
+    if (!role) continue
+    const roles = rolesByUser.get(membership.userId) || []
+    roles.push(role)
+    rolesByUser.set(membership.userId, roles)
+  }
 
   return {
     memberRoles,
@@ -46,13 +53,8 @@ export default defineEventHandler(async (event) => {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      memberRoleIds: associationRolesEnabled ? user.memberRoles.map((entry: any) => entry.memberRoleId) : [],
-      memberRoles: associationRolesEnabled ? user.memberRoles.map((entry: any) => ({
-        id: entry.memberRole.id,
-        slug: entry.memberRole.slug,
-        name: entry.memberRole.name,
-        color: entry.memberRole.color
-      })) : []
+      memberRoleIds: (rolesByUser.get(user.id) || []).map(role => role.id),
+      memberRoles: rolesByUser.get(user.id) || []
     }))
   }
 })

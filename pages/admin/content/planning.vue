@@ -302,6 +302,7 @@ interface MemberRoleSummary {
 
 const localePath = useLocalePath()
 const { $toast } = useNuxtApp() as any
+const { t } = useI18n()
 const siteConfig = await useSiteConfig()
 const creating = ref(false)
 const savingOccurrence = ref(false)
@@ -562,7 +563,7 @@ async function saveOccurrence() {
   if (!selectedOccurrence.value) return
   savingOccurrence.value = true
   try {
-    await $fetch(`/api/admin/event-occurrences/${selectedOccurrence.value.id}`, {
+    const result = await $fetch<{ notification?: { failed: number } }>(`/api/admin/event-occurrences/${selectedOccurrence.value.id}`, {
       method: 'PUT',
       body: {
         ...selectedOccurrence.value,
@@ -573,6 +574,7 @@ async function saveOccurrence() {
     occurrenceDialogRef.value?.close()
     await refresh()
     $toast?.success('Occurrence enregistrée')
+    if (result.notification?.failed) $toast?.error(t('admin.eventsEditor.emailFailed'))
   } catch (error: any) {
     $toast?.error(error?.data?.message || error?.message || error?.data?.statusMessage || 'Impossible d’enregistrer cette occurrence')
   } finally {

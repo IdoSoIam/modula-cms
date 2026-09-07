@@ -1,9 +1,10 @@
 import { createServer } from 'node:http'
-import { copyFile, cp, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
+import { copyFile, cp, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { DatabaseSync } from 'node:sqlite'
+import { listRuntimeMigrationFiles, normalizeRuntimeManifestMigrations, normalizeRuntimeMigrationPath } from './runtime-migrations.mjs'
 
 const cwd = process.cwd()
 const runtimeDir = path.resolve(cwd, process.env.CMS_AGENT_RUNTIME_DIR || '.')
@@ -530,7 +531,7 @@ function columnExists(tableName, columnName) {
 }
 
 function inferAlreadyApplied(file) {
-  switch (file) {
+  switch (normalizeRuntimeMigrationPath(file)) {
     case '0001_init.sql':
       return tableExists('SiteParams')
     case '0002_drop_image_data.sql':
@@ -560,6 +561,15 @@ function inferAlreadyApplied(file) {
       return tableExists('PasswordSetupToken')
     case '0010_add_cms_update_jobs.sql':
       return tableExists('cms_update_jobs') && tableExists('cms_update_job_logs')
+    case '0030_add_billing_document_invoice_options/sqlite.sql':
+      return columnExists('BillingDocumentTemplate', 'invoiceOptionsJson')
+    case '0031_add_shop_order_refund_rules/sqlite.sql':
+      return columnExists('Product', 'allowCustomerCancellation')
+        && columnExists('Product', 'allowRefundRequestAfterEngagement')
+        && columnExists('ShopOrder', 'afterSalesStatus')
+    case '0032_add_event_notification_locale/sqlite.sql':
+      return columnExists('EventPublicReservation', 'locale')
+        && columnExists('EventInternalParticipation', 'locale')
     default:
       return false
   }
@@ -607,21 +617,6 @@ function getAppliedMigrationNames() {
   return [...normalizeAppliedMigrationNames(names)].sort()
 }
 
-async function listMigrationFiles(migrationsDir) {
-  if (!existsSync(migrationsDir)) return []
-  return (await readdir(migrationsDir))
-    .filter(file => file.endsWith('.sql'))
-    .sort()
-}
-
-function normalizeManifestMigrations(manifest) {
-  const items = Array.isArray(manifest?.migrations) ? manifest.migrations : []
-  return items
-    .map(item => typeof item === 'string' ? item : item?.name)
-    .filter(Boolean)
-    .sort()
-}
-
 function getMigrationAliases(file) {
   switch (file) {
     case '0007_add_member_roles_and_event_audience_split.sql':
@@ -656,9 +651,9 @@ async function resolveReleaseManifest(targetDir, releaseRecord = null) {
 }
 
 async function resolveReleaseMigrations(targetDir, manifest = null) {
-  const fromManifest = normalizeManifestMigrations(manifest)
+  const fromManifest = normalizeRuntimeManifestMigrations(manifest)
   if (fromManifest.length) return fromManifest
-  return await listMigrationFiles(path.join(targetDir, 'migrations'))
+  return await listRuntimeMigrationFiles(path.join(targetDir, 'migrations'))
 }
 
 function areMigrationSetsEqual(left, right) {

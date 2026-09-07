@@ -1,6 +1,6 @@
 <template>
-  <div v-if="accountMenuVisible" class="dropdown dropdown-end mx-2">
-    <label tabindex="0" class="btn btn-ghost btn-circle relative overflow-visible">
+  <FloatingDropdown v-if="accountMenuVisible" class="mx-2" trigger-class="btn btn-ghost btn-circle relative overflow-visible" close-on-select>
+    <template #trigger>
       <Icon
         name="mdi:account-circle"
         size="24"
@@ -11,10 +11,10 @@
       >
         {{ cartCount }}
       </span>
-    </label>
+    </template>
     <ul
       tabindex="0"
-      class="dropdown-content z-[1] w-72 rounded-box bg-base-100 p-2 shadow"
+      class="w-full"
     >
       <template v-if="!authStore.isAuthenticated">
         <div v-if="shopVisible" class="px-3 py-2 hover:bg-base-200">
@@ -54,7 +54,7 @@
         </div>
       </template>
     </ul>
-  </div>
+  </FloatingDropdown>
 </template>
 
 <script setup lang="ts">

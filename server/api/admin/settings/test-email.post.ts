@@ -52,7 +52,6 @@ export default defineEventHandler(async (event) => {
     htmlBody: await buildGenericEmail({
       title: 'Test email',
       body,
-      accent: '#2563eb',
       lang: 'fr'
     })
   })

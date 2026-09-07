@@ -1,8 +1,8 @@
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
-import { createHash } from 'node:crypto'
+import { buildRuntimeMigrationManifest } from './runtime-migrations.mjs'
 
 const cwd = process.cwd()
 const pkg = JSON.parse(await readFile(path.join(cwd, 'package.json'), 'utf8'))
@@ -16,6 +16,7 @@ const archivePath = path.join(distDir, `modula-cms-runtime-${version}.tar.gz`)
 const manifestPath = path.join(cwd, '.release-manifest.json')
 const distManifestPath = path.join(distDir, `modula-cms-runtime-${version}.manifest.json`)
 const updateScriptPath = path.join('scripts', 'update-agent.mjs')
+const migrationHelperPath = path.join('scripts', 'runtime-migrations.mjs')
 
 await mkdir(distDir, { recursive: true })
 
@@ -27,7 +28,7 @@ const releaseManifest = {
   builtAt: new Date().toISOString(),
   packageName: pkg.name,
   includesUpdateScript: existsSync(path.join(cwd, updateScriptPath)),
-  migrations: await buildMigrationManifest(),
+  migrations: await buildRuntimeMigrationManifest(path.join(cwd, 'migrations')),
   rollbackPolicy: {
     fast: 'code-only-if-schema-compatible',
     full: 'code-and-database-restore',
@@ -43,6 +44,9 @@ try {
   if (existsSync(path.join(cwd, updateScriptPath))) {
     entries.push(updateScriptPath)
   }
+  if (existsSync(path.join(cwd, migrationHelperPath))) {
+    entries.push(migrationHelperPath)
+  }
   await run(`tar -czf "${archivePath}" ${entries.join(' ')}`)
 } finally {
   await rm(manifestPath, { force: true })
@@ -55,24 +59,4 @@ function run(command) {
     child.on('exit', (code) => code === 0 ? resolve(undefined) : reject(new Error(`Command failed: ${command}`)))
     child.on('error', reject)
   })
-}
-
-async function buildMigrationManifest() {
-  const migrationsDir = path.join(cwd, 'migrations')
-  if (!existsSync(migrationsDir)) return []
-
-  const entries = (await readdir(migrationsDir))
-    .filter(file => file.endsWith('.sql'))
-    .sort()
-
-  const manifest = []
-  for (const file of entries) {
-    const contents = await readFile(path.join(migrationsDir, file), 'utf8')
-    manifest.push({
-      name: file,
-      checksum: createHash('sha256').update(contents).digest('hex')
-    })
-  }
-
-  return manifest
 }

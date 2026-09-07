@@ -1,6 +1,7 @@
 import { db } from '#modula/server/data/client'
 import { canAccessEvent, submitInternalParticipation } from '#modula/server/utils/events'
 import { AuthService } from '#modula/server/services/auth/authService'
+import { resolveEventEmailLocale } from '#modula/server/services/events/notifications'
 
 const authService = new AuthService()
 
@@ -41,10 +42,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Rôle associatif non autorisé pour cette participation' })
   }
 
-  const body = await readBody<{ message?: string, locale?: 'fr' | 'en' }>(event)
+  const body = await readBody<{ message?: string, locale?: string }>(event)
   const participation = await submitInternalParticipation(eventRow, {
     message: typeof body.message === 'string' ? body.message : ''
-  }, user, body.locale === 'en' ? 'en' : 'fr')
+  }, user, await resolveEventEmailLocale(body.locale))
 
   return { id: participation.id, status: participation.status }
 })

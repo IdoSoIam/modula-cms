@@ -1,6 +1,7 @@
 import { db } from '#modula/server/data/client'
 import { normalizeEventPayload, submitEventPublicReservation } from '#modula/server/utils/events'
 import { AuthService } from '#modula/server/services/auth/authService'
+import { resolveEventEmailLocale } from '#modula/server/services/events/notifications'
 
 const authService = new AuthService()
 
@@ -10,7 +11,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Slug requis' })
   }
 
-  const body = await readBody<{ customerName?: string; email?: string; phone?: string; seats?: number; message?: string; locale?: 'fr' | 'en' }>(event)
+  const body = await readBody<{ customerName?: string; email?: string; phone?: string; seats?: number; message?: string; locale?: string }>(event)
   const eventRow = await db.event.findUnique({
     where: { slug },
     include: {
@@ -28,7 +29,7 @@ export default defineEventHandler(async (event) => {
     phone: typeof body.phone === 'string' ? body.phone : '',
     seats: Number(body.seats) || 1,
     message: typeof body.message === 'string' ? body.message : ''
-  }, body.locale === 'en' ? 'en' : 'fr', user?.id)
+  }, await resolveEventEmailLocale(body.locale), user?.id)
 
   return { id: reservation.id }
 })

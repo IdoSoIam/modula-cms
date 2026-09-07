@@ -1,12 +1,12 @@
 <template>
-  <div v-if="themeControllerEnabled && availableThemes.length" class="dropdown dropdown-end">
-    <div tabindex="0" role="button" class="btn btn-ghost btn-circle" :title="$t('theme.select')">
+  <FloatingDropdown v-if="themeControllerEnabled && availableThemes.length" trigger-class="btn btn-ghost btn-circle" :width="224" close-on-select>
+    <template #trigger>
       <Icon name="mdi:palette" size="24" />
-    </div>
+    </template>
     <ClientOnly>
       <ul
         tabindex="0"
-        class="dropdown-content menu bg-base-200 rounded-box z-50 w-56 p-2 shadow-2xl"
+        class="menu w-full"
       >
         <li class="menu-title">{{ $t('theme.title') }}</li>
         <li v-for="t in availableThemes" :key="t.name">
@@ -34,7 +34,7 @@
         </li>
       </ul>
     </ClientOnly>
-  </div>
+  </FloatingDropdown>
 </template>
 
 <script setup lang="ts">

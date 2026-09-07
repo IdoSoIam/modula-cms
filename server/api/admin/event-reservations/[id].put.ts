@@ -1,4 +1,4 @@
-import { db } from '#modula/server/data/client'
+import { updateEventRegistration } from '#modula/server/services/events/notifications'
 import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -14,16 +14,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Statut invalide' })
   }
 
-  await db.eventPublicReservation.update({
-    where: { id },
-    data: {
-      status: status as any,
-      adminNote: typeof body.adminNote === 'string' ? body.adminNote.trim() || null : undefined,
-      confirmedAt: status === 'CONFIRMED' ? new Date() : null,
-      cancelledAt: status === 'CANCELLED' ? new Date() : null,
-      rejectedAt: status === 'REJECTED' ? new Date() : null
-    }
-  })
+  const notification = await updateEventRegistration('reservation', id, status, body.adminNote)
 
-  return { ok: true }
+  return { ok: true, notification }
 })

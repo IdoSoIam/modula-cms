@@ -1,0 +1,30 @@
+{
+  "id": "0032_add_event_notification_locale",
+  "name": "add_event_notification_locale",
+  "description": "",
+  "beforeSchemaHash": "4e4234e824d5588b7a205eda5404b999e9b5bb4770a7c5c79531d18ea252ab67",
+  "afterSchemaHash": "31f092d527e4b2a44c3eaba1d8c271992c693b1fd696b94f6f15b4f78309261f",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "EventInternalParticipation",
+        "changes": [
+          "field added: locale"
+        ]
+      },
+      {
+        "model": "EventPublicReservation",
+        "changes": [
+          "field added: locale"
+        ]
+      }
+    ]
+  }
+}
