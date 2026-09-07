@@ -1,6 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
-import { syncImageUsageTable, updateImageReferences } from '#modula/server/utils/imageReferences'
+import { updateImageReferences } from '#modula/server/utils/imageReferences'
 import { slugify } from '#modula/server/utils/slug'
 import { extname } from 'node:path'
 import { putUploadObject, renameUploadObject, deleteUploadObject } from '#modula/server/utils/uploadStorage'
@@ -89,6 +89,5 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  await syncImageUsageTable()
   return updated
 })

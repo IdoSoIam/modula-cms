@@ -1,18 +1,18 @@
 <template>
-  <div class="dropdown dropdown-end">
-    <label tabindex="0" class="btn btn-ghost btn-sm gap-2">
+  <FloatingDropdown trigger-class="btn btn-ghost btn-sm gap-2" :width="208" close-on-select>
+    <template #trigger>
       <Icon name="mdi:translate" size="20" />
       {{ currentLabel }}
       <Icon name="mdi:chevron-down" size="20" />
-    </label>
-    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-200 rounded-box w-52">
+    </template>
+    <ul class="menu w-full">
       <li v-for="item in availableLocales" :key="item.code">
         <button type="button" class="text-left text-base-content" @click="handleChange(item.code)">
           {{ item.label }}
         </button>
       </li>
     </ul>
-  </div>
+  </FloatingDropdown>
 </template>
 
 <script setup lang="ts">

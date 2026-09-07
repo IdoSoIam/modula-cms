@@ -126,6 +126,29 @@ const liveEditDirty = computed(() =>
   && serializeEditorState() !== savedEditorSnapshot.value
 )
 
+function createEditorTranslationFallback(page: CmsPageEditor, localeCode: CmsLocale) {
+  const fallback = page.translations?.[localeCode]
+    ?? page.translations?.en
+    ?? page.translations?.fr
+    ?? Object.values(page.translations || {}).find(Boolean)
+
+  return {
+    title: fallback?.title ?? page.title,
+    navigationLabel: fallback?.navigationLabel ?? fallback?.title ?? page.title,
+    seo: cloneCmsData(fallback?.seo ?? editableResolvedPage.value.seo),
+    content: cloneCmsData(fallback?.content ?? editableResolvedPage.value.content)
+  }
+}
+
+function ensureEditorPageTranslations(page: CmsPageEditor) {
+  page.translations = page.translations || {}
+  for (const localeCode of resolvedLocales.value) {
+    page.translations[localeCode] = page.translations[localeCode] ?? createEditorTranslationFallback(page, localeCode)
+  }
+  page.translations[currentLocale.value] = page.translations[currentLocale.value]
+    ?? createEditorTranslationFallback(page, currentLocale.value)
+}
+
 onMounted(() => {
   liveEditHydrated.value = true
   if (!import.meta.client) return
@@ -143,7 +166,12 @@ watch(() => props.resolvedPage, (value) => {
 }, { deep: true, immediate: true })
 
 watch(currentLocale, () => {
+  if (editorPage.value) ensureEditorPageTranslations(editorPage.value)
   syncLocalizedContentFromEditor()
+})
+
+watch(resolvedLocales, () => {
+  if (editorPage.value) ensureEditorPageTranslations(editorPage.value)
 })
 
 usePageSeo({
@@ -376,6 +404,7 @@ async function bootstrapCurrentPage() {
   })
 
   editorPage.value = cloneCmsData(page)
+  ensureEditorPageTranslations(editorPage.value)
   editableResolvedPage.value = {
     ...editableResolvedPage.value,
     id: page.id
@@ -397,6 +426,7 @@ async function ensureEditorPage() {
 
     const page = await $fetch<CmsPageEditor>(`/api/admin/cms/pages/${editableResolvedPage.value.id}`)
     editorPage.value = cloneCmsData(page)
+    ensureEditorPageTranslations(editorPage.value)
     syncLocalizedContentFromEditor()
     syncEditorSnapshot()
     return editorPage.value
@@ -439,30 +469,16 @@ async function saveLiveEdit() {
 
   saving.value = true
   try {
-    if (!page.translations?.[currentLocale.value]) {
-      page.translations = page.translations || {}
-      for (const localeCode of resolvedLocales.value) {
-        page.translations[localeCode] = page.translations[localeCode] ?? {
-          title: page.title,
-          navigationLabel: page.title,
-          seo: cloneCmsData(editableResolvedPage.value.seo),
-          content: cloneCmsData(editableResolvedPage.value.content)
-        }
-      }
+    ensureEditorPageTranslations(page)
+    const editedContent = cloneCmsData(editableResolvedPage.value.content)
+    for (const localeCode of resolvedLocales.value) {
+      if (!page.translations[localeCode]) continue
+      page.translations[localeCode]!.content = cloneCmsData(editedContent)
     }
-
-    if (!page.translations[currentLocale.value]) {
-      page.translations[currentLocale.value] = {
-        title: page.title,
-        navigationLabel: page.title,
-        seo: cloneCmsData(editableResolvedPage.value.seo),
-        content: cloneCmsData(editableResolvedPage.value.content)
-      }
-    }
-    page.translations[currentLocale.value]!.content = cloneCmsData(editableResolvedPage.value.content)
+    page.translations[currentLocale.value]!.content = cloneCmsData(editedContent)
     const saved = await $fetch<CmsPageEditor>(`/api/admin/cms/pages/${page.id}`, {
       method: 'PUT',
-      body: page
+      body: cloneCmsData(page)
     })
     editorPage.value = cloneCmsData(saved)
     editableResolvedPage.value = {

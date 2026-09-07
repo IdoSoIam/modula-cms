@@ -1,5 +1,4 @@
-import { createOrUpdateEvent, normalizeEventPayload } from '#modula/server/utils/events'
-import { syncEventOccurrencesForEvent } from '#modula/server/utils/planning'
+import { saveEvent } from '#modula/server/services/events/saveEvent'
 import { requirePermission } from '#modula/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -9,9 +8,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant événement invalide' })
   }
 
-  const payload = normalizeEventPayload(await readBody(event))
-  payload.id = id
-  const saved = await createOrUpdateEvent(payload, user.id)
-  await syncEventOccurrencesForEvent(saved as any)
-  return { id: saved.id, slug: saved.slug }
+  return saveEvent(await readBody(event), user.id, id)
 })

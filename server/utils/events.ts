@@ -1,6 +1,8 @@
+import { eventDateError, normalizeEventCapacity } from '#modula/shared/eventValidation'
+import { formatLocalizedDateValue, formatLocalizedTimeValue } from '#modula/shared/date'
 import { db } from '#modula/server/data/client'
 import type { Event, EventAudienceMemberRole, EventInternalParticipation, EventOccurrence, EventPublicReservation, MemberRole, User } from '#modula/server/data/types'
-import { createDefaultCmsSiteSettings, type CmsLocale, type CmsLocalizedText } from '#modula/shared/cms'
+import { createDefaultCmsSiteSettings, getCmsLocaleFallbacks, pickCmsLocalizedText, type CmsLocale, type CmsLocalizedText } from '#modula/shared/cms'
 import type { PageBuilderContent } from '#modula/shared/pageBuilder'
 import {
   createDefaultEventPayload,
@@ -43,6 +45,7 @@ function parseJson<T>(value: string | null | undefined, fallback: T): T {
 
 function localized(value?: Partial<CmsLocalizedText> | null): CmsLocalizedText {
   return {
+    ...Object.fromEntries(Object.entries(value || {}).filter(([, text]) => typeof text === 'string')),
     fr: value?.fr || '',
     en: value?.en || ''
   }
@@ -81,6 +84,12 @@ function isRecurringPermanence(input: Pick<EventPayload, 'kind' | 'recurrenceTyp
   return input.kind === 'PERMANENCE' && input.recurrenceType === 'WEEKLY'
 }
 
+function parseCapacity(value: unknown) {
+  try { return normalizeEventCapacity(value) } catch {
+    throw createError({ statusCode: 400, message: 'La capacité doit être un entier positif ou vide.' })
+  }
+}
+
 export function normalizeEventPayload(value: unknown): EventPayload {
   const fallback = createDefaultEventPayload()
   const source = typeof value === 'object' && value !== null ? value as Record<string, any> : {}
@@ -106,8 +115,8 @@ export function normalizeEventPayload(value: unknown): EventPayload {
     mapUrl: typeof source.mapUrl === 'string' ? source.mapUrl : '',
     coverImageUrl: typeof source.coverImageUrl === 'string' ? source.coverImageUrl : '',
     gallery: Array.isArray(source.gallery) ? source.gallery.filter((entry: unknown): entry is string => typeof entry === 'string' && entry.trim().length > 0) : [],
-    publicCapacity: Number.isFinite(Number(source.publicCapacity)) ? Math.max(0, Math.round(Number(source.publicCapacity))) : null,
-    internalCapacity: Number.isFinite(Number(source.internalCapacity)) ? Math.max(0, Math.round(Number(source.internalCapacity))) : null,
+    publicCapacity: parseCapacity(source.publicCapacity),
+    internalCapacity: parseCapacity(source.internalCapacity),
     publicReservationEnabled: Boolean(source.publicReservationEnabled),
     internalParticipationEnabled: Boolean(source.internalParticipationEnabled),
     internalParticipationApprovalMode: source.internalParticipationApprovalMode === 'AUTO' ? 'AUTO' : 'MANUAL',
@@ -126,7 +135,7 @@ export function normalizeEventPayload(value: unknown): EventPayload {
   if (!normalized.startsAt) {
     throw createError({ statusCode: 400, statusMessage: 'Date de début requise' })
   }
-  if (!normalized.translations.fr.title.trim() && !normalized.translations.en.title.trim()) {
+  if (!Object.values(normalized.translations).some(translation => translation.title.trim())) {
     throw createError({ statusCode: 400, statusMessage: 'Au moins un titre d’événement est requis' })
   }
   if (isRecurringPermanence(normalized)) {
@@ -141,6 +150,8 @@ export function normalizeEventPayload(value: unknown): EventPayload {
     }
   }
 
+  const dateError = eventDateError(normalized)
+  if (dateError) throw createError({ statusCode: 400, message: 'Dates ou horaires invalides : ' + dateError })
   return normalized
 }
 
@@ -160,7 +171,14 @@ export function resolveEventTranslation(event: EventWithRelations | Event, local
     fr: createDefaultEventTranslation(),
     en: createDefaultEventTranslation()
   }))
-  return translations[locale] || translations.fr || translations.en || Object.values(translations)[0] || createDefaultEventTranslation()
+  const text = (key: 'title' | 'subtitle' | 'excerpt') => pickCmsLocalizedText(locale,
+    Object.fromEntries(Object.entries(translations).map(([code, value]) => [code, value[key]])) as CmsLocalizedText, 'fr')
+  const contentTranslation = [...getCmsLocaleFallbacks(locale, 'fr'), ...Object.keys(translations)]
+    .map(code => translations[code]).find(value => value?.content?.sections?.length)
+  return {
+    title: text('title'), subtitle: text('subtitle'), excerpt: text('excerpt'),
+    content: contentTranslation?.content || createDefaultEventTranslation().content
+  }
 }
 
 export function serializeEventPayload(input: EventPayload) {
@@ -359,7 +377,7 @@ function replaceTemplateVariables(template: string, variables: Record<string, st
   return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key) => variables[key] ?? '')
 }
 
-async function sendTemplatedEventEmail(options: {
+export async function sendTemplatedEventEmail(options: {
   action: string
   locale: CmsLocale
   to: string
@@ -368,7 +386,7 @@ async function sendTemplatedEventEmail(options: {
   replyTo?: string
   variables: Record<string, string>
 }) {
-  const template = await resolveAdminEmailTemplate(options.action, options.locale as 'fr' | 'en')
+  const template = await resolveAdminEmailTemplate(options.action, options.locale)
   const subject = replaceTemplateVariables(template.subject, options.variables)
   const body = replaceTemplateVariables(template.body, options.variables)
   await sendGmail({
@@ -381,7 +399,7 @@ async function sendTemplatedEventEmail(options: {
     htmlBody: await buildGenericEmail({
       title: subject,
       body,
-      accent: '#4f8a34',
+      templateAction: options.action,
       lang: options.locale
     })
   })
@@ -467,15 +485,16 @@ export async function submitEventPublicReservation(eventRow: EventWithRelations,
       phone: payload.phone.trim() || null,
       seats: Math.max(1, Math.round(payload.seats || 1)),
       message: payload.message.trim() || null,
-      status: 'PENDING'
+      status: 'PENDING',
+      locale
     }
   })
 
   const translation = resolveEventTranslation(eventRow, locale)
   const variables = {
     eventTitle: translation.title,
-    eventDate: new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'long' }).format(eventRow.startsAt),
-    eventTime: new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { timeStyle: 'short' }).format(eventRow.startsAt),
+    eventDate: formatLocalizedDateValue(eventRow.startsAt, locale),
+    eventTime: formatLocalizedTimeValue(eventRow.startsAt, locale),
     eventLocation: [eventRow.placeName, eventRow.placeAddress, eventRow.placeCity].filter(Boolean).join(', '),
     reservationId: String(reservation.id),
     customerName: reservation.customerName,
@@ -500,7 +519,7 @@ export async function submitEventPublicReservation(eventRow: EventWithRelations,
   }
 
   await sendTemplatedEventEmail({
-    action: 'public_event_reservation_confirmation',
+    action: 'public_event_reservation_pending',
     locale,
     to: reservation.email,
     variables
@@ -510,6 +529,9 @@ export async function submitEventPublicReservation(eventRow: EventWithRelations,
 }
 
 export async function submitInternalParticipation(eventRow: EventWithRelations, payload: EventInternalParticipationPayload, user: { id: number; email: string; firstName?: string; lastName?: string }, locale: CmsLocale) {
+  const previous = await db.eventInternalParticipation.findUnique({
+    where: { eventId_userId: { eventId: eventRow.id, userId: user.id } },
+  })
   if (eventRow.internalCapacity != null) {
     const currentCount = await db.eventInternalParticipation.count({
       where: {
@@ -532,7 +554,9 @@ export async function submitInternalParticipation(eventRow: EventWithRelations, 
     }
   }
 
-  const status: EventInternalParticipationStatus = eventRow.internalParticipationApprovalMode === 'AUTO' ? 'CONFIRMED' : 'PENDING'
+  const status: EventInternalParticipationStatus = previous?.status === 'CONFIRMED'
+    ? 'CONFIRMED'
+    : eventRow.internalParticipationApprovalMode === 'AUTO' ? 'CONFIRMED' : 'PENDING'
   const participation = await db.eventInternalParticipation.upsert({
     where: {
       eventId_userId: {
@@ -542,6 +566,7 @@ export async function submitInternalParticipation(eventRow: EventWithRelations, 
     },
     update: {
       message: payload.message.trim() || null,
+      locale,
       status,
       confirmedAt: status === 'CONFIRMED' ? new Date() : null,
       cancelledAt: null,
@@ -551,17 +576,20 @@ export async function submitInternalParticipation(eventRow: EventWithRelations, 
       eventId: eventRow.id,
       userId: user.id,
       message: payload.message.trim() || null,
+      locale,
       status,
       confirmedAt: status === 'CONFIRMED' ? new Date() : null
     }
   })
 
+  if (previous?.status === status) return participation
+
   const translation = resolveEventTranslation(eventRow, locale)
   const participantName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
   const variables = {
     eventTitle: translation.title,
-    eventDate: new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'long' }).format(eventRow.startsAt),
-    eventTime: new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'fr-FR', { timeStyle: 'short' }).format(eventRow.startsAt),
+    eventDate: formatLocalizedDateValue(eventRow.startsAt, locale),
+    eventTime: formatLocalizedTimeValue(eventRow.startsAt, locale),
     eventLocation: [eventRow.placeName, eventRow.placeAddress, eventRow.placeCity].filter(Boolean).join(', '),
     eventDescription: translation.excerpt || translation.subtitle,
     eventParticipationUrl: `${getSiteOrigin()}${getEventPublicUrl(eventRow.slug, locale)}`,
@@ -582,9 +610,9 @@ export async function submitInternalParticipation(eventRow: EventWithRelations, 
     })
   }
 
-  if (status === 'CONFIRMED') {
+  {
     await sendTemplatedEventEmail({
-      action: 'event_participation_confirmation',
+      action: status === 'CONFIRMED' ? 'event_participation_confirmation' : 'event_participation_pending',
       locale,
       to: user.email,
       variables
@@ -634,14 +662,14 @@ export async function sendParticipationCall(options: {
       }))
   ]
 
-  const template = await resolveAdminEmailTemplate('event_call_for_participation', options.locale as 'fr' | 'en')
+  const template = await resolveAdminEmailTemplate('event_call_for_participation', options.locale)
   const subjectTemplate = options.subject?.trim() || template.subject
   const baseBodyTemplate = options.body?.trim() || template.body
   const eventLocation = [options.eventRow.placeName, options.eventRow.placeAddress, options.eventRow.placeCity].filter(Boolean).join(', ')
   const baseVariables = {
     eventTitle: translation.title,
-    eventDate: new Intl.DateTimeFormat(options.locale === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'long' }).format(options.eventRow.startsAt),
-    eventTime: new Intl.DateTimeFormat(options.locale === 'en' ? 'en-GB' : 'fr-FR', { timeStyle: 'short' }).format(options.eventRow.startsAt),
+    eventDate: formatLocalizedDateValue(options.eventRow.startsAt, options.locale),
+    eventTime: formatLocalizedTimeValue(options.eventRow.startsAt, options.locale),
     eventLocation,
     eventDescription: [translation.subtitle, translation.excerpt, options.extraMessage?.trim()].filter(Boolean).join('\n\n'),
     eventParticipationUrl: `${getSiteOrigin()}${getEventPublicUrl(options.eventRow.slug, options.locale)}`
@@ -661,7 +689,7 @@ export async function sendParticipationCall(options: {
       htmlBody: await buildGenericEmail({
         title: subject,
         body,
-        accent: recipient.alreadyParticipating ? '#d97706' : '#4f8a34',
+        templateAction: 'event_call_for_participation',
         lang: options.locale
       })
     })

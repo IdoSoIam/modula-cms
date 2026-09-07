@@ -1,7 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
 import { putUploadObject } from '#modula/server/utils/uploadStorage'
-import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import {
   ALLOWED_IMAGE_UPLOAD_MIME_TYPES,
   MAX_IMAGE_UPLOAD_SIZE,
@@ -50,6 +49,5 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  await syncImageUsageTable()
   return created
 })

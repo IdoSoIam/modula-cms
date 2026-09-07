@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { getCmsPageByPath, getCmsSiteSettings, listCmsNavigationItems, listCmsPages, saveCmsNavigationItems, saveCmsPage, saveCmsSiteSettings } from '#modula/server/utils/cms'
-import { getCmsRegistryInstanceSettings, getFeatureFlags, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
+import { getCmsRegistryInstanceSettings, getFeatureFlags, getSetting, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { getDaisyUiThemeConfig, saveDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import { getUploadObject, putUploadObject } from '#modula/server/utils/uploadStorage'
 import type {
@@ -173,7 +173,7 @@ async function registryFetch<T>(path: string, options: RegistryFetchOptions = {}
   return await response.json() as T
 }
 
-async function registryUploadAsset(filename: string, contentType: string, bytes: Uint8Array, sourceUrl: string) {
+async function registryUploadAsset(filename: string, contentType: string, bytes: Uint8Array, sourceUrl: string, scope: RegistryScope = 'custom') {
   const checksum = createHash('sha256').update(bytes).digest('hex')
   return await registryFetch<CmsRegistryAssetReference>('/v1/template-assets', {
     method: 'POST',
@@ -184,7 +184,7 @@ async function registryUploadAsset(filename: string, contentType: string, bytes:
       checksum,
       sourceUrl
     }
-  })
+  }, scope)
 }
 
 export async function introspectRegistry(scope: RegistryScope): Promise<CmsRegistryCapabilities> {
@@ -270,8 +270,9 @@ export async function getRegistryEndpointState(scope: RegistryScope): Promise<Cm
 
 function collectStringUrls(value: unknown, collected = new Set<string>()) {
   if (typeof value === 'string') {
-    if (value.startsWith('/uploads/') || value.startsWith('/site-templates/') || value.startsWith('/brand/')) {
-      collected.add(value)
+    const normalized = normalizeTemplateAssetSourceUrl(value)
+    if (isRegistryManagedTemplateSourceUrl(normalized)) {
+      collected.add(normalized)
     }
     return collected
   }
@@ -283,6 +284,40 @@ function collectStringUrls(value: unknown, collected = new Set<string>()) {
     for (const item of Object.values(value)) collectStringUrls(item, collected)
   }
   return collected
+}
+
+function normalizeTemplateAssetSourceUrl(value: string | null | undefined) {
+  const raw = (value || '').trim()
+  if (!raw) return ''
+
+  let normalized = raw
+  if (/^[a-z]+:\/\//i.test(raw)) {
+    try {
+      const parsed = new URL(raw)
+      normalized = parsed.pathname || ''
+    } catch {
+      normalized = raw
+    }
+  }
+
+  normalized = normalized.split('#')[0]!.split('?')[0]!.trim()
+  if (!normalized.startsWith('/')) {
+    normalized = `/${normalized.replace(/^\/+/, '')}`
+  }
+  if (normalized.startsWith('/media/uploads/')) {
+    normalized = normalized.replace(/^\/media\/uploads\//, '/uploads/')
+  }
+  return normalized
+}
+
+function isRegistryManagedTemplateSourceUrl(value: string) {
+  return value.startsWith('/uploads/')
+    || value.startsWith('/site-templates/')
+    || value.startsWith('/brand/')
+}
+
+function extractUploadStorageKey(value: string) {
+  return normalizeTemplateAssetSourceUrl(value).replace(/^\/uploads\//, '')
 }
 
 async function readBundledAsset(url: string) {
@@ -347,26 +382,26 @@ function resolveBundledAssetPath(url: string) {
   return baseCandidates[0]!
 }
 
-export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTemplateSnapshot, 'assetManifest'>) {
+export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTemplateSnapshot, 'assetManifest'>, scope: RegistryScope = 'custom') {
   const urls = [...collectStringUrls(snapshotSource)]
   const manifest: CmsRegistryAssetReference[] = []
 
   for (const url of urls) {
     try {
       if (url.startsWith('/uploads/')) {
-        const key = url.replace(/^\/uploads\//, '')
+        const key = extractUploadStorageKey(url)
         const object = await getUploadObject(key)
         if (!object?.body) continue
         const body = object.body
         const bytes = body instanceof Uint8Array ? body : body instanceof ArrayBuffer ? new Uint8Array(body) : new Uint8Array(await new Response(body as any).arrayBuffer())
-        const asset = await registryUploadAsset(key, object.httpMetadata?.contentType || 'application/octet-stream', bytes, url)
+        const asset = await registryUploadAsset(key, object.httpMetadata?.contentType || 'application/octet-stream', bytes, url, scope)
         manifest.push(asset)
         continue
       }
 
       if (url.startsWith('/site-templates/') || url.startsWith('/brand/')) {
         const asset = await readBundledAsset(url)
-        manifest.push(await registryUploadAsset(asset.filename, asset.contentType, asset.bytes, url))
+        manifest.push(await registryUploadAsset(asset.filename, asset.contentType, asset.bytes, url, scope))
       }
     } catch {
       continue
@@ -376,7 +411,7 @@ export async function exportTemplateAssets(snapshotSource: Omit<CmsRegistryTempl
   return manifest
 }
 
-export async function exportCurrentTemplateSnapshot(): Promise<CmsRegistryTemplateSnapshot> {
+export async function exportCurrentTemplateSnapshot(scope: RegistryScope = 'custom'): Promise<CmsRegistryTemplateSnapshot> {
   const [siteSettings, navigation, pages, themeConfig, featureFlags] = await Promise.all([
     getCmsSiteSettings(),
     listCmsNavigationItems(),
@@ -406,7 +441,7 @@ export async function exportCurrentTemplateSnapshot(): Promise<CmsRegistryTempla
     featureFlags
   }
 
-  const assetManifest = await exportTemplateAssets(partialSnapshot)
+  const assetManifest = await exportTemplateAssets(partialSnapshot, scope)
   return {
     ...partialSnapshot,
     assetManifest
@@ -414,7 +449,8 @@ export async function exportCurrentTemplateSnapshot(): Promise<CmsRegistryTempla
 }
 
 function resolveSnapshotAssetUrl(value: string, assets: CmsRegistryAssetReference[]) {
-  const matched = assets.find(asset => asset.sourceUrl === value)
+  const normalizedValue = normalizeTemplateAssetSourceUrl(value)
+  const matched = assets.find(asset => normalizeTemplateAssetSourceUrl(asset.sourceUrl) === normalizedValue)
   if (!matched) return value
   return matched.downloadUrl
 }
@@ -471,7 +507,7 @@ function sanitizeTemplateFilenamePart(value: string) {
 }
 
 function buildTemplateManagedTargetName(asset: CmsRegistryAssetReference) {
-  const sourceUrl = asset.sourceUrl?.trim() || ''
+  const sourceUrl = normalizeTemplateAssetSourceUrl(asset.sourceUrl)
   const sourceBase = sourceUrl ? basename(sourceUrl) : ''
   const filenameBase = asset.filename?.trim() || ''
   const candidate = sanitizeTemplateFilenamePart(sourceBase || filenameBase || '')
@@ -526,7 +562,7 @@ async function registerImportedTemplateImage(filename: string, contentType: stri
 }
 
 async function findRegistryAssetBySourceUrl(sourceUrl: string, scope: RegistryScope = 'custom') {
-  const query = new URLSearchParams({ sourceUrl })
+  const query = new URLSearchParams({ sourceUrl: normalizeTemplateAssetSourceUrl(sourceUrl) })
   return await registryFetch<CmsRegistryAssetReference>(`/v1/template-assets/by-source?${query.toString()}`, {}, scope)
 }
 
@@ -658,21 +694,22 @@ async function importTemplateAssetFromSourceUrl(
   scope: RegistryScope,
   context: TemplateAssetMaterializationContext
 ) {
-  const cached = context.cache.get(sourceUrl)
+  const normalizedSourceUrl = normalizeTemplateAssetSourceUrl(sourceUrl)
+  const cached = context.cache.get(normalizedSourceUrl)
   if (cached) {
     return cached
   }
 
   try {
-    const remoteAsset = await findRegistryAssetBySourceUrl(sourceUrl, scope)
+    const remoteAsset = await findRegistryAssetBySourceUrl(normalizedSourceUrl, scope)
     const materialized = await importRegistryAsset(remoteAsset)
-    context.cache.set(sourceUrl, materialized)
+    context.cache.set(normalizedSourceUrl, materialized)
     context.preservedFilenames.add(buildTemplateManagedTargetName(remoteAsset))
     return materialized
   } catch {}
 
-  const localAsset = await registerTemplateManagedLocalAsset(sourceUrl)
-  context.cache.set(sourceUrl, localAsset)
+  const localAsset = await registerTemplateManagedLocalAsset(normalizedSourceUrl)
+  context.cache.set(normalizedSourceUrl, localAsset)
   context.preservedFilenames.add(localAsset.replace(/^\/uploads\//, ''))
   return localAsset
 }
@@ -686,8 +723,9 @@ async function materializeBundledTemplateAssetUrls<T>(
   }
 ): Promise<T> {
   if (typeof value === 'string') {
-    if (value.startsWith('/site-templates/') || value.startsWith('/brand/')) {
-      return await importTemplateAssetFromSourceUrl(value, scope, context) as T
+    const normalizedValue = normalizeTemplateAssetSourceUrl(value)
+    if (normalizedValue.startsWith('/site-templates/') || normalizedValue.startsWith('/brand/')) {
+      return await importTemplateAssetFromSourceUrl(normalizedValue, scope, context) as T
     }
     return value
   }
@@ -728,7 +766,9 @@ async function cleanupUnusedTemplateManagedImages(preservedFilenames: Set<string
   })
 
   for (const image of managedImages) {
-    if (!isTemplateManagedFilename(image.filename)) continue
+    const isTemplateManaged = isTemplateManagedFilename(image.filename)
+    const isOrphanImportedUpload = image.uploadedById == null && image.url.startsWith('/uploads/')
+    if (!isTemplateManaged && !isOrphanImportedUpload) continue
     if (preservedFilenames.has(image.filename)) continue
 
     const usages = await listImageUsageAssociations(image.id)
@@ -848,7 +888,7 @@ function buildRegistryAssetPublicUrlMap(records: CmsRegistryTemplateRecord[], sc
 
   for (const record of records) {
     for (const asset of record.snapshot?.assetManifest || []) {
-      const sourceUrl = asset.sourceUrl?.trim() || ''
+      const sourceUrl = normalizeTemplateAssetSourceUrl(asset.sourceUrl)
       if (!sourceUrl) continue
 
       const publicUrl = asset.publicUrl?.trim()
@@ -871,15 +911,14 @@ function normalizeTemplatePreviewImage(
   const previewImage = record.previewImage?.trim() || ''
   if (!previewImage) return previewImage
 
-  const normalizedPreviewPath = previewImage.replace(/^https?:\/\/[^/]+/i, '')
+  const normalizedPreviewPath = normalizeTemplateAssetSourceUrl(previewImage)
   const sharedPublicUrl = sharedAssetUrls.get(normalizedPreviewPath)
   if (sharedPublicUrl) {
     return sharedPublicUrl
   }
 
   const previewAsset = record.snapshot?.assetManifest?.find((asset) => {
-    const sourceUrl = asset.sourceUrl?.trim() || ''
-    const normalizedSourcePath = sourceUrl.replace(/^https?:\/\/[^/]+/i, '')
+    const normalizedSourcePath = normalizeTemplateAssetSourceUrl(asset.sourceUrl)
     return normalizedSourcePath === normalizedPreviewPath
   })
 
@@ -1040,7 +1079,7 @@ export async function createRegistryTemplate(input: {
   highlights?: CmsLocalizedText[]
   themeNames?: string[]
 }, scope: RegistryScope = 'custom') {
-  const snapshot = await exportCurrentTemplateSnapshot()
+  const snapshot = await exportCurrentTemplateSnapshot(scope)
   return await createRegistryTemplateFromSnapshot(input, snapshot, scope)
 }
 
@@ -1071,7 +1110,7 @@ export async function updateRegistryTemplate(slug: string, input: {
   highlights?: CmsLocalizedText[]
   themeNames?: string[]
 }, scope: RegistryScope = 'custom') {
-  const snapshot = await exportCurrentTemplateSnapshot()
+  const snapshot = await exportCurrentTemplateSnapshot(scope)
   return await updateRegistryTemplateFromSnapshot(slug, input, snapshot, scope)
 }
 
@@ -1304,9 +1343,63 @@ export async function triggerUpdateAgentRollback(mode: 'fast' | 'full' = 'fast')
   })
 }
 
+function createDefaultRegistryPaymentConfig(): CmsRegistryPaymentConfig {
+  return {
+    provider: 'none',
+    configured: false,
+    connectedAccountId: '',
+    connectedAccountLabel: '',
+    commissionPercent: 0,
+    automaticTaxEnabled: false,
+    defaultTaxBehavior: 'inclusive',
+    defaultTaxCode: '',
+    publishableKey: ''
+  }
+}
+
+function normalizeRegistryPaymentConfig(value: Partial<CmsRegistryPaymentConfig> | null | undefined): CmsRegistryPaymentConfig {
+  const fallback = createDefaultRegistryPaymentConfig()
+  return {
+    provider: value?.provider === 'stripe_connect' ? 'stripe_connect' : 'none',
+    configured: Boolean(value?.configured),
+    connectedAccountId: String(value?.connectedAccountId || ''),
+    connectedAccountLabel: String(value?.connectedAccountLabel || ''),
+    commissionPercent: Number.isFinite(Number(value?.commissionPercent)) ? Number(value?.commissionPercent) : 0,
+    automaticTaxEnabled: Boolean(value?.automaticTaxEnabled),
+    defaultTaxBehavior: value?.defaultTaxBehavior === 'exclusive' ? 'exclusive' : fallback.defaultTaxBehavior,
+    defaultTaxCode: String(value?.defaultTaxCode || ''),
+    publishableKey: String(value?.publishableKey || '')
+  }
+}
+
+async function getCachedRegistryPaymentConfig() {
+  const raw = await getSetting(SETTING_KEYS.CMS_REGISTRY_PAYMENT_CONFIG_CACHE)
+  if (!raw) return null
+  try {
+    return normalizeRegistryPaymentConfig(JSON.parse(raw))
+  } catch {
+    return null
+  }
+}
+
+async function cacheRegistryPaymentConfig(config: CmsRegistryPaymentConfig) {
+  await setSetting(
+    SETTING_KEYS.CMS_REGISTRY_PAYMENT_CONFIG_CACHE,
+    JSON.stringify(normalizeRegistryPaymentConfig(config))
+  )
+}
+
 export async function getRegistryPaymentConfig() {
   const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
-  return await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {}, scope)
+  try {
+    const config = await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {}, scope)
+    await cacheRegistryPaymentConfig(config)
+    return config
+  } catch (error) {
+    const cached = await getCachedRegistryPaymentConfig()
+    if (cached) return cached
+    throw error
+  }
 }
 
 export async function getRegistryStripeWebhookUrl() {
@@ -1318,10 +1411,12 @@ export async function getRegistryStripeWebhookUrl() {
 
 export async function saveRegistryPaymentConfig(settings: Partial<CmsRegistryPaymentConfig>) {
   const scope: RegistryScope = await isCmsRegistryConfigured() ? 'custom' : 'system'
-  return await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {
+  const config = await registryFetch<CmsRegistryPaymentConfig>('/v1/payments/config', {
     method: 'PUT',
     body: settings
   }, scope)
+  await cacheRegistryPaymentConfig(config)
+  return config
 }
 
 export async function createRegistryCheckoutSession(body: {

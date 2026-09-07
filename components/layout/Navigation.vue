@@ -277,8 +277,8 @@ const showMobileHeaderSiteName = computed(() => headerSettings.value.mobileHeade
 const showMobileHeaderSiteTagline = computed(() => headerSettings.value.mobileHeaderShowSiteTagline && Boolean(siteTagline.value))
 const showMobileHeaderBrand = computed(() => showMobileHeaderSiteName.value || showMobileHeaderSiteTagline.value)
 
-const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteName, 'fr') || 'Site name')
-const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteTagline, 'fr'))
+const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteName) || 'Site name')
+const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteTagline))
 
 const normalizeLogoSrc = (value?: string | null) => {
   const src = value?.trim()
@@ -288,7 +288,7 @@ const normalizeLogoSrc = (value?: string | null) => {
 }
 
 const logoSrc = computed(() => normalizeLogoSrc(cms.value?.settings.logo.src))
-const logoAlt = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.logo?.alt, 'fr') || 'Logo')
+const logoAlt = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.logo?.alt) || 'Logo')
 
 const menuItems = computed(() => cms.value?.navigation?.primary ?? [])
 
@@ -387,7 +387,7 @@ const navActiveStateClass = computed(() => {
 })
 
 const resolveLabel = (item: ResolvedCmsNavigationItem) =>
-  pickCmsLocalizedText(effectiveLocale.value, item.labels, 'fr') || item.label
+  pickCmsLocalizedText(effectiveLocale.value, item.labels) || item.label
 
 const resolveHref = (item: ResolvedCmsNavigationItem) =>
   item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)

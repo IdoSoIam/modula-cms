@@ -41,6 +41,7 @@ import {
   createEmptyCmsPageSeo,
   createEmptyPageBuilderContent,
   createEmptyCmsLocalizedText,
+  getCmsLocaleFallbacks,
   pickCmsLocalizedText
 } from '#modula/shared/cms'
 import type { CmsEventsPageSettings, CmsPlanningPageSettings } from '#modula/shared/events'
@@ -64,6 +65,10 @@ import { CMS_THEME_COLOR_TOKENS } from '#modula/shared/cms'
 import { getPageBuilderContent, normalizePageBuilderContent } from '#modula/server/utils/pageBuilder'
 import { getSetting, setSetting, SETTING_KEYS } from '#modula/server/utils/settings'
 import { createCustomAdminEmailTemplate, findAdminEmailTemplateDefinition, syncCustomAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
+
+const CMS_SYSTEM_PAGES_CACHE_TTL_MS = 5 * 60 * 1000
+let cmsSystemPagesReadyAt = 0
+let cmsSystemPagesReadyPromise: Promise<void> | null = null
 
 
 function isMissingCmsTableError(error: unknown) {
@@ -292,21 +297,91 @@ function isEmptyPageBuilderContent(content: PageBuilderContent | null | undefine
   return !content || !Array.isArray(content.sections) || content.sections.length === 0
 }
 
-function pickSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
-  for (const locale of ['fr', 'en']) {
-    const translation = translations[locale]
-    if (translation && !isEmptyPageBuilderContent(translation.content)) {
-      return clonePageBuilderContent(translation.content)
+function scoreLocalizedPageBuilderContent(value: unknown): number {
+  if (typeof value === 'string') {
+    return value.trim() ? 1 : 0
+  }
+  if (Array.isArray(value)) {
+    return value.reduce((total, entry) => total + scoreLocalizedPageBuilderContent(entry), 0)
+  }
+  if (!isObject(value)) {
+    return 0
+  }
+
+  const entries = Object.entries(value)
+  const localeLikeEntries = entries.filter(([key, entry]) =>
+    /^[a-z]{2}(?:-[a-z0-9]{2,8})?$/i.test(key)
+    && typeof entry === 'string'
+    && entry.trim()
+  )
+  if (localeLikeEntries.length) {
+    return localeLikeEntries.length
+  }
+
+  return entries.reduce((total, [, entry]) => total + scoreLocalizedPageBuilderContent(entry), 0)
+}
+
+function isLocalizedTextObject(value: unknown): value is Record<string, string> {
+  if (!isObject(value)) return false
+  const entries = Object.entries(value)
+  if (!entries.length) return false
+  return entries.some(([key, entry]) =>
+    /^[a-z]{2}(?:-[a-z0-9]{2,8})?$/i.test(key)
+    && typeof entry === 'string'
+  )
+}
+
+function mergeLocalizedPageBuilderContentValues(target: unknown, source: unknown) {
+  if (!target || !source) return
+
+  if (isLocalizedTextObject(target) && isLocalizedTextObject(source)) {
+    for (const [locale, value] of Object.entries(source)) {
+      if (!/^[a-z]{2}(?:-[a-z0-9]{2,8})?$/i.test(locale) || typeof value !== 'string') continue
+      if (value.trim()) {
+        target[locale] = value
+      }
+    }
+    return
+  }
+
+  if (Array.isArray(target) && Array.isArray(source)) {
+    for (let index = 0; index < Math.min(target.length, source.length); index += 1) {
+      mergeLocalizedPageBuilderContentValues(target[index], source[index])
+    }
+    return
+  }
+
+  if (isObject(target) && isObject(source)) {
+    for (const key of Object.keys(source)) {
+      if (key in target) {
+        mergeLocalizedPageBuilderContentValues((target as Record<string, unknown>)[key], (source as Record<string, unknown>)[key])
+      }
     }
   }
+}
+
+function pickSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
+  let bestContent: PageBuilderContent | null = null
+  let bestScore = -1
 
   for (const translation of Object.values(translations)) {
     if (translation && !isEmptyPageBuilderContent(translation.content)) {
-      return clonePageBuilderContent(translation.content)
+      const score = scoreLocalizedPageBuilderContent(translation.content)
+      if (score > bestScore) {
+        bestScore = score
+        bestContent = translation.content
+      }
     }
   }
 
-  return createEmptyPageBuilderContent()
+  const sharedContent = bestContent ? clonePageBuilderContent(bestContent) : createEmptyPageBuilderContent()
+  for (const translation of Object.values(translations)) {
+    if (translation && !isEmptyPageBuilderContent(translation.content)) {
+      mergeLocalizedPageBuilderContentValues(sharedContent, translation.content)
+    }
+  }
+
+  return sharedContent
 }
 
 function synchronizeSharedPageContent(translations: Record<CmsLocale, CmsPageTranslation>) {
@@ -378,28 +453,7 @@ async function ensureFormEmailTemplateActions(payload: CmsPagePayload) {
       }
     }
   }
-  const fr = payload.translations['fr']
-  const en = payload.translations['en']
-  const frTitle: string = fr?.title ?? ''
-  const frNav: string = fr?.navigationLabel ?? ''
-  const frSeo: CmsPageSeo = fr?.seo ?? createEmptyCmsPageSeo()
-  const enTitle: string = en?.title ?? ''
-  const enNav: string = en?.navigationLabel ?? ''
-  const enSeo: CmsPageSeo = en?.seo ?? createEmptyCmsPageSeo()
-  payload.translations = synchronizeSharedPageContent({
-    fr: {
-      title: frTitle,
-      navigationLabel: frNav,
-      seo: frSeo,
-      content: clonePageBuilderContent(sharedContent)
-    },
-    en: {
-      title: enTitle,
-      navigationLabel: enNav,
-      seo: enSeo,
-      content: clonePageBuilderContent(sharedContent)
-    }
-  })
+  payload.translations = synchronizeSharedPageContent(payload.translations)
 }
 
 function normalizeTranslations(value: unknown, path = '/'): Record<CmsLocale, CmsPageTranslation> {
@@ -842,12 +896,20 @@ function pageRowToPayload(row: CmsPage): CmsPagePayload {
   }
 }
 
-function pickTranslation(locale: string, translations: Record<CmsLocale, CmsPageTranslation>): CmsPageTranslation | undefined {
-  return translations[locale] || translations['fr'] || translations['en'] || Object.values(translations)[0]
+function pickTranslation(locale: string, translations: Record<CmsLocale, CmsPageTranslation>, defaultLocale = 'fr'): CmsPageTranslation | undefined {
+  const fallbackLocales = getCmsLocaleFallbacks(locale, defaultLocale)
+  for (const candidate of fallbackLocales) {
+    if (translations[candidate]) return translations[candidate]
+  }
+  return Object.values(translations)[0]
 }
 
 function cloneCmsTranslationValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
+}
+
+function hasRenderablePageContent(value: CmsPageTranslation['content'] | null | undefined) {
+  return Array.isArray(value?.sections) && value.sections.length > 0
 }
 
 function mergePageTranslation(
@@ -864,7 +926,9 @@ function mergePageTranslation(
       ...cloneCmsTranslationValue(resolvedFallback.seo),
       ...cloneCmsTranslationValue(resolvedPrimary.seo)
     },
-    content: cloneCmsTranslationValue(resolvedPrimary.content ?? resolvedFallback.content)
+    content: cloneCmsTranslationValue(hasRenderablePageContent(resolvedPrimary.content)
+      ? resolvedPrimary.content
+      : resolvedFallback.content)
   }
 }
 
@@ -891,7 +955,7 @@ function navigationPayloadToResolved(id: number, payload: CmsNavigationItemPaylo
     menu: payload.menu,
     itemType: payload.itemType,
     labels: payload.labels,
-    label: pickCmsLocalizedText(locale, payload.labels, 'fr'),
+    label: pickCmsLocalizedText(locale, payload.labels),
     navigationItemKey: payload.navigationItemKey,
     parentItemKey: payload.parentItemKey,
     href: payload.href,
@@ -1298,8 +1362,6 @@ function normalizePlanningPageSettings(value: unknown, fallback: CmsPlanningPage
 
 export async function saveCmsSiteSettings(settings: CmsSiteSettings) {
   await setSetting(SETTING_KEYS.CMS_SITE_SETTINGS, JSON.stringify(settings))
-  const { syncImageUsageTable } = await import('./imageReferences')
-  await syncImageUsageTable()
 }
 
 export async function listCmsPages() {
@@ -1566,12 +1628,23 @@ async function ensureCmsStandardPage(options: {
 }
 
 export async function ensureCmsSystemPages() {
-  await ensureCmsRootPage()
-  await ensureCmsApplicationPage('/boutique', 'boutique', 'Boutique', 'Shop', 'shop')
-  await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
-  await ensureCmsApplicationPage('/events', 'events', 'Événements', 'Events', 'events')
-  await ensureCmsApplicationPage('/planning', 'planning', 'Planning', 'Schedule', 'planning')
-  await ensureCmsStandardPage({
+  const now = Date.now()
+  if (cmsSystemPagesReadyAt && (now - cmsSystemPagesReadyAt) < CMS_SYSTEM_PAGES_CACHE_TTL_MS) {
+    return
+  }
+
+  if (cmsSystemPagesReadyPromise) {
+    await cmsSystemPagesReadyPromise
+    return
+  }
+
+  cmsSystemPagesReadyPromise = (async () => {
+    await ensureCmsRootPage()
+    await ensureCmsApplicationPage('/boutique', 'boutique', 'Boutique', 'Shop', 'shop')
+    await ensureCmsApplicationPage('/news', 'news', 'Actualités', 'News', 'news')
+    await ensureCmsApplicationPage('/events', 'events', 'Événements', 'Events', 'events')
+    await ensureCmsApplicationPage('/planning', 'planning', 'Planning', 'Schedule', 'planning')
+    await ensureCmsStandardPage({
     path: '/construction',
     slug: 'construction',
     titleFr: 'Site en construction',
@@ -1591,7 +1664,7 @@ export async function ensureCmsSystemPages() {
     },
     content: createDefaultConstructionPageContent()
   })
-  await ensureCmsStandardPage({
+    await ensureCmsStandardPage({
     path: '/contact',
     slug: 'contact',
     titleFr: 'Contact',
@@ -1610,7 +1683,7 @@ export async function ensureCmsSystemPages() {
     },
     content: createDefaultContactPageContent()
   })
-  await ensureCmsStandardPage({
+    await ensureCmsStandardPage({
     path: '/terms',
     slug: 'terms',
     titleFr: 'Conditions d’utilisation',
@@ -1647,7 +1720,7 @@ export async function ensureCmsSystemPages() {
       ]
     })
   })
-  await ensureCmsStandardPage({
+    await ensureCmsStandardPage({
     path: '/privacy',
     slug: 'privacy',
     titleFr: 'Politique de confidentialité',
@@ -1683,7 +1756,14 @@ export async function ensureCmsSystemPages() {
         }
       ]
     })
-  })
+    })
+    cmsSystemPagesReadyAt = Date.now()
+  })()
+    .finally(() => {
+      cmsSystemPagesReadyPromise = null
+    })
+
+  await cmsSystemPagesReadyPromise
 }
 
 export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCmsPage, locale: CmsLocale) {
@@ -1756,10 +1836,6 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
       }),
       async () => null
     )
-    if (updated) {
-      const { syncImageUsageTable } = await import('./imageReferences')
-      await syncImageUsageTable()
-    }
     return updated
   }
 
@@ -1769,10 +1845,6 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
     }),
     async () => null
   )
-  if (created) {
-    const { syncImageUsageTable } = await import('./imageReferences')
-    await syncImageUsageTable()
-  }
   return created
 }
 
@@ -1788,8 +1860,6 @@ export async function deleteCmsPage(id: number) {
     })
   }, async () => undefined)
 
-  const { syncImageUsageTable } = await import('./imageReferences')
-  await syncImageUsageTable()
 }
 
 export async function duplicateCmsPage(id: number) {
@@ -2022,7 +2092,7 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
       return null
     }
     const localized = payload.translations[locale]
-    const fallbackTranslation = payload.translations['fr'] || payload.translations['en'] || Object.values(payload.translations)[0]
+    const fallbackTranslation = pickTranslation(locale, payload.translations)
     const t = mergePageTranslation(localized, fallbackTranslation)
 
     return {

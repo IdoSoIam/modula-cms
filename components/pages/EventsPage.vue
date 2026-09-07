@@ -25,65 +25,22 @@
       <span class="loading loading-spinner loading-lg" />
     </div>
 
+    <div v-else-if="error && !preview" role="alert" class="alert alert-error">
+      {{ publicText('events.list.error', 'Impossible de charger les événements.') }}
+      <button type="button" class="btn btn-sm" @click="refresh()">{{ publicText('events.list.retry', 'Réessayer') }}</button>
+    </div>
     <div v-else-if="eventItems.length === 0" class="rounded-3xl border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
       {{ publicText('events.list.empty', 'Aucun événement publié pour le moment.') }}
     </div>
 
     <template v-else>
-      <div v-if="viewMode === 'list'" class="space-y-4">
-        <article
-          v-for="eventItem in eventItems"
-          :key="eventItem.id"
-          class="grid gap-0 overflow-hidden rounded-[2rem] border border-base-300 shadow-sm md:grid-cols-[320px_minmax(0,1fr)]"
-          :style="cardStyle"
-        >
-          <div v-if="effectiveSettings.showCoverImage && eventItem.coverImageUrl" class="h-60 md:h-full">
-            <AppImage :src="eventItem.coverImageUrl" :alt="eventItem.title" class="h-full w-full object-cover" sizes="(max-width: 768px) 100vw, 320px" loading="lazy" />
-          </div>
-          <div class="space-y-4 p-6">
-            <div class="space-y-2">
-              <div class="flex flex-wrap items-center gap-2 text-sm opacity-70">
-                <span v-if="effectiveSettings.showDate">{{ formatDate(eventItem.startsAt) }}</span>
-                <span v-if="effectiveSettings.showLocation && eventItem.placeName">• {{ [eventItem.placeName, eventItem.placeCity].filter(Boolean).join(', ') }}</span>
-              </div>
-              <h2 class="text-2xl font-bold">{{ eventItem.title }}</h2>
-              <p v-if="eventItem.subtitle" class="text-sm opacity-75">{{ eventItem.subtitle }}</p>
-            </div>
-            <p v-if="effectiveSettings.showExcerpt && eventItem.excerpt" :class="excerptClass">{{ eventItem.excerpt }}</p>
-            <div class="flex flex-wrap gap-3">
-              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm" active-class="" exact-active-class="">{{ detailLabel }}</NuxtLink>
-              <span v-if="eventItem.publicReservationEnabled" class="badge badge-outline">{{ publicReservationLabel }}</span>
-            </div>
-          </div>
-        </article>
-      </div>
-
-      <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2" :class="gridColumnsClass">
-        <article
-          v-for="eventItem in eventItems"
-          :key="eventItem.id"
-          class="overflow-hidden rounded-[2rem] border border-base-300 shadow-sm"
-          :style="cardStyle"
-        >
-          <div v-if="effectiveSettings.showCoverImage && eventItem.coverImageUrl" class="h-56">
-            <AppImage :src="eventItem.coverImageUrl" :alt="eventItem.title" class="h-full w-full object-cover" sizes="(max-width: 768px) 100vw, 50vw" loading="lazy" />
-          </div>
-          <div class="space-y-4 p-6">
-            <div class="space-y-2">
-              <div class="text-sm opacity-70">
-                <span v-if="effectiveSettings.showDate">{{ formatDate(eventItem.startsAt) }}</span>
-                <span v-if="effectiveSettings.showLocation && eventItem.placeName">• {{ [eventItem.placeName, eventItem.placeCity].filter(Boolean).join(', ') }}</span>
-              </div>
-              <h2 class="text-2xl font-bold">{{ eventItem.title }}</h2>
-              <p v-if="eventItem.subtitle" class="text-sm opacity-75">{{ eventItem.subtitle }}</p>
-            </div>
-            <p v-if="effectiveSettings.showExcerpt && eventItem.excerpt" :class="excerptClass">{{ eventItem.excerpt }}</p>
-            <div class="flex flex-wrap gap-3">
-              <NuxtLink :to="detailHref(eventItem.slug)" class="btn btn-primary btn-sm" active-class="" exact-active-class="">{{ detailLabel }}</NuxtLink>
-              <span v-if="eventItem.publicReservationEnabled" class="badge badge-outline">{{ publicReservationLabel }}</span>
-            </div>
-          </div>
-        </article>
+      <div :class="viewMode === 'list' ? 'space-y-4' : ['grid grid-cols-1 gap-6 md:grid-cols-2', gridColumnsClass]">
+        <EventsEventCard
+          v-for="eventItem in eventItems" :key="eventItem.occurrenceId || eventItem.id"
+          :item="eventItem" :settings="effectiveSettings" :mode="viewMode"
+          :locale="locale" :href="detailHref(eventItem.slug)"
+          :detail-label="detailLabel" :reservation-label="publicReservationLabel"
+        />
       </div>
 
       <div v-if="totalPages > 1" class="join mt-8 flex justify-center">
@@ -105,7 +62,6 @@
 import type { CmsLocale } from '#modula/shared/cms'
 import type { CmsEventsPageSettings, EventListItem, EventsPageViewMode, PublicEventsListResponse } from '#modula/shared/events'
 import { createDefaultCmsSiteSettings, pickCmsLocalizedText } from '#modula/shared/cms'
-import { formatLocalizedDateTimeValue } from '#modula/shared/date'
 
 const props = withDefaults(defineProps<{
   settings?: CmsEventsPageSettings | null
@@ -134,7 +90,7 @@ watch(viewMode, () => {
   page.value = 1
 })
 
-const { data, pending } = await useFetch<PublicEventsListResponse>('/api/events', {
+const { data, pending, error, refresh } = await useFetch<PublicEventsListResponse>('/api/events', {
   query: computed(() => ({
     locale: locale.value,
     scope: 'events',
@@ -226,20 +182,8 @@ const gridColumnsClass = computed(() => {
   }
 })
 
-const excerptClass = computed(() => effectiveSettings.value.excerptLines === 2 ? 'line-clamp-2' : effectiveSettings.value.excerptLines === 4 ? 'line-clamp-4' : 'line-clamp-3')
-const cardStyle = computed(() => ({
-  backgroundColor: effectiveSettings.value.cardBackgroundColor?.token ? `var(--color-${effectiveSettings.value.cardBackgroundColor.token})` : 'var(--color-base-200)'
-}))
-
 const detailHref = (slug: string) => localePath(`/events/${slug}`)
 const modeLabel = (mode: EventsPageViewMode) => mode === 'list'
   ? publicText('events.list.listMode', 'Liste')
   : publicText('events.list.gridMode', 'Grille')
-const formatDate = (value: string) => formatLocalizedDateTimeValue(value, locale.value, {
-  weekday: 'long',
-  day: '2-digit',
-  month: 'long',
-  hour: '2-digit',
-  minute: '2-digit'
-})
 </script>

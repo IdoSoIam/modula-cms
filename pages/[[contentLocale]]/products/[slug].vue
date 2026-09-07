@@ -20,7 +20,7 @@
         <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div class="max-w-3xl">
             <h1 class="text-4xl font-bold">{{ getLocalizedProductName(product) }}</h1>
-            <p v-if="getLocalizedProductExcerpt(product)" class="mt-3 text-lg opacity-75">{{ getLocalizedProductExcerpt(product) }}</p>
+            <p v-if="getLocalizedProductExcerpt(product)" class="mt-3 text-lg opacity-75 wrap-break-word">{{ getLocalizedProductExcerpt(product) }}</p>
           </div>
           <div class="rounded-[1.5rem] border border-base-300 bg-base-100 px-6 py-4 text-right shadow-sm">
             <div class="text-sm uppercase tracking-[0.16em] opacity-60">{{ priceLabel }}</div>
@@ -48,7 +48,7 @@
 
           <section class="rounded-[2rem] border border-base-300 bg-base-100 p-6 shadow-sm">
             <h2 class="text-2xl font-semibold">{{ descriptionTitle }}</h2>
-            <p v-if="getLocalizedProductDescription(product)" class="mt-4 whitespace-pre-line leading-7 opacity-85">{{ getLocalizedProductDescription(product) }}</p>
+            <p v-if="getLocalizedProductDescription(product)" class="mt-4 whitespace-pre-line leading-7 opacity-85 wrap-break-word">{{ getLocalizedProductDescription(product) }}</p>
             <p v-else class="mt-4 opacity-65">{{ noDescriptionLabel }}</p>
           </section>
 

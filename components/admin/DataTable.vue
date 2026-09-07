@@ -30,12 +30,12 @@
         </select>
       </div>
 
-      <div v-if="showColumnToggle" class="dropdown dropdown-end">
-        <button tabindex="0" type="button" class="btn btn-sm btn-ghost">
+      <FloatingDropdown v-if="showColumnToggle" trigger-class="btn btn-sm btn-ghost" :width="240">
+        <template #trigger>
           <Icon name="mdi:view-column-outline" size="18" />
           Colonnes
-        </button>
-        <ul tabindex="0" class="menu dropdown-content z-20 mt-2 w-60 rounded-box border border-base-300 bg-base-100 p-2 shadow-xl">
+        </template>
+        <ul class="menu w-full">
           <li v-for="col in hideableColumns" :key="col.key">
             <label class="label cursor-pointer justify-start gap-3 rounded-lg px-2 py-2">
               <input
@@ -48,7 +48,7 @@
             </label>
           </li>
         </ul>
-      </div>
+      </FloatingDropdown>
 
       <slot
         name="toolbar"

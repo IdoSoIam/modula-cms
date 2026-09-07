@@ -248,9 +248,35 @@ if (!siteShellData.value) {
 const page = reactive<CmsPageEditor>(structuredClone(data.value))
 const siteShellModel = reactive(structuredClone(siteShellData.value))
 const featureFlags = computed(() => siteShellModel.featureFlags)
+const clonePlainData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
 const isEmptyPageBuilderContent = (content: PageBuilderContent | null | undefined) =>
   !content || !Array.isArray(content.sections) || content.sections.length === 0
+
+const createFallbackPageTranslation = (localeCode: CmsLocale) => {
+  const fallback = page.translations[localeCode]
+    ?? page.translations.en
+    ?? page.translations.fr
+    ?? Object.values(page.translations).find(Boolean)
+
+  return {
+    title: fallback?.title ?? page.title,
+    navigationLabel: fallback?.navigationLabel ?? fallback?.title ?? page.title,
+    seo: clonePlainData(fallback?.seo ?? {
+      metaTitle: '',
+      metaDescription: '',
+      ogImage: '',
+      noindex: false
+    }),
+    content: clonePageBuilderContent(fallback?.content ?? createEmptyPageBuilderContent())
+  }
+}
+
+const ensurePageTranslations = (locales: CmsLocale[] = resolvedLocales.value) => {
+  for (const localeCode of locales) {
+    page.translations[localeCode] = page.translations[localeCode] ?? createFallbackPageTranslation(localeCode)
+  }
+}
 
 const resolveSharedContent = () => {
   for (const locale of resolvedLocales.value) {
@@ -263,12 +289,13 @@ const resolveSharedContent = () => {
 }
 
 const synchronizeSharedContent = (content: PageBuilderContent) => {
+  ensurePageTranslations()
   for (const locale of resolvedLocales.value) {
-    if (!page.translations[locale]) continue
-    page.translations[locale].content = clonePageBuilderContent(content)
+    page.translations[locale]!.content = clonePageBuilderContent(content)
   }
 }
 
+ensurePageTranslations()
 synchronizeSharedContent(resolveSharedContent())
 
 const selectedPageRenderer = computed({
@@ -315,9 +342,9 @@ const localizedTitle = computed({
     resolvedLocales.value.map((localeCode) => [localeCode, page.translations[localeCode]?.title ?? ''])
   ) as LocalizedText,
   set: (value: LocalizedText) => {
+    ensurePageTranslations()
     for (const localeCode of resolvedLocales.value) {
-      if (!page.translations[localeCode]) continue
-      page.translations[localeCode].title = value[localeCode] ?? ''
+      page.translations[localeCode]!.title = value[localeCode] ?? ''
     }
   }
 })
@@ -369,9 +396,9 @@ const localizedMetaTitle = computed({
     resolvedLocales.value.map((localeCode) => [localeCode, page.translations[localeCode]?.seo.metaTitle ?? ''])
   ) as LocalizedText,
   set: (value: LocalizedText) => {
+    ensurePageTranslations()
     for (const localeCode of resolvedLocales.value) {
-      if (!page.translations[localeCode]) continue
-      page.translations[localeCode].seo.metaTitle = value[localeCode] ?? ''
+      page.translations[localeCode]!.seo.metaTitle = value[localeCode] ?? ''
     }
   }
 })
@@ -380,9 +407,9 @@ const localizedMetaDescription = computed({
     resolvedLocales.value.map((localeCode) => [localeCode, page.translations[localeCode]?.seo.metaDescription ?? ''])
   ) as LocalizedText,
   set: (value: LocalizedText) => {
+    ensurePageTranslations()
     for (const localeCode of resolvedLocales.value) {
-      if (!page.translations[localeCode]) continue
-      page.translations[localeCode].seo.metaDescription = value[localeCode] ?? ''
+      page.translations[localeCode]!.seo.metaDescription = value[localeCode] ?? ''
     }
   }
 })
@@ -414,19 +441,19 @@ const togglePanel = (id: string) => {
 
 const updateVisibleTitle = (value: LocalizedText) => {
   if (selectedPageRenderer.value === 'shop') {
-    siteShellModel.settings.basketsPage.title = structuredClone(value)
+    siteShellModel.settings.basketsPage.title = clonePlainData(value)
     return
   }
   if (selectedPageRenderer.value === 'news') {
-    siteShellModel.settings.newsPage.title = structuredClone(value)
+    siteShellModel.settings.newsPage.title = clonePlainData(value)
     return
   }
   if (selectedPageRenderer.value === 'events') {
-    siteShellModel.settings.eventsPage.title = structuredClone(value)
+    siteShellModel.settings.eventsPage.title = clonePlainData(value)
     return
   }
   if (selectedPageRenderer.value === 'planning') {
-    siteShellModel.settings.planningPage.title = structuredClone(value)
+    siteShellModel.settings.planningPage.title = clonePlainData(value)
     return
   }
   localizedTitle.value = value
@@ -434,41 +461,42 @@ const updateVisibleTitle = (value: LocalizedText) => {
 
 const updateVisibleSubtitle = (value: LocalizedText) => {
   if (selectedPageRenderer.value === 'shop') {
-    siteShellModel.settings.basketsPage.subtitle = structuredClone(value)
+    siteShellModel.settings.basketsPage.subtitle = clonePlainData(value)
     return
   }
   if (selectedPageRenderer.value === 'news') {
-    siteShellModel.settings.newsPage.subtitle = structuredClone(value)
+    siteShellModel.settings.newsPage.subtitle = clonePlainData(value)
     return
   }
   if (selectedPageRenderer.value === 'events') {
-    siteShellModel.settings.eventsPage.subtitle = structuredClone(value)
+    siteShellModel.settings.eventsPage.subtitle = clonePlainData(value)
     return
   }
   if (selectedPageRenderer.value === 'planning') {
-    siteShellModel.settings.planningPage.subtitle = structuredClone(value)
+    siteShellModel.settings.planningPage.subtitle = clonePlainData(value)
   }
 }
 
 const updateReturnToListingLabel = (value: LocalizedText) => {
   if (selectedPageRenderer.value === 'shop') {
-    siteShellModel.settings.basketsPage.returnToListingLabel = structuredClone(value)
+    siteShellModel.settings.basketsPage.returnToListingLabel = clonePlainData(value)
   }
 }
 
 const save = async () => {
   saving.value = true
   try {
+    ensurePageTranslations()
     syncApplicationSettingsFromInternalTitle()
     synchronizeSharedContent(sharedContent.value)
     await Promise.all([
       $fetch(`/api/admin/cms/pages/${page.id}`, {
         method: 'PUT',
-        body: page
+        body: clonePlainData(page)
       }),
       $fetch('/api/admin/cms/site-shell', {
         method: 'PUT',
-        body: siteShellModel
+        body: clonePlainData(siteShellModel)
       })
     ])
     $toast?.success(t('admin.pageEditorPage.saved'))
@@ -491,6 +519,7 @@ watch(adminLocale, () => {
 })
 
 watch(resolvedLocales, (locales) => {
+  ensurePageTranslations(locales as CmsLocale[])
   if (!locales.includes(activeLocale.value)) {
     activeLocale.value = locales[0] || 'fr'
   }

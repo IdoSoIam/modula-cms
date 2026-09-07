@@ -1,5 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { getDefaultEmailVisualTemplateConfig, saveEmailVisualTemplateConfig, type EmailVisualTemplateConfig } from '#modula/server/utils/settings'
+import { normalizeEmailAccentColors } from '#modula/shared/emailCustomization'
 
 function normalizeHexColor(input: unknown, fallback: string) {
   if (typeof input !== 'string') return fallback
@@ -21,10 +22,14 @@ export default defineEventHandler(async (event) => {
     footerText: typeof body.footerText === 'string' ? body.footerText : fallback.footerText,
     buttonRadiusPx: typeof body.buttonRadiusPx === 'number' && Number.isFinite(body.buttonRadiusPx)
       ? Math.max(0, Math.min(28, Math.round(body.buttonRadiusPx)))
-      : fallback.buttonRadiusPx
+      : fallback.buttonRadiusPx,
+    templateAccentColors: normalizeEmailAccentColors(
+      body.templateAccentColors
+      ?? (body as Partial<EmailVisualTemplateConfig> & { eventAccentColors?: unknown }).eventAccentColors
+      ?? fallback.templateAccentColors
+    )
   }
 
   await saveEmailVisualTemplateConfig(nextConfig)
   return { ok: true, config: nextConfig }
 })
-

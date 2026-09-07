@@ -116,7 +116,7 @@
         </div>
       </section>
 
-      <section v-if="authStore.isAuthenticated || registerEnabled" class="space-y-2">
+      <section v-if="accountMenuVisible" class="space-y-2">
         <div class="px-1 text-xs font-semibold uppercase tracking-[0.14em] opacity-60">
           {{ publicText('auth.userMenu.accountGroup', 'Mon compte') }}
         </div>
@@ -126,7 +126,7 @@
               <Icon name="mdi:login" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.login', 'Connexion') }}</span>
             </NuxtLink>
-            <NuxtLink v-if="registerEnabled" :to="localePath('/register')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink v-if="registerVisible" :to="localePath('/register')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:account-multiple-outline" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.register', 'Inscription') }}</span>
             </NuxtLink>
@@ -143,7 +143,7 @@
               <span>{{ publicText('auth.userMenu.profile', 'Profil') }}</span>
             </NuxtLink>
 
-            <NuxtLink v-if="shopEnabled && !authStore.isAdmin" :to="ordersProfileLink" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink v-if="shopVisible && !authStore.isAdmin" :to="ordersProfileLink" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:invoice" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.orders', 'Commandes') }}</span>
             </NuxtLink>
@@ -208,6 +208,13 @@ const effectiveFeatureFlags = computed<{ shop?: { enabled?: boolean } } | null>(
   return siteConfigValue?.featureFlags ?? null
 })
 const shopEnabled = computed(() => effectiveFeatureFlags.value?.shop?.enabled === true)
+const registerVisible = computed(() => registerEnabled.value && !inDevelopment.value)
+const shopVisible = computed(() => shopEnabled.value && (!inDevelopment.value || authStore.isAuthenticated))
+const accountMenuVisible = computed(() => {
+  if (authStore.isAuthenticated) return true
+  if (inDevelopment.value) return registerEnabled.value
+  return registerVisible.value
+})
 const headerSettings = computed(() => cms.value?.settings.header ?? {
   heightPx: 84,
   logoHeightPx: 48,
@@ -240,8 +247,8 @@ const openGroupKeys = ref<string[]>([])
 const isHydrated = ref(false)
 const ordersProfileLink = computed(() => localePath({ path: '/profile', query: { tab: 'orders' } }))
 
-const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteName, 'fr') || 'Site name')
-const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteTagline, 'fr'))
+const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteName) || 'Site name')
+const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.siteTagline))
 const normalizeLogoSrc = (value?: string | null) => {
   const src = value?.trim()
   if (!src) return '/brand/modula-mark.svg'
@@ -250,7 +257,7 @@ const normalizeLogoSrc = (value?: string | null) => {
 }
 
 const logoSrc = computed(() => normalizeLogoSrc(cms.value?.settings.logo.src))
-const logoAlt = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.logo?.alt, 'fr') || 'Logo')
+const logoAlt = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings?.logo?.alt) || 'Logo')
 const menuItems = computed(() => cms.value?.navigation?.primary ?? [])
 const showMobileMenuBrandText = computed(() =>
   headerSettings.value.mobileMenuShowSiteName || (headerSettings.value.mobileMenuShowSiteTagline && Boolean(siteTagline.value))
@@ -296,7 +303,7 @@ const localeOptions = computed<LocaleOption[]>(() =>
 )
 
 const resolveLabel = (item: ResolvedCmsNavigationItem) =>
-  pickCmsLocalizedText(effectiveLocale.value, item.labels, 'fr') || item.label
+  pickCmsLocalizedText(effectiveLocale.value, item.labels) || item.label
 
 const resolveHref = (item: ResolvedCmsNavigationItem) =>
   item.itemType === 'EXTERNAL_URL' ? item.href : localePath(item.href)

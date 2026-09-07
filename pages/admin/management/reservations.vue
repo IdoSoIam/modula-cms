@@ -94,12 +94,13 @@ definePageMeta({
   middleware: 'auth'})
 
 const { $toast } = useNuxtApp() as any
+const { t } = useI18n()
 const tab = ref<'public' | 'internal'>('public')
 const { data: publicReservations, refresh: refreshPublic } = await useFetch<any[]>('/api/admin/event-reservations', { default: () => [] })
 const { data: internalParticipations, refresh: refreshInternal } = await useFetch<any[]>('/api/admin/event-participations', { default: () => [] })
 
 const savePublicReservation = async (reservation: any) => {
-  await $fetch(`/api/admin/event-reservations/${reservation.id}`, {
+  const result = await $fetch<{ notification?: { failed: number } }>(`/api/admin/event-reservations/${reservation.id}`, {
     method: 'PUT',
     body: {
       status: reservation.status,
@@ -107,11 +108,12 @@ const savePublicReservation = async (reservation: any) => {
     }
   })
   $toast?.success('Réservation mise à jour')
+  if (result.notification?.failed) $toast?.error(t('admin.eventsEditor.emailFailed'))
   await refreshPublic()
 }
 
 const saveParticipation = async (participation: any) => {
-  await $fetch(`/api/admin/event-participations/${participation.id}`, {
+  const result = await $fetch<{ notification?: { failed: number } }>(`/api/admin/event-participations/${participation.id}`, {
     method: 'PUT',
     body: {
       status: participation.status,
@@ -119,6 +121,7 @@ const saveParticipation = async (participation: any) => {
     }
   })
   $toast?.success('Participation mise à jour')
+  if (result.notification?.failed) $toast?.error(t('admin.eventsEditor.emailFailed'))
   await refreshInternal()
 }
 </script>

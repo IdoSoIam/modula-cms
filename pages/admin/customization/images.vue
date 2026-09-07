@@ -103,8 +103,8 @@
               {{ totalReferences(editing.references) }} association(s) au total
             </div>
             <div class="mt-2 grid gap-1 sm:grid-cols-2">
-              <div>{{ t('admin.imagesPage.referencesVegetables') }} : {{ editing.references.vegetables }}</div>
-              <div>{{ t('admin.imagesPage.referencesBaskets') }} : {{ editing.references.baskets }}</div>
+              <div>{{ t('admin.imagesPage.referencesVegetables') }} : {{ editing.references.products }}</div>
+              <div>{{ t('admin.imagesPage.referencesBaskets') }} : {{ editing.references.productLots }}</div>
               <div>{{ t('admin.imagesPage.referencesArticles') }} : {{ editing.references.articles }}</div>
               <div>{{ t('admin.imagesPage.referencesArticleContent') }} : {{ editing.references.articleContent }}</div>
               <div>Reglages globaux : {{ editing.references.cmsSiteSettings.count }}</div>
@@ -165,8 +165,8 @@
                     {{ totalReferences(variant.references) }} association(s) heritee(s) de l'image source
                   </div>
                   <div class="mt-2 grid gap-1 sm:grid-cols-2">
-                    <div>{{ t('admin.imagesPage.referencesVegetables') }} : {{ variant.references.vegetables }}</div>
-                    <div>{{ t('admin.imagesPage.referencesBaskets') }} : {{ variant.references.baskets }}</div>
+                    <div>{{ t('admin.imagesPage.referencesVegetables') }} : {{ variant.references.products }}</div>
+                    <div>{{ t('admin.imagesPage.referencesBaskets') }} : {{ variant.references.productLots }}</div>
                     <div>{{ t('admin.imagesPage.referencesArticles') }} : {{ variant.references.articles }}</div>
                     <div>{{ t('admin.imagesPage.referencesArticleContent') }} : {{ variant.references.articleContent }}</div>
                     <div>Reglages globaux : {{ variant.references.cmsSiteSettings.count }}</div>
@@ -227,8 +227,8 @@ definePageMeta({
   middleware: 'auth'})
 
 interface ImageReferences {
-  vegetables: number
-  baskets: number
+  products: number
+  productLots: number
   articles: number
   articleContent: number
   cmsSiteSettings: {
@@ -333,8 +333,8 @@ const formatImageSize = (size: number) => {
 }
 
 const totalReferences = (references: ImageReferences) =>
-  references.vegetables
-  + references.baskets
+  references.products
+  + references.productLots
   + references.articles
   + references.articleContent
   + references.cmsSiteSettings.count

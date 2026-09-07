@@ -255,7 +255,7 @@ export default defineEventHandler(async (event) => {
       htmlBody: await buildGenericEmail({
         title: compiled.subject,
         body: compiled.body,
-        accent: '#2563eb',
+        templateAction: form.action.templateAction || 'contact',
         lang: getReservationEmailHtmlLang(locale)
       })
     })

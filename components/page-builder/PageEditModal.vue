@@ -223,16 +223,23 @@ const TranslationFields = defineComponent({
     size: { type: [String, Object] as PropType<any>, default: undefined },
     multiline: { type: Boolean, default: false }
   },
-  emits: ['update:size'],
+  emits: ['update:modelValue', 'update:size'],
   setup(props, { emit }) {
     const { locales } = useSiteLocales()
+    const { contentLocale } = useContentLocale()
     const { $toast } = useNuxtApp() as any
-    const resolvedLocales = computed(() => locales.value.length ? locales.value : ['fr', 'en'])
-    const lang = ref<string>(resolvedLocales.value[0] || 'fr')
+    const resolvedLocales = computed(() => {
+      const values = locales.value.length ? [...locales.value] : ['fr', 'en']
+      if (contentLocale.value && !values.includes(contentLocale.value)) {
+        values.push(contentLocale.value)
+      }
+      return values
+    })
+    const lang = ref<string>(contentLocale.value || resolvedLocales.value[0] || 'fr')
     const translating = ref(false)
 
     watch(resolvedLocales, (value) => {
-      const next = value[0] || 'fr'
+      const next = value.includes(contentLocale.value) ? contentLocale.value : value[0] || 'fr'
       if (!value.includes(lang.value)) {
         lang.value = next
       }
@@ -240,6 +247,12 @@ const TranslationFields = defineComponent({
         if (typeof props.modelValue[localeCode] !== 'string') {
           props.modelValue[localeCode] = ''
         }
+      }
+    }, { immediate: true })
+
+    watch(contentLocale, (value) => {
+      if (value && resolvedLocales.value.includes(value)) {
+        lang.value = value
       }
     }, { immediate: true })
 
@@ -259,10 +272,20 @@ const TranslationFields = defineComponent({
       && emptyTargetLocales.value.length > 0
     )
 
+    const updateLocalizedValue = (localeCode: string, value: string) => {
+      const next = {
+        ...(props.modelValue || {}),
+        [localeCode]: value
+      }
+      Object.assign(props.modelValue, next)
+      emit('update:modelValue', next)
+    }
+
     const translateMissingLocales = async () => {
       const sourceLocale = translationSourceLocale.value
       const text = props.modelValue[sourceLocale]?.trim()
-      if (!text || !emptyTargetLocales.value.length) return
+      const targetLocales = [...emptyTargetLocales.value]
+      if (!text || !targetLocales.length) return
 
       translating.value = true
       try {
@@ -271,16 +294,23 @@ const TranslationFields = defineComponent({
           body: {
             text,
             sourceLocale,
-            targetLocales: emptyTargetLocales.value,
+            targetLocales,
             context: props.label
           }
         })
 
-        for (const localeCode of emptyTargetLocales.value) {
+        const next = { ...(props.modelValue || {}) }
+        let changed = false
+        for (const localeCode of targetLocales) {
           const translated = result?.translations?.[localeCode]?.trim()
-          if (translated && !props.modelValue[localeCode]?.trim()) {
-            props.modelValue[localeCode] = translated
+          if (translated && !next[localeCode]?.trim()) {
+            next[localeCode] = translated
+            changed = true
           }
+        }
+        if (changed) {
+          Object.assign(props.modelValue, next)
+          emit('update:modelValue', next)
         }
       } catch (error: any) {
         $toast?.error(error?.data?.statusMessage || error?.statusMessage || 'Traduction impossible.')
@@ -320,8 +350,8 @@ const TranslationFields = defineComponent({
         ])
       ]),
       props.multiline
-        ? h('textarea', { class: 'textarea textarea-bordered w-full', rows: 4, value: props.modelValue[lang.value], onInput: (e: Event) => { props.modelValue[lang.value] = (e.target as HTMLTextAreaElement).value } })
-        : h('input', { class: 'input input-bordered w-full', value: props.modelValue[lang.value], onInput: (e: Event) => { props.modelValue[lang.value] = (e.target as HTMLInputElement).value } })
+        ? h('textarea', { class: 'textarea textarea-bordered w-full', rows: 4, value: props.modelValue[lang.value], onInput: (e: Event) => { updateLocalizedValue(lang.value, (e.target as HTMLTextAreaElement).value) } })
+        : h('input', { class: 'input input-bordered w-full', value: props.modelValue[lang.value], onInput: (e: Event) => { updateLocalizedValue(lang.value, (e.target as HTMLInputElement).value) } })
     ])
   }
 })
@@ -330,7 +360,7 @@ const ButtonEditor = defineComponent({
   props: { button: { type: Object as PropType<PageBuilderButton>, required: true } },
   setup(props) {
     return () => h('div', { class: 'space-y-4' }, [
-      h(TranslationFields, { modelValue: props.button.label, label: 'Label' }),
+      h(TranslationFields, { modelValue: props.button.label, label: 'Label', 'onUpdate:modelValue': (value: Record<string, string>) => { props.button.label = value } }),
       h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Lien')]), h('input', { class: 'input input-bordered w-full', value: props.button.href, onInput: (e: Event) => { props.button.href = (e.target as HTMLInputElement).value } })]),
       h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
         h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Style')]), h('select', { class: 'select select-bordered w-full', value: props.button.tone, onChange: (e: Event) => { props.button.tone = (e.target as HTMLSelectElement).value as any } }, BUTTON_TONES.map(t => h('option', { value: t }, t)))]),
@@ -386,7 +416,7 @@ const ItemEditor = defineComponent({
       if (item.type === 'badge' || item.type === 'title' || item.type === 'text') {
         return h('div', { class: 'space-y-4' }, [
           header,
-          h(TranslationFields, { modelValue: item.text, label: item.type === 'badge' ? 'Badge' : item.type === 'title' ? 'Titre' : 'Texte', size: item.size, multiline: item.type === 'text', 'onUpdate:size': (val: string) => { item.size = val as any } }),
+          h(TranslationFields, { modelValue: item.text, label: item.type === 'badge' ? 'Badge' : item.type === 'title' ? 'Titre' : 'Texte', size: item.size, multiline: item.type === 'text', 'onUpdate:modelValue': (value: Record<string, string>) => { item.text = value }, 'onUpdate:size': (val: string) => { item.size = val as any } }),
           item.type === 'title' || item.type === 'text'
             ? h('div', { class: 'form-control' }, [
                 h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Alignement')]),
@@ -437,7 +467,7 @@ const ItemEditor = defineComponent({
         return h('div', { class: 'space-y-4' }, [
           header,
           h(resolveComponent('ImageInput') as any, { modelValue: item.imageUrl, 'onUpdate:modelValue': (val: string) => { item.imageUrl = val } }),
-          h(TranslationFields, { modelValue: item.alt, label: 'Alt' }),
+          h(TranslationFields, { modelValue: item.alt, label: 'Alt', 'onUpdate:modelValue': (value: Record<string, string>) => { item.alt = value } }),
           h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
             h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Ratio')]), h('select', { class: 'select select-bordered w-full', value: item.aspect, onChange: (e: Event) => { item.aspect = (e.target as HTMLSelectElement).value as any } }, IMAGE_ASPECTS.map(a => h('option', { value: a }, a)))]),
             h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Placement')]), h('select', { class: 'select select-bordered w-full', value: item.fit, onChange: (e: Event) => { item.fit = (e.target as HTMLSelectElement).value as any } }, IMAGE_FITS.map(f => h('option', { value: f }, f)))]),
@@ -519,10 +549,10 @@ const ItemEditor = defineComponent({
               h(ThemeColorPicker, { label: 'Texte du bouton d’envoi', modelValue: item.submitButtonTextColor || null, defaultToken: 'primary-content', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonTextColor = val } }),
               h(ThemeColorPicker, { label: 'Bordure du bouton d’envoi', modelValue: item.submitButtonBorderColor || null, defaultToken: 'transparent', 'onUpdate:modelValue': (val: ThemeColorSelection | null) => { item.submitButtonBorderColor = val } })
             ]),
-            h(TranslationFields, { modelValue: item.title, label: 'Titre du formulaire' }),
-            h(TranslationFields, { modelValue: item.intro, label: 'Introduction', multiline: true }),
-            h(TranslationFields, { modelValue: item.submitLabel, label: 'Libellé du bouton' }),
-            h(TranslationFields, { modelValue: item.successMessage, label: 'Message de succès', multiline: true })
+            h(TranslationFields, { modelValue: item.title, label: 'Titre du formulaire', 'onUpdate:modelValue': (value: Record<string, string>) => { item.title = value } }),
+            h(TranslationFields, { modelValue: item.intro, label: 'Introduction', multiline: true, 'onUpdate:modelValue': (value: Record<string, string>) => { item.intro = value } }),
+            h(TranslationFields, { modelValue: item.submitLabel, label: 'Libell? du bouton', 'onUpdate:modelValue': (value: Record<string, string>) => { item.submitLabel = value } }),
+            h(TranslationFields, { modelValue: item.successMessage, label: 'Message de succ?s', multiline: true, 'onUpdate:modelValue': (value: Record<string, string>) => { item.successMessage = value } })
           ]) : null,
           formTab.value === 'action' ? h('div', { class: 'rounded-b-box rounded-tr-box border border-base-300 bg-base-100 p-4 space-y-3' }, [
               h('div', { class: 'flex items-center justify-between gap-2' }, [
@@ -659,10 +689,10 @@ const ItemEditor = defineComponent({
                     h('div', { class: 'form-control' }, [h('label', { class: 'label' }, [h('span', { class: 'label-text' }, 'Largeur')]), h('select', { class: 'select select-bordered w-full', value: String(field.width), onChange: (e: Event) => { field.width = Number((e.target as HTMLSelectElement).value) as any } }, PAGE_BUILDER_FORM_FIELD_WIDTHS.map(width => h('option', { value: String(width) }, PAGE_BUILDER_FORM_FIELD_WIDTH_LABELS[width])))]),
                     h('label', { class: 'label cursor-pointer justify-start gap-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3' }, [h('input', { type: 'checkbox', class: 'checkbox checkbox-primary checkbox-sm', checked: field.required, onChange: (e: Event) => { field.required = (e.target as HTMLInputElement).checked } }), h('span', { class: 'label-text' }, 'Champ requis')])
                   ]),
-                  h(TranslationFields, { modelValue: field.label, label: 'Label' }),
-                  h(TranslationFields, { modelValue: field.placeholder, label: 'Placeholder' }),
-                  h(TranslationFields, { modelValue: field.helpText, label: 'Aide', multiline: true }),
-                  h(TranslationFields, { modelValue: field.errorMessage, label: 'Message d’erreur', multiline: true })
+                  h(TranslationFields, { modelValue: field.label, label: 'Label', 'onUpdate:modelValue': (value: Record<string, string>) => { field.label = value } }),
+                  h(TranslationFields, { modelValue: field.placeholder, label: 'Placeholder', 'onUpdate:modelValue': (value: Record<string, string>) => { field.placeholder = value } }),
+                  h(TranslationFields, { modelValue: field.helpText, label: 'Aide', multiline: true, 'onUpdate:modelValue': (value: Record<string, string>) => { field.helpText = value } }),
+                  h(TranslationFields, { modelValue: field.errorMessage, label: 'Message d?erreur', multiline: true, 'onUpdate:modelValue': (value: Record<string, string>) => { field.errorMessage = value } })
                 ] : [])
               ])) : [])
             ]))
@@ -757,6 +787,7 @@ const SectionEditor = defineComponent({
               label: item.type === 'title' ? 'Titre' : 'Texte',
               size: item.size,
               multiline: item.type === 'text',
+              'onUpdate:modelValue': (value: Record<string, string>) => { item.text = value },
               'onUpdate:size': (val: string) => { item.size = val as any }
             }),
             h('div', { class: 'form-control' }, [

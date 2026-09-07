@@ -1,5 +1,4 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { syncImageUsageTable } from '#modula/server/utils/imageReferences'
 import { db } from '#modula/server/data/client'
 
 export default defineEventHandler(async (event) => {
@@ -18,6 +17,5 @@ export default defineEventHandler(async (event) => {
   }
 
   await db.product.delete({ where: { id } })
-  await syncImageUsageTable()
   return { ok: true }
 })

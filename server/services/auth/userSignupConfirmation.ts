@@ -31,7 +31,7 @@ export async function sendUserSignupConfirmationEmail(options: {
     htmlBody: await buildGenericEmail({
       title: subject,
       body,
-      accent: '#4f8a34',
+      templateAction: 'signup_request_confirmation',
       lang: locale
     })
   })

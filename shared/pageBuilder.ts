@@ -486,10 +486,18 @@ export const THEME_COLOR_LABELS: Record<ThemeColorToken, string> = {
 
 const ICONIFY_NAME_PATTERN = /^(?:@[a-z0-9]+:)?[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-export function pickLocalizedText(locale: string, value: LocalizedText | null | undefined, defaultLocale = 'fr') {
+export function pickLocalizedText(locale: string, value: LocalizedText | null | undefined, defaultLocale = 'en') {
   if (!value) return ''
-  if (value[locale]?.trim()) return value[locale]
-  if (value[defaultLocale]?.trim()) return value[defaultLocale]
+  const normalizedLocale = String(locale || '').trim().toLowerCase()
+  const normalizedDefaultLocale = String(defaultLocale || '').trim().toLowerCase()
+  const normalizedEntries = Object.fromEntries(
+    Object.entries(value).map(([entryLocale, text]) => [String(entryLocale || '').trim().toLowerCase(), text])
+  )
+  if (normalizedEntries[normalizedLocale]?.trim()) return normalizedEntries[normalizedLocale]
+  const baseLocale = normalizedLocale.split('-')[0] || normalizedLocale
+  if (baseLocale !== normalizedLocale && normalizedEntries[baseLocale]?.trim()) return normalizedEntries[baseLocale]
+  if (normalizedLocale !== 'en' && normalizedEntries.en?.trim()) return normalizedEntries.en
+  if (normalizedEntries[normalizedDefaultLocale]?.trim()) return normalizedEntries[normalizedDefaultLocale]
   const first = Object.values(value).find(v => v?.trim())
   return first || ''
 }

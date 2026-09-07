@@ -388,6 +388,8 @@ export const PUBLIC_DICTIONARY_DEFINITIONS: PublicDictionaryDefinition[] = [
   define('checkout.cart.orderSuccess', 'checkout', 'cart', 'Toast commande envoyée', 'Order sent toast', 'Commande envoyée avec succès.', 'Order sent successfully.'),
   define('checkout.cart.orderError', 'checkout', 'cart', 'Toast erreur commande', 'Order error toast', 'Impossible de créer la commande.', 'Unable to create order.'),
 
+  define('events.list.error', 'events', 'events-list', 'Erreur de chargement', 'Loading error', 'Impossible de charger les événements.', 'Unable to load events.', true),
+  define('events.list.retry', 'events', 'events-list', 'Réessayer', 'Retry', 'Réessayer', 'Retry', true),
   define('events.list.empty', 'events', 'events-list', 'Liste événements vide', 'Empty events list', 'Aucun événement publié pour le moment.', 'No events published yet.', true),
   define('events.list.listMode', 'events', 'events-list', 'Mode liste événements', 'Events list mode', 'Liste', 'List'),
   define('events.list.gridMode', 'events', 'events-list', 'Mode grille événements', 'Events grid mode', 'Grille', 'Grid'),

@@ -39,7 +39,7 @@ export async function sendUserInvitationEmail(options: {
     htmlBody: await buildGenericEmail({
       title: subject,
       body,
-      accent: '#4f8a34',
+      templateAction: 'user_invitation',
       lang: locale
     })
   })

@@ -616,7 +616,7 @@ export async function createBillingDocumentPdfAttachment(options: {
       totalInclTaxLabel: formatter.format(invoiceTotals.totalTtc),
       taxRows: hideVat ? [] : buildInvoiceTaxGroups(order, localeCode, dictionary),
       vatNote: hideVat ? (dictionary['billing.pdf.vatNotApplicable'] || 'TVA non applicable') : null,
-      notes: order.message || '',
+      notes: bodyText || order.message || '',
       footer: renderTemplate(footer, vars),
       logoBytes: logoImage?.bytes || null,
       logoMimeType: logoImage?.contentType || null,

@@ -193,8 +193,8 @@ const formatFooterSchedule = (schedule?: SiteConfig['farmPickup'] | null) => {
   return publicText('navigation.footer.recurringSchedule', 'Tous les {day} de {start} à {end}', { day, start, end })
 }
 const farmScheduleText = computed(() => formatFooterSchedule(siteConfig.value?.farmPickup || null))
-const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteName, 'fr') || 'Site')
-const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteTagline, 'fr'))
+const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteName) || 'Site')
+const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteTagline))
 const logoSrc = computed(() => {
   const src = cms.value?.settings.logo.src?.trim()
   if (!src) return '/brand/modula-mark.svg'
@@ -203,7 +203,7 @@ const logoSrc = computed(() => {
 })
 const copyrightText = computed(() => {
   const value = footerSettings.value.copyright
-  return pickCmsLocalizedText(effectiveLocale.value, value, 'fr')
+  return pickCmsLocalizedText(effectiveLocale.value, value)
 })
 
 const tokenToCssVar = (token: string) => {
@@ -260,7 +260,7 @@ const columnLayoutStyle = (column: CmsFooterColumn) => ({
 })
 
 const pickText = (value: CmsLocalizedText | null | undefined) => {
-  return pickCmsLocalizedText(effectiveLocale.value, value, 'fr')
+  return pickCmsLocalizedText(effectiveLocale.value, value)
 }
 
 const getNavigationItems = (menu: 'PRIMARY' | 'FOOTER') => {

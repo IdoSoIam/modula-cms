@@ -6,6 +6,8 @@ import {
   type TemplateAction
 } from './orderEmailContent'
 
+import { eventStatusTemplates } from './eventStatusTemplates'
+
 interface LocalizedText {
   fr: string
   en: string
@@ -57,6 +59,7 @@ const RESERVATION_ACTIONS = new Set(
 )
 
 const CUSTOM_TEMPLATE_DEFAULTS: Record<string, Record<string, EmailTemplate>> = {
+  ...Object.fromEntries(eventStatusTemplates.map(entry => [entry.action, entry.templates])),
   event_call_for_participation: {
     fr: {
       subject: 'Appel à participation - {{eventTitle}}',
@@ -580,6 +583,17 @@ If needed, you can contact the site team for more information.`
 }
 
 const SYSTEM_TEMPLATE_DEFINITIONS: AdminEmailTemplateDefinition[] = [
+  ...eventStatusTemplates.map(entry => ({
+    action: entry.action,
+    settingKey: `email_template_${entry.action}`,
+    label: entry.label,
+    description: entry.label,
+    group: GROUP_EVENTS,
+    subgroup: entry.action.startsWith('public_event_reservation') ? SUBGROUP_EVENT_PUBLIC_RESERVATION_CUSTOMER : SUBGROUP_EVENT_PARTICIPATION_CUSTOMER,
+    variables: ['recipientName', 'customerName', 'participantName', 'eventTitle', 'eventDate', 'eventTime', 'eventLocation', 'reservationId', 'reservationSeats'],
+    locked: true,
+    system: true,
+  })),
   {
     action: 'shop_order_created',
     settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_CREATED,

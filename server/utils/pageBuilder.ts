@@ -644,7 +644,4 @@ export async function savePageBuilderContent(content: PageBuilderContent) {
   const fallback = createDefaultPageBuilderContent(farmPickup.address)
   const normalized = normalizePageBuilderContent(content, fallback)
   await setSetting(SETTING_KEYS.PAGE_BUILDER_CONTENT, JSON.stringify(normalized))
-
-  const { syncImageUsageTable } = await import('./imageReferences')
-  await syncImageUsageTable()
 }
