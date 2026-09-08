@@ -6,20 +6,27 @@ import {
   isStripeConfigured,
 } from "#modula/server/services/payment/paymentService";
 import { sendShopOrderCreatedNotifications } from "#modula/server/services/shop/shopOrderEmails";
+import { requiresManualRentalApproval, resolveRentalOrderStatus } from '#modula/server/services/shop/rentalApproval'
 import { getReservationFulfillment } from "#modula/server/utils/orderFulfillment";
 import {
   getOnSitePickupConfig,
+  getFeatureFlags,
+  getRentalCalendarConfig,
 } from "#modula/server/utils/settings";
 import {
   createOrderNumber,
+  hydrateProductBillingDocumentMetadata,
   pickProductLocalizedText,
   serializeProduct,
   serializeShopOrder,
 } from "#modula/server/utils/shop";
 import {
   ensureRentalAvailability,
+  isHourlyRentalWindow,
   resolveRentalWindow,
 } from "#modula/server/services/shop/rentalAvailability";
+import { getResolvedPublicDictionary } from '#modula/server/utils/publicDictionary'
+import { getSiteDefaultLocale, getSiteLocales } from '#modula/server/utils/settings'
 
 interface OrderLineInput {
   kind: "product";
@@ -28,6 +35,8 @@ interface OrderLineInput {
   saleType?: "SALE" | "RENTAL";
   rentalStartDate?: string | null;
   rentalEndDate?: string | null;
+  rentalPricingMode?: "HOURLY" | "DAILY" | null;
+  insuranceDocumentIds?: number[];
 }
 
 interface OrderBody {
@@ -127,12 +136,13 @@ export default defineEventHandler(async (event) => {
   >();
 
   for (const row of directProducts) {
-    const serialized = serializeProduct(row);
+    const serialized = await hydrateProductBillingDocumentMetadata(serializeProduct(row));
     productMapSource.set(serialized.id, serialized);
   }
 
   const productById = productMapSource;
 
+  const rentalCalendar = await getRentalCalendarConfig();
   const normalizedLines = lines.map((line) => {
     const quantity = Math.max(1, Math.round(Number(line.quantity || 1)));
     const product = productById.get(Number(line.productId));
@@ -143,13 +153,56 @@ export default defineEventHandler(async (event) => {
       });
     }
 
+    const rentalWindow = product.saleType === "RENTAL"
+      ? resolveRentalWindow(line.rentalStartDate, line.rentalEndDate, rentalCalendar.timezone)
+      : null;
+    const rentalPricingMode = rentalWindow
+      ? resolveRentalPricingMode(product.rentalBookingMode, rentalWindow, line.rentalPricingMode)
+      : null;
+    const unitPrice = rentalWindow
+      ? calculateRentalPrice(product, rentalWindow, rentalPricingMode!)
+      : product.price;
+    const requestedInsuranceIds = new Set(
+      (Array.isArray(line.insuranceDocumentIds) ? line.insuranceDocumentIds : [])
+        .map(Number)
+        .filter(id => Number.isInteger(id) && id > 0),
+    );
+    const linkedItems = product.detailSections.flatMap(section => section.items);
+    const linkedInsuranceDocuments = uniqueBillingDocumentItems(linkedItems.filter(item =>
+      item.mediaKind === 'billingDocument'
+      && item.mediaDocumentId
+      && item.mediaDocumentKind === 'ASSURANCE',
+    ));
+    const allowedInsuranceIds = new Set(linkedInsuranceDocuments.map(item => Number(item.mediaDocumentId)));
+    if (Array.from(requestedInsuranceIds).some(id => !allowedInsuranceIds.has(id))) {
+      throw createError({ statusCode: 400, message: 'Une assurance sélectionnée n’est pas liée à ce produit' });
+    }
+    const includedInsuranceDocuments = rentalWindow
+      ? linkedInsuranceDocuments.filter(item => item.mediaDocumentRequiredForRental || requestedInsuranceIds.has(Number(item.mediaDocumentId)))
+      : [];
+    const rentalDurationUnits = rentalWindow
+      ? getRentalDurationUnits(rentalWindow, rentalPricingMode!)
+      : null;
+    const linkedBillingDocuments = uniqueBillingDocumentItems(linkedItems.filter(item =>
+      item.mediaKind === 'billingDocument'
+      && item.mediaDocumentId
+      && (item.mediaDocumentKind !== 'ASSURANCE' || includedInsuranceDocuments.some(insurance => insurance.mediaDocumentId === item.mediaDocumentId)),
+    )).map(item => ({
+      id: item.mediaDocumentId,
+      name: item.mediaDocumentName,
+      kind: item.mediaDocumentKind,
+    }));
+    const linkedFiles = linkedItems
+      .filter(item => item.mediaKind === 'pdf' && item.mediaUrl)
+      .map(item => ({ name: pickProductLocalizedText(language, item.labelLocalized, item.label), url: item.mediaUrl }));
+
     return {
       kind: "product" as const,
       quantity,
       title: pickProductLocalizedText(language, product.nameLocalized, product.name),
       productId: product.id,
-      unitPrice: product.price,
-      totalPrice: product.price * quantity,
+      unitPrice,
+      totalPrice: unitPrice * quantity,
       vatRate: product.vatRate,
       stock: product.stock,
       allowOfflinePayment: product.allowOfflinePayment,
@@ -163,19 +216,16 @@ export default defineEventHandler(async (event) => {
         slug: product.slug,
         saleType: product.saleType,
         unitLabel: product.unitLabel,
+        rentalPricingMode,
+        rentalDurationUnits,
         vatRate: product.vatRate,
         paymentTaxCode: product.paymentTaxCode,
         paymentTaxBehavior: product.paymentTaxBehavior,
         allowCustomerCancellation: product.allowCustomerCancellation,
         allowRefundRequestAfterEngagement: product.allowRefundRequestAfterEngagement,
-        linkedBillingDocuments: product.detailSections
-          .flatMap((section) => section.items)
-          .filter((item) => item.mediaKind === "billingDocument" && item.mediaDocumentId)
-          .map((item) => ({
-            id: item.mediaDocumentId,
-            name: item.mediaDocumentName,
-            kind: item.mediaDocumentKind,
-          })),
+        rentalApprovalMode: product.rentalApprovalMode,
+        linkedBillingDocuments,
+        linkedFiles,
       }),
       paymentTaxCode: product.paymentTaxCode,
       paymentTaxBehavior: product.paymentTaxBehavior,
@@ -183,16 +233,60 @@ export default defineEventHandler(async (event) => {
       rentalAvailableTo: product.rentalAvailableTo,
       rentalMinDays: product.rentalMinDays,
       rentalMaxDays: product.rentalMaxDays,
-      rentalWindow:
-        product.saleType === "RENTAL"
-          ? resolveRentalWindow(line.rentalStartDate, line.rentalEndDate)
-          : null,
+      rentalBookingMode: product.rentalBookingMode,
+      rentalApprovalMode: product.rentalApprovalMode,
+      rentalDurations: product.rentalDurations,
+      rentalSlotStepMinutes: product.rentalSlotStepMinutes,
+      rentalPricingMode,
+      rentalWindow,
+      includedInsuranceDocuments,
+      rentalDurationUnits,
     };
   });
+
+  const insuranceLines = normalizedLines.flatMap(line => line.includedInsuranceDocuments.map(document => {
+    const unitPrice = calculateRentalInsurancePrice(document, line.rentalDurationUnits!, line.rentalPricingMode!);
+    return {
+      kind: 'insurance' as const,
+      quantity: line.quantity,
+      title: document.mediaDocumentName || 'Assurance',
+      productId: null,
+      unitPrice,
+      totalPrice: unitPrice * line.quantity,
+      vatRate: line.vatRate,
+      allowOfflinePayment: line.allowOfflinePayment,
+      allowOnlinePayment: line.allowOnlinePayment,
+      saleType: 'INSURANCE' as const,
+      imageUrl: null,
+      description: undefined,
+      paymentTaxCode: line.paymentTaxCode,
+      paymentTaxBehavior: line.paymentTaxBehavior,
+      rentalWindow: null,
+      metaJson: JSON.stringify({
+        lineKind: 'INSURANCE',
+        relatedProductId: line.productId,
+        billingDocumentId: document.mediaDocumentId,
+        required: document.mediaDocumentRequiredForRental,
+        rentalPricingMode: line.rentalPricingMode,
+        rentalDurationUnits: line.rentalDurationUnits,
+        vatRate: line.vatRate,
+        paymentTaxCode: line.paymentTaxCode,
+        paymentTaxBehavior: line.paymentTaxBehavior,
+        linkedBillingDocuments: [],
+      }),
+    };
+  }));
+  const orderLines = [...normalizedLines, ...insuranceLines];
 
   const rentalLines = normalizedLines.filter((line) => line.saleType === "RENTAL");
 
   if (rentalLines.length) {
+    const featureFlags = await getFeatureFlags()
+    if (!featureFlags.rentalsEnabled) {
+      throw createError({ statusCode: 400, message: 'La location est actuellement désactivée' })
+    }
+    const [siteLocales, defaultLocale] = await Promise.all([getSiteLocales(), getSiteDefaultLocale()])
+    const dictionary = await getResolvedPublicDictionary(language, siteLocales, defaultLocale)
     await ensureRentalAvailability(
       rentalLines.map((line) => ({
         kind: line.kind,
@@ -204,23 +298,28 @@ export default defineEventHandler(async (event) => {
         rentalAvailableTo: line.rentalAvailableTo,
         rentalMinDays: line.rentalMinDays,
         rentalMaxDays: line.rentalMaxDays,
+        rentalBookingMode: line.rentalBookingMode,
+        rentalDurations: line.rentalDurations,
+        rentalSlotStepMinutes: line.rentalSlotStepMinutes,
+        rentalPricingMode: line.rentalPricingMode,
         rentalWindow: line.rentalWindow,
       })),
       retryOrder
         ? {
             excludedOrderIds: [Number(retryOrder.id)],
+            message: (key, params) => interpolate(dictionary[key] || '', params),
           }
-        : undefined,
+        : { message: (key, params) => interpolate(dictionary[key] || '', params) },
     );
   }
 
-  const allowOffline = normalizedLines.every(
+  const allowOffline = orderLines.every(
     (line) => line.allowOfflinePayment,
   );
   const stripeConfigured = await isStripeConfigured();
   const allowOnline =
     stripeConfigured &&
-    normalizedLines.every((line) => line.allowOnlinePayment);
+    orderLines.every((line) => line.allowOnlinePayment);
   const paymentMode =
     body.paymentMode === "stripe"
       ? "stripe"
@@ -282,7 +381,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const subtotal = normalizedLines.reduce(
+  const subtotal = orderLines.reduce(
     (sum, line) => sum + line.totalPrice,
     0,
   );
@@ -303,6 +402,7 @@ export default defineEventHandler(async (event) => {
       }, null as string | null)
     : null;
   const useStripe = paymentMode === "stripe" && allowOnline;
+  const manualRentalApproval = requiresManualRentalApproval(rentalLines);
   const onSitePickup = await getOnSitePickupConfig();
   const accountProvisioning = await resolveOrderAccountProvisioning({
     sessionUserId: sessionUser?.id ?? null,
@@ -461,7 +561,11 @@ export default defineEventHandler(async (event) => {
   const baseOrderData = {
     userId: accountProvisioning.userId,
     language,
-    status: "PENDING" as const,
+    status: resolveRentalOrderStatus({
+      hasRental: rentalLines.length > 0,
+      useStripe,
+      requiresManualApproval: manualRentalApproval,
+    }),
     paymentProvider: useStripe ? "STRIPE" : "OFFLINE",
     paymentStatus: useStripe ? "PENDING" : "UNPAID",
     customerName: body.customerName.trim(),
@@ -524,7 +628,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await db.shopOrderLine.createMany({
-    data: normalizedLines.map((line) => ({
+    data: orderLines.map((line) => ({
       orderId,
       productId: line.productId,
       title: line.title,
@@ -581,7 +685,7 @@ export default defineEventHandler(async (event) => {
         orderId: String(orderId),
         orderNumber,
       },
-      lineItems: normalizedLines.map((line) => ({
+      lineItems: orderLines.map((line) => ({
         name: line.title,
         amount: Math.round(line.unitPrice * 100),
         quantity: line.quantity,
@@ -746,6 +850,69 @@ function safeParseMeta(value: string) {
   } catch {
     return {};
   }
+}
+
+function interpolate(template: string, params: Record<string, string | number>) {
+  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key) => String(params[key] ?? ''))
+}
+
+function resolveRentalPricingMode(
+  bookingMode: 'SINGLE_DAY' | 'MULTI_DAY' | 'BOTH',
+  window: NonNullable<ReturnType<typeof resolveRentalWindow>>,
+  requested: OrderLineInput['rentalPricingMode'],
+) {
+  const resolved = bookingMode === 'SINGLE_DAY' ? 'HOURLY' : bookingMode === 'MULTI_DAY' ? 'DAILY' : requested
+  if (resolved !== 'HOURLY' && resolved !== 'DAILY') {
+    throw createError({ statusCode: 400, message: 'Le mode de tarification de la location est requis' })
+  }
+  if (resolved === 'HOURLY' && !isHourlyRentalWindow('BOTH', window)) {
+    throw createError({ statusCode: 400, message: 'Le créneau ne correspond pas au mode de tarification choisi' })
+  }
+  return resolved
+}
+
+function calculateRentalPrice(
+  product: ReturnType<typeof serializeProduct>,
+  window: NonNullable<ReturnType<typeof resolveRentalWindow>>,
+  pricingMode: 'HOURLY' | 'DAILY',
+) {
+  if (pricingMode === 'HOURLY') {
+    const hourlyPrice = product.rentalHourlyPrice ?? (product.rentalBookingMode === 'SINGLE_DAY' ? product.price : null)
+    if (hourlyPrice == null) throw createError({ statusCode: 400, message: 'Tarif horaire indisponible' })
+    const hours = (window.endAt.getTime() - window.startAt.getTime()) / 3600000
+    return Math.round(Number(hourlyPrice) * hours * 100) / 100
+  }
+  const dailyPrice = product.rentalDailyPrice ?? (product.rentalBookingMode === 'MULTI_DAY' ? product.price : null)
+  if (dailyPrice == null) throw createError({ statusCode: 400, message: 'Tarif journalier indisponible' })
+  return Math.round(Number(dailyPrice) * window.durationDays * 100) / 100
+}
+
+function getRentalDurationUnits(
+  window: NonNullable<ReturnType<typeof resolveRentalWindow>>,
+  pricingMode: 'HOURLY' | 'DAILY',
+) {
+  return pricingMode === 'HOURLY'
+    ? Math.max(0, (window.endAt.getTime() - window.startAt.getTime()) / 3600000)
+    : Math.max(1, window.durationDays)
+}
+
+function calculateRentalInsurancePrice<T extends {
+  mediaDocumentRentalHourlyPrice: number | null
+  mediaDocumentRentalDailyPrice: number | null
+}>(document: T, durationUnits: number, pricingMode: 'HOURLY' | 'DAILY') {
+  const rate = pricingMode === 'HOURLY'
+    ? document.mediaDocumentRentalHourlyPrice
+    : document.mediaDocumentRentalDailyPrice
+  return Math.round(Number(rate || 0) * durationUnits * 100) / 100
+}
+
+function uniqueBillingDocumentItems<T extends { mediaDocumentId: number | null }>(items: T[]) {
+  const unique = new Map<number, T>()
+  for (const item of items) {
+    const id = Number(item.mediaDocumentId || 0)
+    if (id > 0 && !unique.has(id)) unique.set(id, item)
+  }
+  return Array.from(unique.values())
 }
 
 function toStripeCompatibleImageUrl(

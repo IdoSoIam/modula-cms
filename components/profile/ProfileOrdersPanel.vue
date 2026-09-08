@@ -220,6 +220,19 @@
                   <div class="mt-1 text-sm opacity-70">
                     {{ lineDescription(line) }}
                   </div>
+                  <div v-if="lineDocuments(line).length" class="mt-3 flex flex-wrap gap-2">
+                    <a
+                      v-for="document in lineDocuments(line)"
+                      :key="document.key"
+                      :href="document.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn btn-xs btn-outline"
+                    >
+                      <Icon name="mdi:file-document-outline" size="14" />
+                      {{ document.name }}
+                    </a>
+                  </div>
                 </div>
                 <div class="grid gap-2 text-sm md:min-w-[220px]">
                   <div class="flex items-center justify-between gap-3">
@@ -472,6 +485,16 @@ const lineDescription = (line: ShopOrderLine) => {
   if (line.meta?.unitLabel) {
     pieces.push(String(line.meta.unitLabel))
   }
+  if (line.meta?.rentalDurationUnits) {
+    pieces.push(publicText(
+      line.meta.rentalPricingMode === 'HOURLY' ? 'orders.rentalDurationHours' : 'orders.rentalDurationDays',
+      line.meta.rentalPricingMode === 'HOURLY' ? '{count} heure(s)' : '{count} jour(s)',
+      { count: line.meta.rentalDurationUnits },
+    ))
+  }
+  if (line.meta?.lineKind === 'INSURANCE') {
+    pieces.push(publicText('orders.insuranceLine', 'Assurance'))
+  }
   if (line.meta?.kind === 'LOT') {
     pieces.push(publicText('orders.productLotLabel', 'Lot produit'))
   }
@@ -484,6 +507,24 @@ const lineDescription = (line: ShopOrderLine) => {
     )
   }
   return pieces.length ? pieces.join(' - ') : publicText('orders.standardLine', 'Ligne standard')
+}
+
+const lineDocuments = (line: ShopOrderLine) => {
+  const productId = Number(line.meta?.relatedProductId || line.productId || 0)
+  const documents = Array.isArray(line.meta?.linkedBillingDocuments) ? line.meta.linkedBillingDocuments : []
+  const files = Array.isArray(line.meta?.linkedFiles) ? line.meta.linkedFiles : []
+  return [
+    ...documents.filter((document: any) => Number(document?.id) > 0).map((document: any) => ({
+      key: `document:${document.id}`,
+      name: String(document.name || publicText('orders.document', 'Document')),
+      url: `/api/shop/billing-documents/${document.id}/preview?productId=${productId}`,
+    })),
+    ...files.filter((file: any) => file?.url).map((file: any, index: number) => ({
+      key: `file:${index}:${file.url}`,
+      name: String(file.name || publicText('orders.document', 'Document')),
+      url: String(file.url),
+    })),
+  ]
 }
 
 const customerActionReasonLabel = (reason: ShopOrder['customerAction']['reason']) => {

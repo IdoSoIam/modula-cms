@@ -2,7 +2,7 @@
   <Teleport to="body">
     <div v-if="isVisible" class="fixed inset-0 z-[140] bg-black/30 backdrop-blur-[2px]">
       <div class="flex h-full w-full items-stretch justify-center p-0 sm:p-4">
-        <div class="flex h-full w-full max-w-7xl flex-col overflow-hidden bg-base-100 shadow-2xl sm:rounded-3xl">
+        <div class="modula-modal flex h-full w-full max-w-7xl flex-col overflow-hidden bg-base-100 shadow-2xl">
           <div class="flex items-center justify-between gap-4 border-b border-base-300 bg-base-100 px-4 py-3 sm:px-6">
             <div>
               <div class="text-sm opacity-60">Mode édition</div>

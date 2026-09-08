@@ -1,5 +1,5 @@
 import type { CmsRegistryPaymentConfig, CmsRegistryPaymentLineItem, CmsRegistryPaymentRecord } from '#modula/shared/registry'
-import { createRegistryCheckoutSession, getRegistryPaymentBySession } from '#modula/server/utils/cmsRegistry'
+import { createRegistryCheckoutSession, getCachedRegistryPaymentConfig, getRegistryPaymentBySession } from '#modula/server/utils/cmsRegistry'
 import { getFeatureFlags } from '#modula/server/utils/settings'
 
 export interface PaymentCheckoutLineItem extends CmsRegistryPaymentLineItem {}
@@ -68,6 +68,18 @@ async function getRegistryPaymentConfigSafe() {
 export async function isStripeConfigured() {
   const config = await getPaymentRuntimeConfig()
   return Boolean(config.enabled && config.provider === 'stripe_connect')
+}
+
+export async function isStripeConfiguredFromCache() {
+  const [featureFlags, config] = await Promise.all([
+    getFeatureFlags(),
+    getCachedRegistryPaymentConfig(),
+  ])
+  return Boolean(
+    featureFlags.onlinePaymentsEnabled
+    && config?.configured
+    && config.provider === 'stripe_connect',
+  )
 }
 
 export async function getStripePublicConfig() {

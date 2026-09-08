@@ -38,6 +38,7 @@ import type { CmsRegistryTemplateSnapshot } from '#modula/shared/registry'
 import {
   FALLBACK_SITE_TEMPLATE_KEY,
   type BundledSystemSiteTemplateKey,
+  type SystemSiteTemplateSeedKey,
   type CmsSiteTemplateKey
 } from '#modula/shared/siteTemplates'
 import { applyRegistryTemplate, exportTemplateAssets, listMergedSiteTemplates } from '#modula/server/utils/cmsRegistry'
@@ -92,6 +93,10 @@ const TEMPLATE_IMAGE_ASSETS: Record<CmsSiteTemplateKey, TemplateImageAsset[]> = 
   association: [
     { source: 'association-hero.svg', filename: 'template-association-hero.svg', mimeType: 'image/svg+xml', width: 1400, height: 1000 },
     { source: 'preview-association.svg', filename: 'template-preview-association.svg', mimeType: 'image/svg+xml', width: 1200, height: 760 }
+  ],
+  'boat-rental': [
+    { source: 'boat-rental-hero.svg', filename: 'template-boat-rental-hero.svg', mimeType: 'image/svg+xml', width: 1400, height: 1000 },
+    { source: 'preview-boat-rental.svg', filename: 'template-preview-boat-rental.svg', mimeType: 'image/svg+xml', width: 1200, height: 760 }
   ]
 }
 
@@ -472,6 +477,21 @@ function createContactContent(options: {
 function templateNavigation(key: CmsSiteTemplateKey): Array<CmsNavigationItemPayload & { id?: number | null }> {
   const defaults = createDefaultCmsNavigationItems().map(item => ({ id: null, ...item }))
 
+  if (key === 'boat-rental') {
+    return defaults
+      .filter(item => item.href !== '/news')
+      .map((item) => {
+        if (item.href === '/boutique') {
+          item.title = 'Nos locations'
+          item.labels = text('Nos locations', 'Rentals')
+          item.href = '/locations'
+          item.position = 1
+        }
+        if (item.href === '/contact') item.position = 2
+        return item
+      })
+  }
+
   if (key === 'association') {
     return defaults
       .filter(item => item.href !== '/paniers')
@@ -536,6 +556,27 @@ function buildTemplateHomePage(key: CmsSiteTemplateKey, siteName: CmsLocalizedTe
   const heroImage = (sourceName: string) => getTemplateAssetUrl(key, sourceName)
 
   switch (key) {
+    case 'boat-rental':
+      return createShowcaseContent({
+        sectionId: 'boat-rental-home',
+        badge: text('Larguez les amarres', 'Cast off'),
+        title: text('Votre prochaine sortie commence ici', 'Your next trip starts here'),
+        body: text(
+          'Choisissez votre bateau, consultez les créneaux disponibles et réservez une sortie adaptée à votre programme.',
+          'Choose your boat, check live availability, and book the trip that fits your plans.'
+        ),
+        imageUrl: heroImage('boat-rental-hero.svg'),
+        imageAlt: text('Voilier au mouillage dans une baie', 'Sailboat anchored in a bay'),
+        primaryHref: '/locations',
+        primaryLabel: text('Voir les bateaux', 'Browse boats'),
+        secondaryHref: '/contact',
+        secondaryLabel: text('Préparer ma sortie', 'Plan my trip'),
+        cards: [
+          { id: 'boat-card-1', title: text('Disponibilités claires', 'Clear availability'), body: text('Choisissez une journée, une durée ou une période selon le bateau.', 'Choose a day, duration, or date range depending on the boat.'), icon: 'mdi:calendar-check-outline' },
+          { id: 'boat-card-2', title: text('Équipement détaillé', 'Detailed equipment'), body: text('Capacité, motorisation, sécurité et documents sont réunis sur chaque fiche.', 'Capacity, engine, safety, and documents are gathered on each listing.'), icon: 'mdi:ferry' },
+          { id: 'boat-card-3', title: text('Réservation sécurisée', 'Secure booking'), body: text('Votre créneau et votre matériel sont contrôlés avant la commande.', 'Your time slot and equipment are checked before checkout.'), icon: 'mdi:shield-check-outline' }
+        ]
+      })
     case 'farm':
       return createShowcaseContent({
         sectionId: 'farm-home',
@@ -681,6 +722,15 @@ function buildTemplateHomePage(key: CmsSiteTemplateKey, siteName: CmsLocalizedTe
 }
 
 function buildTemplateContactPage(key: CmsSiteTemplateKey): PageBuilderContent {
+  if (key === 'boat-rental') {
+    return createContactContent({
+      intro: text('Une question sur un bateau, le permis requis ou les conditions de navigation ?', 'A question about a boat, required licence, or sailing conditions?'),
+      formTitle: text('Préparons votre sortie', 'Let’s plan your trip'),
+      formIntro: text('Indiquez vos dates, votre expérience et le nombre de personnes.', 'Tell us your dates, experience, and party size.'),
+      infoCardTitle: text('La base nautique', 'The marina'),
+      socialTitle: text('Suivez les sorties', 'Follow our trips')
+    })
+  }
   if (key === 'association') {
     return createContactContent({
       intro: text(
@@ -724,6 +774,36 @@ function buildTemplateSettings(key: CmsSiteTemplateKey, current: CmsSiteSettings
   const siteName = current.siteName
   const siteTagline = current.siteTagline
   const brandAssets = getTemplateBrandAssets(key, current)
+
+  if (key === 'boat-rental') {
+    return {
+      ...base,
+      siteName,
+      siteTagline,
+      logo: brandAssets.logo,
+      favicon: brandAssets.favicon,
+      header: { ...base.header, showSiteTagline: true },
+      footer: {
+        ...base.footer,
+        backgroundColor: createThemeColorSelection('neutral'),
+        textColor: createThemeColorSelection('neutral-content'),
+        copyright: text(`${siteName.fr}. Location nautique et sorties en mer.`, `${siteName.en}. Boat rental and sea trips.`)
+      },
+      socialLinks: current.socialLinks,
+      basketsPage: {
+        ...base.basketsPage,
+        title: text('Nos bateaux', 'Our boats'),
+        subtitle: text('Comparez les équipements, choisissez vos dates et vérifiez les disponibilités en temps réel.', 'Compare equipment, choose your dates, and check live availability.'),
+        returnToListingLabel: text('Retour à nos bateaux', 'Back to our boats'),
+        containerWidth: 'wide',
+        gridColumns: 3,
+        showDescriptions: true,
+        showImages: true,
+        showAvailabilityBadges: true,
+        showPrice: true
+      }
+    }
+  }
 
   if (key === 'farm') {
     return {
@@ -892,6 +972,23 @@ export async function getCurrentSiteTemplateKey(): Promise<CmsSiteTemplateKey | 
 }
 
 function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiThemeConfig {
+  if (templateKey === 'boat-rental') {
+    return {
+      enableThemeController: true,
+      themes: [{
+        id: 'marine-horizon', name: 'marine-horizon', displayName: 'Horizon Marin', enabled: true,
+        includeInThemeSelector: true, isDefault: true, isDefaultDark: false, colorScheme: 'light',
+        colors: {
+          base100: '#f7faf9', base200: '#e8f0ef', base300: '#cfdddc', baseContent: '#172a32',
+          primary: '#087f8c', primaryContent: '#efffff', secondary: '#d8a84e', secondaryContent: '#2c210a',
+          accent: '#df6b45', accentContent: '#fff7f3', neutral: '#193846', neutralContent: '#eff8fa',
+          info: '#247da5', infoContent: '#eefaff', success: '#2f8a68', successContent: '#effff8',
+          warning: '#c98b2e', warningContent: '#2b1c05', error: '#bd4d48', errorContent: '#fff1f0'
+        },
+        tokens: { radiusSelector: '0.3rem', radiusField: '0.35rem', radiusBox: '0.75rem', radiusCard: '0.75rem', radiusModal: '0.75rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '0', noise: '0' }
+      }]
+    }
+  }
   if (templateKey === 'farm') {
     return {
       enableThemeController: true,
@@ -912,7 +1009,7 @@ function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiTheme
             info: '#3d84c6', infoContent: '#ecf5ff', success: '#568a38', successContent: '#f0f8ea',
             warning: '#c68424', warningContent: '#2f1f08', error: '#b53a2a', errorContent: '#ffecea'
           },
-          tokens: { radiusSelector: '0.45rem', radiusField: '0.45rem', radiusBox: '1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
+          tokens: { radiusSelector: '0.45rem', radiusField: '0.45rem', radiusBox: '1rem', radiusCard: '1rem', radiusModal: '1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
         }
       ]
     }
@@ -938,7 +1035,7 @@ function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiTheme
             info: '#3b82f6', infoContent: '#eef6ff', success: '#2f9e66', successContent: '#ecfff5',
             warning: '#d2852f', warningContent: '#2f1a06', error: '#c7423a', errorContent: '#ffefee'
           },
-          tokens: { radiusSelector: '0.45rem', radiusField: '0.45rem', radiusBox: '1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
+          tokens: { radiusSelector: '0.45rem', radiusField: '0.45rem', radiusBox: '1rem', radiusCard: '1rem', radiusModal: '1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
         }
       ]
     }
@@ -963,7 +1060,7 @@ function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiTheme
           info: '#3b82f6', infoContent: '#edf5ff', success: '#2f9e66', successContent: '#edfff5',
           warning: '#d48a2f', warningContent: '#311b06', error: '#cc3f4b', errorContent: '#ffedf1'
         },
-        tokens: { radiusSelector: '0.5rem', radiusField: '0.5rem', radiusBox: '1.1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
+        tokens: { radiusSelector: '0.5rem', radiusField: '0.5rem', radiusBox: '1.1rem', radiusCard: '1.1rem', radiusModal: '1.1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
       },
       {
         id: 'modula-ocean',
@@ -981,7 +1078,7 @@ function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiTheme
           info: '#2f7fd3', infoContent: '#edf6ff', success: '#2f9e75', successContent: '#edfff8',
           warning: '#d09b2f', warningContent: '#312106', error: '#c34b4b', errorContent: '#ffefef'
         },
-        tokens: { radiusSelector: '0.5rem', radiusField: '0.5rem', radiusBox: '1.1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
+        tokens: { radiusSelector: '0.5rem', radiusField: '0.5rem', radiusBox: '1.1rem', radiusCard: '1.1rem', radiusModal: '1.1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
       },
       {
         id: 'modula-noir',
@@ -999,7 +1096,7 @@ function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiTheme
           info: '#62a9ff', infoContent: '#081325', success: '#62c18d', successContent: '#081e13',
           warning: '#f1b35b', warningContent: '#2b1807', error: '#f57b84', errorContent: '#28070d'
         },
-        tokens: { radiusSelector: '0.5rem', radiusField: '0.5rem', radiusBox: '1.1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
+        tokens: { radiusSelector: '0.5rem', radiusField: '0.5rem', radiusBox: '1.1rem', radiusCard: '1.1rem', radiusModal: '1.1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
       },
       {
         id: 'modula-sunset',
@@ -1017,20 +1114,21 @@ function buildTemplateThemeConfig(templateKey: CmsSiteTemplateKey): DaisyUiTheme
           info: '#3f86c8', infoContent: '#eff7ff', success: '#4f9a64', successContent: '#f1fff5',
           warning: '#d0892f', warningContent: '#2f1c06', error: '#c34842', errorContent: '#ffefee'
         },
-        tokens: { radiusSelector: '0.5rem', radiusField: '0.5rem', radiusBox: '1.1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
+        tokens: { radiusSelector: '0.5rem', radiusField: '0.5rem', radiusBox: '1.1rem', radiusCard: '1.1rem', radiusModal: '1.1rem', sizeSelector: '0.25rem', sizeField: '0.25rem', border: '1px', depth: '1', noise: '0' }
       }
     ]
   }
 }
 
 function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
-  return normalizeFeatureFlags(templateKey === 'farm'
+  return normalizeFeatureFlags(templateKey === 'farm' || templateKey === 'boat-rental'
     ? {
       inDevelopment: false,
       registerEnabled: false,
       subscriptionsEnabled: false,
       onlinePaymentsEnabled: true,
       shop: { enabled: true },
+      rentalsEnabled: templateKey === 'boat-rental',
       associationRolesEnabled: false,
       eventsEnabled: true,
       newsEnabled: true
@@ -1042,6 +1140,7 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
         subscriptionsEnabled: false,
         onlinePaymentsEnabled: false,
         shop: { enabled: false },
+        rentalsEnabled: false,
         associationRolesEnabled: true,
         eventsEnabled: true,
         newsEnabled: true
@@ -1052,10 +1151,19 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
         subscriptionsEnabled: false,
         onlinePaymentsEnabled: false,
         shop: { enabled: false },
+        rentalsEnabled: false,
         associationRolesEnabled: false,
         eventsEnabled: false,
         newsEnabled: false
       })
+}
+
+function createShopApplicationPagePayload() {
+  const payload = createPagePayload('/locations', 'locations', 'Nos bateaux', 'Our boats', createEmptyPageBuilderContent())
+  payload.pageType = 'APPLICATION'
+  payload.rendererKey = 'shop'
+  payload.applicationPosition = 'AFTER_CONTENT'
+  return payload
 }
 
 function replaceTemplateUploadUrlsWithBundledUrls<T>(value: T): T {
@@ -1073,7 +1181,7 @@ function replaceTemplateUploadUrlsWithBundledUrls<T>(value: T): T {
   return value
 }
 
-export async function buildBundledSystemTemplateSnapshot(templateKey: BundledSystemSiteTemplateKey, registryScope: 'custom' | 'system' = 'custom'): Promise<CmsRegistryTemplateSnapshot> {
+export async function buildBundledSystemTemplateSnapshot(templateKey: SystemSiteTemplateSeedKey, registryScope: 'custom' | 'system' = 'custom'): Promise<CmsRegistryTemplateSnapshot> {
   const baseSettings = createDefaultCmsSiteSettings()
   baseSettings.siteName = {
     fr: cmsProjectConfig.seed.defaultSiteName.fr,
@@ -1096,7 +1204,8 @@ export async function buildBundledSystemTemplateSnapshot(templateKey: BundledSys
     navigation: templateNavigation(templateKey),
     pages: [
       createPagePayload('/', 'home', 'Accueil', 'Home', buildTemplateHomePage(templateKey, text(siteNameFr, siteNameEn))),
-      createPagePayload('/contact', 'contact', 'Contact', 'Contact', buildTemplateContactPage(templateKey))
+      createPagePayload('/contact', 'contact', 'Contact', 'Contact', buildTemplateContactPage(templateKey)),
+      ...(templateKey === 'boat-rental' ? [createShopApplicationPagePayload()] : [])
     ],
     themeConfig: buildTemplateThemeConfig(templateKey),
     featureFlags: buildTemplateFeatureFlags(templateKey)

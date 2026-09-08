@@ -100,6 +100,18 @@
         <p class="text-sm opacity-70">
           {{ t("admin.settingsFeaturesPage.shopProductsEnabled") }}
         </p>
+        <label class="flex label cursor-pointer justify-start gap-3" :class="{ 'opacity-50': !form.featureFlags.shop.enabled }">
+          <input
+            v-model="form.featureFlags.rentalsEnabled"
+            type="checkbox"
+            class="toggle toggle-primary"
+            :disabled="!form.featureFlags.shop.enabled"
+          />
+          <span>
+            <span class="label-text block">{{ t("admin.settingsFeaturesPage.rentalsEnabled") }}</span>
+            <span class="text-xs opacity-65">{{ t("admin.settingsFeaturesPage.rentalsEnabledHelp") }}</span>
+          </span>
+        </label>
       </section>
 
       <section
@@ -172,6 +184,7 @@ interface SettingsData {
     shop: {
       enabled: boolean;
     };
+    rentalsEnabled: boolean;
     associationRolesEnabled: boolean;
     eventsEnabled: boolean;
     newsEnabled: boolean;
@@ -199,6 +212,7 @@ const form = reactive({
     shop: {
       enabled: true,
     },
+    rentalsEnabled: true,
     associationRolesEnabled: true,
     eventsEnabled: true,
     newsEnabled: true,

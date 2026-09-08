@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title">
+  <title id="title">Aperçu du modèle location nautique</title>
+  <rect width="1200" height="760" fill="#f7faf9"/>
+  <rect width="1200" height="76" fill="#193846"/>
+  <circle cx="58" cy="38" r="18" fill="#d8a84e"/><path d="M90 29h170v18H90z" fill="#fff" opacity=".9"/>
+  <path d="M0 76h1200v330H0z" fill="#dff6f4"/>
+  <path d="M0 300c210-55 355 30 545 0s388-64 655-10v116H0z" fill="#087f8c"/>
+  <path d="M780 164h260l-43 80H824z" fill="#fff"/><path d="M890 88v162" stroke="#193846" stroke-width="10"/><path d="m882 100-132 136h132z" fill="#fff"/><path d="m902 120 105 116H902z" fill="#df6b45"/>
+  <rect x="70" y="132" width="425" height="34" rx="4" fill="#193846"/><rect x="70" y="185" width="350" height="14" rx="3" fill="#607983"/><rect x="70" y="216" width="300" height="14" rx="3" fill="#607983"/><rect x="70" y="265" width="142" height="48" rx="5" fill="#087f8c"/>
+  <rect x="70" y="456" width="320" height="230" rx="10" fill="#fff" stroke="#cfdddc"/><rect x="440" y="456" width="320" height="230" rx="10" fill="#fff" stroke="#cfdddc"/><rect x="810" y="456" width="320" height="230" rx="10" fill="#fff" stroke="#cfdddc"/>
+  <g fill="#193846"><path d="M98 490h180v18H98zM468 490h180v18H468zM838 490h180v18H838z"/><path opacity=".38" d="M98 530h245v10H98zM98 552h210v10H98zM468 530h245v10H468zM468 552h190v10H468zM838 530h245v10H838zM838 552h220v10H838z"/></g>
+</svg>

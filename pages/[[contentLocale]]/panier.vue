@@ -17,7 +17,7 @@
           <article
             v-for="item in items"
             :key="item.key"
-            class="rounded-[1.75rem] border border-base-300 bg-base-100 p-5 shadow-sm"
+            class="modula-card border border-base-300 bg-base-100 p-5 shadow-sm"
           >
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div class="flex gap-4">
@@ -33,30 +33,53 @@
                     <h2 class="text-xl font-semibold">{{ item.title }}</h2>
                     <span class="badge badge-outline">{{ productBadgeLabel }}</span>
                   </div>
-                  <p v-if="item.description" class="text-sm opacity-75">{{ item.description }}</p>
+                  <p v-if="item.description" class="text-sm opacity-75 break-all">{{ item.description }}</p>
                   <div class="flex flex-wrap gap-2">
                     <span class="badge badge-soft">{{ stockLabel }}: {{ item.availableQuantity ?? '-' }}</span>
                     <span v-if="item.allowOfflinePayment" class="badge badge-soft">{{ offlineLabel }}</span>
                     <span v-if="item.allowOnlinePayment && stripeEnabled" class="badge badge-outline">{{ onlineLabel }}</span>
                     <span class="badge badge-ghost">{{ formatVatBadge(item.vatRate) }}</span>
-                    <span v-if="!stripeTaxEnabled" class="badge badge-soft">{{ taxIncludedLabel }}</span>
-                    <span v-else-if="resolveCartTaxCode(item)" class="badge badge-outline">
+                    <span v-if="stripeTaxEnabled && resolveCartTaxCode(item)" class="badge badge-outline">
                       {{ taxCodeLabel }}: {{ resolveCartTaxCode(item) }}
                     </span>
                   </div>
                   <div
                     v-if="item.saleType === 'RENTAL'"
-                    class="rounded-2xl bg-base-200 px-3 py-2 text-sm"
+                    class="rounded-box bg-base-200 px-3 py-2 text-sm"
                   >
                     <span class="font-medium">{{ rentalPeriodLabel }}:</span>
                     {{ formatRentalRange(item.rentalStartDate, item.rentalEndDate) }}
+                    <span class="mt-1 block font-medium">{{ formatRentalDuration(item) }}</span>
+                  </div>
+                  <dl v-if="item.saleType === 'RENTAL'" class="space-y-1 text-sm">
+                    <div class="flex justify-between gap-4">
+                      <dt>{{ rentalBasePriceLabel }}</dt>
+                      <dd>{{ $formatPrice((item.rentalBaseUnitPrice ?? item.unitPrice) * item.quantity) }}</dd>
+                    </div>
+                    <div v-for="insurance in item.insuranceSelections || []" :key="insurance.documentId" class="flex justify-between gap-4">
+                      <dt>{{ insurance.name }}</dt>
+                      <dd>{{ $formatPrice(insurance.unitPrice * item.quantity) }}</dd>
+                    </div>
+                  </dl>
+                  <div v-if="item.associatedDocuments?.length" class="flex flex-wrap gap-2">
+                    <a
+                      v-for="document in item.associatedDocuments"
+                      :key="document.key"
+                      :href="document.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn btn-xs btn-outline"
+                    >
+                      <Icon name="mdi:file-document-outline" size="14" />
+                      {{ document.name }}
+                    </a>
                   </div>
                 </div>
               </div>
 
               <div class="flex flex-col items-end gap-3">
                 <div class="text-right">
-                  <div class="text-sm opacity-60">{{ unitPriceLabel }}</div>
+                  <div class="text-sm opacity-60">{{ displayedUnitPriceLabel }}</div>
                   <div class="font-medium">{{ $formatPrice(item.unitPrice) }}</div>
                 </div>
                 <div class="flex items-center gap-3">
@@ -69,7 +92,7 @@
                   </button>
                 </div>
                 <div class="text-right">
-                  <div class="text-sm opacity-60">{{ totalLabel }}</div>
+                  <div class="text-sm opacity-60">{{ displayedLineTotalLabel }}</div>
                   <div class="text-lg font-semibold text-primary">{{ $formatPrice(item.totalPrice) }}</div>
                 </div>
                 <button class="btn btn-sm btn-ghost text-error" @click="removeItem(item.key)">
@@ -81,7 +104,7 @@
           </article>
         </div>
 
-        <aside class="rounded-[2rem] border border-base-300 bg-base-100 p-6 shadow-sm">
+        <aside class="modula-card border border-base-300 bg-base-100 p-6 shadow-sm">
           <div class="flex items-start justify-between gap-4">
             <div>
               <h2 class="text-2xl font-semibold">{{ checkoutTitleLabel }}</h2>
@@ -104,11 +127,11 @@
               <input v-model="checkoutForm.phone" class="input input-bordered" />
             </div>
 
-            <div class="rounded-2xl bg-base-200 p-4 text-sm opacity-80">
+            <div class="rounded-box bg-base-200 p-4 text-sm opacity-80">
               {{ accountProvisioningNotice }}
             </div>
 
-            <div v-if="hasRentalItems" class="rounded-2xl bg-base-200 p-4 text-sm opacity-80">
+            <div v-if="hasRentalItems" class="rounded-box bg-base-200 p-4 text-sm opacity-80">
               {{ rentalHelpLabel }}
             </div>
 
@@ -122,7 +145,7 @@
               </select>
             </div>
 
-            <div v-if="checkoutForm.deliveryType === 'ONSITE'" class="rounded-2xl bg-base-200 p-4 text-sm">
+            <div v-if="checkoutForm.deliveryType === 'ONSITE'" class="rounded-box bg-base-200 p-4 text-sm">
               <div class="font-medium">{{ onSiteDeliveryLabel }}</div>
               <div class="mt-1 opacity-75">{{ onSitePickupSummary }}</div>
             </div>
@@ -141,14 +164,14 @@
                   </option>
                 </select>
               </div>
-              <div v-if="selectedPickupPoint" class="rounded-2xl bg-base-200 p-4 text-sm">
+              <div v-if="selectedPickupPoint" class="rounded-box bg-base-200 p-4 text-sm">
                 <div class="font-medium">{{ selectedPickupPoint.name }}</div>
                 <div class="mt-1 opacity-75">{{ selectedPickupPoint.address || noAddressLabel }}</div>
               </div>
             </div>
 
             <div v-if="checkoutForm.deliveryType === 'TOUR'" class="space-y-3">
-              <div class="rounded-2xl bg-base-200 p-4 text-sm">
+              <div class="rounded-box bg-base-200 p-4 text-sm">
                 <div class="font-medium">{{ tourCityHelperTitle }}</div>
                 <div class="mt-1 opacity-75">{{ tourCityHelperLabel }}</div>
               </div>
@@ -209,7 +232,7 @@
               >
                 {{ postalCodeMismatchLabel }}
               </p>
-              <div v-if="selectedDeliveryTour" class="rounded-2xl bg-base-200 p-4 text-sm">
+              <div v-if="selectedDeliveryTour" class="rounded-box bg-base-200 p-4 text-sm">
                 <div class="font-medium">{{ selectedDeliveryTour.name }}</div>
                 <div class="mt-1 opacity-75">{{ deliveryTourSummary(selectedDeliveryTour) }}</div>
               </div>
@@ -231,13 +254,24 @@
             </div>
           </div>
 
-          <div class="mt-6 rounded-2xl bg-base-200 p-4">
-            <div class="flex items-center justify-between gap-4">
-              <div>
-                <div class="text-sm opacity-60">{{ totalLabel }}</div>
-                <div class="text-3xl font-semibold">{{ $formatPrice(total) }}</div>
+          <div class="mt-6 rounded-box bg-base-200 p-4">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div class="min-w-0 flex-1">
+                <dl v-if="!automaticTaxCheckout" class="space-y-2 text-sm">
+                  <div class="flex justify-between gap-4"><dt>{{ totalExclTaxLabel }}</dt><dd>{{ $formatPrice(cartTotalExclTax) }}</dd></div>
+                  <div v-if="cartVatAmount > 0" class="flex justify-between gap-4"><dt>{{ vatAmountLabel }}</dt><dd>{{ $formatPrice(cartVatAmount) }}</dd></div>
+                  <div v-else class="flex justify-between gap-4 opacity-70"><dt>{{ vatNotApplicableLabel }}</dt><dd>{{ $formatPrice(0) }}</dd></div>
+                  <div class="flex items-end justify-between gap-4 border-t border-base-300 pt-3">
+                    <dt class="font-semibold">{{ totalInclTaxLabel }}</dt>
+                    <dd class="text-3xl font-semibold">{{ $formatPrice(total) }}</dd>
+                  </div>
+                </dl>
+                <div v-else>
+                  <div class="text-sm opacity-60">{{ subtotalBeforeStripeTaxLabel }}</div>
+                  <div class="text-3xl font-semibold">{{ $formatPrice(total) }}</div>
+                </div>
               </div>
-              <button class="btn btn-primary" :disabled="savingOrder || !canSubmit" @click="submitOrder">
+              <button class="btn btn-primary shrink-0" :disabled="savingOrder || !canSubmit" @click="submitOrder">
                 <span v-if="savingOrder" class="loading loading-spinner loading-sm" />
                 {{ submitLabel }}
               </button>
@@ -252,7 +286,7 @@
         </aside>
       </div>
 
-      <div v-else class="rounded-[2rem] border border-dashed border-base-300 px-6 py-16 text-center">
+      <div v-else class="modula-card border border-dashed border-base-300 px-6 py-16 text-center">
         <div class="mx-auto max-w-xl">
           <h2 class="text-2xl font-semibold">{{ emptyLabel }}</h2>
           <p class="mt-3 opacity-75">{{ emptyHelpLabel }}</p>
@@ -316,7 +350,7 @@ const locale = computed(() => contentLocale.value)
 const localePath = usePublicLocalePath()
 const route = useRoute()
 const authStore = useAuthStore()
-const { $toast, $formatPrice, $formatDate, $formatTime } = useNuxtApp() as any
+const { $toast, $formatPrice, $formatDate, $formatDateTime, $formatTime } = useNuxtApp() as any
 const { items, count, total, updateQuantity, remove, clear } = useShopCart()
 
 await authStore.ensureInitialized()
@@ -379,6 +413,11 @@ const offlineLabel = computed(() => publicText('checkout.cart.offlineLabel', 'Pa
 const onlineLabel = computed(() => publicText('checkout.cart.onlineLabel', 'Paiement en ligne'))
 const unitPriceLabel = computed(() => publicText('checkout.cart.unitPrice', 'Prix unitaire'))
 const totalLabel = computed(() => publicText('checkout.cart.total', 'Total'))
+const unitPriceInclTaxLabel = computed(() => publicText('checkout.cart.unitPriceInclTax', 'Prix unitaire TTC'))
+const totalExclTaxLabel = computed(() => publicText('checkout.cart.totalExclTax', 'Total HT'))
+const vatAmountLabel = computed(() => publicText('checkout.cart.vatAmount', 'TVA'))
+const totalInclTaxLabel = computed(() => publicText('checkout.cart.totalInclTax', 'Total TTC'))
+const subtotalBeforeStripeTaxLabel = computed(() => publicText('checkout.cart.subtotalBeforeStripeTax', 'Sous-total avant calcul de la TVA'))
 const removeLabel = computed(() => publicText('checkout.cart.remove', 'Supprimer'))
 const checkoutTitleLabel = computed(() => publicText('checkout.cart.detailsTitle', 'Validation de commande'))
 const checkoutIntroLabel = computed(() => publicText('checkout.cart.detailsIntro', 'Les options de livraison et de règlement s’adaptent aux offres sélectionnées.'))
@@ -392,6 +431,7 @@ const accountProvisioningNotice = computed(() => authStore.user
 )
 const rentalHelpLabel = computed(() => publicText('checkout.cart.rentalHelp', 'Les dates de location sont choisies avant l’ajout de chaque location au panier. La disponibilité est revérifiée lors de la création de la commande.'))
 const rentalPeriodLabel = computed(() => publicText('checkout.cart.rentalPeriod', 'Période de location'))
+const rentalBasePriceLabel = computed(() => publicText('checkout.cart.rentalBasePrice', 'Location'))
 const deliveryLabel = computed(() => publicText('checkout.cart.deliveryMethod', 'Mode de livraison'))
 const deliveryPlaceholderLabel = computed(() => publicText('checkout.cart.deliveryPlaceholder', 'Choisir un mode de livraison'))
 const onSiteDeliveryLabel = computed(() => publicText('checkout.cart.onSiteDelivery', 'Retrait sur place'))
@@ -417,7 +457,6 @@ const emptyHelpLabel = computed(() => publicText('checkout.cart.emptyHelp', 'Ajo
 const noAddressLabel = computed(() => publicText('checkout.cart.noAddress', 'Adresse à confirmer'))
 const unavailableCityLabel = computed(() => publicText('checkout.cart.cityUnavailable', 'La livraison à domicile n’est pas actuellement disponible dans cette ville.'))
 const postalCodeMismatchLabel = computed(() => publicText('checkout.cart.postalCodeMismatch', 'Le code postal ne correspond pas à la ville sélectionnée.'))
-const taxIncludedLabel = computed(() => publicText('checkout.cart.vatIncluded', 'TVA incluse'))
 const vatNotApplicableLabel = computed(() => publicText('checkout.cart.vatNotApplicable', 'TVA non applicable'))
 const taxCodeLabel = computed(() => publicText('checkout.cart.taxCode', 'Code taxe'))
 
@@ -520,6 +559,20 @@ const selectedDeliveryTour = computed(() =>
   || null
 )
 
+const automaticTaxCheckout = computed(() => stripeTaxEnabled.value && checkoutForm.value.paymentMode === 'stripe')
+const displayedUnitPriceLabel = computed(() => automaticTaxCheckout.value ? unitPriceLabel.value : unitPriceInclTaxLabel.value)
+const displayedLineTotalLabel = computed(() => automaticTaxCheckout.value ? totalLabel.value : totalInclTaxLabel.value)
+const cartTaxTotals = computed(() => items.value.reduce((summary, item) => {
+  const totalTtc = Number(item.totalPrice || 0)
+  const rate = Math.max(0, Number(item.vatRate || 0))
+  const totalHt = rate > 0 ? totalTtc / (1 + rate / 100) : totalTtc
+  summary.totalExclTax += totalHt
+  summary.vat += totalTtc - totalHt
+  return summary
+}, { totalExclTax: 0, vat: 0 }))
+const cartTotalExclTax = computed(() => roundCurrency(cartTaxTotals.value.totalExclTax))
+const cartVatAmount = computed(() => roundCurrency(cartTaxTotals.value.vat))
+
 const onSitePickupSummary = computed(() => {
   const onSitePickup = deliveryOptions.value?.onSitePickup
   if (!onSitePickup) return ''
@@ -538,14 +591,14 @@ const paymentConstraintNotice = computed(() => {
 })
 
 const checkoutTaxNotice = computed(() => {
-  if (!stripeEnabled.value || checkoutForm.value.paymentMode !== 'stripe') {
-    return publicText('checkout.cart.taxNoticeOffline', 'TVA incluse')
-  }
-  if (!stripeTaxEnabled.value) {
-    return publicText('checkout.cart.taxNoticeNoAutomatic', 'La TVA est incluse dans les prix affichés. Stripe n’ajoutera pas de taxe supplémentaire au checkout.')
-  }
-  return publicText('checkout.cart.taxNoticeAutomatic', 'Stripe Tax est activé. Les règles fiscales et codes taxe configurés pour cette commande seront appliqués au checkout.')
+  if (automaticTaxCheckout.value) return publicText('checkout.cart.taxNoticeAutomatic', 'Stripe Tax calculera la TVA applicable lors du paiement en fonction des informations de facturation.')
+  if (cartVatAmount.value <= 0) return vatNotApplicableLabel.value
+  return publicText('checkout.cart.taxNoticeIncludedAmount', 'Les prix sont TTC. Le total comprend {amount} de TVA.', { amount: $formatPrice(cartVatAmount.value) })
 })
+
+function roundCurrency(value: number) {
+  return Math.round((Number(value) + Number.EPSILON) * 100) / 100
+}
 
 const deliveryValid = computed(() => {
   if (checkoutForm.value.deliveryType === 'ONSITE') return true
@@ -665,7 +718,8 @@ function formatRentalRange(startDate: string | null | undefined, endDate: string
   if (!startDate || !endDate) {
     return publicText('checkout.cart.rentalToSelect', 'À sélectionner')
   }
-  return `${$formatDate(startDate)} -> ${$formatDate(endDate)}`
+  const formatter = startDate.includes('T') || endDate.includes('T') ? $formatDateTime : $formatDate
+  return `${formatter(startDate)} -> ${formatter(endDate)}`
 }
 
 function requiredLabel(label: string) {
@@ -735,7 +789,11 @@ async function submitOrder() {
           quantity: item.quantity,
           saleType: item.saleType,
           rentalStartDate: item.saleType === 'RENTAL' ? item.rentalStartDate : undefined,
-          rentalEndDate: item.saleType === 'RENTAL' ? item.rentalEndDate : undefined
+          rentalEndDate: item.saleType === 'RENTAL' ? item.rentalEndDate : undefined,
+          rentalPricingMode: item.saleType === 'RENTAL' ? item.rentalPricingMode : undefined,
+          insuranceDocumentIds: item.saleType === 'RENTAL'
+            ? (item.insuranceSelections || []).map(insurance => insurance.documentId)
+            : undefined
         }))
       }
     })
@@ -757,5 +815,18 @@ async function submitOrder() {
   } finally {
     savingOrder.value = false
   }
+}
+
+function formatRentalDuration(item: (typeof items.value)[number]) {
+  if (!item.rentalStartDate || !item.rentalEndDate) return ''
+  const milliseconds = new Date(item.rentalEndDate).getTime() - new Date(item.rentalStartDate).getTime()
+  const count = item.rentalPricingMode === 'HOURLY'
+    ? Math.max(0, milliseconds / 3600000)
+    : Math.max(1, Math.floor(milliseconds / 86400000) + 1)
+  return publicText(
+    item.rentalPricingMode === 'HOURLY' ? 'checkout.cart.rentalHourCount' : 'checkout.cart.rentalDayCount',
+    item.rentalPricingMode === 'HOURLY' ? '{count} heure(s)' : '{count} jour(s)',
+    { count },
+  )
 }
 </script>

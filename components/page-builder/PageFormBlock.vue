@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-5 rounded-[1.75rem] border border-base-300 bg-base-100 p-5 shadow-sm" :style="formCardStyle">
+  <div class="modula-card space-y-5 border border-base-300 bg-base-100 p-5 shadow-sm" :style="formCardStyle">
     <div v-if="hasIntroContent" class="space-y-2">
       <h3 v-if="localizedTitle" class="text-xl font-semibold">{{ localizedTitle }}</h3>
       <p v-if="localizedIntro" class="text-sm opacity-75">{{ localizedIntro }}</p>

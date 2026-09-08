@@ -1,4 +1,4 @@
-import { BUNDLED_SYSTEM_SITE_TEMPLATES, type BundledSystemSiteTemplateKey } from '#modula/shared/siteTemplates'
+import { BUNDLED_SYSTEM_SITE_TEMPLATES, REGISTRY_ONLY_SYSTEM_SITE_TEMPLATES, type SystemSiteTemplateSeedKey } from '#modula/shared/siteTemplates'
 import {
   canManageSystemRegistryTemplates,
   createRegistryTemplateFromSnapshot,
@@ -37,6 +37,14 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const body: { templateKeys?: string[] } = await readBody<{ templateKeys?: string[] }>(event).catch(() => ({}))
+  const requestedKeys = new Set((body.templateKeys || []).map((value: string) => String(value).trim()).filter(Boolean))
+  const definitions = [...BUNDLED_SYSTEM_SITE_TEMPLATES, ...REGISTRY_ONLY_SYSTEM_SITE_TEMPLATES]
+    .filter(definition => !requestedKeys.size || requestedKeys.has(definition.key))
+  if (requestedKeys.size && definitions.length !== requestedKeys.size) {
+    throw createError({ statusCode: 400, message: 'Un ou plusieurs modèles système demandés sont inconnus.' })
+  }
+
   const results: Array<{
     slug: string
     action: 'created' | 'updated'
@@ -44,8 +52,8 @@ export default defineEventHandler(async (event) => {
     versionNumber: number | null
   }> = []
 
-  for (const definition of BUNDLED_SYSTEM_SITE_TEMPLATES) {
-    const snapshot = await buildBundledSystemTemplateSnapshot(definition.key as BundledSystemSiteTemplateKey, 'system')
+  for (const definition of definitions) {
+    const snapshot = await buildBundledSystemTemplateSnapshot(definition.key as SystemSiteTemplateSeedKey, 'system')
     const previewAsset = snapshot.assetManifest.find((asset) => asset.sourceUrl === definition.previewImage)
     const metadata = {
       slug: definition.key,

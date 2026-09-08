@@ -12,8 +12,12 @@ if (!token) {
 const response = await fetch(`${baseUrl}/api/registry/seed-bundled-templates`, {
   method: 'POST',
   headers: {
-    authorization: `Bearer ${token}`
-  }
+    authorization: `Bearer ${token}`,
+    'content-type': 'application/json'
+  },
+  body: JSON.stringify({
+    templateKeys: process.argv.slice(3).map(value => value.trim()).filter(Boolean)
+  })
 })
 
 const data = await response.json().catch(() => null)

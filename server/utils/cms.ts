@@ -18,6 +18,7 @@ import type {
   CmsNavigationMenu,
   CmsNavigationItemType,
   CmsPagePayload,
+  CmsPageApplicationConfig,
   CmsPageSpecialRole,
   CmsPageSeo,
   CmsPageStatus,
@@ -891,6 +892,7 @@ function pageRowToPayload(row: CmsPage): CmsPagePayload {
     templateKey: row.templateKey,
     rendererKey: row.rendererKey || '',
     applicationPosition: row.applicationPosition as CmsApplicationPosition,
+    applicationConfig: normalizeCmsPageApplicationConfig(parseJson(row.applicationConfigJson)),
     title: row.title,
     translations: normalizeTranslations(parseJson(row.translationsJson), row.path)
   }
@@ -1024,6 +1026,7 @@ function createLegacyRootResolvedPage(locale: string): Promise<ResolvedCmsPage> 
     templateKey: 'default',
     rendererKey: '',
     applicationPosition: 'AFTER_CONTENT',
+    applicationConfig: normalizeCmsPageApplicationConfig(null),
     title: locale === 'en' ? 'Home page' : 'Page d’accueil',
     navigationLabel: locale === 'en' ? 'Home page' : 'Page d’accueil',
     seo: {
@@ -1049,6 +1052,7 @@ function createLegacyBasketsResolvedPage(locale: string): ResolvedCmsPage {
     templateKey: 'default',
     rendererKey: 'baskets',
     applicationPosition: 'AFTER_CONTENT',
+    applicationConfig: normalizeCmsPageApplicationConfig(null),
     title: locale === 'en' ? 'Product lots' : 'Lots de produits',
     navigationLabel: locale === 'en' ? 'Product lots' : 'Lots de produits',
     seo: {
@@ -1074,6 +1078,7 @@ function createLegacyShopResolvedPage(locale: string): ResolvedCmsPage {
     templateKey: 'default',
     rendererKey: 'shop',
     applicationPosition: 'AFTER_CONTENT',
+    applicationConfig: normalizeCmsPageApplicationConfig(null),
     title: locale === 'en' ? 'Shop' : 'Boutique',
     navigationLabel: locale === 'en' ? 'Shop' : 'Boutique',
     seo: {
@@ -1099,6 +1104,7 @@ function createLegacyNewsResolvedPage(locale: string): ResolvedCmsPage {
     templateKey: 'default',
     rendererKey: 'news',
     applicationPosition: 'AFTER_CONTENT',
+    applicationConfig: normalizeCmsPageApplicationConfig(null),
     title: locale === 'en' ? 'News' : 'Actualités',
     navigationLabel: locale === 'en' ? 'News' : 'Actualités',
     seo: {
@@ -1124,6 +1130,7 @@ function createLegacyEventsResolvedPage(locale: string): ResolvedCmsPage {
     templateKey: 'default',
     rendererKey: 'events',
     applicationPosition: 'AFTER_CONTENT',
+    applicationConfig: normalizeCmsPageApplicationConfig(null),
     title: locale === 'en' ? 'Events' : 'Événements',
     navigationLabel: locale === 'en' ? 'Events' : 'Événements',
     seo: {
@@ -1149,6 +1156,7 @@ function createLegacyPlanningResolvedPage(locale: string): ResolvedCmsPage {
     templateKey: 'default',
     rendererKey: 'planning',
     applicationPosition: 'AFTER_CONTENT',
+    applicationConfig: normalizeCmsPageApplicationConfig(null),
     title: locale === 'en' ? 'Schedule' : 'Planning',
     navigationLabel: locale === 'en' ? 'Schedule' : 'Planning',
     seo: {
@@ -1781,6 +1789,7 @@ export async function bootstrapCmsPageFromResolvedPage(resolvedPage: ResolvedCms
   payload.templateKey = resolvedPage.templateKey
   payload.rendererKey = resolvedPage.rendererKey
   payload.applicationPosition = resolvedPage.applicationPosition
+  payload.applicationConfig = resolvedPage.applicationConfig
   payload.title = resolvedPage.title
   payload.translations[locale] = {
     title: resolvedPage.title,
@@ -1807,6 +1816,7 @@ export async function saveCmsPage(id: number | null, payload: CmsPagePayload) {
     templateKey: payload.templateKey || 'default',
     rendererKey: payload.rendererKey || null,
     applicationPosition: payload.applicationPosition,
+    applicationConfigJson: JSON.stringify(normalizeCmsPageApplicationConfig(payload.applicationConfig)),
     translationsJson: JSON.stringify(translations)
   }
 
@@ -2105,6 +2115,7 @@ export async function resolvePublicCmsPage(path: string, locale: string, include
       templateKey: payload.templateKey,
       rendererKey: payload.rendererKey,
       applicationPosition: payload.applicationPosition,
+      applicationConfig: payload.applicationConfig,
       title: t.title || payload.title,
       navigationLabel: t.navigationLabel || t.title || payload.title,
       seo: t.seo,
@@ -2173,8 +2184,21 @@ export function validateCmsPagePayload(value: unknown): CmsPagePayload {
     templateKey: typeof value.templateKey === 'string' && value.templateKey.trim() ? value.templateKey.trim() : fallback.templateKey,
     rendererKey: typeof value.rendererKey === 'string' ? value.rendererKey.trim() : '',
     applicationPosition: isCmsApplicationPosition(applicationPosition) ? applicationPosition : fallback.applicationPosition,
+    applicationConfig: normalizeCmsPageApplicationConfig(value.applicationConfig),
     title: typeof value.title === 'string' && value.title.trim() ? value.title.trim() : fallback.title,
     translations: normalizeTranslations(value.translations, path)
+  }
+}
+
+function normalizeCmsPageApplicationConfig(value: unknown): CmsPageApplicationConfig {
+  const source = isObject(value) ? value : {}
+  const categoryIds = Array.isArray(source.shopCategoryIds)
+    ? [...new Set(source.shopCategoryIds.map(Number).filter(id => Number.isInteger(id) && id > 0))]
+    : []
+  return {
+    shopCategoryIds: categoryIds,
+    shopDefaultViewMode: source.shopDefaultViewMode === 'list' ? 'list' : 'grid',
+    shopShowViewToggle: source.shopShowViewToggle !== false,
   }
 }
 

@@ -2,7 +2,7 @@
   <div v-if="showNavigation" :class="previewStatic ? 'block' : 'drawer-side z-50'">
     <label v-if="!previewStatic" for="drawer-toggle" class="drawer-overlay"></label>
     <aside class="min-h-full w-80 space-y-4 overflow-y-auto bg-base-100 p-4">
-      <div class="rounded-2xl border border-base-300 bg-base-200/40 p-4">
+      <div class="rounded-box border border-base-300 bg-base-200/40 p-4">
         <div class="flex items-center gap-3" :class="mobileBrandClass">
           <AppImage
             :src="logoSrc"
@@ -28,7 +28,7 @@
         </div>
         <ul :class="mobileMenuClass">
           <template v-for="item in menuItems" :key="item.navigationItemKey">
-            <li v-if="item.children.length" class="rounded-2xl">
+            <li v-if="item.children.length">
               <button
                 type="button"
                 :class="navGroupButtonClass(item)"
@@ -85,7 +85,7 @@
             v-for="availableTheme in availableThemes"
             :key="availableTheme.name"
             type="button"
-            class="flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-2 text-left text-sm transition"
+            class="modula-navigation flex min-h-11 w-full items-center gap-3 px-4 py-2 text-left text-sm transition"
             :class="themeButtonClass(availableTheme.name)"
             @click="setTheme(availableTheme.name)"
           >
@@ -105,7 +105,7 @@
             v-for="availableLocale in localeOptions"
             :key="availableLocale.code"
             type="button"
-            class="flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-2 text-left text-sm transition"
+            class="modula-navigation flex min-h-11 w-full items-center gap-3 px-4 py-2 text-left text-sm transition"
             :class="localeButtonClass(availableLocale.code)"
             @click="changeLocale(availableLocale.code)"
           >
@@ -122,38 +122,38 @@
         </div>
         <div class="space-y-2">
           <template v-if="!authStore.isAuthenticated">
-            <NuxtLink :to="localePath('/login')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink :to="localePath('/login')" class="modula-navigation flex min-h-11 w-full items-center gap-3 border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:login" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.login', 'Connexion') }}</span>
             </NuxtLink>
-            <NuxtLink v-if="registerVisible" :to="localePath('/register')" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink v-if="registerVisible" :to="localePath('/register')" class="modula-navigation flex min-h-11 w-full items-center gap-3 border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:account-multiple-outline" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.register', 'Inscription') }}</span>
             </NuxtLink>
           </template>
 
           <template v-else>
-            <div class="rounded-2xl border border-base-300 bg-base-200/40 px-4 py-3">
+            <div class="rounded-box border border-base-300 bg-base-200/40 px-4 py-3">
               <div class="text-sm font-semibold">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</div>
               <div class="text-xs opacity-70">{{ authStore.user?.email }}</div>
             </div>
 
-            <NuxtLink :to="localePath('/profile')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink :to="localePath('/profile')" class="modula-navigation flex min-h-11 items-center gap-3 border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:account-outline" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.profile', 'Profil') }}</span>
             </NuxtLink>
 
-            <NuxtLink v-if="shopVisible && !authStore.isAdmin" :to="ordersProfileLink" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink v-if="shopVisible && !authStore.isAdmin" :to="ordersProfileLink" class="modula-navigation flex min-h-11 items-center gap-3 border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:invoice" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.orders', 'Commandes') }}</span>
             </NuxtLink>
 
-            <NuxtLink v-if="authStore.canAccessAdmin" :to="adminLocalePath('/admin')" class="flex min-h-11 items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
+            <NuxtLink v-if="authStore.canAccessAdmin" :to="adminLocalePath('/admin')" class="modula-navigation flex min-h-11 items-center gap-3 border border-base-300 bg-base-100 px-4 py-2 text-sm transition hover:bg-base-200" @click="closeDrawer">
               <Icon name="mdi:shield-crown-outline" size="18" class="shrink-0" />
               <span>{{ t('admin.title') }}</span>
             </NuxtLink>
 
-            <button type="button" class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="handleLogout">
+            <button type="button" class="modula-navigation flex min-h-11 w-full items-center gap-3 border border-base-300 bg-base-100 px-4 py-2 text-left text-sm transition hover:bg-base-200" @click="handleLogout">
               <Icon name="mdi:logout" size="18" class="shrink-0" />
               <span>{{ publicText('auth.userMenu.logout', 'Déconnexion') }}</span>
             </button>
@@ -333,38 +333,38 @@ const isActiveItem = (item: ResolvedCmsNavigationItem): boolean => {
 }
 
 const navLinkClass = (item: ResolvedCmsNavigationItem) => {
-  const base = 'flex min-h-11 w-full items-center gap-3 px-4 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer'
+  const base = 'modula-navigation flex min-h-11 w-full items-center gap-3 px-4 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer'
   switch (headerSettings.value.navigationStyle) {
     case 'menu':
-      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
+      return `${base} hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'underline':
-      return `${base} rounded-none border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]`
+      return `${base} border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]`
     case 'soft':
-      return `${base} rounded-full border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
+      return `${base} border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'outline':
-      return `${base} rounded-full border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
+      return `${base} border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'solid':
-      return `${base} rounded-xl bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
+      return `${base} bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     default:
-      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
+      return `${base} hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
   }
 }
 
 const navGroupButtonClass = (item: ResolvedCmsNavigationItem) => {
-  const base = 'flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left text-sm font-semibold transition-colors duration-150 cursor-pointer'
+  const base = 'modula-navigation flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left text-sm font-semibold transition-colors duration-150 cursor-pointer'
   switch (headerSettings.value.navigationStyle) {
     case 'menu':
-      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
+      return `${base} hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'underline':
-      return `${base} rounded-none border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
+      return `${base} border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'soft':
-      return `${base} rounded-2xl border border-base-300 bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
+      return `${base} border border-base-300 bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'outline':
-      return `${base} rounded-2xl border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
+      return `${base} border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     case 'solid':
-      return `${base} rounded-2xl bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
+      return `${base} bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
     default:
-      return `${base} rounded-2xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
+      return `${base} hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)] ${isActiveItem(item) ? navActiveStateClass : ''}`
   }
 }
 

@@ -5,12 +5,13 @@ import {
   createProductLinkedDocumentAttachmentsForOrder,
   type PdfAttachment,
 } from '#modula/server/utils/billingDocumentPdf'
-import { formatDateLabel } from '#modula/server/utils/dateFormat'
+import { formatDateLabel, formatDateTimeLabel } from '#modula/server/utils/dateFormat'
 import { sendGmail, getSiteOrigin } from '#modula/server/utils/gmail'
 import { buildGenericEmail } from '#modula/server/utils/orderEmails'
 import { getReservationNotificationEmail } from '#modula/server/utils/settings'
 import type { ShopOrderPayload } from '#modula/server/utils/shop'
 import { serializeShopOrder } from '#modula/server/utils/shop'
+import type { RentalEmailTemplateAction } from '#modula/server/services/shop/rentalEmailTemplates'
 
 type ShopOrderTemplateAction =
   | 'shop_order_created'
@@ -22,6 +23,7 @@ type ShopOrderTemplateAction =
   | 'shop_order_refund_requested_customer'
   | 'shop_order_refund_requested_admin'
   | 'shop_order_refund_rejected'
+  | RentalEmailTemplateAction
 
 type ShopOrderEmailLocale = string
 
@@ -41,14 +43,20 @@ export async function sendShopOrderCreatedNotifications(
   const order = await getShopOrderForEmail(orderId)
   if (!order) return
 
+  const rental = isRentalOrder(order)
+
   await sendShopOrderEmail({
-    action: 'shop_order_created',
+    action: rental
+      ? (order.status === 'CONFIRMED' ? 'rental_confirmed' : 'rental_request_created')
+      : 'shop_order_created',
     order,
     to: order.email,
     locale: normalizeShopOrderLocale(order.language),
   })
 
-  if (options?.notifyAdmin) {
+  if (rental) {
+    await sendRentalAdminEmail(order, 'rental_request_created_admin')
+  } else if (options?.notifyAdmin) {
     await sendShopOrderValidatedAdminEmail(order)
   }
 }
@@ -61,25 +69,28 @@ export async function sendShopOrderTransitionNotifications(
   if (!order) return
 
   const locale = normalizeShopOrderLocale(order.language)
+  const rental = isRentalOrder(order)
 
   if (transition.previousPaymentStatus !== 'PAID' && order.paymentStatus === 'PAID') {
     const attachments = await getPaidOrderAttachments(order.id)
     await sendShopOrderEmail({
-      action: 'shop_order_payment_confirmed',
+      action: rental ? 'rental_payment_confirmed' : 'shop_order_payment_confirmed',
       order,
       to: order.email,
       locale,
       attachments,
     })
 
-    if (order.paymentProvider === 'STRIPE') {
+    if (rental) {
+      await sendRentalAdminEmail(order, 'rental_payment_confirmed_admin', attachments)
+    } else if (order.paymentProvider === 'STRIPE') {
       await sendShopOrderValidatedAdminEmail(order, attachments)
     }
   }
 
   if (transition.previousPaymentStatus !== 'FAILED' && order.paymentStatus === 'FAILED') {
     await sendShopOrderEmail({
-      action: 'shop_order_payment_failed',
+      action: rental ? 'rental_payment_failed' : 'shop_order_payment_failed',
       order,
       to: order.email,
       locale,
@@ -88,7 +99,7 @@ export async function sendShopOrderTransitionNotifications(
 
   if (transition.previousPaymentStatus !== 'REFUNDED' && order.paymentStatus === 'REFUNDED') {
     await sendShopOrderEmail({
-      action: 'shop_order_refunded',
+      action: rental ? 'rental_refunded' : 'shop_order_refunded',
       order,
       to: order.email,
       locale,
@@ -101,11 +112,25 @@ export async function sendShopOrderTransitionNotifications(
     && order.paymentStatus !== 'REFUNDED'
   ) {
     await sendShopOrderEmail({
-      action: 'shop_order_cancelled',
+      action: rental ? 'rental_cancelled' : 'shop_order_cancelled',
       order,
       to: order.email,
       locale,
     })
+  }
+
+  if (rental && transition.previousStatus !== order.status) {
+    const actionByStatus: Partial<Record<ShopOrderPayload['status'], RentalEmailTemplateAction>> = {
+      CONFIRMED: 'rental_confirmed',
+      IN_PREPARATION: 'rental_in_preparation',
+      READY: 'rental_ready',
+      IN_DELIVERY: 'rental_started',
+      COMPLETED: 'rental_completed',
+    }
+    const action = actionByStatus[order.status]
+    if (action) {
+      await sendShopOrderEmail({ action, order, to: order.email, locale })
+    }
   }
 }
 
@@ -114,8 +139,9 @@ export async function sendShopOrderRefundRequestNotifications(orderId: number) {
   if (!order) return
 
   const locale = normalizeShopOrderLocale(order.language)
+  const rental = isRentalOrder(order)
   await sendShopOrderEmail({
-    action: 'shop_order_refund_requested_customer',
+    action: rental ? 'rental_refund_requested_customer' : 'shop_order_refund_requested_customer',
     order,
     to: order.email,
     locale,
@@ -125,7 +151,7 @@ export async function sendShopOrderRefundRequestNotifications(orderId: number) {
   if (!notificationEmail) return
 
   await sendShopOrderEmail({
-    action: 'shop_order_refund_requested_admin',
+    action: rental ? 'rental_refund_requested_admin' : 'shop_order_refund_requested_admin',
     order,
     to: notificationEmail,
     locale: 'fr',
@@ -137,7 +163,7 @@ export async function sendShopOrderRefundRejectedNotifications(orderId: number) 
   if (!order) return
 
   await sendShopOrderEmail({
-    action: 'shop_order_refund_rejected',
+    action: isRentalOrder(order) ? 'rental_refund_rejected' : 'shop_order_refund_rejected',
     order,
     to: order.email,
     locale: normalizeShopOrderLocale(order.language),
@@ -155,6 +181,16 @@ async function sendShopOrderValidatedAdminEmail(order: ShopOrderPayload, attachm
     locale: 'fr',
     attachments,
   })
+}
+
+async function sendRentalAdminEmail(
+  order: ShopOrderPayload,
+  action: 'rental_request_created_admin' | 'rental_payment_confirmed_admin',
+  attachments: PdfAttachment[] = [],
+) {
+  const notificationEmail = await getReservationNotificationEmail()
+  if (!notificationEmail) return
+  await sendShopOrderEmail({ action, order, to: notificationEmail, locale: 'fr', attachments })
 }
 
 async function sendShopOrderEmail(options: {
@@ -267,6 +303,16 @@ function buildShopOrderTemplateVars(order: ShopOrderPayload, locale: ShopOrderEm
     || (isEnglish ? 'Payment could not be confirmed.' : 'Le paiement n’a pas pu être confirmé.')
   const adminOrderUrl = `${getSiteOrigin()}/admin/shop/orders?open=${order.id}`
   const invoiceNumber = buildInvoiceNumberLabel(order)
+  const rentalLines = order.lines
+    .filter(isRentalLine)
+    .map((line) => `- ${line.quantity} × ${line.title} · ${formatPrice(line.totalPrice)}`)
+    .join('\n') || (isEnglish ? '- No rental equipment' : '- Aucun matériel de location')
+  const rentalStartDate = order.rentalStartDate
+    ? formatDateTimeLabel(order.rentalStartDate, localeCode)
+    : (isEnglish ? 'To be confirmed' : 'À confirmer')
+  const rentalEndDate = order.rentalEndDate
+    ? formatDateTimeLabel(order.rentalEndDate, localeCode)
+    : (isEnglish ? 'To be confirmed' : 'À confirmer')
 
   return {
     orderNumber: order.orderNumber,
@@ -288,7 +334,19 @@ function buildShopOrderTemplateVars(order: ShopOrderPayload, locale: ShopOrderEm
     refundRequestReason: order.refundRequestReason || '-',
     refundRequestNote: order.refundRequestNote || '-',
     adminOrderUrl,
+    rentalStartDate,
+    rentalEndDate,
+    rentalPeriod: `${rentalStartDate} - ${rentalEndDate}`,
+    rentalLines,
   }
+}
+
+function isRentalLine(line: ShopOrderPayload['lines'][number]) {
+  return Boolean(line.rentalStartDate || line.rentalEndDate || line.meta?.saleType === 'RENTAL')
+}
+
+function isRentalOrder(order: ShopOrderPayload) {
+  return order.lines.some(isRentalLine)
 }
 
 function buildInvoiceNumberLabel(order: ShopOrderPayload) {

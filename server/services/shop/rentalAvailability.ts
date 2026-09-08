@@ -1,4 +1,6 @@
 import { db } from '#modula/server/data/client'
+import { getRentalCalendarConfig } from '#modula/server/utils/settings'
+import { getRentalOpeningRanges } from '#modula/shared/rentalCalendar'
 
 export type RentalSourceKind = 'product'
 
@@ -12,6 +14,10 @@ export type RentalSource = {
   rentalAvailableTo: string | null
   rentalMinDays: number
   rentalMaxDays: number | null
+  rentalBookingMode: 'SINGLE_DAY' | 'MULTI_DAY' | 'BOTH'
+  rentalDurations: number[]
+  rentalSlotStepMinutes: number
+  rentalPricingMode?: 'HOURLY' | 'DAILY' | null
 }
 
 export type RentalWindow = {
@@ -20,6 +26,7 @@ export type RentalWindow = {
   startAt: Date
   endAt: Date
   durationDays: number
+  timezone: string
 }
 
 export type RentalAvailabilityDay = {
@@ -34,6 +41,7 @@ export type RentalAvailabilityDay = {
 export function resolveRentalWindow(
   rentalStartDate: string | null | undefined,
   rentalEndDate: string | null | undefined,
+  timezone = 'Europe/Paris',
 ): RentalWindow | null {
   if (!rentalStartDate && !rentalEndDate) return null
   if (!rentalStartDate || !rentalEndDate) {
@@ -43,8 +51,9 @@ export function resolveRentalWindow(
     })
   }
 
-  const startAt = startOfDay(new Date(rentalStartDate))
-  const endAt = endOfDay(new Date(rentalEndDate))
+  const hasTime = rentalStartDate.includes('T') || rentalEndDate.includes('T')
+  const startAt = hasTime ? parseRentalDateTime(rentalStartDate, timezone) : startOfDay(new Date(rentalStartDate))
+  const endAt = hasTime ? parseRentalDateTime(rentalEndDate, timezone) : endOfDay(new Date(rentalEndDate))
   if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
     throw createError({
       statusCode: 400,
@@ -59,14 +68,17 @@ export function resolveRentalWindow(
     })
   }
 
-  const durationDays = Math.floor((startOfDay(endAt).getTime() - startOfDay(startAt).getTime()) / 86400000) + 1
+  const startDay = zonedIsoDate(startAt, timezone)
+  const endDay = zonedIsoDate(endAt, timezone)
+  const durationDays = Math.floor((Date.parse(endDay) - Date.parse(startDay)) / 86400000) + 1
 
   return {
-    rentalStartDate: toIsoDate(startAt),
-    rentalEndDate: toIsoDate(endAt),
+    rentalStartDate: hasTime ? startAt.toISOString() : toIsoDate(startAt),
+    rentalEndDate: hasTime ? endAt.toISOString() : toIsoDate(endAt),
     startAt,
     endAt,
     durationDays,
+    timezone,
   }
 }
 
@@ -74,6 +86,7 @@ export async function ensureRentalAvailability(
   requests: Array<RentalSource & { rentalWindow: RentalWindow | null }>,
   options?: {
     excludedOrderIds?: number[]
+    message?: (key: string, params: Record<string, string | number>) => string
   },
 ) {
   if (!requests.length) return
@@ -85,10 +98,21 @@ export async function ensureRentalAvailability(
         statusMessage: 'Veuillez sélectionner un créneau de location',
       })
     }
-    validateRentalWindowAgainstSource(request, request.rentalWindow)
+    validateRentalWindowAgainstSource(request, request.rentalWindow, options?.message)
   }
 
-  const grouped = groupRequestsBySource(requests)
+  const calendar = await getRentalCalendarConfig()
+  for (const request of requests) validateRentalWindowAgainstCalendar(request, request.rentalWindow!, calendar, options?.message)
+
+  const timedRequests = requests.filter(request => isHourlyRentalWindow(request.rentalBookingMode, request.rentalWindow!, request.rentalPricingMode))
+  for (const request of timedRequests) {
+    const reserved = await getReservedQuantityForWindow(request.id, request.rentalWindow!, options?.excludedOrderIds)
+    if (reserved + request.quantity > request.stock) {
+      throw createError({ statusCode: 409, message: rentalMessage(options?.message, 'shop.rentalErrors.slotUnavailable', 'Le créneau demandé n’est plus disponible pour {name}', { name: request.title }) })
+    }
+  }
+
+  const grouped = groupRequestsBySource(requests.filter(request => !isHourlyRentalWindow(request.rentalBookingMode, request.rentalWindow!, request.rentalPricingMode)))
   for (const request of grouped) {
     const firstRequest = request.requests[0]
     if (!firstRequest) continue
@@ -100,34 +124,104 @@ export async function ensureRentalAvailability(
       (current, entry) => entry.rentalWindow.endAt.getTime() > current.getTime() ? entry.rentalWindow.endAt : current,
       firstRequest.rentalWindow.endAt,
     )
-    const dayAvailability = await computeAvailabilityForSource(
-      request.source,
-      rangeStart,
-      rangeEnd,
-      {
-        excludedOrderIds: options?.excludedOrderIds,
-      },
-    )
-    const availabilityByDay = new Map(dayAvailability.map((day) => [day.iso, day]))
     const requestedByDay = new Map<string, number>()
 
     for (const entry of request.requests) {
-      for (const day of eachDayBetween(entry.rentalWindow.startAt, entry.rentalWindow.endAt)) {
-        const iso = toIsoDate(day)
+      const startIso = zonedIsoDate(entry.rentalWindow.startAt, entry.rentalWindow.timezone)
+      const endIso = zonedIsoDate(entry.rentalWindow.endAt, entry.rentalWindow.timezone)
+      for (const iso of eachIsoDateBetween(startIso, endIso)) {
         requestedByDay.set(iso, (requestedByDay.get(iso) || 0) + entry.quantity)
       }
     }
 
+    const reservationLines = await getReservationLinesForWindow(request.source.id, {
+      rentalStartDate: rangeStart.toISOString(),
+      rentalEndDate: rangeEnd.toISOString(),
+      startAt: rangeStart,
+      endAt: rangeEnd,
+      durationDays: 1,
+      timezone: firstRequest.rentalWindow.timezone,
+    }, options?.excludedOrderIds)
+    const reservedByDay = new Map<string, number>()
+    for (const line of reservationLines) {
+      const lineStart = zonedIsoDate(new Date(line.rentalStartDate), firstRequest.rentalWindow.timezone)
+      const lineEnd = zonedIsoDate(new Date(line.rentalEndDate), firstRequest.rentalWindow.timezone)
+      for (const iso of eachIsoDateBetween(lineStart, lineEnd)) {
+        reservedByDay.set(iso, (reservedByDay.get(iso) || 0) + Number(line.quantity || 0))
+      }
+    }
+
     for (const [iso, requestedQuantity] of requestedByDay.entries()) {
-      const availability = availabilityByDay.get(iso)
-      if (!availability || !availability.selectable || requestedQuantity > availability.remaining) {
+      const reservedQuantity = reservedByDay.get(iso) || 0
+      if (requestedQuantity + reservedQuantity > request.source.stock) {
         throw createError({
           statusCode: 409,
-          statusMessage: `Le créneau demandé n’est plus disponible pour ${request.source.title}`,
+          message: rentalMessage(options?.message, 'shop.rentalErrors.slotUnavailable', 'Le créneau demandé n’est plus disponible pour {name}', { name: request.source.title }),
         })
       }
     }
   }
+}
+
+type RentalReservationLine = {
+  quantity: number
+  rentalStartDate: string
+  rentalEndDate: string
+}
+
+export async function computeRentalSlots(
+  source: RentalSource,
+  isoDate: string,
+  durationMinutes: number,
+): Promise<Array<{ start: string, end: string, remaining: number }>> {
+  if (!source.rentalDurations.includes(durationMinutes)) return []
+  const calendar = await getRentalCalendarConfig()
+  const ranges = getRentalOpeningRanges(calendar, isoDate)
+  const slots: Array<{ start: string, end: string, remaining: number }> = []
+  if (!ranges.length) return slots
+  const dayStart = dateTimeFromParts(isoDate, ranges[0]!.start, calendar.timezone)
+  const dayEnd = dateTimeFromParts(isoDate, ranges[ranges.length - 1]!.end, calendar.timezone)
+  const reservations = await getReservationLinesForWindow(source.id, {
+    rentalStartDate: dayStart.toISOString(), rentalEndDate: dayEnd.toISOString(),
+    startAt: dayStart, endAt: dayEnd, durationDays: 1, timezone: calendar.timezone,
+  })
+  for (const range of ranges) {
+    const rangeStart = dateTimeFromParts(isoDate, range.start, calendar.timezone)
+    const rangeEnd = dateTimeFromParts(isoDate, range.end, calendar.timezone)
+    for (let cursor = rangeStart.getTime(); cursor + durationMinutes * 60000 <= rangeEnd.getTime(); cursor += source.rentalSlotStepMinutes * 60000) {
+      const window = resolveRentalWindow(new Date(cursor).toISOString(), new Date(cursor + durationMinutes * 60000).toISOString(), calendar.timezone)!
+      const reserved = reservations
+        .filter((line: RentalReservationLine) => new Date(line.rentalStartDate).getTime() < window.endAt.getTime() && new Date(line.rentalEndDate).getTime() > window.startAt.getTime())
+        .reduce((sum: number, line: RentalReservationLine) => sum + Number(line.quantity || 0), 0)
+      const remaining = Math.max(0, source.stock - reserved)
+      if (remaining > 0) slots.push({ start: window.rentalStartDate, end: window.rentalEndDate, remaining })
+    }
+  }
+  return slots
+}
+
+async function getReservedQuantityForWindow(productId: number, window: RentalWindow, excludedIds: number[] = []) {
+  const lines = await getReservationLinesForWindow(productId, window, excludedIds)
+  return lines.reduce((sum: number, line: any) => sum + Number(line.quantity || 0), 0)
+}
+
+async function getReservationLinesForWindow(productId: number, window: RentalWindow, excludedIds: number[] = []): Promise<RentalReservationLine[]> {
+  const orders = await db.shopOrder.findMany({
+    where: { status: { in: ['PENDING', 'CONFIRMED', 'IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED'] } },
+    select: { id: true },
+  })
+  const excluded = new Set(excludedIds.map(Number))
+  const orderIds = orders.map((order: any) => Number(order.id)).filter((id: number) => !excluded.has(id))
+  if (!orderIds.length) return []
+  return await db.shopOrderLine.findMany({
+    where: {
+      orderId: { in: orderIds },
+      productId,
+      rentalStartDate: { lt: window.rentalEndDate },
+      rentalEndDate: { gt: window.rentalStartDate },
+    },
+    select: { quantity: true, rentalStartDate: true, rentalEndDate: true },
+  }) as RentalReservationLine[]
 }
 
 export async function computeAvailabilityForSource(
@@ -235,6 +329,10 @@ function groupRequestsBySource(requests: Array<RentalSource & { rentalWindow: Re
         rentalAvailableTo: request.rentalAvailableTo,
         rentalMinDays: request.rentalMinDays,
         rentalMaxDays: request.rentalMaxDays,
+        rentalBookingMode: request.rentalBookingMode,
+        rentalDurations: request.rentalDurations,
+        rentalSlotStepMinutes: request.rentalSlotStepMinutes,
+        rentalPricingMode: request.rentalPricingMode,
       },
       requests: [{
         ...request,
@@ -249,41 +347,52 @@ function isWithinSourceAvailability(
   source: Pick<RentalSource, 'rentalAvailableFrom' | 'rentalAvailableTo'>,
   value: Date,
 ) {
-  const availableFrom = source.rentalAvailableFrom ? startOfDay(new Date(source.rentalAvailableFrom)) : null
-  const availableTo = source.rentalAvailableTo ? endOfDay(new Date(source.rentalAvailableTo)) : null
-  if (availableFrom && value.getTime() < availableFrom.getTime()) return false
-  if (availableTo && value.getTime() > availableTo.getTime()) return false
+  const availableFrom = source.rentalAvailableFrom?.slice(0, 10) || null
+  const availableTo = source.rentalAvailableTo?.slice(0, 10) || null
+  const valueDate = toIsoDate(value)
+  if (availableFrom && valueDate < availableFrom) return false
+  if (availableTo && valueDate > availableTo) return false
   return true
 }
 
-function validateRentalWindowAgainstSource(source: RentalSource, rentalWindow: RentalWindow) {
+function validateRentalWindowAgainstSource(source: RentalSource, rentalWindow: RentalWindow, message?: (key: string, params: Record<string, string | number>) => string) {
   if (source.stock <= 0) {
     throw createError({
       statusCode: 409,
-      statusMessage: `${source.title} n’est actuellement pas disponible à la location`,
+      message: rentalMessage(message, 'shop.rentalErrors.unavailable', '{name} n’est actuellement pas disponible à la location', { name: source.title }),
     })
   }
 
-  const availableFrom = source.rentalAvailableFrom ? startOfDay(new Date(source.rentalAvailableFrom)) : null
-  const availableTo = source.rentalAvailableTo ? endOfDay(new Date(source.rentalAvailableTo)) : null
-  if (availableFrom && rentalWindow.startAt.getTime() < availableFrom.getTime()) {
+  const availableFrom = source.rentalAvailableFrom?.slice(0, 10) || null
+  const availableTo = source.rentalAvailableTo?.slice(0, 10) || null
+  const startDate = zonedIsoDate(rentalWindow.startAt, rentalWindow.timezone)
+  const endDate = zonedIsoDate(rentalWindow.endAt, rentalWindow.timezone)
+  if (availableFrom && startDate < availableFrom) {
     throw createError({
       statusCode: 400,
-      statusMessage: `${source.title} n’est pas disponible à cette date de début`,
+      message: rentalMessage(message, 'shop.rentalErrors.unavailableStart', '{name} n’est pas disponible à cette date de début', { name: source.title }),
     })
   }
-  if (availableTo && rentalWindow.endAt.getTime() > availableTo.getTime()) {
+  if (availableTo && endDate > availableTo) {
     throw createError({
       statusCode: 400,
-      statusMessage: `${source.title} n’est pas disponible à cette date de fin`,
+      message: rentalMessage(message, 'shop.rentalErrors.unavailableEnd', '{name} n’est pas disponible à cette date de fin', { name: source.title }),
     })
+  }
+
+  if (isHourlyRentalWindow(source.rentalBookingMode, rentalWindow, source.rentalPricingMode)) {
+    const durationMinutes = Math.round((rentalWindow.endAt.getTime() - rentalWindow.startAt.getTime()) / 60000)
+    if (zonedIsoDate(rentalWindow.startAt, rentalWindow.timezone) !== zonedIsoDate(rentalWindow.endAt, rentalWindow.timezone) || !source.rentalDurations.includes(durationMinutes)) {
+      throw createError({ statusCode: 400, message: `${source.title} ne propose pas cette durée de location` })
+    }
+    return
   }
 
   const minDays = Math.max(1, Number(source.rentalMinDays || 1))
   if (rentalWindow.durationDays < minDays) {
     throw createError({
       statusCode: 400,
-      statusMessage: `${source.title} nécessite une location minimale de ${minDays} jour(s)`,
+      message: rentalMessage(message, 'shop.rentalErrors.minimumDays', '{name} nécessite une location minimale de {count} jour(s)', { name: source.title, count: minDays }),
     })
   }
 
@@ -291,9 +400,79 @@ function validateRentalWindowAgainstSource(source: RentalSource, rentalWindow: R
   if (maxDays != null && rentalWindow.durationDays > maxDays) {
     throw createError({
       statusCode: 400,
-      statusMessage: `${source.title} dépasse la durée maximale autorisée de ${maxDays} jour(s)`,
+      message: rentalMessage(message, 'shop.rentalErrors.maximumDays', '{name} dépasse la durée maximale autorisée de {count} jour(s)', { name: source.title, count: maxDays }),
     })
   }
+}
+
+export function isHourlyRentalWindow(
+  bookingMode: RentalSource['rentalBookingMode'],
+  window: RentalWindow,
+  pricingMode?: RentalSource['rentalPricingMode'],
+) {
+  if (bookingMode === 'SINGLE_DAY') return true
+  if (bookingMode === 'MULTI_DAY') return false
+  if (pricingMode) return pricingMode === 'HOURLY'
+  return zonedIsoDate(window.startAt, window.timezone) === zonedIsoDate(window.endAt, window.timezone)
+}
+
+function validateRentalWindowAgainstCalendar(source: RentalSource, window: RentalWindow, calendar: Awaited<ReturnType<typeof getRentalCalendarConfig>>, message?: (key: string, params: Record<string, string | number>) => string) {
+  const startRanges = getRentalOpeningRanges(calendar, zonedIsoDate(window.startAt, calendar.timezone))
+  const endRanges = getRentalOpeningRanges(calendar, zonedIsoDate(window.endAt, calendar.timezone))
+  if (!startRanges.length || !endRanges.length) {
+    throw createError({ statusCode: 400, message: rentalMessage(message, 'shop.rentalErrors.closedDay', '{name} ne peut pas être retiré ou retourné un jour de fermeture', { name: source.title }) })
+  }
+  if (!includesTime(startRanges, window.startAt, calendar.timezone) || !includesTime(endRanges, window.endAt, calendar.timezone, true)) {
+    throw createError({ statusCode: 400, message: rentalMessage(message, 'shop.rentalErrors.outsideHours', '{name} doit être retiré et retourné pendant les horaires d’ouverture', { name: source.title }) })
+  }
+}
+
+function rentalMessage(
+  resolver: ((key: string, params: Record<string, string | number>) => string) | undefined,
+  key: string,
+  fallback: string,
+  params: Record<string, string | number>,
+) {
+  const template = resolver?.(key, params) || fallback
+  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, name) => String(params[name] ?? ''))
+}
+
+function includesTime(ranges: Array<{ start: string, end: string }>, value: Date, timezone: string, allowRangeEnd = false) {
+  const parts = getZonedParts(value, timezone)
+  const time = `${parts.hour}:${parts.minute}`
+  return ranges.some(range => time >= range.start && (allowRangeEnd ? time <= range.end : time < range.end))
+}
+
+function dateTimeFromParts(isoDate: string, time: string, timezone: string) {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  const [hour, minute] = time.split(':').map(Number)
+  const desired = Date.UTC(year!, month! - 1, day!, hour!, minute!)
+  let candidate = new Date(desired)
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const parts = getZonedParts(candidate, timezone)
+    const represented = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute))
+    candidate = new Date(candidate.getTime() + desired - represented)
+  }
+  return candidate
+}
+
+function parseRentalDateTime(value: string, timezone: string) {
+  if (/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)) return new Date(value)
+  const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(value)
+  return match ? dateTimeFromParts(match[1]!, match[2]!, timezone) : new Date(value)
+}
+
+function getZonedParts(value: Date, timezone: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(value)
+  return Object.fromEntries(parts.map(part => [part.type, part.value])) as Record<string, string>
+}
+
+function zonedIsoDate(value: Date, timezone: string) {
+  const parts = getZonedParts(value, timezone)
+  return `${parts.year}-${parts.month}-${parts.day}`
 }
 
 export function startOfDay(value: Date) {
@@ -319,6 +498,17 @@ export function eachDayBetween(startAt: Date, endAt: Date) {
   while (cursor.getTime() <= end.getTime()) {
     days.push(new Date(cursor))
     cursor.setDate(cursor.getDate() + 1)
+  }
+  return days
+}
+
+function eachIsoDateBetween(startIso: string, endIso: string) {
+  const days: string[] = []
+  const cursor = new Date(`${startIso}T12:00:00.000Z`)
+  const end = new Date(`${endIso}T12:00:00.000Z`)
+  while (cursor.getTime() <= end.getTime()) {
+    days.push(cursor.toISOString().slice(0, 10))
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
   }
   return days
 }

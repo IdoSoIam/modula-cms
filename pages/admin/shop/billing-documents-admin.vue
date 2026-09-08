@@ -175,10 +175,11 @@
             <input v-model="form.slug" class="input input-bordered w-full" type="text" :placeholder="t('admin.billingDocumentsPage.slugPlaceholder')">
           </label>
 
-          <label class="form-control flex flex-col gap-2">
-            <span class="label"><span class="label-text">{{ t('admin.billingDocumentsPage.fields.position') }}</span></span>
-            <input v-model.number="form.position" class="input input-bordered w-full" type="number" min="0" step="1">
-          </label>
+          <AdminSortPositionControl
+            v-model="form.position"
+            :label="t('admin.billingDocumentsPage.fields.position')"
+            :help="t('admin.billingDocumentsPage.fields.positionHelp')"
+          />
         </div>
 
         <div class="mt-6 grid gap-6 lg:grid-cols-3">
@@ -211,6 +212,30 @@
             <p class="text-xs opacity-70">{{ t('admin.billingDocumentsPage.sourcePdfHelp') }}</p>
           </div>
         </div>
+
+        <section v-if="form.kind === 'ASSURANCE'" class="mt-6 rounded-box border border-base-300 bg-base-200/40 p-5">
+          <div class="mb-4">
+            <h3 class="text-lg font-semibold">{{ t('admin.billingDocumentsPage.insurancePricing.title') }}</h3>
+            <p class="mt-1 text-sm opacity-70">{{ t('admin.billingDocumentsPage.insurancePricing.description') }}</p>
+          </div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="form-control flex flex-col gap-2">
+              <span class="label-text">{{ t('admin.billingDocumentsPage.insurancePricing.hourlyPrice') }}</span>
+              <input v-model.number="form.rentalHourlyPrice" class="input input-bordered" type="number" min="0" step="0.01">
+            </label>
+            <label class="form-control flex flex-col gap-2">
+              <span class="label-text">{{ t('admin.billingDocumentsPage.insurancePricing.dailyPrice') }}</span>
+              <input v-model.number="form.rentalDailyPrice" class="input input-bordered" type="number" min="0" step="0.01">
+            </label>
+          </div>
+          <label class="mt-4 flex items-start gap-3 rounded-box border border-base-300 bg-base-100 p-4">
+            <input v-model="form.requiredForRental" class="toggle toggle-primary mt-0.5" type="checkbox">
+            <span>
+              <span class="block font-medium">{{ t('admin.billingDocumentsPage.insurancePricing.required') }}</span>
+              <span class="mt-1 block text-sm opacity-70">{{ t('admin.billingDocumentsPage.insurancePricing.requiredHelp') }}</span>
+            </span>
+          </label>
+        </section>
 
         <label v-if="form.kind !== 'INVOICE'" class="form-control mt-6 flex flex-col gap-2">
           <span class="label"><span class="label-text">{{ t('admin.billingDocumentsPage.fields.description') }}</span></span>
@@ -325,6 +350,9 @@ interface BillingDocumentTemplatePayload {
   logoUrl: string | null
   accentColor: string | null
   sourcePdfUrl: string | null
+  rentalHourlyPrice: number | null
+  rentalDailyPrice: number | null
+  requiredForRental: boolean
   titleLocalized: CmsLocalizedText
   contentLocalized: CmsLocalizedText
   footerLocalized: CmsLocalizedText
@@ -355,6 +383,9 @@ const createEmptyForm = (kind: BillingDocumentKind = 'CONTRACT') => ({
   logoUrl: '',
   accentColor: '',
   sourcePdfUrl: '',
+  rentalHourlyPrice: null as number | null,
+  rentalDailyPrice: null as number | null,
+  requiredForRental: false,
   titleLocalized: createEmptyCmsLocalizedText(siteLocales.value),
   contentLocalized: createEmptyCmsLocalizedText(siteLocales.value),
   footerLocalized: createEmptyCmsLocalizedText(siteLocales.value),
@@ -424,6 +455,9 @@ function selectDocument(entry: BillingDocumentTemplatePayload) {
     logoUrl: entry.logoUrl || '',
     accentColor: entry.accentColor || '',
     sourcePdfUrl: entry.sourcePdfUrl || '',
+    rentalHourlyPrice: entry.rentalHourlyPrice,
+    rentalDailyPrice: entry.rentalDailyPrice,
+    requiredForRental: entry.requiredForRental,
     titleLocalized: { ...entry.titleLocalized },
     contentLocalized: { ...entry.contentLocalized },
     footerLocalized: { ...entry.footerLocalized },
@@ -489,6 +523,9 @@ async function save() {
       logoUrl: form.value.logoUrl,
       accentColor: form.value.accentColor,
       sourcePdfUrl: form.value.sourcePdfUrl,
+      rentalHourlyPrice: form.value.kind === 'ASSURANCE' ? form.value.rentalHourlyPrice : null,
+      rentalDailyPrice: form.value.kind === 'ASSURANCE' ? form.value.rentalDailyPrice : null,
+      requiredForRental: form.value.kind === 'ASSURANCE' && form.value.requiredForRental,
       titleLocalized: form.value.titleLocalized,
       contentLocalized: form.value.contentLocalized,
       footerLocalized: form.value.footerLocalized,
@@ -542,6 +579,9 @@ async function previewDocument() {
         logoUrl: form.value.logoUrl,
         accentColor: form.value.accentColor,
         sourcePdfUrl: form.value.sourcePdfUrl,
+        rentalHourlyPrice: form.value.rentalHourlyPrice,
+        rentalDailyPrice: form.value.rentalDailyPrice,
+        requiredForRental: form.value.requiredForRental,
         titleLocalized: form.value.titleLocalized,
         contentLocalized: form.value.contentLocalized,
         footerLocalized: form.value.footerLocalized,

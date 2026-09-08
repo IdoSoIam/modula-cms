@@ -2,7 +2,7 @@ import path from 'node:path'
 import { db } from '#modula/server/data/client'
 import { buildBrandedDocumentPdf, buildInvoicePdf } from '#modula/server/utils/pdf'
 import { getEmailBrandingConfig } from '#modula/server/utils/emailBranding'
-import { formatDateLabel } from '#modula/server/utils/dateFormat'
+import { formatDateLabel, formatDateTimeLabel } from '#modula/server/utils/dateFormat'
 import { getSiteOrigin } from '#modula/server/utils/gmail'
 import { getUploadObject } from '#modula/server/utils/uploadStorage'
 import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getFarmPickupConfig, getSiteDefaultLocale, getSiteLocales } from '#modula/server/utils/settings'
@@ -283,13 +283,17 @@ function buildInvoiceLineDescription(line: ShopOrderPayload['lines'][number], lo
     const localeCode = getLocaleCode(locale)
     const rentalLabel = dictionary['billing.pdf.rental'] || 'Location'
     parts.push(
-      `${rentalLabel} : ${formatDateLabel(line.rentalStartDate, localeCode)} -> ${formatDateLabel(line.rentalEndDate, localeCode)}`,
+      `${rentalLabel} : ${formatRentalDateLabel(line.rentalStartDate, localeCode)} -> ${formatRentalDateLabel(line.rentalEndDate, localeCode)}`,
     )
   }
   if (typeof line.meta?.slug === 'string' && line.meta.slug.trim()) {
     parts.push(line.meta.slug.trim())
   }
   return parts.join(' · ')
+}
+
+function formatRentalDateLabel(value: string, locale: string) {
+  return value.includes('T') ? formatDateTimeLabel(value, locale) : formatDateLabel(value, locale)
 }
 
 async function resolveTemplateBranding(template: BillingDocumentTemplatePayload | null) {
@@ -493,6 +497,9 @@ function buildFallbackTemplate(kind: BillingDocumentKind): BillingDocumentTempla
     logoUrl: null,
     accentColor: null,
     sourcePdfUrl: null,
+    rentalHourlyPrice: null,
+    rentalDailyPrice: null,
+    requiredForRental: false,
     titleLocalized: normalizeBillingDocumentLocalizedText(kind === 'INVOICE' ? 'Facture' : kind === 'ASSURANCE' ? 'Attestation d’assurance' : 'Contrat'),
     contentLocalized: normalizeBillingDocumentLocalizedText(''),
     footerLocalized: normalizeBillingDocumentLocalizedText(''),
@@ -740,7 +747,10 @@ export async function createProductLinkedDocumentAttachmentsForOrder(orderId: nu
       if (!id || attachmentEntries.has(id)) continue
       const template = await findBillingDocumentTemplateById(id)
       if (!template?.active) continue
-      attachmentEntries.set(id, { template, product })
+      const existing = attachmentEntries.get(id)
+      if (!existing || (!existing.product && product)) {
+        attachmentEntries.set(id, { template, product })
+      }
     }
   }
 

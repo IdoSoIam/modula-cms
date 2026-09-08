@@ -140,6 +140,12 @@ export interface CmsBasketsPageSettings {
   itemBackgroundColor?: ThemeColorSelection | null
 }
 
+export interface CmsPageApplicationConfig {
+  shopCategoryIds: number[]
+  shopDefaultViewMode: CmsApplicationViewMode
+  shopShowViewToggle: boolean
+}
+
 export interface CmsNewsPageSettings {
   title: CmsLocalizedText
   subtitle: CmsLocalizedText
@@ -219,6 +225,7 @@ export interface CmsPagePayload {
   templateKey: string
   rendererKey: string
   applicationPosition: CmsApplicationPosition
+  applicationConfig: CmsPageApplicationConfig
   title: string
   translations: Record<CmsLocale, CmsPageTranslation>
 }
@@ -262,6 +269,7 @@ export interface ResolvedCmsPage {
   templateKey: string
   rendererKey: string
   applicationPosition: CmsApplicationPosition
+  applicationConfig: CmsPageApplicationConfig
   title: string
   navigationLabel: string
   seo: CmsPageSeo
@@ -738,6 +746,11 @@ export function createDefaultCmsPagePayload(path: string, title = ''): CmsPagePa
     templateKey: 'default',
     rendererKey: '',
     applicationPosition: 'AFTER_CONTENT',
+    applicationConfig: {
+      shopCategoryIds: [],
+      shopDefaultViewMode: 'grid',
+      shopShowViewToggle: true
+    },
     title: title || normalizedSlug || 'page',
     translations: {
       fr: createDefaultCmsPageTranslation(),

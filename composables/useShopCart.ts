@@ -9,6 +9,10 @@ export interface ShopCartItem {
   quantity: number
   rentalStartDate?: string | null
   rentalEndDate?: string | null
+  rentalPricingMode?: 'HOURLY' | 'DAILY' | null
+  rentalBaseUnitPrice?: number | null
+  insuranceSelections?: ShopCartInsuranceSelection[]
+  associatedDocuments?: ShopCartAssociatedDocument[]
   availableQuantity: number | null
   vatRate: number
   paymentTaxCode?: string | null
@@ -17,6 +21,21 @@ export interface ShopCartItem {
   allowOnlinePayment: boolean
   unitPrice: number
   totalPrice: number
+}
+
+export interface ShopCartInsuranceSelection {
+  documentId: number
+  name: string
+  required: boolean
+  unitPrice: number
+}
+
+export interface ShopCartAssociatedDocument {
+  key: string
+  name: string
+  kind: 'pdf' | 'billingDocument'
+  url: string
+  documentId?: number | null
 }
 
 const STORAGE_KEY = 'modula-shop-cart-v1'
@@ -69,6 +88,29 @@ export function useShopCart() {
               quantity: Math.max(1, Number(item?.quantity || 1)),
               rentalStartDate: item?.rentalStartDate?.trim() || null,
               rentalEndDate: item?.rentalEndDate?.trim() || null,
+              rentalPricingMode: item?.rentalPricingMode === 'HOURLY' ? 'HOURLY' : item?.rentalPricingMode === 'DAILY' ? 'DAILY' : null,
+              rentalBaseUnitPrice: item?.rentalBaseUnitPrice == null ? null : Number(item.rentalBaseUnitPrice),
+              insuranceSelections: Array.isArray(item?.insuranceSelections)
+                ? item.insuranceSelections
+                    .map((insurance: any) => ({
+                      documentId: Number(insurance?.documentId || 0),
+                      name: String(insurance?.name || ''),
+                      required: Boolean(insurance?.required),
+                      unitPrice: Number(insurance?.unitPrice || 0),
+                    }))
+                    .filter((insurance: ShopCartInsuranceSelection) => insurance.documentId > 0)
+                : [],
+              associatedDocuments: Array.isArray(item?.associatedDocuments)
+                ? item.associatedDocuments
+                    .map((document: any) => ({
+                      key: String(document?.key || ''),
+                      name: String(document?.name || ''),
+                      kind: document?.kind === 'billingDocument' ? 'billingDocument' as const : 'pdf' as const,
+                      url: String(document?.url || ''),
+                      documentId: document?.documentId == null ? null : Number(document.documentId),
+                    }))
+                    .filter((document: ShopCartAssociatedDocument) => document.key && document.url)
+                : [],
               availableQuantity: item?.availableQuantity == null ? null : Number(item.availableQuantity),
               vatRate: Number(item?.vatRate || 0),
               paymentTaxCode: item?.paymentTaxCode ?? null,
@@ -108,6 +150,10 @@ export function useShopCart() {
       existing.description = item.description ?? null
       existing.rentalStartDate = item.rentalStartDate?.trim() || null
       existing.rentalEndDate = item.rentalEndDate?.trim() || null
+      existing.rentalPricingMode = item.rentalPricingMode ?? null
+      existing.rentalBaseUnitPrice = item.rentalBaseUnitPrice ?? null
+      existing.insuranceSelections = item.insuranceSelections ? item.insuranceSelections.map(entry => ({ ...entry })) : []
+      existing.associatedDocuments = item.associatedDocuments ? item.associatedDocuments.map(entry => ({ ...entry })) : []
       existing.availableQuantity = item.availableQuantity
       existing.vatRate = item.vatRate
       existing.paymentTaxCode = item.paymentTaxCode ?? null

@@ -2,13 +2,13 @@
   <Teleport to="body">
     <div v-if="open" class="fixed inset-0 z-[130]">
       <div class="absolute inset-0 bg-black/20 backdrop-blur-[1px]" @click="$emit('close')" />
-      <div ref="panelRef" class="absolute overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-2xl" :style="panelStyle">
+      <div ref="panelRef" class="modula-modal absolute overflow-hidden border border-base-300 bg-base-100 shadow-2xl" :style="panelStyle">
         <div class="flex cursor-move items-center justify-between gap-3 border-b border-base-300 bg-base-200 px-5 py-4 select-none" @pointerdown="startDrag">
           <div>
             <div class="text-sm opacity-60">Mode edition</div>
             <h3 class="text-xl font-bold">{{ target?.label }}</h3>
           </div>
-          <button type="button" class="btn btn-sm btn-circle btn-ghost" @click="$emit('close')"><span class="iconify i-mdi:close" aria-hidden="true" style="font-size:24px;"></span></button>
+          <button type="button" class="btn btn-sm btn-circle btn-ghost" @click="$emit('close')"><Icon name="mdi:close" size="18" /></button>
         </div>
 
         <div class="overflow-y-auto p-5" :style="bodyStyle">

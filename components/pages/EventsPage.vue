@@ -29,7 +29,7 @@
       {{ publicText('events.list.error', 'Impossible de charger les événements.') }}
       <button type="button" class="btn btn-sm" @click="refresh()">{{ publicText('events.list.retry', 'Réessayer') }}</button>
     </div>
-    <div v-else-if="eventItems.length === 0" class="rounded-3xl border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
+    <div v-else-if="eventItems.length === 0" class="modula-card border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
       {{ publicText('events.list.empty', 'Aucun événement publié pour le moment.') }}
     </div>
 

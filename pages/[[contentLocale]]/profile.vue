@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
     <div class="mx-auto max-w-5xl">
-      <section class="mb-8 overflow-hidden rounded-[2rem] border border-base-300 bg-gradient-to-br from-base-200 via-base-100 to-base-200 shadow-xl">
+      <section class="modula-card mb-8 overflow-hidden border border-base-300 bg-gradient-to-br from-base-200 via-base-100 to-base-200 shadow-xl">
         <div class="grid gap-6 p-6 md:grid-cols-[1.2fr_.8fr] md:p-8">
           <div>
             <div class="badge badge-primary badge-outline mb-4">

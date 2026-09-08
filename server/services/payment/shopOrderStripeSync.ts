@@ -1,5 +1,6 @@
 import type { CmsRegistryPaymentRecord } from '#modula/shared/registry'
 import { db } from '#modula/server/data/client'
+import { parseRentalApprovalLineMeta, requiresManualRentalApproval } from '#modula/server/services/shop/rentalApproval'
 
 type ShopOrderStatus = 'DRAFT' | 'PENDING' | 'CONFIRMED' | 'IN_PREPARATION' | 'READY' | 'IN_DELIVERY' | 'COMPLETED' | 'CANCELLED'
 type ShopPaymentStatus = 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
@@ -25,13 +26,7 @@ export async function syncShopOrderFromRegistryPayment(
 
   const order = await db.shopOrder.findUnique({
     where: { id: orderId },
-    select: {
-      id: true,
-      orderNumber: true,
-      status: true,
-      paymentStatus: true,
-      paymentFailureReason: true,
-    },
+    include: { lines: true },
   })
   if (!order) return null
 
@@ -46,7 +41,13 @@ export async function syncShopOrderFromRegistryPayment(
   }
 
   if (payment.paymentStatus === 'PAID' && order.status !== 'CANCELLED') {
-    data.status = order.status === 'DRAFT' || order.status === 'PENDING' ? 'CONFIRMED' : order.status
+    const lineMetadata: Array<{ saleType?: unknown; rentalApprovalMode?: unknown }> = order.lines
+      .map((line: any) => parseRentalApprovalLineMeta(line.metaJson) || {})
+    const hasRental = lineMetadata.some(line => line.saleType === 'RENTAL')
+    const requiresManualApproval = requiresManualRentalApproval(lineMetadata)
+    data.status = !hasRental && !requiresManualApproval && (order.status === 'DRAFT' || order.status === 'PENDING')
+      ? 'CONFIRMED'
+      : order.status
     data.paidAt = new Date()
   } else if (payment.paymentStatus === 'FAILED') {
     data.status = order.status === 'CANCELLED' ? 'CANCELLED' : 'PENDING'

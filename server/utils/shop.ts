@@ -26,6 +26,12 @@ export interface ProductPayload {
   rentalAvailableTo: string | null
   rentalMinDays: number
   rentalMaxDays: number | null
+  rentalBookingMode: 'SINGLE_DAY' | 'MULTI_DAY' | 'BOTH'
+  rentalApprovalMode: 'AUTO' | 'MANUAL'
+  rentalHourlyPrice: number | null
+  rentalDailyPrice: number | null
+  rentalDurations: number[]
+  rentalSlotStepMinutes: number
   unitLabel: string | null
   unitLabelLocalized: CmsLocalizedText
   allowOfflinePayment: boolean
@@ -150,6 +156,9 @@ export interface ProductDetailField {
   mediaDocumentId: number | null
   mediaDocumentName: string | null
   mediaDocumentKind: BillingDocumentKind | null
+  mediaDocumentRentalHourlyPrice: number | null
+  mediaDocumentRentalDailyPrice: number | null
+  mediaDocumentRequiredForRental: boolean
 }
 
 export interface ProductDetailSection {
@@ -212,6 +221,12 @@ export function serializeProduct(row: any): ProductPayload {
     rentalAvailableTo: row.rentalAvailableTo ? new Date(row.rentalAvailableTo).toISOString() : null,
     rentalMinDays: Math.max(1, Number(row.rentalMinDays || 1)),
     rentalMaxDays: row.rentalMaxDays == null ? null : Math.max(1, Number(row.rentalMaxDays)),
+    rentalBookingMode: row.rentalBookingMode === 'SINGLE_DAY' || row.rentalBookingMode === 'BOTH' ? row.rentalBookingMode : 'MULTI_DAY',
+    rentalApprovalMode: row.rentalApprovalMode === 'MANUAL' ? 'MANUAL' : 'AUTO',
+    rentalHourlyPrice: row.rentalHourlyPrice == null ? null : Number(row.rentalHourlyPrice),
+    rentalDailyPrice: row.rentalDailyPrice == null ? null : Number(row.rentalDailyPrice),
+    rentalDurations: parseRentalDurations(row.rentalDurationsJson),
+    rentalSlotStepMinutes: Math.max(5, Number(row.rentalSlotStepMinutes || 30)),
     unitLabel: resolveNullableLocalizedProductText(unitLabelLocalized, row.unitLabel ?? null),
     unitLabelLocalized,
     allowOfflinePayment: toBoolean(row.allowOfflinePayment),
@@ -221,6 +236,53 @@ export function serializeProduct(row: any): ProductPayload {
     active: toBoolean(row.active),
     position: Number(row.position || 0)
   }
+}
+
+function parseRentalDurations(value: unknown): number[] {
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    return Array.isArray(parsed) ? parsed.map(Number).filter(entry => Number.isInteger(entry) && entry > 0) : [60, 120, 240]
+  } catch {
+    return [60, 120, 240]
+  }
+}
+
+export async function hydrateProductBillingDocumentMetadata(product: ProductPayload) {
+  const ids = Array.from(new Set(
+    product.detailSections
+      .flatMap(section => section.items)
+      .map(item => Number(item.mediaDocumentId || 0))
+      .filter(id => Number.isInteger(id) && id > 0),
+  ))
+  if (!ids.length) return product
+
+  const documents = await db.billingDocumentTemplate.findMany({
+    where: { id: { in: ids }, active: true },
+  })
+  type RentalDocumentMetadata = {
+    name?: string | null
+    kind?: BillingDocumentKind | null
+    rentalHourlyPrice?: number | null
+    rentalDailyPrice?: number | null
+    requiredForRental?: boolean | null
+  }
+  const documentMap = new Map<number, RentalDocumentMetadata>(
+    documents.map((document: any): [number, RentalDocumentMetadata] => [Number(document.id), document]),
+  )
+
+  for (const section of product.detailSections) {
+    for (const item of section.items) {
+      const document = item.mediaDocumentId ? documentMap.get(item.mediaDocumentId) : null
+      if (!document) continue
+      item.mediaDocumentName = String(document.name || item.mediaDocumentName || '') || null
+      item.mediaDocumentKind = document.kind === 'ASSURANCE' ? 'ASSURANCE' : document.kind === 'INVOICE' ? 'INVOICE' : 'CONTRACT'
+      item.mediaDocumentRentalHourlyPrice = document.rentalHourlyPrice == null ? null : Number(document.rentalHourlyPrice)
+      item.mediaDocumentRentalDailyPrice = document.rentalDailyPrice == null ? null : Number(document.rentalDailyPrice)
+      item.mediaDocumentRequiredForRental = Boolean(document.requiredForRental)
+    }
+  }
+
+  return product
 }
 
 export function serializeProductCategory(row: any): ProductCategoryPayload {
@@ -402,7 +464,10 @@ function normalizeProductDetailField(value: unknown): ProductDetailField | null 
     mediaUrl,
     mediaDocumentId,
     mediaDocumentName,
-    mediaDocumentKind
+    mediaDocumentKind,
+    mediaDocumentRentalHourlyPrice: null,
+    mediaDocumentRentalDailyPrice: null,
+    mediaDocumentRequiredForRental: false
   }
 }
 

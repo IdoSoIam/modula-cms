@@ -1,6 +1,6 @@
 <template>
   <section class="mx-auto flex min-h-[70vh] w-full max-w-3xl items-center px-4 py-16 sm:px-6 lg:px-8">
-    <div class="w-full rounded-[2rem] border border-base-300 bg-base-100 p-8 shadow-xl">
+    <div class="modula-card w-full border border-base-300 bg-base-100 p-8 shadow-xl">
       <div class="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-warning/15 text-warning">
         <Icon name="mdi:arrow-u-left-top-bold" size="28" />
       </div>
@@ -10,17 +10,17 @@
         {{ descriptionLabel }}
       </p>
 
-      <div v-if="syncPending" class="mt-6 rounded-2xl border border-base-300 bg-base-200/70 p-4 text-sm">
+      <div v-if="syncPending" class="mt-6 rounded-box border border-base-300 bg-base-200/70 p-4 text-sm">
         <div class="font-medium">{{ pendingTitle }}</div>
         <div class="mt-1 opacity-80">{{ pendingText }}</div>
       </div>
 
-      <div v-else-if="syncError" class="mt-6 rounded-2xl border border-error/30 bg-error/10 p-4 text-sm text-error">
+      <div v-else-if="syncError" class="mt-6 rounded-box border border-error/30 bg-error/10 p-4 text-sm text-error">
         <div class="font-medium">{{ errorTitle }}</div>
         <div class="mt-1 opacity-90">{{ syncError }}</div>
       </div>
 
-      <div v-if="orderId" class="mt-4 rounded-2xl border border-base-300 bg-base-200/70 p-4 text-sm">
+      <div v-if="orderId" class="mt-4 rounded-box border border-base-300 bg-base-200/70 p-4 text-sm">
         <div class="font-medium">{{ orderLabel }}</div>
         <div class="mt-1 opacity-80">#{{ orderId }}</div>
       </div>

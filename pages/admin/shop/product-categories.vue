@@ -65,10 +65,12 @@
             <label class="label"><span class="label-text">{{ t('admin.productCategoriesPage.fieldDescription') }}</span></label>
             <textarea v-model="editing.description" class="textarea textarea-bordered min-h-24" />
           </div>
-          <div class="form-control gap-3 flex flex-col">
-            <label class="label"><span class="label-text">{{ t('admin.productCategoriesPage.fieldPosition') }}</span></label>
-            <input v-model.number="editing.position" type="number" min="0" step="1" class="input input-bordered" />
-          </div>
+          <AdminSortPositionControl
+            v-model="editingPosition"
+            class="md:col-span-2"
+            :label="t('admin.productCategoriesPage.fieldPosition')"
+            :help="t('admin.productCategoriesPage.fieldPositionHelp')"
+          />
           <div class="form-control gap-3 flex flex-col">
             <label class="label cursor-pointer justify-start gap-3">
               <input v-model="editing.active" type="checkbox" class="checkbox" />
@@ -109,6 +111,10 @@ const editing = reactive<Partial<ProductCategoryPayload>>({
   description: '',
   position: 0,
   active: true
+})
+const editingPosition = computed({
+  get: () => Number(editing.position || 0),
+  set: (value: number) => { editing.position = value }
 })
 
 const openNew = () => {

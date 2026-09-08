@@ -25,14 +25,14 @@
 
       <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div class="space-y-6">
-          <div v-if="translation.excerpt" class="rounded-[2rem] border border-base-300 bg-base-200 p-6">
+          <div v-if="translation.excerpt" class="modula-card border border-base-300 bg-base-200 p-6">
             <p class="leading-7">{{ translation.excerpt }}</p>
           </div>
           <PageRenderer :content="translation.content" :locale="locale" :editable="liveEditEnabled" @edit="openLiveEditor" />
         </div>
 
         <aside class="space-y-4">
-          <section class="rounded-[2rem] border border-base-300 bg-base-200 p-6">
+          <section class="modula-card border border-base-300 bg-base-200 p-6">
             <h2 class="text-xl font-semibold">{{ publicText('events.detail.infoTitle', 'Informations pratiques') }}</h2>
             <dl class="mt-4 space-y-3 text-sm">
               <div>
@@ -54,7 +54,7 @@
             </dl>
           </section>
 
-          <section v-if="displayEvent.publicReservationEnabled" class="rounded-[2rem] border border-base-300 bg-base-100 p-6">
+          <section v-if="displayEvent.publicReservationEnabled" class="modula-card border border-base-300 bg-base-100 p-6">
             <h2 class="text-xl font-semibold">{{ publicReservationLabel }}</h2>
             <div class="mt-4 space-y-3">
               <input v-model="reservationForm.customerName" class="input input-bordered w-full" :placeholder="publicText('events.detail.fullNamePlaceholder', 'Nom complet')" />
@@ -69,7 +69,7 @@
             </div>
           </section>
 
-          <section v-if="showParticipationForm" class="rounded-[2rem] border border-base-300 bg-base-100 p-6">
+          <section v-if="showParticipationForm" class="modula-card border border-base-300 bg-base-100 p-6">
             <h2 class="text-xl font-semibold">{{ internalParticipationLabel }}</h2>
             <PageEditable
               v-if="participationInfo"

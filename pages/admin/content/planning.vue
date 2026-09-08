@@ -19,7 +19,13 @@
       :day-names="calendar.dayNames"
       today-label="Mois en cours"
       month-picker-label="Choisir un mois"
+      previous-month-label="Mois précédent"
+      next-month-label="Mois suivant"
       :item-class="calendarItemClass"
+      :item-indicator-class="calendarItemIndicatorClass"
+      :mobile-day-label="calendarMobileDayLabel"
+      :day-aria-label="calendarMobileDayLabel"
+      mobile-day-action-label="Nouvelle permanence"
       :item-title="calendarItemTitle"
       :item-subtitle="calendarItemSubtitle"
       :item-meta="calendarItemMeta"
@@ -639,6 +645,14 @@ function changeCalendarDayPage(day: { iso: string }, page: number) {
 const calendarItemClass = (item: any) => item.kind === 'PERMANENCE'
   ? (item.status === 'CANCELLED' ? 'bg-warning text-warning-content shadow-sm' : 'bg-secondary text-secondary-content shadow-sm')
   : (item.status === 'DRAFT' ? 'bg-neutral text-neutral-content shadow-sm' : 'bg-primary text-primary-content shadow-sm')
+const calendarItemIndicatorClass = (item: any) => item.kind === 'PERMANENCE'
+  ? (item.status === 'CANCELLED' ? 'bg-warning' : 'bg-secondary')
+  : (item.status === 'DRAFT' ? 'bg-neutral' : 'bg-primary')
+const calendarMobileDayLabel = (day: { iso: string }) => new Intl.DateTimeFormat('fr-FR', {
+  weekday: 'long',
+  day: '2-digit',
+  month: 'long'
+}).format(new Date(`${day.iso}T12:00:00`))
 const calendarItemTitle = (item: any) => item.title
 const calendarItemSubtitle = (item: any) => [item.kind === 'PERMANENCE' ? 'Permanence' : 'Événement', item.placeName, item.placeCity].filter(Boolean).join(' • ')
 const calendarItemMeta = (item: any) => new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(new Date(item.startsAt))

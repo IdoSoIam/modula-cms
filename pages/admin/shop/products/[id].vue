@@ -65,7 +65,7 @@
                   <option value="RENTAL">{{ t('admin.productsPage.saleTypeRental') }}</option>
                 </select>
               </div>
-              <div class="form-control flex flex-col gap-3">
+              <div v-if="editing.saleType !== 'RENTAL'" class="form-control flex flex-col gap-3">
                 <AdminPageBuilderTranslationTabs v-model="editing.unitLabelLocalized" :label="t('admin.productsPage.fieldUnit')" />
               </div>
               <div class="form-control flex flex-col gap-3 md:col-span-2">
@@ -93,7 +93,7 @@
           <section class="card bg-base-100 p-6 shadow-sm">
             <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.commerceCard') }}</h2>
             <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div class="form-control flex flex-col gap-3">
+              <div v-if="editing.saleType !== 'RENTAL'" class="form-control flex flex-col gap-3">
                 <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldPrice') }}</span></label>
                 <input v-model.number="editing.price" type="number" min="0" step="0.01" class="input input-bordered" />
               </div>
@@ -105,19 +105,21 @@
                 <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldAvailable') }}</span></label>
                 <input v-model.number="editing.stock" type="number" min="0" step="1" class="input input-bordered" />
               </div>
-              <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldPosition') }}</span></label>
-                <input v-model.number="editing.position" type="number" min="0" step="1" class="input input-bordered" />
-              </div>
-              <div class="form-control flex gap-3">
+              <div class="form-control flex gap-3 md:col-span-2">
+                <div class="flex flex-wrap gap-x-6 gap-y-2">
                 <label class="label cursor-pointer justify-start gap-3">
                   <input v-model="editing.allowOfflinePayment" type="checkbox" class="checkbox" />
                   <span class="label-text">{{ t('admin.productsPage.paymentOffline') }}</span>
                 </label>
                 <label class="label cursor-pointer justify-start gap-3">
-                  <input v-model="editing.allowOnlinePayment" type="checkbox" class="checkbox" />
+                  <input v-model="editing.allowOnlinePayment" type="checkbox" class="checkbox" :disabled="!onlinePaymentAvailable" />
                   <span class="label-text">{{ t('admin.productsPage.paymentOnline') }}</span>
                 </label>
+                </div>
+                <div v-if="!onlinePaymentAvailable" class="alert alert-warning mt-2 py-3 text-sm">
+                  <Icon name="mdi:information-outline" size="20" class="shrink-0" />
+                  {{ t('admin.productsPage.paymentOnlineUnavailable') }}
+                </div>
               </div>
               <div class="form-control flex gap-3">
                 <label class="label cursor-pointer justify-start gap-3">
@@ -146,6 +148,30 @@
           <section v-if="editing.saleType === 'RENTAL'" class="card bg-base-100 p-6 shadow-sm">
             <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.rentalCard') }}</h2>
             <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label class="form-control gap-2 md:col-span-2">
+                <span class="label-text">{{ t('admin.productsPage.rentalBookingMode') }}</span>
+                <select v-model="editing.rentalBookingMode" class="select select-bordered w-full">
+                  <option value="SINGLE_DAY">{{ t('admin.productsPage.rentalModeSingleDay') }}</option>
+                  <option value="MULTI_DAY">{{ t('admin.productsPage.rentalModeMultiDay') }}</option>
+                  <option value="BOTH">{{ t('admin.productsPage.rentalModeBoth') }}</option>
+                </select>
+              </label>
+              <label class="form-control gap-2 md:col-span-2">
+                <span class="label-text">{{ t('admin.productsPage.rentalApprovalMode') }}</span>
+                <select v-model="editing.rentalApprovalMode" class="select select-bordered w-full">
+                  <option value="AUTO">{{ t('admin.productsPage.rentalApprovalAuto') }}</option>
+                  <option value="MANUAL">{{ t('admin.productsPage.rentalApprovalManual') }}</option>
+                </select>
+                <span class="text-xs opacity-60">{{ t('admin.productsPage.rentalApprovalHelp') }}</span>
+              </label>
+              <label v-if="editing.rentalBookingMode !== 'MULTI_DAY'" class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productsPage.rentalHourlyPrice') }}</span>
+                <input v-model.number="editing.rentalHourlyPrice" type="number" min="0" step="0.01" class="input input-bordered w-full" />
+              </label>
+              <label v-if="editing.rentalBookingMode !== 'SINGLE_DAY'" class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productsPage.rentalDailyPrice') }}</span>
+                <input v-model.number="editing.rentalDailyPrice" type="number" min="0" step="0.01" class="input input-bordered w-full" />
+              </label>
               <div class="form-control flex flex-col gap-3">
                 <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldRentalAvailableFrom') }}</span></label>
                 <input v-model="editing.rentalAvailableFrom" type="date" class="input input-bordered" />
@@ -154,14 +180,23 @@
                 <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldRentalAvailableTo') }}</span></label>
                 <input v-model="editing.rentalAvailableTo" type="date" class="input input-bordered" />
               </div>
-              <div class="form-control flex flex-col gap-3">
+              <div v-if="editing.rentalBookingMode !== 'SINGLE_DAY'" class="form-control flex flex-col gap-3">
                 <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldRentalMinDays') }}</span></label>
                 <input v-model.number="editing.rentalMinDays" type="number" min="1" step="1" class="input input-bordered" />
               </div>
-              <div class="form-control flex flex-col gap-3">
+              <div v-if="editing.rentalBookingMode !== 'SINGLE_DAY'" class="form-control flex flex-col gap-3">
                 <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldRentalMaxDays') }}</span></label>
                 <input v-model.number="editing.rentalMaxDays" type="number" min="1" step="1" class="input input-bordered" />
               </div>
+              <label v-if="editing.rentalBookingMode !== 'MULTI_DAY'" class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productsPage.rentalDurations') }}</span>
+                <input v-model="rentalDurationsInput" class="input input-bordered w-full" placeholder="60, 120, 240" />
+                <span class="text-xs opacity-60">{{ t('admin.productsPage.rentalDurationsHelp') }}</span>
+              </label>
+              <label v-if="editing.rentalBookingMode !== 'MULTI_DAY'" class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productsPage.rentalSlotStep') }}</span>
+                <input v-model.number="editing.rentalSlotStepMinutes" type="number" min="5" max="240" step="5" class="input input-bordered w-full" />
+              </label>
               <div class="md:col-span-2 text-sm opacity-70">
                 {{ t('admin.productsPage.rentalHelp') }}
               </div>
@@ -291,6 +326,11 @@
               </div>
             </dl>
           </section>
+          <AdminSortPositionControl
+            v-model="editing.position"
+            :label="t('admin.productsPage.fieldPosition')"
+            :help="t('admin.productsPage.fieldPositionHelp')"
+          />
         </aside>
       </div>
     </template>
@@ -338,6 +378,12 @@ interface ProductEditorState {
   rentalAvailableTo: string
   rentalMinDays: number
   rentalMaxDays: number | null
+  rentalBookingMode: 'SINGLE_DAY' | 'MULTI_DAY' | 'BOTH'
+  rentalApprovalMode: 'AUTO' | 'MANUAL'
+  rentalHourlyPrice: number | null
+  rentalDailyPrice: number | null
+  rentalDurations: number[]
+  rentalSlotStepMinutes: number
   unitLabelLocalized: CmsLocalizedText
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
@@ -365,13 +411,28 @@ const deleting = ref(false)
 const { data: categories } = await useFetch<ProductCategory[]>('/api/admin/product-categories')
 const { data: settingsData } = await useFetch<{ shopDefaultVatRate: number }>('/api/admin/settings')
 const { data: billingDocumentsData } = await useFetch<BillingDocumentOption[]>('/api/admin/billing-documents')
+const { data: paymentConfigData } = await useFetch<{
+  onlinePaymentsEnabled: boolean
+  onlinePayments: { provider: 'none' | 'stripe_connect', configured: boolean }
+}>('/api/admin/payments/config')
 
 const defaultVatRate = computed(() => Number(settingsData.value?.shopDefaultVatRate ?? 20))
+const onlinePaymentAvailable = computed(() => Boolean(
+  paymentConfigData.value?.onlinePaymentsEnabled
+  && paymentConfigData.value.onlinePayments?.configured
+  && paymentConfigData.value.onlinePayments.provider === 'stripe_connect'
+))
 const availableBillingDocuments = computed(() =>
   (billingDocumentsData.value || []).filter((entry) => entry.kind === 'CONTRACT' || entry.kind === 'ASSURANCE')
 )
 
 const editing = reactive<ProductEditorState>(createEmptyEditorState(defaultVatRate.value, t, editorLocales.value))
+const rentalDurationsInput = computed({
+  get: () => editing.rentalDurations.join(', '),
+  set: (value: string) => {
+    editing.rentalDurations = value.split(',').map(Number).filter(entry => Number.isInteger(entry) && entry > 0)
+  }
+})
 const localizedName = computed(() => pickCmsLocalizedText(locale.value, editing.nameLocalized) || editing.slug || '')
 
 const previewPath = computed(() => {
@@ -384,6 +445,10 @@ watch(defaultVatRate, (value) => {
     editing.vatRate = value
   }
 })
+
+watch([paymentConfigData, onlinePaymentAvailable], ([config, available]) => {
+  if (config && !available) editing.allowOnlinePayment = false
+}, { immediate: true })
 
 watch(() => routeId.value, async () => {
   await loadProduct()
@@ -452,13 +517,21 @@ async function save() {
       excerptLocalized: editing.excerptLocalized,
       descriptionLocalized: editing.descriptionLocalized,
       imageUrl: editing.imageUrl,
-      price: editing.price,
+      price: editing.saleType === 'RENTAL'
+        ? Number(editing.rentalDailyPrice ?? editing.rentalHourlyPrice ?? editing.price ?? 0)
+        : editing.price,
       vatRate: editing.vatRate,
       stock: editing.stock,
       rentalAvailableFrom: editing.saleType === 'RENTAL' ? normalizeDateValue(editing.rentalAvailableFrom) : null,
       rentalAvailableTo: editing.saleType === 'RENTAL' ? normalizeDateValue(editing.rentalAvailableTo) : null,
       rentalMinDays: editing.saleType === 'RENTAL' ? Number(editing.rentalMinDays || 1) : 1,
       rentalMaxDays: editing.saleType === 'RENTAL' ? normalizeNullableNumber(editing.rentalMaxDays) : null,
+      rentalBookingMode: editing.rentalBookingMode,
+      rentalApprovalMode: editing.rentalApprovalMode,
+      rentalHourlyPrice: editing.rentalHourlyPrice,
+      rentalDailyPrice: editing.rentalDailyPrice,
+      rentalDurations: editing.rentalDurations,
+      rentalSlotStepMinutes: editing.rentalSlotStepMinutes,
       unitLabelLocalized: editing.unitLabelLocalized,
       allowOfflinePayment: editing.allowOfflinePayment,
       allowOnlinePayment: editing.allowOnlinePayment,
@@ -521,6 +594,12 @@ function createEmptyEditorState(vatRate: number, translate: (key: string) => str
     rentalAvailableTo: '',
     rentalMinDays: 1,
     rentalMaxDays: null,
+    rentalBookingMode: 'MULTI_DAY',
+    rentalApprovalMode: 'AUTO',
+    rentalHourlyPrice: null,
+    rentalDailyPrice: null,
+    rentalDurations: [60, 120, 240],
+    rentalSlotStepMinutes: 30,
     unitLabelLocalized: createEmptyCmsLocalizedText(locales),
     allowOfflinePayment: true,
     allowOnlinePayment: false,
@@ -553,6 +632,12 @@ function mapProductToEditor(product: ProductPayload): ProductEditorState {
     rentalAvailableTo: toDateInputValue(product.rentalAvailableTo),
     rentalMinDays: product.rentalMinDays || 1,
     rentalMaxDays: product.rentalMaxDays ?? null,
+    rentalBookingMode: product.rentalBookingMode,
+    rentalApprovalMode: product.rentalApprovalMode,
+    rentalHourlyPrice: product.rentalHourlyPrice ?? (product.rentalBookingMode === 'SINGLE_DAY' ? product.price : null),
+    rentalDailyPrice: product.rentalDailyPrice ?? (product.rentalBookingMode === 'MULTI_DAY' ? product.price : null),
+    rentalDurations: [...product.rentalDurations],
+    rentalSlotStepMinutes: product.rentalSlotStepMinutes,
     unitLabelLocalized: structuredClone(product.unitLabelLocalized),
     allowOfflinePayment: product.allowOfflinePayment,
     allowOnlinePayment: product.allowOnlinePayment,
@@ -560,7 +645,7 @@ function mapProductToEditor(product: ProductPayload): ProductEditorState {
     allowRefundRequestAfterEngagement: product.allowRefundRequestAfterEngagement,
     active: product.active,
     position: product.position,
-    detailSections: Array.isArray(product.detailSections) && product.detailSections.length
+    detailSections: Array.isArray(product.detailSections)
       ? product.detailSections.map((section) => ({
           id: section.id,
           title: section.title,
@@ -575,14 +660,13 @@ function mapProductToEditor(product: ProductPayload): ProductEditorState {
             mediaUrl: item.mediaUrl ?? null,
             mediaDocumentId: item.mediaDocumentId ?? null,
             mediaDocumentName: item.mediaDocumentName ?? null,
-            mediaDocumentKind: item.mediaDocumentKind ?? null
+            mediaDocumentKind: item.mediaDocumentKind ?? null,
+            mediaDocumentRentalHourlyPrice: item.mediaDocumentRentalHourlyPrice ?? null,
+            mediaDocumentRentalDailyPrice: item.mediaDocumentRentalDailyPrice ?? null,
+            mediaDocumentRequiredForRental: item.mediaDocumentRequiredForRental ?? false
           }))
         }))
-      : [
-          createDetailSection(t('admin.productEditorPage.defaultSectionGeneral'), editorLocales.value),
-          createDetailSection(t('admin.productEditorPage.defaultSectionTechnical'), editorLocales.value),
-          createDetailSection(t('admin.productEditorPage.defaultSectionPractical'), editorLocales.value)
-        ]
+      : []
   }
 }
 
@@ -607,7 +691,10 @@ function createDetailField(locales: string[]): ProductDetailField {
     mediaUrl: null,
     mediaDocumentId: null,
     mediaDocumentName: null,
-    mediaDocumentKind: null
+    mediaDocumentKind: null,
+    mediaDocumentRentalHourlyPrice: null,
+    mediaDocumentRentalDailyPrice: null,
+    mediaDocumentRequiredForRental: false
   }
 }
 

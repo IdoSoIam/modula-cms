@@ -10,6 +10,7 @@ import {
 } from '#modula/server/utils/shop'
 import { normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate } from '#modula/server/utils/settings'
 import { normalizeRentalConfig } from '#modula/server/services/shop/rentalConfig'
+import { isStripeConfigured } from '#modula/server/services/payment/paymentService'
 import type { CmsLocalizedText } from '#modula/shared/cms'
 
 interface Body {
@@ -33,6 +34,12 @@ interface Body {
   rentalAvailableTo?: string | null
   rentalMinDays?: number | null
   rentalMaxDays?: number | null
+  rentalBookingMode?: 'SINGLE_DAY' | 'MULTI_DAY' | 'BOTH'
+  rentalApprovalMode?: 'AUTO' | 'MANUAL'
+  rentalHourlyPrice?: number | null
+  rentalDailyPrice?: number | null
+  rentalDurations?: number[]
+  rentalSlotStepMinutes?: number
   unitLabel?: string | null
   unitLabelLocalized?: CmsLocalizedText | null
   allowOfflinePayment?: boolean
@@ -64,7 +71,10 @@ export default defineEventHandler(async (event) => {
     rentalAvailableFrom: nextSaleType === 'RENTAL' ? (body.rentalAvailableFrom ?? existing.rentalAvailableFrom) : null,
     rentalAvailableTo: nextSaleType === 'RENTAL' ? (body.rentalAvailableTo ?? existing.rentalAvailableTo) : null,
     rentalMinDays: nextSaleType === 'RENTAL' ? (body.rentalMinDays ?? existing.rentalMinDays) : 1,
-    rentalMaxDays: nextSaleType === 'RENTAL' ? (body.rentalMaxDays ?? existing.rentalMaxDays) : null
+    rentalMaxDays: nextSaleType === 'RENTAL' ? (body.rentalMaxDays ?? existing.rentalMaxDays) : null,
+    rentalBookingMode: nextSaleType === 'RENTAL' ? (body.rentalBookingMode ?? existing.rentalBookingMode) : 'MULTI_DAY',
+    rentalDurations: nextSaleType === 'RENTAL' ? (body.rentalDurations ?? existing.rentalDurationsJson) : [60, 120, 240],
+    rentalSlotStepMinutes: nextSaleType === 'RENTAL' ? (body.rentalSlotStepMinutes ?? existing.rentalSlotStepMinutes) : 30
   })
 
   if (body.name !== undefined || body.nameLocalized !== undefined) {
@@ -93,6 +103,12 @@ export default defineEventHandler(async (event) => {
   if (body.categoryId !== undefined) data.categoryId = body.categoryId == null || Number(body.categoryId) <= 0 ? null : Number(body.categoryId)
   const effectiveAllowOfflinePayment = body.allowOfflinePayment !== undefined ? Boolean(body.allowOfflinePayment) : Boolean(existing.allowOfflinePayment)
   const effectiveAllowOnlinePayment = body.allowOnlinePayment !== undefined ? Boolean(body.allowOnlinePayment) : Boolean(existing.allowOnlinePayment)
+  if (body.allowOnlinePayment === true && !(await isStripeConfigured())) {
+    throw createError({
+      statusCode: 400,
+      message: 'Le paiement en ligne doit être configuré et activé avant de pouvoir être autorisé sur un produit',
+    })
+  }
   if (!effectiveAllowOfflinePayment && !effectiveAllowOnlinePayment) {
     throw createError({ statusCode: 400, statusMessage: 'Au moins un mode de paiement doit être activé' })
   }
@@ -132,15 +148,29 @@ export default defineEventHandler(async (event) => {
     data.stock = stock
   }
   if (nextSaleType === 'RENTAL') {
-    if (body.rentalAvailableFrom !== undefined || body.saleType !== undefined) data.rentalAvailableFrom = rentalConfig.rentalAvailableFrom
-    if (body.rentalAvailableTo !== undefined || body.saleType !== undefined) data.rentalAvailableTo = rentalConfig.rentalAvailableTo
-    if (body.rentalMinDays !== undefined || body.saleType !== undefined) data.rentalMinDays = rentalConfig.rentalMinDays
-    if (body.rentalMaxDays !== undefined || body.saleType !== undefined) data.rentalMaxDays = rentalConfig.rentalMaxDays
-  } else if (body.saleType !== undefined) {
-    data.rentalAvailableFrom = null
-    data.rentalAvailableTo = null
-    data.rentalMinDays = 1
-    data.rentalMaxDays = null
+    if (body.rentalAvailableFrom !== undefined) data.rentalAvailableFrom = rentalConfig.rentalAvailableFrom
+    if (body.rentalAvailableTo !== undefined) data.rentalAvailableTo = rentalConfig.rentalAvailableTo
+    if (body.rentalMinDays !== undefined) data.rentalMinDays = rentalConfig.rentalMinDays
+    if (body.rentalMaxDays !== undefined) data.rentalMaxDays = rentalConfig.rentalMaxDays
+    if (body.rentalBookingMode !== undefined) data.rentalBookingMode = rentalConfig.rentalBookingMode
+    if (body.rentalApprovalMode !== undefined) data.rentalApprovalMode = body.rentalApprovalMode === 'MANUAL' ? 'MANUAL' : 'AUTO'
+    if (body.rentalHourlyPrice !== undefined) data.rentalHourlyPrice = normalizeOptionalPrice(body.rentalHourlyPrice)
+    if (body.rentalDailyPrice !== undefined) data.rentalDailyPrice = normalizeOptionalPrice(body.rentalDailyPrice)
+    if (body.rentalDurations !== undefined) data.rentalDurationsJson = JSON.stringify(rentalConfig.rentalDurations)
+    if (body.rentalSlotStepMinutes !== undefined) data.rentalSlotStepMinutes = rentalConfig.rentalSlotStepMinutes
+
+    const hourlyPrice = body.rentalHourlyPrice !== undefined
+      ? normalizeOptionalPrice(body.rentalHourlyPrice)
+      : existing.rentalHourlyPrice ?? (existing.rentalBookingMode === 'SINGLE_DAY' ? existing.price : null)
+    const dailyPrice = body.rentalDailyPrice !== undefined
+      ? normalizeOptionalPrice(body.rentalDailyPrice)
+      : existing.rentalDailyPrice ?? (existing.rentalBookingMode === 'MULTI_DAY' ? existing.price : null)
+    if (rentalConfig.rentalBookingMode !== 'MULTI_DAY' && hourlyPrice == null) {
+      throw createError({ statusCode: 400, message: 'Le tarif horaire est requis' })
+    }
+    if (rentalConfig.rentalBookingMode !== 'SINGLE_DAY' && dailyPrice == null) {
+      throw createError({ statusCode: 400, message: 'Le tarif journalier est requis' })
+    }
   }
 
   if (body.slug !== undefined || body.name !== undefined) {
@@ -160,3 +190,12 @@ export default defineEventHandler(async (event) => {
 
   return serializeProduct(row)
 })
+
+function normalizeOptionalPrice(value: unknown) {
+  if (value == null || value === '') return null
+  const price = Number(value)
+  if (!Number.isFinite(price) || price < 0) {
+    throw createError({ statusCode: 400, message: 'Tarif de location invalide' })
+  }
+  return price
+}
