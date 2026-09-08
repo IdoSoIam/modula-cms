@@ -95,13 +95,20 @@
                   <dt class="font-medium">{{ rentalAvailabilityLabel }}</dt>
                   <dd class="text-right opacity-75">{{ rentalAvailabilitySummary }}</dd>
                 </div>
-                <div class="flex items-start justify-between gap-4">
-                  <dt class="font-medium">{{ rentalMinLabel }}</dt>
-                  <dd class="text-right opacity-75">{{ rentalMinSummary }}</dd>
+                <div v-if="product.rentalBookingMode !== 'MULTI_DAY'" class="flex items-start justify-between gap-4">
+                  <dt class="font-medium">{{ hourlyDurationsLabel }}</dt>
+                  <dd class="text-right opacity-75">{{ hourlyDurationsSummary }}</dd>
                 </div>
-                <div class="flex items-start justify-between gap-4">
-                  <dt class="font-medium">{{ rentalMaxLabel }}</dt>
-                  <dd class="text-right opacity-75">{{ rentalMaxSummary }}</dd>
+                <div v-if="product.rentalBookingMode !== 'SINGLE_DAY'" class="flex items-start justify-between gap-4">
+                  <dt class="font-medium">{{ dailyDurationLabel }}</dt>
+                  <dd class="text-right opacity-75">{{ rentalMinSummary }} → {{ rentalMaxSummary }}</dd>
+                </div>
+                <div v-if="rentalDepositAmount > 0" class="flex items-start justify-between gap-4 border-t border-base-300 pt-4">
+                  <dt class="font-medium">{{ depositLabel }}</dt>
+                  <dd class="text-right">
+                    <span class="block font-medium">{{ $formatPrice(rentalDepositAmount) }}</span>
+                    <span class="text-xs opacity-65">{{ depositPaymentModesSummary }}</span>
+                  </dd>
                 </div>
               </dl>
             </section>
@@ -231,17 +238,74 @@
                       <span class="ml-2 badge badge-sm" :class="insurance.required ? 'badge-primary' : 'badge-ghost'">
                         {{ insurance.required ? requiredLabel : optionalLabel }}
                       </span>
-                      <span class="block opacity-70">{{ $formatPrice(insurance.unitPrice) }}</span>
+                      <span v-if="selectedRentalStartDate" class="block opacity-70">{{ $formatPrice(insurance.unitPrice) }}</span>
+                      <span v-else class="block text-xs opacity-60">{{ selectPeriodForPriceLabel }}</span>
                     </span>
                     <a :href="insurance.previewUrl" target="_blank" rel="noopener noreferrer" class="link text-xs" @click.stop>
                       {{ viewDocumentLabel }}
                     </a>
                   </label>
                 </div>
+                <div v-for="group in publicOptionGroups" :key="group.id" class="space-y-3 rounded-box border border-base-300 p-4">
+                  <div>
+                    <div class="font-medium">{{ localizedOptionGroupTitle(group) }}</div>
+                    <div v-if="localizedOptionGroupDescription(group)" class="text-xs opacity-65">{{ localizedOptionGroupDescription(group) }}</div>
+                    <div v-if="group.required" class="mt-1 text-xs text-primary">{{ requiredLabel }}</div>
+                  </div>
+                  <label v-if="group.selectionMode === 'SINGLE' && !group.required && group.minSelections === 0" class="flex cursor-pointer items-center gap-3 border-t border-base-300 pt-3">
+                    <input
+                      type="radio"
+                      :name="`option-group-${group.id}`"
+                      class="radio radio-sm"
+                      :checked="isProductOptionGroupEmpty(group)"
+                      @change="clearProductOptionGroup(group)"
+                    />
+                    <span class="text-sm opacity-70">{{ noOptionLabel }}</span>
+                  </label>
+                  <div v-for="option in group.options" :key="option.id" class="border-t border-base-300 pt-3 first:border-0 first:pt-0">
+                    <label class="flex cursor-pointer items-start gap-3">
+                      <input
+                        :type="group.selectionMode === 'SINGLE' ? 'radio' : 'checkbox'"
+                        :name="`option-group-${group.id}`"
+                        class="mt-0.5"
+                        :class="group.selectionMode === 'SINGLE' ? 'radio radio-sm' : 'checkbox checkbox-sm'"
+                        :checked="isProductOptionSelected(option.id)"
+                        :disabled="!isProductOptionAvailable(option)"
+                        @change="toggleProductOption(group, option)"
+                      />
+                      <span class="min-w-0 flex-1 text-sm">
+                        <span class="font-medium">{{ localizedOptionLabel(option) }}</span>
+                        <span v-if="localizedOptionDescription(option)" class="block opacity-65">{{ localizedOptionDescription(option) }}</span>
+                        <span class="block text-primary">{{ productOptionPriceLabel(option) }}</span>
+                      </span>
+                      <a
+                        v-if="option.billingDocumentId"
+                        :href="buildBillingDocumentPreviewUrl(option.billingDocumentId)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="link text-xs"
+                        @click.stop
+                      >{{ viewDocumentLabel }}</a>
+                    </label>
+                    <div v-if="isProductOptionSelected(option.id) && option.quantityEditable" class="mt-2 flex items-center justify-end gap-2">
+                      <button type="button" class="btn btn-square btn-xs" :disabled="selectedProductOptionQuantity(option) <= option.minQuantity" @click="changeProductOptionQuantity(option, -1)">
+                        <Icon name="mdi:minus" size="14" />
+                      </button>
+                      <span class="min-w-8 text-center text-sm">{{ selectedProductOptionQuantity(option) }}</span>
+                      <button type="button" class="btn btn-square btn-xs" :disabled="option.maxQuantity != null && selectedProductOptionQuantity(option) >= option.maxQuantity" @click="changeProductOptionQuantity(option, 1)">
+                        <Icon name="mdi:plus" size="14" />
+                      </button>
+                    </div>
+                  </div>
+                  <p v-if="!isProductOptionGroupValid(group)" class="text-xs text-error">{{ optionRequiredLabel }}</p>
+                </div>
                 <dl v-if="selectedRentalStartDate" class="space-y-2 border-t border-base-300 pt-4 text-sm">
                   <div class="flex justify-between gap-4"><dt>{{ rentalBasePriceLabel }}</dt><dd>{{ $formatPrice(selectedRentalPrice * quantity) }}</dd></div>
                   <div v-for="insurance in selectedRentalInsurances" :key="insurance.documentId" class="flex justify-between gap-4">
                     <dt>{{ insurance.name }}</dt><dd>{{ $formatPrice(insurance.unitPrice * quantity) }}</dd>
+                  </div>
+                  <div v-for="option in selectedProductOptions" :key="option.optionId" class="flex justify-between gap-4">
+                    <dt>{{ option.label }} × {{ option.quantity }}</dt><dd>{{ $formatPrice(option.totalPrice) }}</dd>
                   </div>
                   <div class="flex justify-between gap-4 border-t border-base-300 pt-2"><dt>{{ totalExclTaxLabel }}</dt><dd>{{ $formatPrice(selectedRentalTotalExclTax) }}</dd></div>
                   <div v-if="selectedRentalVatAmount > 0" class="flex justify-between gap-4 opacity-75">
@@ -250,17 +314,57 @@
                   <div v-else class="flex justify-between gap-4 opacity-70"><dt>{{ vatNotApplicableLabel }}</dt><dd>{{ $formatPrice(0) }}</dd></div>
                   <div class="flex justify-between gap-4 border-t border-base-300 pt-2 font-semibold"><dt>{{ totalInclTaxLabel }}</dt><dd>{{ $formatPrice(selectedRentalTotalInclTax) }}</dd></div>
                 </dl>
+                <div v-if="rentalDepositAmount > 0" class="rounded-box border border-info/30 bg-info/5 p-4 text-sm">
+                  <div class="flex justify-between gap-4 font-medium"><span>{{ depositLabel }}</span><span>{{ $formatPrice(rentalDepositAmount * quantity) }}</span></div>
+                  <div class="mt-1 text-xs opacity-70">{{ depositPaymentLabel }} : {{ depositPaymentModesSummary }}</div>
+                </div>
                 <button class="btn btn-outline w-full" :disabled="product.stock <= 0" @click="rentalModalOpen = true">
                   {{ chooseRentalPeriodLabel }}
                 </button>
                 <button class="btn btn-primary w-full" :disabled="!canAddRentalToCart" @click="addRentalToCart">
-                  {{ addRentalLabel }}
+                  {{ isEditingCartItem ? updateCartLabel : addRentalLabel }}
                 </button>
               </template>
 
               <template v-else>
-                <button class="btn btn-primary w-full" :disabled="product.stock <= 0" @click="addSaleToCart">
-                  {{ product.stock > 0 ? addToCartLabel : soldOutLabel }}
+                <div v-for="group in publicOptionGroups" :key="group.id" class="space-y-3 rounded-box border border-base-300 p-4">
+                  <div class="font-medium">{{ localizedOptionGroupTitle(group) }}</div>
+                  <label v-if="group.selectionMode === 'SINGLE' && !group.required && group.minSelections === 0" class="flex cursor-pointer items-center gap-3 border-t border-base-300 pt-3">
+                    <input
+                      type="radio"
+                      :name="`option-group-${group.id}`"
+                      class="radio radio-sm"
+                      :checked="isProductOptionGroupEmpty(group)"
+                      @change="clearProductOptionGroup(group)"
+                    />
+                    <span class="text-sm opacity-70">{{ noOptionLabel }}</span>
+                  </label>
+                  <div v-for="option in group.options" :key="option.id" class="border-t border-base-300 pt-3 first:border-0 first:pt-0">
+                    <label class="flex cursor-pointer items-start gap-3">
+                      <input
+                        :type="group.selectionMode === 'SINGLE' ? 'radio' : 'checkbox'"
+                        :name="`option-group-${group.id}`"
+                        class="mt-0.5"
+                        :class="group.selectionMode === 'SINGLE' ? 'radio radio-sm' : 'checkbox checkbox-sm'"
+                        :checked="isProductOptionSelected(option.id)"
+                        :disabled="!isProductOptionAvailable(option)"
+                        @change="toggleProductOption(group, option)"
+                      />
+                      <span class="min-w-0 flex-1 text-sm">
+                        <span class="font-medium">{{ localizedOptionLabel(option) }}</span>
+                        <span class="block text-primary">{{ productOptionPriceLabel(option) }}</span>
+                      </span>
+                    </label>
+                    <div v-if="isProductOptionSelected(option.id) && option.quantityEditable" class="mt-2 flex items-center justify-end gap-2">
+                      <button type="button" class="btn btn-square btn-xs" :disabled="selectedProductOptionQuantity(option) <= option.minQuantity" @click="changeProductOptionQuantity(option, -1)"><Icon name="mdi:minus" size="14" /></button>
+                      <span class="min-w-8 text-center text-sm">{{ selectedProductOptionQuantity(option) }}</span>
+                      <button type="button" class="btn btn-square btn-xs" :disabled="option.maxQuantity != null && selectedProductOptionQuantity(option) >= option.maxQuantity" @click="changeProductOptionQuantity(option, 1)"><Icon name="mdi:plus" size="14" /></button>
+                    </div>
+                  </div>
+                  <p v-if="!isProductOptionGroupValid(group)" class="text-xs text-error">{{ optionRequiredLabel }}</p>
+                </div>
+                <button class="btn btn-primary w-full" :disabled="product.stock <= 0 || !publicOptionGroups.every(isProductOptionGroupValid)" @click="addSaleToCart">
+                  {{ product.stock > 0 ? (isEditingCartItem ? updateCartLabel : addToCartLabel) : soldOutLabel }}
                 </button>
               </template>
 
@@ -279,6 +383,9 @@
       source-kind="product"
       :source-id="product?.id ?? null"
       :source-name="product ? getLocalizedProductName(product) : ''"
+      :initial-start-date="selectedRentalStartDate"
+      :initial-end-date="selectedRentalEndDate"
+      :initial-pricing-mode="selectedPricingMode"
       @close="rentalModalOpen = false"
       @confirm="onRentalDatesSelected"
     />
@@ -288,7 +395,9 @@
 <script setup lang="ts">
 import { pickCmsLocalizedText } from '#modula/shared/cms'
 import type { ProductDetailField, ProductDetailSection, ProductPayload } from '#modula/server/utils/shop'
-import { useShopCart } from '#modula/composables/useShopCart'
+import type { ProductOption, ProductOptionGroup } from '#modula/shared/productOptions'
+import { getProductOptionCalculatedUnitPrice, getProductOptionChargedQuantity } from '#modula/shared/productOptions'
+import { useShopCart, type ShopCartItem } from '#modula/composables/useShopCart'
 import RentalAvailabilityModal from '#modula/components/shop/RentalAvailabilityModal.vue'
 
 definePageMeta({
@@ -304,8 +413,11 @@ const initialSiteConfig = await ensureSiteConfigState({ path: route.path, locale
 const siteConfig = useSiteConfigState()
 const locale = computed(() => contentLocale.value)
 const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
-const { add } = useShopCart()
+const { items: cartItems, hydrate: hydrateCart, add, replace } = useShopCart()
 const slug = computed(() => String(route.params.slug || ''))
+const editingCartItemKey = computed(() => typeof route.query.editCartItem === 'string' ? route.query.editCartItem : '')
+const editingCartItem = computed(() => cartItems.value.find(item => item.key === editingCartItemKey.value) || null)
+const isEditingCartItem = computed(() => Boolean(editingCartItem.value && editingCartItem.value.productId === product.value?.id))
 
 const { data } = await useFetch<{
   product: ProductPayload
@@ -326,8 +438,10 @@ const quantity = ref(1)
 const rentalModalOpen = ref(false)
 const selectedRentalStartDate = ref('')
 const selectedRentalEndDate = ref('')
+const selectedRentalAvailableQuantity = ref(0)
 const selectedPricingMode = ref<'HOURLY' | 'DAILY'>('DAILY')
 const selectedInsuranceDocumentIds = ref<number[]>([])
+const selectedProductOptionQuantities = reactive<Record<string, number>>({})
 const customReturnToListingLabel = computed(() =>
   pickCmsLocalizedText(
     contentLocale.value,
@@ -339,7 +453,7 @@ const customReturnToListingLabel = computed(() =>
 const backLabel = computed(() => publicText('shop.product.backToShop', 'Retour à la boutique'))
 const saleLabel = computed(() => publicText('shop.product.sale', 'Vente'))
 const rentalLabel = computed(() => publicText('shop.product.rental', 'Location'))
-const offlineLabel = computed(() => publicText('shop.product.offlinePayment', 'Paiement hors ligne'))
+const offlineLabel = computed(() => publicText('shop.product.onsitePayment', 'Paiement sur place'))
 const onlineLabel = computed(() => publicText('shop.product.onlinePayment', 'Paiement en ligne'))
 const priceLabel = computed(() => publicText('shop.product.price', 'Prix'))
 const descriptionTitle = computed(() => publicText('shop.product.descriptionTitle', 'Description'))
@@ -351,6 +465,8 @@ const vatLabel = computed(() => publicText('shop.product.vat', 'TVA'))
 const vatNotApplicableLabel = computed(() => publicText('shop.product.vatNotApplicable', 'TVA non applicable'))
 const typeLabel = computed(() => publicText('shop.product.offerType', 'Type d’offre'))
 const paymentLabel = computed(() => publicText('shop.product.payment', 'Paiement'))
+const depositLabel = computed(() => publicText('shop.product.securityDeposit', 'Dépôt de garantie'))
+const depositPaymentLabel = computed(() => publicText('shop.product.securityDepositPayment', 'Versement du dépôt de garantie'))
 const noneLabel = computed(() => publicText('shop.product.none', 'Aucun'))
 const moreDetailsTitle = computed(() => publicText('shop.product.moreDetails', 'Informations détaillées'))
 const openPdfLabel = computed(() => publicText('shop.product.openPdf', 'Ouvrir le PDF'))
@@ -360,6 +476,8 @@ const rentalConditionsTitle = computed(() => publicText('shop.product.rentalCond
 const rentalAvailabilityLabel = computed(() => publicText('shop.product.availability', 'Disponibilité'))
 const rentalMinLabel = computed(() => publicText('shop.product.minimumDuration', 'Durée minimale'))
 const rentalMaxLabel = computed(() => publicText('shop.product.maximumDuration', 'Durée maximale'))
+const hourlyDurationsLabel = computed(() => publicText('shop.product.hourlyDurations', 'Durées à l’heure'))
+const dailyDurationLabel = computed(() => publicText('shop.product.dailyDurationRange', 'Durée à la journée'))
 const relatedTitle = computed(() => publicText('shop.product.relatedTitle', 'Autres produits liés'))
 const browseLabel = computed(() => publicText('shop.product.browseShop', 'Voir la boutique'))
 const resolvedBackLabel = computed(() => customReturnToListingLabel.value || backLabel.value)
@@ -371,7 +489,9 @@ const actionIntro = computed(() => {
     ? publicText('shop.product.actionIntroRental', 'Choisissez une période de location puis ajoutez ce produit au panier.')
     : publicText('shop.product.actionIntroSale', 'Ajustez la quantité puis ajoutez ce produit au panier.')
 })
-const quantityLabel = computed(() => publicText('shop.product.quantity', 'Quantité'))
+const quantityLabel = computed(() => product.value?.saleType === 'RENTAL'
+  ? publicText('shop.product.rentalQuantity', 'Nombre d’unités à louer')
+  : publicText('shop.product.quantity', 'Quantité'))
 const selectedPeriodTitle = computed(() => publicText('shop.product.selectedRentalPeriod', 'Période de location choisie'))
 const chooseRentalPeriodLabel = computed(() => publicText('shop.product.chooseRentalPeriod', 'Choisir la période'))
 const selectedPeriodSummary = computed(() => {
@@ -382,6 +502,8 @@ const selectedPeriodSummary = computed(() => {
 })
 const addRentalLabel = computed(() => publicText('shop.product.addRental', 'Ajouter la location au panier'))
 const addToCartLabel = computed(() => publicText('shop.product.addToCart', 'Ajouter au panier'))
+const updateCartLabel = computed(() => publicText('shop.product.updateCart', 'Mettre à jour le panier'))
+const updateCartSuccessLabel = computed(() => publicText('shop.product.updateCartSuccess', 'Panier mis à jour'))
 const soldOutLabel = computed(() => publicText('shop.product.soldOut', 'Épuisé'))
 const cartLabel = computed(() => publicText('shop.product.viewCart', 'Voir le panier'))
 const hourUnitLabel = computed(() => publicText('shop.rentalModal.hourUnit', 'heure'))
@@ -395,6 +517,9 @@ const rentalBasePriceLabel = computed(() => publicText('shop.product.rentalBaseP
 const totalExclTaxLabel = computed(() => publicText('shop.product.totalExclTax', 'Total HT'))
 const vatAmountLabel = computed(() => publicText('shop.product.vatAmount', 'Montant de la TVA'))
 const totalInclTaxLabel = computed(() => publicText('shop.product.totalInclTax', 'Total TTC'))
+const optionRequiredLabel = computed(() => publicText('shop.product.optionRequired', 'Sélectionnez une option pour continuer.'))
+const selectPeriodForPriceLabel = computed(() => publicText('shop.product.selectPeriodForPrice', 'Choisissez une période pour calculer le prix.'))
+const noOptionLabel = computed(() => publicText('shop.product.noOption', 'Aucun choix'))
 const rentalRateLabels = computed(() => {
   if (!product.value || product.value.saleType !== 'RENTAL') return []
   const rates: Array<{ price: number, unit: string }> = []
@@ -445,8 +570,39 @@ const rentalInsuranceOptions = computed(() => {
 const selectedRentalInsurances = computed(() => rentalInsuranceOptions.value.filter(insurance =>
   insurance.required || selectedInsuranceDocumentIds.value.includes(insurance.documentId),
 ))
+const publicOptionGroups = computed(() => (product.value?.optionGroups || [])
+  .map(group => ({ ...group, options: group.options.filter(option => option.active) }))
+  .filter(group => group.options.length > 0))
+const selectedProductOptions = computed(() => publicOptionGroups.value.flatMap(group => group.options)
+  .filter(option => isProductOptionSelected(option.id))
+  .map((option) => {
+    const selectedQuantity = selectedProductOptionQuantity(option)
+    const chargedQuantity = getProductOptionChargedQuantity(option.quantityMode, quantity.value, selectedQuantity)
+    const unitPrice = getProductOptionCalculatedUnitPrice(
+      option,
+      rentalDurationUnits.value,
+      selectedRentalStartDate.value ? selectedPricingMode.value : null,
+    )
+    return {
+      optionId: option.id,
+      label: localizedOptionLabel(option),
+      kind: option.kind,
+      quantityMode: option.quantityMode,
+      selectedQuantity,
+      quantity: chargedQuantity,
+      unitPrice: roundCurrency(unitPrice),
+      totalPrice: roundCurrency(unitPrice * chargedQuantity),
+      billingDocumentId: option.billingDocumentId,
+      linkedProductId: option.linkedProductId,
+    }
+  }))
+const selectedProductOptionsTotal = computed(() => roundCurrency(
+  selectedProductOptions.value.reduce((sum, option) => sum + option.totalPrice, 0),
+))
 const selectedRentalPayablePrice = computed(() => selectedRentalPrice.value + selectedRentalInsurances.value.reduce((sum, insurance) => sum + insurance.unitPrice, 0))
-const selectedRentalTotalInclTax = computed(() => roundCurrency(selectedRentalPayablePrice.value * quantity.value))
+const selectedRentalTotalInclTax = computed(() => roundCurrency(
+  selectedRentalPayablePrice.value * quantity.value + selectedProductOptionsTotal.value,
+))
 const selectedRentalTotalExclTax = computed(() => {
   const rate = Math.max(0, Number(product.value?.vatRate || 0))
   return rate > 0 ? roundCurrency(selectedRentalTotalInclTax.value / (1 + rate / 100)) : selectedRentalTotalInclTax.value
@@ -510,6 +666,9 @@ function buildBillingDocumentPreviewUrl(documentId: number) {
 
 const maxQuantity = computed(() => {
   if (!product.value) return 1
+  if (product.value.saleType === 'RENTAL' && selectedRentalStartDate.value) {
+    return Math.max(1, selectedRentalAvailableQuantity.value)
+  }
   return Math.max(1, Number(product.value.stock || 1))
 })
 
@@ -521,6 +680,15 @@ const paymentModesSummary = computed(() => {
   if (product.value.allowOnlinePayment) return onlineLabel.value
   if (product.value.allowOfflinePayment) return offlineLabel.value
   return noneLabel.value
+})
+const rentalDepositAmount = computed(() => Math.max(0, Number(product.value?.rentalDepositAmount || 0)))
+const depositPaymentModesSummary = computed(() => {
+  if (!product.value) return ''
+  if (product.value.rentalDepositAllowOnsitePayment && product.value.rentalDepositAllowOnlinePayment) {
+    return publicText('shop.product.depositOnsiteOrOnline', 'Sur place ou en ligne')
+  }
+  if (product.value.rentalDepositAllowOnlinePayment) return publicText('shop.product.depositOnline', 'En ligne')
+  return publicText('shop.product.depositOnsite', 'Sur place')
 })
 
 const rentalAvailabilitySummary = computed(() => {
@@ -551,19 +719,39 @@ const canAddRentalToCart = computed(() => {
     && (currentProduct?.stock ?? 0) > 0
     && selectedRentalStartDate.value.trim().length > 0
     && selectedRentalEndDate.value.trim().length > 0
+    && publicOptionGroups.value.every(isProductOptionGroupValid)
+})
+
+const hourlyDurationsSummary = computed(() => {
+  const values = product.value?.rentalDurations || []
+  return values.map((minutes) => {
+    const hours = minutes / 60
+    return publicText('shop.product.rentalHourCount', '{count} heure(s)', { count: hours })
+  }).join(', ')
 })
 
 watch(product, (value) => {
   quantity.value = 1
   selectedRentalStartDate.value = ''
   selectedRentalEndDate.value = ''
+  selectedRentalAvailableQuantity.value = 0
   selectedPricingMode.value = value?.rentalBookingMode === 'SINGLE_DAY' ? 'HOURLY' : 'DAILY'
   selectedInsuranceDocumentIds.value = value
     ? value.detailSections.flatMap(section => section.items)
         .filter(item => item.mediaDocumentKind === 'ASSURANCE' && item.mediaDocumentRequiredForRental && item.mediaDocumentId)
         .map(item => Number(item.mediaDocumentId))
     : []
+  for (const key of Object.keys(selectedProductOptionQuantities)) delete selectedProductOptionQuantities[key]
 }, { immediate: true })
+
+onMounted(() => {
+  hydrateCart()
+  restoreCartItemSelection()
+})
+
+watch(editingCartItemKey, () => {
+  if (import.meta.client) restoreCartItemSelection()
+})
 
 usePageSeo({
   title: computed(() => getLocalizedProductName(product.value) || publicText('shop.product.seoFallbackTitle', 'Produit')),
@@ -580,19 +768,109 @@ function roundCurrency(value: number) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100
 }
 
-function onRentalDatesSelected(payload: { rentalStartDate: string, rentalEndDate: string, pricingMode: 'HOURLY' | 'DAILY' }) {
+function localizedOptionGroupTitle(group: ProductOptionGroup) {
+  return pickCmsLocalizedText(contentLocale.value, group.titleLocalized) || group.title
+}
+
+function localizedOptionGroupDescription(group: ProductOptionGroup) {
+  return pickCmsLocalizedText(contentLocale.value, group.descriptionLocalized) || group.description
+}
+
+function localizedOptionLabel(option: ProductOption) {
+  return pickCmsLocalizedText(contentLocale.value, option.labelLocalized) || option.label
+}
+
+function localizedOptionDescription(option: ProductOption) {
+  return pickCmsLocalizedText(contentLocale.value, option.descriptionLocalized) || option.description
+}
+
+function isProductOptionSelected(optionId: string) {
+  return Number(selectedProductOptionQuantities[optionId] || 0) > 0
+}
+
+function selectedProductOptionQuantity(option: ProductOption) {
+  return Math.max(0, Number(selectedProductOptionQuantities[option.id] || 0))
+}
+
+function isProductOptionAvailable(option: ProductOption) {
+  return !option.linkedProduct || (option.linkedProduct.active && option.linkedProduct.stock > 0)
+}
+
+function toggleProductOption(group: ProductOptionGroup, option: ProductOption) {
+  if (!isProductOptionAvailable(option)) return
+  if (group.selectionMode === 'SINGLE') {
+    if (isProductOptionSelected(option.id) && !group.required && group.minSelections === 0) {
+      selectedProductOptionQuantities[option.id] = 0
+      return
+    }
+    for (const entry of group.options) selectedProductOptionQuantities[entry.id] = 0
+    selectedProductOptionQuantities[option.id] = Math.max(1, option.minQuantity, option.defaultQuantity)
+    return
+  }
+  selectedProductOptionQuantities[option.id] = isProductOptionSelected(option.id)
+    ? 0
+    : Math.max(1, option.minQuantity, option.defaultQuantity)
+}
+
+function changeProductOptionQuantity(option: ProductOption, delta: number) {
+  const maximum = Math.min(
+    option.maxQuantity ?? Number.MAX_SAFE_INTEGER,
+    option.linkedProduct?.stock ?? Number.MAX_SAFE_INTEGER,
+  )
+  selectedProductOptionQuantities[option.id] = Math.max(
+    option.minQuantity,
+    Math.min(maximum, selectedProductOptionQuantity(option) + delta),
+  )
+}
+
+function isProductOptionGroupValid(group: ProductOptionGroup) {
+  const selectedCount = group.options.filter(option => isProductOptionSelected(option.id)).length
+  const minimum = group.required ? Math.max(1, group.minSelections) : group.minSelections
+  return selectedCount >= minimum && (group.maxSelections == null || selectedCount <= group.maxSelections)
+}
+
+function isProductOptionGroupEmpty(group: ProductOptionGroup) {
+  return group.options.every(option => !isProductOptionSelected(option.id))
+}
+
+function clearProductOptionGroup(group: ProductOptionGroup) {
+  for (const option of group.options) selectedProductOptionQuantities[option.id] = 0
+}
+
+function productOptionPriceLabel(option: ProductOption) {
+  if (option.pricingMode === 'RENTAL_DURATION' && !selectedRentalStartDate.value) {
+    const hourly = option.priceSource === 'LINKED_PRODUCT' ? option.linkedProduct?.rentalHourlyPrice : option.hourlyPrice
+    const daily = option.priceSource === 'LINKED_PRODUCT' ? option.linkedProduct?.rentalDailyPrice : option.dailyPrice
+    return [
+      hourly == null ? '' : `${$formatPrice(hourly)} / ${hourUnitLabel.value}`,
+      daily == null ? '' : `${$formatPrice(daily)} / ${dayUnitLabel.value}`,
+    ].filter(Boolean).join(' · ')
+  }
+  const unitPrice = getProductOptionCalculatedUnitPrice(
+    option,
+    rentalDurationUnits.value,
+    selectedRentalStartDate.value ? selectedPricingMode.value : null,
+  )
+  return $formatPrice(unitPrice)
+}
+
+function onRentalDatesSelected(payload: { rentalStartDate: string, rentalEndDate: string, pricingMode: 'HOURLY' | 'DAILY', availableQuantity: number }) {
   selectedRentalStartDate.value = payload.rentalStartDate
   selectedRentalEndDate.value = payload.rentalEndDate
   selectedPricingMode.value = payload.pricingMode
+  selectedRentalAvailableQuantity.value = Math.max(0, Number(payload.availableQuantity || 0))
+  quantity.value = Math.min(quantity.value, Math.max(1, selectedRentalAvailableQuantity.value))
   rentalModalOpen.value = false
 }
 
-function addSaleToCart() {
+async function addSaleToCart() {
   if (!product.value) return
-  add({
+  if (!publicOptionGroups.value.every(isProductOptionGroupValid)) return
+  await commitCartItem({
     key: `product-${product.value.id}`,
     kind: 'product',
     productId: product.value.id,
+    slug: product.value.slug,
     title: getLocalizedProductName(product.value),
     imageUrl: product.value.imageUrl,
     description: getLocalizedProductExcerpt(product.value) || getLocalizedProductDescription(product.value),
@@ -604,18 +882,22 @@ function addSaleToCart() {
     paymentTaxBehavior: product.value.paymentTaxBehavior,
     allowOfflinePayment: product.value.allowOfflinePayment,
     allowOnlinePayment: product.value.allowOnlinePayment,
+    rentalDepositAmount: product.value.rentalDepositAmount,
+    rentalDepositAllowOnsitePayment: product.value.rentalDepositAllowOnsitePayment,
+    rentalDepositAllowOnlinePayment: product.value.rentalDepositAllowOnlinePayment,
     unitPrice: product.value.price,
-    totalPrice: product.value.price * quantity.value
+    optionSelections: selectedProductOptions.value,
+    totalPrice: product.value.price * quantity.value + selectedProductOptionsTotal.value
   })
-  $toast.success(publicText('shop.product.addSaleSuccess', 'Ajouté au panier'))
 }
 
-function addRentalToCart() {
+async function addRentalToCart() {
   if (!product.value || !canAddRentalToCart.value) return
-  add({
-    key: `product-${product.value.id}-${selectedRentalStartDate.value}-${selectedRentalEndDate.value}-${selectedRentalInsurances.value.map(entry => entry.documentId).sort().join('-')}`,
+  await commitCartItem({
+    key: `product-${product.value.id}-${selectedRentalStartDate.value}-${selectedRentalEndDate.value}-${selectedRentalInsurances.value.map(entry => entry.documentId).sort().join('-')}-${selectedProductOptions.value.map(entry => `${entry.optionId}:${entry.quantity}`).sort().join('-')}`,
     kind: 'product',
     productId: product.value.id,
+    slug: product.value.slug,
     title: getLocalizedProductName(product.value),
     imageUrl: product.value.imageUrl,
     description: getLocalizedProductExcerpt(product.value) || getLocalizedProductDescription(product.value),
@@ -626,16 +908,54 @@ function addRentalToCart() {
     rentalPricingMode: selectedPricingMode.value,
     rentalBaseUnitPrice: selectedRentalPrice.value,
     insuranceSelections: selectedRentalInsurances.value.map(entry => ({ ...entry })),
+    optionSelections: selectedProductOptions.value,
     associatedDocuments: associatedDocuments.value,
-    availableQuantity: product.value.stock,
+    availableQuantity: selectedRentalAvailableQuantity.value,
     vatRate: product.value.vatRate,
     paymentTaxCode: product.value.paymentTaxCode,
     paymentTaxBehavior: product.value.paymentTaxBehavior,
     allowOfflinePayment: product.value.allowOfflinePayment,
     allowOnlinePayment: product.value.allowOnlinePayment,
+    rentalDepositAmount: product.value.rentalDepositAmount,
+    rentalDepositAllowOnsitePayment: product.value.rentalDepositAllowOnsitePayment,
+    rentalDepositAllowOnlinePayment: product.value.rentalDepositAllowOnlinePayment,
     unitPrice: selectedRentalPayablePrice.value,
-    totalPrice: selectedRentalPayablePrice.value * quantity.value
+    totalPrice: selectedRentalPayablePrice.value * quantity.value + selectedProductOptionsTotal.value
   })
-  $toast.success(publicText('shop.product.addRentalSuccess', 'Location ajoutée au panier'))
+}
+
+async function commitCartItem(item: ShopCartItem) {
+  if (isEditingCartItem.value) {
+    replace(editingCartItemKey.value, item)
+    $toast.success(updateCartSuccessLabel.value)
+    await nextTick()
+    await navigateTo(localePath('/panier'))
+    return
+  }
+  add(item)
+  $toast.success(item.saleType === 'RENTAL'
+    ? publicText('shop.product.addRentalSuccess', 'Location ajoutée au panier')
+    : publicText('shop.product.addSaleSuccess', 'Ajouté au panier'))
+}
+
+function restoreCartItemSelection() {
+  const item = editingCartItem.value
+  if (!item || !product.value || item.productId !== product.value.id) return
+  quantity.value = Math.max(1, Math.min(item.quantity, item.availableQuantity ?? product.value.stock))
+  selectedRentalStartDate.value = item.rentalStartDate || ''
+  selectedRentalEndDate.value = item.rentalEndDate || ''
+  selectedPricingMode.value = item.rentalPricingMode === 'HOURLY' ? 'HOURLY' : 'DAILY'
+  selectedRentalAvailableQuantity.value = item.availableQuantity ?? product.value.stock
+  const requiredInsuranceIds = rentalInsuranceOptions.value
+    .filter(insurance => insurance.required)
+    .map(insurance => insurance.documentId)
+  selectedInsuranceDocumentIds.value = Array.from(new Set([
+    ...requiredInsuranceIds,
+    ...(item.insuranceSelections || []).map(insurance => insurance.documentId),
+  ]))
+  for (const key of Object.keys(selectedProductOptionQuantities)) delete selectedProductOptionQuantities[key]
+  for (const option of item.optionSelections || []) {
+    selectedProductOptionQuantities[option.optionId] = Math.max(1, option.selectedQuantity)
+  }
 }
 </script>

@@ -167,6 +167,24 @@
             </div>
           </div>
 
+          <div v-if="details.rentalDeposit" class="mt-4 rounded-xl border border-info/30 bg-info/5 p-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div class="font-medium">{{ t('admin.ordersPage.depositTitle') }}</div>
+                <div class="mt-1 text-2xl font-semibold">{{ $formatPrice(details.rentalDeposit.amount) }}</div>
+                <div class="mt-1 text-sm opacity-70">
+                  {{ depositPaymentModeLabel(details.rentalDeposit.paymentMode) }} · {{ depositStatusLabel(details.rentalDeposit.status) }}
+                </div>
+              </div>
+              <button
+                v-if="details.rentalDeposit.paymentMode === 'ONSITE' && details.rentalDeposit.status === 'PENDING'"
+                class="btn btn-sm btn-info"
+                :disabled="actionPending"
+                @click="markDepositPaidOnSite"
+              >{{ t('admin.ordersPage.markDepositPaidOnSite') }}</button>
+            </div>
+          </div>
+
           <div class="mt-6">
             <div class="mb-3 font-medium">{{ t('admin.ordersPage.linesTitle') }}</div>
             <div class="overflow-x-auto rounded-xl border border-base-300">
@@ -373,6 +391,14 @@ interface ShopOrder {
   cancelledAt: string | null
   createdAt: string
   lines: ShopOrderLine[]
+  rentalDeposit: {
+    id: number
+    amount: number
+    paymentMode: 'ONSITE' | 'ONLINE'
+    status: 'PENDING' | 'PAID' | 'PARTIALLY_RETAINED' | 'RETAINED' | 'RELEASED' | 'FAILED'
+    paidAt: string | null
+    failureReason: string | null
+  } | null
 }
 
 const { t } = useI18n()
@@ -551,6 +577,30 @@ const markPaidOnSite = async () => {
   } finally {
     actionPending.value = false
   }
+}
+
+const markDepositPaidOnSite = async () => {
+  if (!details.value?.rentalDeposit || actionPending.value) return
+  if (!globalThis.confirm(t('admin.ordersPage.markDepositPaidOnSiteConfirm'))) return
+  actionPending.value = true
+  try {
+    await $fetch(`/api/admin/orders/${details.value.id}/deposit/mark-paid`, { method: 'POST' })
+    details.value = await $fetch<ShopOrder>(`/api/admin/orders/${details.value.id}`)
+    await refresh()
+    $toast.success(t('admin.ordersPage.markDepositPaidOnSiteSuccess'))
+  } catch (error: any) {
+    $toast.error(error?.data?.message || error?.statusMessage || t('common.error'))
+  } finally {
+    actionPending.value = false
+  }
+}
+
+function depositPaymentModeLabel(mode: 'ONSITE' | 'ONLINE') {
+  return mode === 'ONLINE' ? t('admin.ordersPage.depositPaymentOnline') : t('admin.ordersPage.depositPaymentOnsite')
+}
+
+function depositStatusLabel(status: NonNullable<ShopOrder['rentalDeposit']>['status']) {
+  return t(`admin.ordersPage.depositStatus.${status.toLowerCase()}`)
 }
 
 function rentalDurationLabel(line: ShopOrderLine) {

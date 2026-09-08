@@ -303,8 +303,12 @@ function buildShopOrderTemplateVars(order: ShopOrderPayload, locale: ShopOrderEm
     || (isEnglish ? 'Payment could not be confirmed.' : 'Le paiement n’a pas pu être confirmé.')
   const adminOrderUrl = `${getSiteOrigin()}/admin/shop/orders?open=${order.id}`
   const invoiceNumber = buildInvoiceNumberLabel(order)
-  const rentalLines = order.lines
+  const rentalProductIds = new Set(order.lines
     .filter(isRentalLine)
+    .map(line => line.productId)
+    .filter((productId): productId is number => productId != null))
+  const rentalLines = order.lines
+    .filter(line => isRentalLine(line) || rentalProductIds.has(Number(line.meta?.relatedProductId)))
     .map((line) => `- ${line.quantity} × ${line.title} · ${formatPrice(line.totalPrice)}`)
     .join('\n') || (isEnglish ? '- No rental equipment' : '- Aucun matériel de location')
   const rentalStartDate = order.rentalStartDate

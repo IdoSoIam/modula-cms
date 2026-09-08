@@ -1,0 +1,28 @@
+{
+  "id": "0038_add_rental_deposits",
+  "name": "add_rental_deposits",
+  "description": "",
+  "beforeSchemaHash": "21f8545fc84c99541de86a8c439933a4a6f9c33a2c2913050ef47dadee9e91fc",
+  "afterSchemaHash": "1d597fe770a73c6c986cb4829ece4acbaa66d9af6faf4c734c592d37332eed23",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [
+      "RentalDeposit"
+    ],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: rentalDepositAllowOnlinePayment",
+          "field added: rentalDepositAllowOnsitePayment",
+          "field added: rentalDepositAmount"
+        ]
+      }
+    ]
+  }
+}

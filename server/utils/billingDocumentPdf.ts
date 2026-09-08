@@ -17,7 +17,7 @@ import {
   type BillingDocumentKind,
   type BillingDocumentTemplatePayload,
 } from '#modula/server/utils/billingDocuments'
-import { serializeProduct, serializeShopOrder, type ProductPayload, type ShopOrderPayload } from '#modula/server/utils/shop'
+import { resolveProductOptionGroups, serializeProduct, serializeShopOrder, type ProductPayload, type ShopOrderPayload } from '#modula/server/utils/shop'
 
 export interface PdfAttachment {
   filename: string
@@ -782,11 +782,17 @@ export async function renderPublicBillingDocumentPdf(options: {
   if (options.productId) {
     const row = await db.product.findUnique({ where: { id: options.productId } })
     if (row) {
-      product = serializeProduct(row)
+      product = await resolveProductOptionGroups(serializeProduct(row))
       const linkedIds = product.detailSections
         .flatMap((section) => section.items)
         .map((item) => item.mediaDocumentId)
         .filter((value): value is number => typeof value === 'number' && Number.isInteger(value) && value > 0)
+      for (const documentId of product.optionGroups
+        .flatMap(group => group.options)
+        .map(option => option.billingDocumentId)
+        .filter((value): value is number => typeof value === 'number' && Number.isInteger(value) && value > 0)) {
+        linkedIds.push(documentId)
+      }
       if (!linkedIds.includes(template.id)) {
         throw createError({ statusCode: 404, statusMessage: 'Document introuvable' })
       }

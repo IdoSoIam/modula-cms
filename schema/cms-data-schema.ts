@@ -3,6 +3,8 @@ import { defineModel, defineSchema, field, index, relation, unique } from './dsl
 const deliveryTypes = ['ONSITE', 'PICKUP', 'TOUR']
 const productSaleTypes = ['SALE', 'RENTAL']
 const rentalApprovalModes = ['AUTO', 'MANUAL']
+const rentalDepositPaymentModes = ['ONSITE', 'ONLINE']
+const rentalDepositStatuses = ['PENDING', 'PAID', 'PARTIALLY_RETAINED', 'RETAINED', 'RELEASED', 'FAILED']
 const billingDocumentKinds = ['INVOICE', 'CONTRACT', 'ASSURANCE']
 const shopOrderStatuses = ['DRAFT', 'PENDING', 'CONFIRMED', 'IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED', 'CANCELLED']
 const shopPaymentProviders = ['OFFLINE', 'STRIPE']
@@ -232,6 +234,9 @@ export const cmsDataSchema = defineSchema({
         description: field.string({ nullable: true }),
         descriptionJson: field.string({ default: '{"fr":"","en":""}' }),
         detailsJson: field.string({ default: '[]' }),
+        optionGroupsJson: field.string({ default: '[]' }),
+        excludedOptionSetIdsJson: field.string({ default: '[]' }),
+        optionOverridesJson: field.string({ default: '[]' }),
         imageUrl: field.string({ nullable: true }),
         price: field.decimal({ default: 0 }),
         vatRate: field.decimal({ default: 20 }),
@@ -248,6 +253,9 @@ export const cmsDataSchema = defineSchema({
         rentalDailyPrice: field.decimal({ nullable: true }),
         rentalDurationsJson: field.string({ default: '[60,120,240]' }),
         rentalSlotStepMinutes: field.int({ default: 30 }),
+        rentalDepositAmount: field.decimal({ nullable: true }),
+        rentalDepositAllowOnsitePayment: field.boolean({ default: true }),
+        rentalDepositAllowOnlinePayment: field.boolean({ default: false }),
         unitLabel: field.string({ nullable: true }),
         unitLabelJson: field.string({ default: '{"fr":"","en":""}' }),
         allowOfflinePayment: field.boolean({ default: true }),
@@ -255,6 +263,7 @@ export const cmsDataSchema = defineSchema({
         allowCustomerCancellation: field.boolean({ default: true }),
         allowRefundRequestAfterEngagement: field.boolean({ default: false }),
         active: field.boolean({ default: true }),
+        catalogVisible: field.boolean({ default: true }),
         position: field.int({ default: 0 }),
         createdAt: field.datetime({ default: 'now' }),
         updatedAt: field.datetime()
@@ -408,6 +417,54 @@ export const cmsDataSchema = defineSchema({
         index(['orderId'], 'ShopOrderLine_orderId_idx'),
         index(['productId'], 'ShopOrderLine_productId_idx'),
         index(['productId', 'rentalStartDate'], 'ShopOrderLine_productId_rentalStartDate_idx')
+      ]
+    }),
+    ProductOptionSet: defineModel({
+      tableName: 'ProductOptionSet',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        name: field.string(),
+        categoryIdsJson: field.string({ default: '[]' }),
+        productIdsJson: field.string({ default: '[]' }),
+        saleTypesJson: field.string({ default: '["SALE","RENTAL"]' }),
+        optionGroupsJson: field.string({ default: '[]' }),
+        active: field.boolean({ default: true }),
+        position: field.int({ default: 0 }),
+        createdAt: field.datetime({ default: 'now' }),
+        updatedAt: field.datetime()
+      },
+      indexes: [
+        index(['active', 'position'], 'ProductOptionSet_active_position_idx')
+      ]
+    }),
+    RentalDeposit: defineModel({
+      tableName: 'RentalDeposit',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        orderId: field.int(),
+        amount: field.decimal({ default: 0 }),
+        paymentMode: field.enum(rentalDepositPaymentModes, { default: 'ONSITE' }),
+        status: field.enum(rentalDepositStatuses, { default: 'PENDING' }),
+        providerSessionId: field.string({ nullable: true, unique: true }),
+        providerPaymentIntentId: field.string({ nullable: true, unique: true }),
+        providerPaymentStatus: field.string({ nullable: true }),
+        failureReason: field.string({ nullable: true }),
+        paidAt: field.datetime({ nullable: true }),
+        releasedAt: field.datetime({ nullable: true }),
+        retainedAmount: field.decimal({ default: 0 }),
+        createdAt: field.datetime({ default: 'now' }),
+        updatedAt: field.datetime()
+      },
+      relations: {
+        order: relation.belongsTo('ShopOrder', 'orderId', 'id', { onDelete: 'cascade' })
+      },
+      indexes: [
+        unique(['orderId'], 'RentalDeposit_orderId_key'),
+        unique(['providerSessionId'], 'RentalDeposit_providerSessionId_key'),
+        unique(['providerPaymentIntentId'], 'RentalDeposit_providerPaymentIntentId_key'),
+        index(['status', 'createdAt'], 'RentalDeposit_status_createdAt_idx')
       ]
     }),
     Article: defineModel({

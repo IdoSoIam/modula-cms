@@ -1,0 +1,27 @@
+{
+  "id": "0040_add_reusable_product_option_sets",
+  "name": "add_reusable_product_option_sets",
+  "description": "",
+  "beforeSchemaHash": "76ee22a0db77bc1ad21f9b76efc0f82a1598d8dd3c7269e684ca590adf65bc1d",
+  "afterSchemaHash": "226b9b93152cd335f399f01b83cfa56f7dc8d2cc9ca1d78b3a28c7de49a1ade1",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [
+      "ProductOptionSet"
+    ],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: excludedOptionSetIdsJson",
+          "field added: optionOverridesJson"
+        ]
+      }
+    ]
+  }
+}

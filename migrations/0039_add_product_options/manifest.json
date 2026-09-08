@@ -1,0 +1,24 @@
+{
+  "id": "0039_add_product_options",
+  "name": "add_product_options",
+  "description": "",
+  "beforeSchemaHash": "1d597fe770a73c6c986cb4829ece4acbaa66d9af6faf4c734c592d37332eed23",
+  "afterSchemaHash": "76ee22a0db77bc1ad21f9b76efc0f82a1598d8dd3c7269e684ca590adf65bc1d",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: optionGroupsJson"
+        ]
+      }
+    ]
+  }
+}

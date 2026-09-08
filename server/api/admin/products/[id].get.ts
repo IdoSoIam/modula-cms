@@ -1,6 +1,6 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
-import { serializeProduct } from '#modula/server/utils/shop'
+import { hydrateProductBillingDocumentMetadata, serializeProduct } from '#modula/server/utils/shop'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -21,5 +21,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Produit introuvable' })
   }
 
-  return serializeProduct(row)
+  return await hydrateProductBillingDocumentMetadata(serializeProduct(row))
 })

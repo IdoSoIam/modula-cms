@@ -19,7 +19,7 @@ interface SyncedOrderResult {
 export async function syncShopOrderFromRegistryPayment(
   payment: CmsRegistryPaymentRecord,
 ): Promise<SyncedOrderResult | null> {
-  const orderId = Number(payment.orderId)
+  const orderId = Number(payment.metadata?.orderId || payment.orderId)
   if (!Number.isFinite(orderId) || orderId <= 0) {
     return null
   }
@@ -29,6 +29,12 @@ export async function syncShopOrderFromRegistryPayment(
     include: { lines: true },
   })
   if (!order) return null
+
+  const paymentPurpose = String(payment.metadata?.paymentPurpose || 'order')
+  if (paymentPurpose === 'rental_deposit') {
+    await syncRentalDepositFromRegistryPayment(payment, order.id)
+    return null
+  }
 
   const data: Record<string, any> = {
     providerSessionId: payment.providerSessionId || null,
@@ -80,6 +86,9 @@ export async function syncShopOrderFromRegistryPayment(
       paymentStatus: true,
     },
   })
+  if (paymentPurpose === 'order_with_deposit') {
+    await syncRentalDepositFromRegistryPayment(payment, order.id)
+  }
 
   return updated
     ? {
@@ -90,4 +99,25 @@ export async function syncShopOrderFromRegistryPayment(
         changed,
       }
     : null
+}
+
+async function syncRentalDepositFromRegistryPayment(payment: CmsRegistryPaymentRecord, orderId: number) {
+  const deposit = await db.rentalDeposit.findUnique({ where: { orderId } })
+  if (!deposit) return
+  const status = payment.paymentStatus === 'PAID'
+    ? 'PAID'
+    : payment.paymentStatus === 'FAILED'
+      ? 'FAILED'
+      : 'PENDING'
+  await db.rentalDeposit.update({
+    where: { id: deposit.id },
+    data: {
+      status,
+      providerSessionId: payment.providerSessionId || deposit.providerSessionId || null,
+      providerPaymentIntentId: payment.providerPaymentIntentId || deposit.providerPaymentIntentId || null,
+      providerPaymentStatus: payment.providerPaymentStatus || null,
+      failureReason: payment.failureReason || null,
+      paidAt: status === 'PAID' ? new Date() : null,
+    },
+  })
 }

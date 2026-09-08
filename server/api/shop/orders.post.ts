@@ -7,6 +7,12 @@ import {
 } from "#modula/server/services/payment/paymentService";
 import { sendShopOrderCreatedNotifications } from "#modula/server/services/shop/shopOrderEmails";
 import { requiresManualRentalApproval, resolveRentalOrderStatus } from '#modula/server/services/shop/rentalApproval'
+import {
+  getRentalDepositPaymentCapabilities,
+  getRentalDepositRegistryOrderId,
+  isRentalDepositPaymentModeAvailable,
+  type RentalDepositPaymentMode,
+} from '#modula/shared/rentalDeposit'
 import { getReservationFulfillment } from "#modula/server/utils/orderFulfillment";
 import {
   getOnSitePickupConfig,
@@ -17,6 +23,7 @@ import {
   createOrderNumber,
   hydrateProductBillingDocumentMetadata,
   pickProductLocalizedText,
+  resolveProductOptionGroups,
   serializeProduct,
   serializeShopOrder,
 } from "#modula/server/utils/shop";
@@ -27,6 +34,12 @@ import {
 } from "#modula/server/services/shop/rentalAvailability";
 import { getResolvedPublicDictionary } from '#modula/server/utils/publicDictionary'
 import { getSiteDefaultLocale, getSiteLocales } from '#modula/server/utils/settings'
+import {
+  getProductOptionCalculatedUnitPrice,
+  getProductOptionChargedQuantity,
+  type ProductOption,
+  type ProductOptionSelectionInput,
+} from '#modula/shared/productOptions'
 
 interface OrderLineInput {
   kind: "product";
@@ -37,6 +50,7 @@ interface OrderLineInput {
   rentalEndDate?: string | null;
   rentalPricingMode?: "HOURLY" | "DAILY" | null;
   insuranceDocumentIds?: number[];
+  optionSelections?: ProductOptionSelectionInput[];
 }
 
 interface OrderBody {
@@ -47,6 +61,7 @@ interface OrderBody {
   phone?: string | null;
   message?: string | null;
   paymentMode?: "offline" | "stripe";
+  depositPaymentMode?: "onsite" | "online";
   deliveryType?: "ONSITE" | "PICKUP" | "TOUR";
   pickupPointId?: number | null;
   deliveryTourId?: number | null;
@@ -64,23 +79,24 @@ export default defineEventHandler(async (event) => {
   const language = /^[a-z]{2}(?:-[a-z]{2})?$/.test(String(body.language || "").trim().toLowerCase())
     ? String(body.language).trim().toLowerCase()
     : "fr";
-  const normalizedEmail = body.email.trim().toLowerCase();
   const retryOrderId = Number(body.retryOrderId);
 
   if (!body.customerName?.trim() || !body.email?.trim()) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Informations client incomplètes",
+      message: "Informations client incomplètes",
     });
   }
 
+  const normalizedEmail = body.email.trim().toLowerCase();
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-    throw createError({ statusCode: 400, statusMessage: "Email invalide" });
+    throw createError({ statusCode: 400, message: "Email invalide" });
   }
 
   const lines = Array.isArray(body.lines) ? body.lines : [];
   if (!lines.length) {
-    throw createError({ statusCode: 400, statusMessage: "Panier vide" });
+    throw createError({ statusCode: 400, message: "Panier vide" });
   }
 
   const retryOrder =
@@ -96,7 +112,7 @@ export default defineEventHandler(async (event) => {
   if (Number.isFinite(retryOrderId) && retryOrderId > 0 && !retryOrder) {
     throw createError({
       statusCode: 404,
-      statusMessage: "Commande à relancer introuvable",
+      message: "Commande à relancer introuvable",
     });
   }
 
@@ -104,7 +120,7 @@ export default defineEventHandler(async (event) => {
     if (String(retryOrder.email || "").trim().toLowerCase() !== normalizedEmail) {
       throw createError({
         statusCode: 403,
-        statusMessage: "Cette commande ne correspond pas à cet email",
+        message: "Cette commande ne correspond pas à cet email",
       });
     }
     if (
@@ -113,7 +129,7 @@ export default defineEventHandler(async (event) => {
     ) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Cette commande est déjà payée",
+        message: "Cette commande est déjà payée",
       });
     }
   }
@@ -136,7 +152,7 @@ export default defineEventHandler(async (event) => {
   >();
 
   for (const row of directProducts) {
-    const serialized = await hydrateProductBillingDocumentMetadata(serializeProduct(row));
+    const serialized = await hydrateProductBillingDocumentMetadata(await resolveProductOptionGroups(serializeProduct(row)));
     productMapSource.set(serialized.id, serialized);
   }
 
@@ -149,7 +165,7 @@ export default defineEventHandler(async (event) => {
     if (!product) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Produit introuvable dans le panier",
+        message: "Produit introuvable dans le panier",
       });
     }
 
@@ -224,6 +240,9 @@ export default defineEventHandler(async (event) => {
         allowCustomerCancellation: product.allowCustomerCancellation,
         allowRefundRequestAfterEngagement: product.allowRefundRequestAfterEngagement,
         rentalApprovalMode: product.rentalApprovalMode,
+        rentalDepositAmount: product.rentalDepositAmount,
+        rentalDepositAllowOnsitePayment: product.rentalDepositAllowOnsitePayment,
+        rentalDepositAllowOnlinePayment: product.rentalDepositAllowOnlinePayment,
         linkedBillingDocuments,
         linkedFiles,
       }),
@@ -237,10 +256,15 @@ export default defineEventHandler(async (event) => {
       rentalApprovalMode: product.rentalApprovalMode,
       rentalDurations: product.rentalDurations,
       rentalSlotStepMinutes: product.rentalSlotStepMinutes,
+      rentalDepositAmount: product.rentalDepositAmount,
+      rentalDepositAllowOnsitePayment: product.rentalDepositAllowOnsitePayment,
+      rentalDepositAllowOnlinePayment: product.rentalDepositAllowOnlinePayment,
       rentalPricingMode,
       rentalWindow,
       includedInsuranceDocuments,
       rentalDurationUnits,
+      product,
+      requestedOptionSelections: Array.isArray(line.optionSelections) ? line.optionSelections : [],
     };
   });
 
@@ -276,9 +300,22 @@ export default defineEventHandler(async (event) => {
       }),
     };
   }));
-  const orderLines = [...normalizedLines, ...insuranceLines];
+  const optionLines = normalizedLines.flatMap(line => buildProductOptionLines(line, language));
+  const orderLines = [...normalizedLines, ...insuranceLines, ...optionLines];
 
-  const rentalLines = normalizedLines.filter((line) => line.saleType === "RENTAL");
+  const rentalLines = [...normalizedLines, ...optionLines].filter((line) => line.saleType === "RENTAL");
+  const depositLines = rentalLines.filter(line => Number(line.rentalDepositAmount || 0) > 0)
+  const depositAmount = Math.round(depositLines.reduce(
+    (sum, line) => sum + Number(line.rentalDepositAmount || 0) * line.quantity,
+    0,
+  ) * 100) / 100
+  const retryDeposit = retryOrder
+    ? await db.rentalDeposit.findUnique({ where: { orderId: Number(retryOrder.id) } })
+    : null
+  const depositAlreadyCollected = Boolean(retryDeposit && ['PAID', 'PARTIALLY_RETAINED', 'RETAINED', 'RELEASED'].includes(String(retryDeposit.status)))
+  if (depositAlreadyCollected && Math.abs(Number(retryDeposit?.amount || 0) - depositAmount) > 0.001) {
+    throw createError({ statusCode: 409, message: 'La commande ne peut plus être modifiée après le versement de son dépôt de garantie' })
+  }
 
   if (rentalLines.length) {
     const featureFlags = await getFeatureFlags()
@@ -289,7 +326,7 @@ export default defineEventHandler(async (event) => {
     const dictionary = await getResolvedPublicDictionary(language, siteLocales, defaultLocale)
     await ensureRentalAvailability(
       rentalLines.map((line) => ({
-        kind: line.kind,
+        kind: 'product' as const,
         id: line.productId ?? 0,
         title: line.title,
         quantity: line.quantity,
@@ -328,24 +365,39 @@ export default defineEventHandler(async (event) => {
         : allowOnline && !allowOffline
           ? "stripe"
           : "offline";
+  const depositCapabilities = getRentalDepositPaymentCapabilities(depositLines, stripeConfigured)
+  const requestedDepositPaymentMode: RentalDepositPaymentMode = body.depositPaymentMode === 'online'
+    ? 'ONLINE'
+    : body.depositPaymentMode === 'onsite' ? 'ONSITE' : depositCapabilities.defaultMode
+  const depositPaymentMode = depositAlreadyCollected
+    ? retryDeposit!.paymentMode as RentalDepositPaymentMode
+    : requestedDepositPaymentMode
 
   if (!allowOffline && !allowOnline) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Aucun mode de paiement compatible pour ce panier",
+      message: "Aucun mode de paiement compatible pour ce panier",
     });
   }
   if (paymentMode === "stripe" && !allowOnline) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Le paiement en ligne n’est pas disponible pour ce panier",
+      message: "Le paiement en ligne n’est pas disponible pour ce panier",
     });
   }
   if (paymentMode === "offline" && !allowOffline) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Le paiement sur place n’est pas disponible pour ce panier",
+      message: "Le paiement sur place n’est pas disponible pour ce panier",
     });
+  }
+  if (depositAmount > 0 && !depositAlreadyCollected && !isRentalDepositPaymentModeAvailable(depositPaymentMode, depositCapabilities)) {
+    throw createError({
+      statusCode: 400,
+      message: depositPaymentMode === 'ONLINE'
+        ? 'Le versement en ligne du dépôt de garantie n’est pas disponible pour ce panier'
+        : 'Le versement sur place du dépôt de garantie n’est pas disponible pour ce panier',
+    })
   }
 
   const requiredStocks = new Map<number, number>();
@@ -358,7 +410,7 @@ export default defineEventHandler(async (event) => {
       (previouslyReservedStocks.get(productId) || 0) + Number(line.quantity || 0),
     );
   }
-  for (const line of normalizedLines) {
+  for (const line of [...normalizedLines, ...optionLines]) {
     if (line.saleType === "RENTAL") {
       continue;
     }
@@ -370,13 +422,13 @@ export default defineEventHandler(async (event) => {
   }
 
   for (const [productId, requiredQuantity] of requiredStocks.entries()) {
-    const product = productById.get(productId);
+    const product = [...normalizedLines, ...optionLines].find(line => line.productId === productId);
     const previouslyReservedQuantity = previouslyReservedStocks.get(productId) || 0;
     const availableQuantity = (product?.stock || 0) + previouslyReservedQuantity;
     if (!product || availableQuantity < requiredQuantity) {
       throw createError({
         statusCode: 400,
-        statusMessage: `Stock insuffisant pour ${product?.name || `#${productId}`}`,
+        message: `Stock insuffisant pour ${product?.title || `#${productId}`}`,
       });
     }
   }
@@ -434,13 +486,20 @@ export default defineEventHandler(async (event) => {
     endTime: string;
   } | null = null;
 
+  if (rentalLines.length && body.deliveryType !== "ONSITE") {
+    throw createError({
+      statusCode: 400,
+      message: "Une location doit être retirée et retournée sur place aux heures sélectionnées",
+    });
+  }
+
   if (body.deliveryType === "ONSITE") {
     deliveryType = "ONSITE";
   } else if (body.deliveryType === "PICKUP") {
     if (!body.pickupPointId) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Point relais requis",
+        message: "Point relais requis",
       });
     }
 
@@ -459,7 +518,7 @@ export default defineEventHandler(async (event) => {
     if (!row || !row.active) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Point relais invalide",
+        message: "Point relais invalide",
       });
     }
 
@@ -476,19 +535,19 @@ export default defineEventHandler(async (event) => {
     if (!body.deliveryTourId) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Livraison requise",
+        message: "Livraison requise",
       });
     }
     if (!body.deliveryCity?.trim()) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Ville requise pour la livraison",
+        message: "Ville requise pour la livraison",
       });
     }
     if (!body.deliveryAddress?.trim()) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Adresse requise pour la livraison",
+        message: "Adresse requise pour la livraison",
       });
     }
 
@@ -507,7 +566,7 @@ export default defineEventHandler(async (event) => {
     if (!row || !row.active) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Créneau de livraison invalide",
+        message: "Créneau de livraison invalide",
       });
     }
 
@@ -524,7 +583,7 @@ export default defineEventHandler(async (event) => {
     if (!cityAllowed) {
       throw createError({
         statusCode: 400,
-        statusMessage:
+        message:
           "Cette ville n'est pas desservie par le créneau de livraison sélectionné",
       });
     }
@@ -541,13 +600,25 @@ export default defineEventHandler(async (event) => {
   } else {
     throw createError({
       statusCode: 400,
-      statusMessage: "Mode de livraison requis",
+      message: "Mode de livraison requis",
     });
   }
 
   const deliveryAddress = body.deliveryAddress?.trim() || null;
   const deliveryCity = body.deliveryCity?.trim() || null;
   const deliveryPostalCode = body.deliveryPostalCode?.trim() || null;
+  const firstRentalStart = rentalLines
+    .map(line => line.rentalWindow?.startAt ?? null)
+    .filter((value): value is Date => value instanceof Date)
+    .sort((left, right) => left.getTime() - right.getTime())[0] ?? null;
+  const rentalFulfillmentTime = firstRentalStart
+    ? new Intl.DateTimeFormat("fr-FR", {
+        timeZone: rentalCalendar.timezone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(firstRentalStart)
+    : null;
   const fulfillment = getReservationFulfillment({
     deliveryType,
     pickupPoint,
@@ -556,6 +627,8 @@ export default defineEventHandler(async (event) => {
     deliveryAddress,
     deliveryCity,
     deliveryPostalCode,
+    fulfillmentDate: firstRentalStart,
+    fulfillmentTime: rentalFulfillmentTime,
   });
 
   const baseOrderData = {
@@ -645,12 +718,38 @@ export default defineEventHandler(async (event) => {
     })),
   });
 
+  const existingDeposit = await db.rentalDeposit.findUnique({ where: { orderId } })
+  if (depositAmount > 0) {
+    const depositData = {
+      amount: depositAmount,
+      paymentMode: depositPaymentMode,
+      status: 'PENDING',
+      providerSessionId: null,
+      providerPaymentIntentId: null,
+      providerPaymentStatus: null,
+      failureReason: null,
+      paidAt: null,
+      releasedAt: null,
+      retainedAmount: 0,
+    }
+    if (existingDeposit && depositAlreadyCollected) {
+      // A payment retry must never reopen or recollect an already settled deposit.
+    } else if (existingDeposit) {
+      await db.rentalDeposit.update({ where: { id: existingDeposit.id }, data: depositData })
+    } else {
+      await db.rentalDeposit.create({ data: { orderId, ...depositData } })
+    }
+  } else if (existingDeposit) {
+    await db.rentalDeposit.delete({ where: { id: existingDeposit.id } })
+  }
+
   const allStockProductIds = new Set<number>([
     ...requiredStocks.keys(),
     ...previouslyReservedStocks.keys(),
   ]);
   for (const productId of allStockProductIds) {
-    const source = productById.get(productId);
+    const source = productById.get(productId)
+      || await db.product.findUnique({ where: { id: productId } });
     if (!source) continue;
     const requiredQuantity = requiredStocks.get(productId) || 0;
     const previouslyReservedQuantity = previouslyReservedStocks.get(productId) || 0;
@@ -669,13 +768,14 @@ export default defineEventHandler(async (event) => {
   let providerSessionId: string | null = null;
   let providerPaymentIntentId: string | null = null;
 
-  if (useStripe) {
+  const depositOnline = depositAmount > 0 && depositPaymentMode === 'ONLINE' && !depositAlreadyCollected
+  if (useStripe || depositOnline) {
     const requestUrl = getRequestURL(event);
     const localePrefix = language === 'fr' ? '' : `/${language}`;
     const successUrl = `${requestUrl.origin}${localePrefix}/payment/success?order=${orderId}&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${requestUrl.origin}${localePrefix}/panier?checkout=cancel&order=${orderId}&session_id={CHECKOUT_SESSION_ID}`;
     const session = await createStripeCheckoutSession({
-      orderId: String(orderId),
+      orderId: depositOnline && !useStripe ? getRentalDepositRegistryOrderId(orderId) : String(orderId),
       orderNumber,
       successUrl,
       cancelUrl,
@@ -684,8 +784,11 @@ export default defineEventHandler(async (event) => {
       metadata: {
         orderId: String(orderId),
         orderNumber,
+        paymentPurpose: useStripe ? (depositOnline ? 'order_with_deposit' : 'order') : 'rental_deposit',
+        depositAmount: depositOnline ? String(Math.round(depositAmount * 100)) : '0',
       },
-      lineItems: orderLines.map((line) => ({
+      lineItems: [
+        ...(useStripe ? orderLines.map((line) => ({
         name: line.title,
         amount: Math.round(line.unitPrice * 100),
         quantity: line.quantity,
@@ -694,19 +797,33 @@ export default defineEventHandler(async (event) => {
         imageUrl: toStripeCompatibleImageUrl(line.imageUrl, requestUrl.origin),
         taxBehavior: line.paymentTaxBehavior || undefined,
         taxCode: line.paymentTaxCode || undefined,
-      })),
+        })) : []),
+        ...(depositOnline ? [{
+          name: language === 'en' ? 'Refundable security deposit' : 'Dépôt de garantie remboursable',
+          amount: Math.round(depositAmount * 100),
+          quantity: 1,
+          currency: 'eur',
+          description: language === 'en' ? `Security deposit for ${orderNumber}` : `Dépôt de garantie lié à ${orderNumber}`,
+          taxBehavior: 'inclusive' as const,
+          taxCode: 'txcd_00000000',
+        }] : []),
+      ],
     });
     checkoutUrl = session.url;
     providerSessionId = session.id;
     providerPaymentIntentId = session.paymentIntentId;
-    await db.shopOrder.update({
-      where: { id: orderId },
-      data: {
-        checkoutUrl,
-        providerSessionId,
-        providerPaymentIntentId,
-      },
-    });
+    if (useStripe) {
+      await db.shopOrder.update({
+        where: { id: orderId },
+        data: { checkoutUrl, providerSessionId, providerPaymentIntentId },
+      });
+    }
+    if (depositOnline) {
+      await db.rentalDeposit.update({
+        where: { orderId },
+        data: { providerSessionId, providerPaymentIntentId, providerPaymentStatus: session.status },
+      })
+    }
   }
 
   const fullOrder = await db.shopOrder.findUnique({
@@ -814,6 +931,110 @@ async function resolveOrderAccountProvisioning(options: {
     linkedToExistingAccount: false,
     createdInvitedAccount: true,
   };
+}
+
+function buildProductOptionLines(line: any, language: string) {
+  const requested = new Map<string, number>()
+  for (const selection of line.requestedOptionSelections || []) {
+    const optionId = String(selection?.optionId || '').trim()
+    const quantity = Number(selection?.quantity)
+    if (!optionId || requested.has(optionId) || !Number.isInteger(quantity) || quantity <= 0) {
+      throw createError({ statusCode: 400, message: 'Sélection d’option invalide' })
+    }
+    requested.set(optionId, quantity)
+  }
+
+  const availableOptions = new Map<string, ProductOption>()
+  for (const group of line.product.optionGroups) {
+    const options = group.options.filter((option: ProductOption) => option.active)
+    for (const option of options) availableOptions.set(option.id, option)
+    const selectedCount = options.filter((option: ProductOption) => requested.has(option.id)).length
+    const minimum = group.required ? Math.max(1, group.minSelections) : group.minSelections
+    if (selectedCount < minimum || (group.maxSelections != null && selectedCount > group.maxSelections)) {
+      throw createError({ statusCode: 400, message: `Le groupe d’options « ${pickProductLocalizedText(language, group.titleLocalized, group.title)} » est incomplet` })
+    }
+  }
+  for (const optionId of requested.keys()) {
+    if (!availableOptions.has(optionId)) {
+      throw createError({ statusCode: 400, message: 'Une option sélectionnée n’est pas disponible pour ce produit' })
+    }
+  }
+
+  return Array.from(requested.entries()).map(([optionId, requestedQuantity]) => {
+    const option = availableOptions.get(optionId)!
+    const minimum = Math.max(1, option.minQuantity)
+    const maximum = option.maxQuantity ?? Number.MAX_SAFE_INTEGER
+    if (requestedQuantity < minimum || requestedQuantity > maximum) {
+      throw createError({ statusCode: 400, message: `Quantité invalide pour ${pickProductLocalizedText(language, option.labelLocalized, option.label)}` })
+    }
+    if (!option.quantityEditable && requestedQuantity !== Math.max(1, option.defaultQuantity)) {
+      throw createError({ statusCode: 400, message: 'La quantité de cette option ne peut pas être modifiée' })
+    }
+    const linkedProduct = option.linkedProduct
+    if (option.kind === 'ACCESSORY' && option.linkedProductId && (!linkedProduct || !linkedProduct.active)) {
+      throw createError({ statusCode: 409, message: 'Cet accessoire n’est plus disponible' })
+    }
+    const quantity = getProductOptionChargedQuantity(option.quantityMode, line.quantity, requestedQuantity)
+    if (linkedProduct && quantity > linkedProduct.stock) {
+      throw createError({ statusCode: 409, message: `Stock insuffisant pour ${linkedProduct.name}` })
+    }
+    if (linkedProduct?.saleType === 'RENTAL' && !line.rentalWindow) {
+      throw createError({ statusCode: 400, message: 'Un accessoire loué nécessite une période de location' })
+    }
+    const unitPrice = getProductOptionCalculatedUnitPrice(
+      option,
+      Number(line.rentalDurationUnits || 0),
+      line.rentalPricingMode,
+    )
+    const vatRate = option.vatRate == null ? line.vatRate : option.vatRate
+    const title = pickProductLocalizedText(language, option.labelLocalized, option.label)
+      || linkedProduct?.name
+      || 'Option'
+    const isRentalAccessory = linkedProduct?.saleType === 'RENTAL'
+
+    return {
+      kind: 'option' as const,
+      quantity,
+      title,
+      productId: linkedProduct?.id ?? null,
+      unitPrice,
+      totalPrice: unitPrice * quantity,
+      vatRate,
+      stock: linkedProduct?.stock ?? Number.MAX_SAFE_INTEGER,
+      allowOfflinePayment: linkedProduct?.allowOfflinePayment ?? line.allowOfflinePayment,
+      allowOnlinePayment: linkedProduct?.allowOnlinePayment ?? line.allowOnlinePayment,
+      saleType: isRentalAccessory ? 'RENTAL' as const : linkedProduct ? 'SALE' as const : 'OPTION' as const,
+      imageUrl: null,
+      description: pickProductLocalizedText(language, option.descriptionLocalized, option.description) || undefined,
+      paymentTaxCode: linkedProduct?.paymentTaxCode ?? line.paymentTaxCode,
+      paymentTaxBehavior: linkedProduct?.paymentTaxBehavior ?? line.paymentTaxBehavior,
+      rentalAvailableFrom: linkedProduct?.rentalAvailableFrom ?? null,
+      rentalAvailableTo: linkedProduct?.rentalAvailableTo ?? null,
+      rentalMinDays: linkedProduct?.rentalMinDays ?? 1,
+      rentalMaxDays: linkedProduct?.rentalMaxDays ?? null,
+      rentalBookingMode: linkedProduct?.rentalBookingMode ?? 'MULTI_DAY',
+      rentalApprovalMode: linkedProduct?.rentalApprovalMode ?? 'AUTO',
+      rentalDurations: linkedProduct?.rentalDurations ?? [],
+      rentalSlotStepMinutes: linkedProduct?.rentalSlotStepMinutes ?? 30,
+      rentalDepositAmount: isRentalAccessory ? linkedProduct?.rentalDepositAmount ?? null : null,
+      rentalDepositAllowOnsitePayment: linkedProduct?.rentalDepositAllowOnsitePayment ?? true,
+      rentalDepositAllowOnlinePayment: linkedProduct?.rentalDepositAllowOnlinePayment ?? false,
+      rentalPricingMode: isRentalAccessory ? line.rentalPricingMode : null,
+      rentalWindow: isRentalAccessory ? line.rentalWindow : null,
+      metaJson: JSON.stringify({
+        lineKind: option.kind,
+        optionId,
+        relatedProductId: line.productId,
+        billingDocumentId: option.billingDocumentId,
+        rentalPricingMode: line.rentalPricingMode,
+        rentalDurationUnits: line.rentalDurationUnits,
+        vatRate,
+        linkedBillingDocuments: option.billingDocumentId
+          ? [{ id: option.billingDocumentId, name: option.billingDocument?.name, kind: option.billingDocument?.kind }]
+          : [],
+      }),
+    }
+  })
 }
 
 function extractNameParts(customerName: string) {

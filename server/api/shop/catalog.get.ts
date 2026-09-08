@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   const scopedCategories = categoryIds.length
     ? categories.filter((entry: any) => categoryIds.includes(Number(entry.id)))
     : categories
-  const sharedWhere: Record<string, any> = { active: true }
+  const sharedWhere: Record<string, any> = { active: true, catalogVisible: true }
   if (saleType) sharedWhere.saleType = saleType
 
   const productRows = await db.product.findMany({
@@ -63,6 +63,7 @@ export default defineEventHandler(async (event) => {
     products: products.map((row: any) => ({
       ...serializeProduct(row),
       allowOnlinePayment: onlinePaymentAvailable && Boolean(row.allowOnlinePayment),
+      rentalDepositAllowOnlinePayment: onlinePaymentAvailable && Boolean(row.rentalDepositAllowOnlinePayment),
     }))
   }
 })

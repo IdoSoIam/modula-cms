@@ -2,6 +2,7 @@ import { db } from '#modula/server/data/client'
 import { createEmptyCmsLocalizedText, pickCmsLocalizedText, type CmsLocalizedText } from '#modula/shared/cms'
 import { slugify } from '#modula/server/utils/slug'
 import type { BillingDocumentKind } from '#modula/server/utils/billingDocuments'
+import { normalizeProductOptionGroups, normalizeProductOptionOverrides, type ProductOptionGroup, type ProductOptionLinkedProduct, type ProductOptionOverride } from '#modula/shared/productOptions'
 
 export interface ProductPayload {
   id: number
@@ -16,6 +17,10 @@ export interface ProductPayload {
   description: string | null
   descriptionLocalized: CmsLocalizedText
   detailSections: ProductDetailSection[]
+  optionGroups: ProductOptionGroup[]
+  excludedOptionSetIds: number[]
+  optionOverrides: ProductOptionOverride[]
+  inheritedOptionSets: Array<{ id: number, name: string }>
   imageUrl: string | null
   price: number
   vatRate: number
@@ -32,6 +37,9 @@ export interface ProductPayload {
   rentalDailyPrice: number | null
   rentalDurations: number[]
   rentalSlotStepMinutes: number
+  rentalDepositAmount: number | null
+  rentalDepositAllowOnsitePayment: boolean
+  rentalDepositAllowOnlinePayment: boolean
   unitLabel: string | null
   unitLabelLocalized: CmsLocalizedText
   allowOfflinePayment: boolean
@@ -39,6 +47,7 @@ export interface ProductPayload {
   allowCustomerCancellation: boolean
   allowRefundRequestAfterEngagement: boolean
   active: boolean
+  catalogVisible: boolean
   position: number
 }
 
@@ -211,6 +220,10 @@ export function serializeProduct(row: any): ProductPayload {
     description: resolveNullableLocalizedProductText(descriptionLocalized, row.description ?? null),
     descriptionLocalized,
     detailSections: normalizeProductDetailSections(row.detailsJson),
+    optionGroups: normalizeProductOptionGroups(row.optionGroupsJson),
+    excludedOptionSetIds: parsePositiveIntegerList(row.excludedOptionSetIdsJson),
+    optionOverrides: normalizeProductOptionOverrides(row.optionOverridesJson),
+    inheritedOptionSets: [],
     imageUrl: row.imageUrl ?? null,
     price: toNumber(row.price),
     vatRate: toNumber(row.vatRate),
@@ -227,6 +240,9 @@ export function serializeProduct(row: any): ProductPayload {
     rentalDailyPrice: row.rentalDailyPrice == null ? null : Number(row.rentalDailyPrice),
     rentalDurations: parseRentalDurations(row.rentalDurationsJson),
     rentalSlotStepMinutes: Math.max(5, Number(row.rentalSlotStepMinutes || 30)),
+    rentalDepositAmount: row.rentalDepositAmount == null ? null : Math.max(0, Number(row.rentalDepositAmount)),
+    rentalDepositAllowOnsitePayment: toBoolean(row.rentalDepositAllowOnsitePayment ?? true),
+    rentalDepositAllowOnlinePayment: toBoolean(row.rentalDepositAllowOnlinePayment ?? false),
     unitLabel: resolveNullableLocalizedProductText(unitLabelLocalized, row.unitLabel ?? null),
     unitLabelLocalized,
     allowOfflinePayment: toBoolean(row.allowOfflinePayment),
@@ -234,8 +250,111 @@ export function serializeProduct(row: any): ProductPayload {
     allowCustomerCancellation: toBoolean(row.allowCustomerCancellation ?? true),
     allowRefundRequestAfterEngagement: toBoolean(row.allowRefundRequestAfterEngagement ?? false),
     active: toBoolean(row.active),
+    catalogVisible: toBoolean(row.catalogVisible ?? true),
     position: Number(row.position || 0)
   }
+}
+
+export interface ProductOptionSetPayload {
+  id: number
+  name: string
+  categoryIds: number[]
+  productIds: number[]
+  saleTypes: Array<'SALE' | 'RENTAL'>
+  optionGroups: ProductOptionGroup[]
+  active: boolean
+  position: number
+}
+
+export function serializeProductOptionSet(row: any): ProductOptionSetPayload {
+  return {
+    id: Number(row.id),
+    name: String(row.name || ''),
+    categoryIds: parsePositiveIntegerList(row.categoryIdsJson),
+    productIds: parsePositiveIntegerList(row.productIdsJson),
+    saleTypes: parseSaleTypes(row.saleTypesJson),
+    optionGroups: normalizeProductOptionGroups(row.optionGroupsJson),
+    active: toBoolean(row.active),
+    position: Number(row.position || 0),
+  }
+}
+
+export async function resolveProductOptionGroups(product: ProductPayload): Promise<ProductPayload> {
+  const rows = await db.productOptionSet.findMany({
+    where: { active: true },
+    orderBy: [{ position: 'asc' }, { name: 'asc' }],
+  })
+  const excluded = new Set(product.excludedOptionSetIds)
+  const matchingSets: ProductOptionSetPayload[] = rows
+    .map((row: unknown) => serializeProductOptionSet(row))
+    .filter((set: ProductOptionSetPayload) => !excluded.has(set.id) && optionSetMatchesProduct(set, product))
+  const overrideMap = new Map(product.optionOverrides.map(override => [`${override.optionSetId}:${override.optionId}`, override]))
+  const inheritedGroups = matchingSets.flatMap((set: ProductOptionSetPayload) => set.optionGroups.map((group: ProductOptionGroup) => ({
+    ...group,
+    id: `set-${set.id}-${group.id}`,
+    options: group.options
+      .filter((option: ProductOptionGroup['options'][number]) => overrideMap.get(`${set.id}:${option.id}`)?.enabled !== false)
+      .map((option: ProductOptionGroup['options'][number]) => {
+        const override = overrideMap.get(`${set.id}:${option.id}`)
+        return {
+          ...option,
+          id: `set-${set.id}-${option.id}`,
+          price: override?.price == null ? option.price : override.price,
+          priceSource: override?.price == null ? option.priceSource : 'CUSTOM' as const,
+        }
+      }),
+  })))
+
+  return {
+    ...product,
+    optionGroups: [...inheritedGroups, ...product.optionGroups]
+      .sort((a, b) => a.position - b.position),
+    inheritedOptionSets: matchingSets.map((set: ProductOptionSetPayload) => ({ id: set.id, name: set.name })),
+  }
+}
+
+export async function promoteProductOptionGroups(
+  productId: number,
+  saleType: 'SALE' | 'RENTAL',
+  groups: ProductOptionGroup[],
+) {
+  if (!groups.length) return
+
+  const existingSets = await db.productOptionSet.findMany({})
+  const existingGroupIds = new Set<string>()
+  for (const row of existingSets) {
+    const targetProductIds = parsePositiveIntegerList(row.productIdsJson)
+    if (!targetProductIds.includes(productId)) continue
+    for (const group of normalizeProductOptionGroups(row.optionGroupsJson)) existingGroupIds.add(group.id)
+  }
+
+  for (const group of groups) {
+    if (existingGroupIds.has(group.id)) continue
+    const name = group.title.trim()
+      || Object.values(group.titleLocalized).find(value => String(value || '').trim())
+      || `Options produit ${productId}`
+    await db.productOptionSet.create({
+      data: {
+        name: String(name),
+        categoryIdsJson: '[]',
+        productIdsJson: JSON.stringify([productId]),
+        saleTypesJson: JSON.stringify([saleType]),
+        optionGroupsJson: JSON.stringify([group]),
+        active: true,
+        position: group.position,
+      },
+    })
+  }
+
+  await db.product.update({ where: { id: productId }, data: { optionGroupsJson: '[]' } })
+}
+
+function optionSetMatchesProduct(set: ProductOptionSetPayload, product: ProductPayload) {
+  if (!set.saleTypes.includes(product.saleType)) return false
+  const hasTargets = set.categoryIds.length > 0 || set.productIds.length > 0
+  if (!hasTargets) return true
+  return set.productIds.includes(product.id)
+    || (product.categoryId != null && set.categoryIds.includes(product.categoryId))
 }
 
 function parseRentalDurations(value: unknown): number[] {
@@ -247,6 +366,28 @@ function parseRentalDurations(value: unknown): number[] {
   }
 }
 
+function parsePositiveIntegerList(value: unknown): number[] {
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    return Array.isArray(parsed)
+      ? Array.from(new Set(parsed.map(Number).filter(entry => Number.isInteger(entry) && entry > 0)))
+      : []
+  } catch {
+    return []
+  }
+}
+
+function parseSaleTypes(value: unknown): Array<'SALE' | 'RENTAL'> {
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    if (!Array.isArray(parsed)) return ['SALE', 'RENTAL']
+    const values = Array.from(new Set(parsed.filter(entry => entry === 'SALE' || entry === 'RENTAL'))) as Array<'SALE' | 'RENTAL'>
+    return values.length ? values : ['SALE', 'RENTAL']
+  } catch {
+    return ['SALE', 'RENTAL']
+  }
+}
+
 export async function hydrateProductBillingDocumentMetadata(product: ProductPayload) {
   const ids = Array.from(new Set(
     product.detailSections
@@ -254,11 +395,29 @@ export async function hydrateProductBillingDocumentMetadata(product: ProductPayl
       .map(item => Number(item.mediaDocumentId || 0))
       .filter(id => Number.isInteger(id) && id > 0),
   ))
-  if (!ids.length) return product
+  const linkedProductIds = Array.from(new Set(
+    product.optionGroups
+      .flatMap(group => group.options)
+      .map(option => Number(option.linkedProductId || 0))
+      .filter(id => Number.isInteger(id) && id > 0 && id !== product.id),
+  ))
+  const optionDocumentIds = product.optionGroups
+    .flatMap(group => group.options)
+    .map(option => Number(option.billingDocumentId || 0))
+    .filter(id => Number.isInteger(id) && id > 0)
+  for (const id of optionDocumentIds) ids.push(id)
+  const uniqueDocumentIds = Array.from(new Set(ids))
 
-  const documents = await db.billingDocumentTemplate.findMany({
-    where: { id: { in: ids }, active: true },
-  })
+  if (!uniqueDocumentIds.length && !linkedProductIds.length) return product
+
+  const [documents, linkedRows] = await Promise.all([
+    uniqueDocumentIds.length
+      ? db.billingDocumentTemplate.findMany({ where: { id: { in: uniqueDocumentIds }, active: true } })
+      : [],
+    linkedProductIds.length
+      ? db.product.findMany({ where: { id: { in: linkedProductIds }, active: true } })
+      : [],
+  ])
   type RentalDocumentMetadata = {
     name?: string | null
     kind?: BillingDocumentKind | null
@@ -268,6 +427,38 @@ export async function hydrateProductBillingDocumentMetadata(product: ProductPayl
   }
   const documentMap = new Map<number, RentalDocumentMetadata>(
     documents.map((document: any): [number, RentalDocumentMetadata] => [Number(document.id), document]),
+  )
+  const linkedProductMap = new Map<number, ProductOptionLinkedProduct>(
+    linkedRows.map((row: any) => {
+      const linked = serializeProduct(row)
+      return [linked.id, {
+        id: linked.id,
+        name: linked.name,
+        nameLocalized: linked.nameLocalized,
+        saleType: linked.saleType,
+        active: linked.active,
+        stock: linked.stock,
+        price: linked.price,
+        vatRate: linked.vatRate,
+        paymentTaxCode: linked.paymentTaxCode,
+        paymentTaxBehavior: linked.paymentTaxBehavior,
+        allowOfflinePayment: linked.allowOfflinePayment,
+        allowOnlinePayment: linked.allowOnlinePayment,
+        rentalBookingMode: linked.rentalBookingMode,
+        rentalHourlyPrice: linked.rentalHourlyPrice,
+        rentalDailyPrice: linked.rentalDailyPrice,
+        rentalAvailableFrom: linked.rentalAvailableFrom,
+        rentalAvailableTo: linked.rentalAvailableTo,
+        rentalMinDays: linked.rentalMinDays,
+        rentalMaxDays: linked.rentalMaxDays,
+        rentalDurations: linked.rentalDurations,
+        rentalSlotStepMinutes: linked.rentalSlotStepMinutes,
+        rentalApprovalMode: linked.rentalApprovalMode,
+        rentalDepositAmount: linked.rentalDepositAmount,
+        rentalDepositAllowOnsitePayment: linked.rentalDepositAllowOnsitePayment,
+        rentalDepositAllowOnlinePayment: linked.rentalDepositAllowOnlinePayment,
+      }]
+    }),
   )
 
   for (const section of product.detailSections) {
@@ -279,6 +470,22 @@ export async function hydrateProductBillingDocumentMetadata(product: ProductPayl
       item.mediaDocumentRentalHourlyPrice = document.rentalHourlyPrice == null ? null : Number(document.rentalHourlyPrice)
       item.mediaDocumentRentalDailyPrice = document.rentalDailyPrice == null ? null : Number(document.rentalDailyPrice)
       item.mediaDocumentRequiredForRental = Boolean(document.requiredForRental)
+    }
+  }
+
+  for (const group of product.optionGroups) {
+    for (const option of group.options) {
+      if (option.linkedProductId) option.linkedProduct = linkedProductMap.get(option.linkedProductId) || null
+      if (option.billingDocumentId) {
+        const document = documentMap.get(option.billingDocumentId)
+        if (document && (document.kind === 'CONTRACT' || document.kind === 'ASSURANCE')) {
+          option.billingDocument = {
+            id: option.billingDocumentId,
+            name: String(document.name || option.label || ''),
+            kind: document.kind,
+          }
+        }
+      }
     }
   }
 

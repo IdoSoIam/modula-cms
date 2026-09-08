@@ -140,6 +140,14 @@ export function getAdminNavigationSections(
           { requiredModule: "shop_orders", requiredAction: "read" },
         ),
         createAdminNavigationItem(
+          "shop-product-options",
+          "admin.navigation.items.productOptions",
+          getAdminRoutePath("shopProductOptions", routeLocale),
+          "mdi:tune-variant",
+          getAdminRoutePaths("shopProductOptions"),
+          { requiredModule: "shop_orders", requiredAction: "read" },
+        ),
+        createAdminNavigationItem(
           "shop-orders",
           "admin.navigation.items.orders",
           getAdminRoutePath("shopOrders", routeLocale),

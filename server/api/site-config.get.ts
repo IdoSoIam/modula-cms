@@ -1,12 +1,13 @@
 import cmsProjectConfig from '#modula/cms.project.config'
 import { getCmsApplicationPagePath, getCmsSpecialPagePath, getPublicSiteShell } from '#modula/server/utils/cms'
-import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getDefaultFeatureFlags, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getSiteDefaultLocale, getSiteLocales, getSiteLocaleLabels } from '#modula/server/utils/settings'
+import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getDefaultFeatureFlags, getOrdersWindow, getFeatureFlags, getFarmPickupConfig, getRentalCalendarConfig, getSiteDefaultLocale, getSiteLocales, getSiteLocaleLabels } from '#modula/server/utils/settings'
 import { getResolvedPublicDictionary } from '#modula/server/utils/publicDictionary'
 import { getPublicDaisyUiThemeConfig } from '#modula/server/utils/themes'
 import { getCmsInstallStatus } from '#modula/server/utils/install'
 import { listSiteTemplates } from '#modula/server/utils/siteTemplates'
 import { FALLBACK_SITE_TEMPLATE_KEY } from '#modula/shared/siteTemplates'
 import { buildResolvedNavigationPreview, createDefaultCmsNavigationItems, createDefaultCmsSiteSettings } from '#modula/shared/cms'
+import { createDefaultRentalCalendar } from '#modula/shared/rentalCalendar'
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
@@ -70,6 +71,7 @@ export default defineEventHandler(async (event) => {
       subscriptionsEnabled: false,
       featureFlags: getDefaultFeatureFlags(),
       farmPickup: getDefaultFarmPickupConfig(),
+      rentalCalendar: createDefaultRentalCalendar(),
       contactEmail: null,
       adminEmail: null,
       adminPhone: null,
@@ -84,9 +86,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const featureFlags = await getFeatureFlags()
-  const [ordersWindow, farmPickup, contactEmail, adminPhone, siteShell, themes, constructionPagePath, shopPagePath, siteLocales, defaultLocale, localeLabels] = await Promise.all([
+  const [ordersWindow, farmPickup, rentalCalendar, contactEmail, adminPhone, siteShell, themes, constructionPagePath, shopPagePath, siteLocales, defaultLocale, localeLabels] = await Promise.all([
     getOrdersWindow(),
     getFarmPickupConfig(),
+    getRentalCalendarConfig(),
     getContactEmail(),
     getAdminPhone(),
     getPublicSiteShell(requestedLocale || 'fr', featureFlags),
@@ -120,6 +123,7 @@ export default defineEventHandler(async (event) => {
     subscriptionsEnabled: featureFlags.subscriptionsEnabled,
     featureFlags,
     farmPickup,
+    rentalCalendar,
     contactEmail,
     adminEmail: contactEmail,
     adminPhone,

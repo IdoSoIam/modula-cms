@@ -60,6 +60,14 @@
                       <dt>{{ insurance.name }}</dt>
                       <dd>{{ $formatPrice(insurance.unitPrice * item.quantity) }}</dd>
                     </div>
+                    <div v-for="option in item.optionSelections || []" :key="option.optionId" class="flex justify-between gap-4">
+                      <dt>{{ option.label }} × {{ option.quantity }}</dt>
+                      <dd>{{ $formatPrice(option.totalPrice) }}</dd>
+                    </div>
+                    <div v-if="Number(item.rentalDepositAmount || 0) > 0" class="mt-2 flex justify-between gap-4 border-t border-base-300 pt-2">
+                      <dt>{{ depositLabel }}</dt>
+                      <dd>{{ $formatPrice(Number(item.rentalDepositAmount) * item.quantity) }}</dd>
+                    </div>
                   </dl>
                   <div v-if="item.associatedDocuments?.length" class="flex flex-wrap gap-2">
                     <a
@@ -95,6 +103,10 @@
                   <div class="text-sm opacity-60">{{ displayedLineTotalLabel }}</div>
                   <div class="text-lg font-semibold text-primary">{{ $formatPrice(item.totalPrice) }}</div>
                 </div>
+                <NuxtLink class="btn btn-sm btn-outline" :to="editItemTarget(item)">
+                  <Icon name="mdi:pencil-outline" size="18" />
+                  {{ editItemLabel }}
+                </NuxtLink>
                 <button class="btn btn-sm btn-ghost text-error" @click="removeItem(item.key)">
                   <Icon name="mdi:delete-outline" size="18" />
                   {{ removeLabel }}
@@ -135,7 +147,7 @@
               {{ rentalHelpLabel }}
             </div>
 
-            <div class="form-control flex flex-col gap-3">
+            <div v-if="deliveryChoices.length > 1" class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ deliveryLabel }}</span></label>
               <select v-model="checkoutForm.deliveryType" class="select select-bordered" :disabled="deliveryOptionsPending">
                 <option v-if="!deliveryChoices.length" value="">{{ deliveryPlaceholderLabel }}</option>
@@ -147,7 +159,15 @@
 
             <div v-if="checkoutForm.deliveryType === 'ONSITE'" class="rounded-box bg-base-200 p-4 text-sm">
               <div class="font-medium">{{ onSiteDeliveryLabel }}</div>
-              <div class="mt-1 opacity-75">{{ onSitePickupSummary }}</div>
+              <template v-if="hasRentalItems">
+                <div class="mt-1 opacity-75">{{ deliveryOptions?.onSitePickup?.address || noAddressLabel }}</div>
+                <div v-for="rental in rentalPickupSummaries" :key="rental.key" class="mt-2">
+                  <span class="font-medium">{{ rental.title }}</span>
+                  <span class="opacity-75"> : {{ rental.period }}</span>
+                </div>
+                <div v-if="hasMixedSaleTypes" class="mt-2 opacity-75">{{ mixedCartPickupLabel }}</div>
+              </template>
+              <div v-else class="mt-1 opacity-75">{{ onSitePickupSummary }}</div>
             </div>
 
             <div v-if="checkoutForm.deliveryType === 'PICKUP'" class="space-y-3">
@@ -248,6 +268,30 @@
               <p v-if="paymentConstraintNotice" class="text-sm opacity-70">{{ paymentConstraintNotice }}</p>
             </div>
 
+            <div v-if="depositTotal > 0" class="form-control flex flex-col gap-3 rounded-box border border-base-300 bg-base-200/35 p-4">
+              <div class="flex items-center justify-between gap-4">
+                <span class="font-medium">{{ depositLabel }}</span>
+                <span class="font-semibold">{{ $formatPrice(depositTotal) }}</span>
+              </div>
+              <label class="label p-0"><span class="label-text">{{ depositPaymentLabel }}</span></label>
+              <select v-if="depositPaymentCapabilities.requiresChoice" v-model="checkoutForm.depositPaymentMode" class="select select-bordered">
+                <option value="onsite">{{ depositOnsiteLabel }}</option>
+                <option value="online">{{ depositOnlineLabel }}</option>
+              </select>
+              <input v-else class="input input-bordered" :value="resolvedDepositPaymentLabel" disabled />
+              <p class="text-xs opacity-65">{{ depositSeparateNotice }}</p>
+              <dl class="space-y-2 border-t border-base-300 pt-3 text-sm">
+                <div v-if="amountDueOnsite > 0" class="flex items-center justify-between gap-4">
+                  <dt class="font-medium">{{ amountDueOnsiteLabel }}</dt>
+                  <dd class="font-semibold">{{ $formatPrice(amountDueOnsite) }}</dd>
+                </div>
+                <div v-if="amountDueOnline > 0" class="flex items-center justify-between gap-4">
+                  <dt class="font-medium">{{ amountDueOnlineLabel }}</dt>
+                  <dd class="font-semibold">{{ $formatPrice(amountDueOnline) }}</dd>
+                </div>
+              </dl>
+            </div>
+
             <div class="form-control flex flex-col gap-3">
               <label class="label"><span class="label-text">{{ messageLabel }}</span></label>
               <textarea v-model="checkoutForm.message" class="textarea textarea-bordered min-h-28" />
@@ -304,7 +348,8 @@ definePageMeta({
   i18n: false,
 })
 
-import { getShopCartPaymentCapabilities, useShopCart } from '#modula/composables/useShopCart'
+import { getShopCartPaymentCapabilities, useShopCart, type ShopCartItem } from '#modula/composables/useShopCart'
+import { getRentalDepositPaymentCapabilities } from '#modula/shared/rentalDeposit'
 import { useAuthStore } from '#modula/stores/auth'
 
 interface DeliveryOptionPickupPoint {
@@ -372,6 +417,8 @@ const stripeTaxEnabled = computed(() => Boolean(paymentConfig.value?.config?.aut
 const registryDefaultTaxCode = computed(() => paymentConfig.value?.config?.defaultTaxCode?.trim() || '')
 const paymentCapabilities = computed(() => getShopCartPaymentCapabilities(items.value, stripeEnabled.value))
 const hasRentalItems = computed(() => items.value.some((item) => item.saleType === 'RENTAL'))
+const hasSaleItems = computed(() => items.value.some((item) => item.saleType === 'SALE'))
+const hasMixedSaleTypes = computed(() => hasRentalItems.value && hasSaleItems.value)
 const rentalLinesValid = computed(() => items.value.every((item) =>
   item.saleType !== 'RENTAL'
   || (item.rentalStartDate?.trim().length && item.rentalEndDate?.trim().length)
@@ -379,6 +426,7 @@ const rentalLinesValid = computed(() => items.value.every((item) =>
 const pickupPoints = computed(() => deliveryOptions.value?.pickupPoints || [])
 const deliveryTours = computed(() => deliveryOptions.value?.tours || [])
 const deliveryChoices = computed<DeliveryType[]>(() => {
+  if (hasRentalItems.value) return ['ONSITE']
   const values: DeliveryType[] = []
   if (deliveryOptions.value?.onSitePickup) values.push('ONSITE')
   if (pickupPoints.value.length) values.push('PICKUP')
@@ -392,6 +440,7 @@ const checkoutForm = ref({
   phone: '',
   message: '',
   paymentMode: 'offline' as 'offline' | 'stripe',
+  depositPaymentMode: 'onsite' as 'onsite' | 'online',
   deliveryType: '' as DeliveryType,
   pickupPointId: 0,
   deliveryTourId: 0,
@@ -430,6 +479,7 @@ const accountProvisioningNotice = computed(() => authStore.user
   : publicText('checkout.cart.accountProvisioningNotice', 'Si aucun compte n’existe avec cet email, un compte utilisateur sera créé automatiquement et un email d’activation vous sera envoyé.')
 )
 const rentalHelpLabel = computed(() => publicText('checkout.cart.rentalHelp', 'Les dates de location sont choisies avant l’ajout de chaque location au panier. La disponibilité est revérifiée lors de la création de la commande.'))
+const mixedCartPickupLabel = computed(() => publicText('checkout.cart.mixedRentalPickup', 'Les produits achetés seront retirés sur place avec le matériel loué.'))
 const rentalPeriodLabel = computed(() => publicText('checkout.cart.rentalPeriod', 'Période de location'))
 const rentalBasePriceLabel = computed(() => publicText('checkout.cart.rentalBasePrice', 'Location'))
 const deliveryLabel = computed(() => publicText('checkout.cart.deliveryMethod', 'Mode de livraison'))
@@ -447,8 +497,17 @@ const postalCodeLabel = computed(() => publicText('checkout.cart.postalCode', 'C
 const tourCityHelperTitle = computed(() => publicText('checkout.cart.deliveryEligibilityTitle', 'Éligibilité livraison'))
 const tourCityHelperLabel = computed(() => publicText('checkout.cart.deliveryEligibilityHelp', 'Pour vérifier l’éligibilité de la livraison à domicile, rentrez votre ville. Les suggestions ne proposent que les villes desservies par les créneaux configurés.'))
 const paymentLabel = computed(() => publicText('checkout.cart.paymentMethod', 'Mode de règlement'))
+const editItemLabel = computed(() => publicText('checkout.cart.editItem', 'Modifier'))
+const depositLabel = computed(() => publicText('shop.product.securityDeposit', 'Dépôt de garantie'))
+const depositPaymentLabel = computed(() => publicText('shop.product.securityDepositPayment', 'Versement du dépôt de garantie'))
+const depositOnsiteLabel = computed(() => publicText('shop.product.depositOnsite', 'Sur place'))
+const depositOnlineLabel = computed(() => publicText('shop.product.depositOnline', 'En ligne'))
+const depositSeparateNotice = computed(() => publicText('checkout.cart.securityDepositSeparateNotice', 'Le dépôt de garantie est remboursable et reste distinct du total facturé de la location.'))
+const amountDueOnsiteLabel = computed(() => publicText('checkout.cart.amountDueOnsite', 'Montant total à régler sur place'))
+const amountDueOnlineLabel = computed(() => publicText('checkout.cart.amountDueOnline', 'Montant total à payer en ligne'))
 const messageLabel = computed(() => publicText('checkout.cart.message', 'Message'))
-const submitLabel = computed(() => checkoutForm.value.paymentMode === 'stripe' && paymentCapabilities.value.allowOnline
+const submitLabel = computed(() => (checkoutForm.value.paymentMode === 'stripe' && paymentCapabilities.value.allowOnline)
+  || (depositTotal.value > 0 && checkoutForm.value.depositPaymentMode === 'online' && depositPaymentCapabilities.value.allowOnline)
   ? publicText('checkout.cart.continueStripe', 'Continuer vers Stripe')
   : publicText('checkout.cart.confirmOrder', 'Confirmer la commande'))
 const unavailablePaymentLabel = computed(() => publicText('checkout.cart.unavailablePayment', 'Aucun mode de règlement valide n’est actuellement disponible pour ce panier.'))
@@ -465,6 +524,27 @@ const resolvedPaymentLabel = computed(() =>
     ? onlineLabel.value
     : offlineLabel.value
 )
+const depositItems = computed(() => items.value.filter(item => item.saleType === 'RENTAL' && Number(item.rentalDepositAmount || 0) > 0))
+const depositTotal = computed(() => roundCurrency(depositItems.value.reduce((sum, item) => sum + Number(item.rentalDepositAmount || 0) * item.quantity, 0)))
+const depositPaymentCapabilities = computed(() => getRentalDepositPaymentCapabilities(depositItems.value, stripeEnabled.value))
+const resolvedDepositPaymentLabel = computed(() => depositPaymentCapabilities.value.allowOnline && !depositPaymentCapabilities.value.allowOnsite
+  ? depositOnlineLabel.value
+  : depositOnsiteLabel.value)
+const amountDueOnsite = computed(() => roundCurrency(
+  (checkoutForm.value.paymentMode === 'offline' ? total.value : 0)
+  + (checkoutForm.value.depositPaymentMode === 'onsite' ? depositTotal.value : 0),
+))
+const amountDueOnline = computed(() => roundCurrency(
+  (checkoutForm.value.paymentMode === 'stripe' ? total.value : 0)
+  + (checkoutForm.value.depositPaymentMode === 'online' ? depositTotal.value : 0),
+))
+
+function editItemTarget(item: ShopCartItem) {
+  return localePath({
+    path: `/products/${item.slug || item.productId}`,
+    query: { editCartItem: item.key },
+  })
+}
 
 const selectedPickupPoint = computed(() =>
   pickupPoints.value.find((point) => point.id === Number(checkoutForm.value.pickupPointId)) || null
@@ -579,6 +659,13 @@ const onSitePickupSummary = computed(() => {
   const timeRange = [$formatTime(onSitePickup.startTime), $formatTime(onSitePickup.endTime)].filter(Boolean).join(' - ')
   return [onSitePickup.address, `${$formatDate(onSitePickup.nextDate)} - ${timeRange}`].filter(Boolean).join(' - ')
 })
+const rentalPickupSummaries = computed(() => items.value
+  .filter(item => item.saleType === 'RENTAL')
+  .map(item => ({
+    key: item.key,
+    title: item.title,
+    period: formatRentalRange(item.rentalStartDate, item.rentalEndDate),
+  })))
 
 const paymentConstraintNotice = computed(() => {
   if (paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline) {
@@ -620,10 +707,14 @@ const canSubmit = computed(() =>
   && deliveryValid.value
   && rentalLinesValid.value
   && (paymentCapabilities.value.allowOffline || paymentCapabilities.value.allowOnline)
+  && (depositTotal.value <= 0 || depositPaymentCapabilities.value.allowOnsite || depositPaymentCapabilities.value.allowOnline)
 )
 
 watch(paymentCapabilities, (value) => {
   checkoutForm.value.paymentMode = value.resolvedDefaultMode
+}, { immediate: true, deep: true })
+watch(depositPaymentCapabilities, (value) => {
+  checkoutForm.value.depositPaymentMode = value.allowOnline && !value.allowOnsite ? 'online' : 'onsite'
 }, { immediate: true, deep: true })
 
 watch(deliveryChoices, (choices) => {
@@ -733,6 +824,7 @@ function resolveCartTaxCode(item: { paymentTaxCode?: string | null }) {
 function resetCheckoutForm() {
   checkoutForm.value.message = ''
   checkoutForm.value.paymentMode = paymentCapabilities.value.resolvedDefaultMode
+  checkoutForm.value.depositPaymentMode = depositPaymentCapabilities.value.allowOnline && !depositPaymentCapabilities.value.allowOnsite ? 'online' : 'onsite'
   checkoutForm.value.pickupPointId = 0
   checkoutForm.value.deliveryTourId = 0
   const firstChoice = deliveryChoices.value[0] || ''
@@ -777,6 +869,7 @@ async function submitOrder() {
         phone: checkoutForm.value.phone,
         message: checkoutForm.value.message,
         paymentMode: checkoutForm.value.paymentMode,
+        depositPaymentMode: depositTotal.value > 0 ? checkoutForm.value.depositPaymentMode : undefined,
         deliveryType: checkoutForm.value.deliveryType,
         pickupPointId: checkoutForm.value.deliveryType === 'PICKUP' ? checkoutForm.value.pickupPointId : undefined,
         deliveryTourId: checkoutForm.value.deliveryType === 'TOUR' ? checkoutForm.value.deliveryTourId : undefined,
@@ -793,7 +886,11 @@ async function submitOrder() {
           rentalPricingMode: item.saleType === 'RENTAL' ? item.rentalPricingMode : undefined,
           insuranceDocumentIds: item.saleType === 'RENTAL'
             ? (item.insuranceSelections || []).map(insurance => insurance.documentId)
-            : undefined
+            : undefined,
+          optionSelections: (item.optionSelections || []).map(option => ({
+            optionId: option.optionId,
+            quantity: option.selectedQuantity,
+          })),
         }))
       }
     })
@@ -811,10 +908,20 @@ async function submitOrder() {
     }
     $toast.success(publicText('checkout.cart.orderSuccess', 'Commande envoyée avec succès.'))
   } catch (error: any) {
-    $toast.error(error?.statusMessage || error?.data?.statusMessage || publicText('checkout.cart.orderError', 'Impossible de créer la commande.'))
+    $toast.error(resolveOrderErrorMessage(error))
   } finally {
     savingOrder.value = false
   }
+}
+
+function resolveOrderErrorMessage(error: any) {
+  const fallback = publicText('checkout.cart.orderError', 'Impossible de créer la commande.')
+  const statusCode = Number(error?.statusCode || error?.status || error?.data?.statusCode || 0)
+  if (statusCode >= 500) return fallback
+  const candidates = [error?.data?.message, error?.data?.statusMessage, error?.statusMessage]
+  return candidates.find(value => typeof value === 'string'
+    && value.trim().length > 0
+    && !/^(?:internal )?server error$/i.test(value.trim())) || fallback
 }
 
 function formatRentalDuration(item: (typeof items.value)[number]) {

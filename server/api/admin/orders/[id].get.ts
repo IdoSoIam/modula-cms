@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const row = await db.shopOrder.findFirst({
+  const [row, rentalDeposit] = await Promise.all([db.shopOrder.findFirst({
     where: {
       id,
       status: { not: 'DRAFT' },
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       pickupPoint: true,
       deliveryTour: true,
     },
-  })
+  }), db.rentalDeposit.findUnique({ where: { orderId: id } })])
 
   if (!row) {
     throw createError({
@@ -32,5 +32,14 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return serializeShopOrder(row)
+  return {
+    ...serializeShopOrder(row),
+    rentalDeposit: rentalDeposit
+      ? {
+          ...rentalDeposit,
+          amount: Number(rentalDeposit.amount || 0),
+          retainedAmount: Number(rentalDeposit.retainedAmount || 0),
+        }
+      : null,
+  }
 })

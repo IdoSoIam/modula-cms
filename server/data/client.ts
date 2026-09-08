@@ -32,9 +32,11 @@ const MODEL_NAMES = [
   'TourCity',
   'Product',
   'ProductCategory',
+  'ProductOptionSet',
   'BillingDocumentTemplate',
   'ShopOrder',
   'ShopOrderLine',
+  'RentalDeposit',
   'Article',
   'Image',
   'ImageVariant',
@@ -76,11 +78,13 @@ const MANUAL_RELATIONS: Record<ModelName, Record<string, { type: 'hasMany'; targ
   TourCity: {},
   Product: {},
   ProductCategory: {},
+  ProductOptionSet: {},
   BillingDocumentTemplate: {},
   ShopOrder: {
     lines: { type: 'hasMany', target: 'ShopOrderLine', foreignKey: 'orderId' }
   },
   ShopOrderLine: {},
+  RentalDeposit: {},
   Article: {},
   Image: {
     variants: { type: 'hasMany', target: 'ImageVariant', foreignKey: 'imageId' },

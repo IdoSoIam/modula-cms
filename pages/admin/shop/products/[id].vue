@@ -90,61 +90,6 @@
             </div>
           </section>
 
-          <section class="card bg-base-100 p-6 shadow-sm">
-            <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.commerceCard') }}</h2>
-            <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div v-if="editing.saleType !== 'RENTAL'" class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldPrice') }}</span></label>
-                <input v-model.number="editing.price" type="number" min="0" step="0.01" class="input input-bordered" />
-              </div>
-              <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldVatRate') }}</span></label>
-                <input v-model.number="editing.vatRate" type="number" min="0" max="100" step="0.01" class="input input-bordered" />
-              </div>
-              <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldAvailable') }}</span></label>
-                <input v-model.number="editing.stock" type="number" min="0" step="1" class="input input-bordered" />
-              </div>
-              <div class="form-control flex gap-3 md:col-span-2">
-                <div class="flex flex-wrap gap-x-6 gap-y-2">
-                <label class="label cursor-pointer justify-start gap-3">
-                  <input v-model="editing.allowOfflinePayment" type="checkbox" class="checkbox" />
-                  <span class="label-text">{{ t('admin.productsPage.paymentOffline') }}</span>
-                </label>
-                <label class="label cursor-pointer justify-start gap-3">
-                  <input v-model="editing.allowOnlinePayment" type="checkbox" class="checkbox" :disabled="!onlinePaymentAvailable" />
-                  <span class="label-text">{{ t('admin.productsPage.paymentOnline') }}</span>
-                </label>
-                </div>
-                <div v-if="!onlinePaymentAvailable" class="alert alert-warning mt-2 py-3 text-sm">
-                  <Icon name="mdi:information-outline" size="20" class="shrink-0" />
-                  {{ t('admin.productsPage.paymentOnlineUnavailable') }}
-                </div>
-              </div>
-              <div class="form-control flex gap-3">
-                <label class="label cursor-pointer justify-start gap-3">
-                  <input v-model="editing.active" type="checkbox" class="checkbox" />
-                  <span class="label-text">{{ t('admin.productsPage.fieldActive') }}</span>
-                </label>
-              </div>
-              <div class="form-control flex gap-3 md:col-span-2">
-                <label class="label cursor-pointer justify-start gap-3">
-                  <input v-model="editing.allowCustomerCancellation" type="checkbox" class="checkbox" />
-                  <span class="label-text">{{ t('admin.productEditorPage.allowCustomerCancellation') }}</span>
-                </label>
-              </div>
-              <div class="form-control flex gap-3 md:col-span-2">
-                <label class="label cursor-pointer justify-start gap-3">
-                  <input v-model="editing.allowRefundRequestAfterEngagement" type="checkbox" class="checkbox" />
-                  <span class="label-text">{{ t('admin.productEditorPage.allowRefundRequestAfterEngagement') }}</span>
-                </label>
-              </div>
-              <div class="md:col-span-2 text-sm opacity-70">
-                {{ t('admin.productEditorPage.refundPolicyHelp') }}
-              </div>
-            </div>
-          </section>
-
           <section v-if="editing.saleType === 'RENTAL'" class="card bg-base-100 p-6 shadow-sm">
             <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.rentalCard') }}</h2>
             <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -201,6 +146,164 @@
                 {{ t('admin.productsPage.rentalHelp') }}
               </div>
             </div>
+          </section>
+
+          <section class="card bg-base-100 p-6 shadow-sm">
+            <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.commerceCard') }}</h2>
+            <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div v-if="editing.saleType !== 'RENTAL'" class="form-control flex flex-col gap-3">
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldPrice') }}</span></label>
+                <input v-model.number="editing.price" type="number" min="0" step="0.01" class="input input-bordered" />
+              </div>
+              <div class="form-control flex flex-col gap-3">
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldVatRate') }}</span></label>
+                <input v-model.number="editing.vatRate" type="number" min="0" max="100" step="0.01" class="input input-bordered" />
+              </div>
+              <div class="form-control flex flex-col gap-3">
+                <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldAvailable') }}</span></label>
+                <input v-model.number="editing.stock" type="number" min="0" step="1" class="input input-bordered" />
+              </div>
+              <div class="form-control flex gap-3 md:col-span-2">
+                <div class="flex flex-wrap gap-x-6 gap-y-2">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input v-model="editing.allowOfflinePayment" type="checkbox" class="checkbox" />
+                  <span class="label-text">{{ t('admin.productsPage.paymentOffline') }}</span>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input v-model="editing.allowOnlinePayment" type="checkbox" class="checkbox" :disabled="!onlinePaymentAvailable" />
+                  <span class="label-text">{{ t('admin.productsPage.paymentOnline') }}</span>
+                </label>
+                </div>
+                <div v-if="!onlinePaymentAvailable" class="alert alert-warning mt-2 py-3 text-sm">
+                  <Icon name="mdi:information-outline" size="20" class="shrink-0" />
+                  {{ t('admin.productsPage.paymentOnlineUnavailable') }}
+                </div>
+              </div>
+              <div class="form-control flex gap-3">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input v-model="editing.active" type="checkbox" class="checkbox" />
+                  <span class="label-text">{{ t('admin.productsPage.fieldActive') }}</span>
+                </label>
+              </div>
+              <div class="form-control flex gap-3">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input v-model="editing.catalogVisible" type="checkbox" class="checkbox" />
+                  <span class="label-text">{{ t('admin.productOptions.catalogVisible') }}</span>
+                </label>
+                <span class="text-xs opacity-60">{{ t('admin.productOptions.catalogVisibleHelp') }}</span>
+              </div>
+              <div class="form-control flex gap-3 md:col-span-2">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input v-model="editing.allowCustomerCancellation" type="checkbox" class="checkbox" />
+                  <span class="label-text">{{ t('admin.productEditorPage.allowCustomerCancellation') }}</span>
+                </label>
+              </div>
+              <div class="form-control flex gap-3 md:col-span-2">
+                <label class="label cursor-pointer justify-start gap-3">
+                  <input v-model="editing.allowRefundRequestAfterEngagement" type="checkbox" class="checkbox" />
+                  <span class="label-text">{{ t('admin.productEditorPage.allowRefundRequestAfterEngagement') }}</span>
+                </label>
+              </div>
+              <div class="md:col-span-2 text-sm opacity-70">
+                {{ t('admin.productEditorPage.refundPolicyHelp') }}
+              </div>
+            </div>
+          </section>
+
+          <section v-if="editing.saleType === 'RENTAL'" class="card bg-base-100 p-6 shadow-sm">
+            <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.depositCard') }}</h2>
+            <p class="mt-1 text-sm opacity-70">{{ t('admin.productEditorPage.depositHelp') }}</p>
+            <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productEditorPage.depositAmount') }}</span>
+                <input v-model.number="editing.rentalDepositAmount" type="number" min="0" step="0.01" class="input input-bordered w-full" />
+                <span class="text-xs opacity-60">{{ t('admin.productEditorPage.depositAmountHelp') }}</span>
+              </label>
+              <div v-if="Number(editing.rentalDepositAmount || 0) > 0" class="rounded-box border border-base-300 bg-base-200/35 p-4">
+                <div class="font-medium">{{ t('admin.productEditorPage.depositPaymentModes') }}</div>
+                <div class="mt-3 flex flex-col gap-2">
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input v-model="editing.rentalDepositAllowOnsitePayment" type="checkbox" class="checkbox" />
+                    <span class="label-text">{{ t('admin.productEditorPage.depositPaymentOnsite') }}</span>
+                  </label>
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input v-model="editing.rentalDepositAllowOnlinePayment" type="checkbox" class="checkbox" :disabled="!onlinePaymentAvailable" />
+                    <span class="label-text">{{ t('admin.productEditorPage.depositPaymentOnline') }}</span>
+                  </label>
+                </div>
+                <p v-if="!onlinePaymentAvailable" class="mt-2 text-xs text-warning">{{ t('admin.productEditorPage.depositOnlineUnavailable') }}</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="card bg-base-100 p-6 shadow-sm">
+            <div>
+              <h2 class="text-xl font-semibold">{{ t('admin.productOptions.productCard') }}</h2>
+              <p class="mt-1 text-sm opacity-70">{{ t('admin.productOptions.productCardHelp') }}</p>
+            </div>
+
+            <div v-if="matchingOptionSets.length" class="mt-5 space-y-4">
+              <article v-for="set in matchingOptionSets" :key="set.id" class="rounded-box border border-base-300 bg-base-200/25 p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 class="font-medium">{{ set.name }}</h3>
+                    <p class="mt-1 text-xs opacity-65">{{ t('admin.productOptions.inheritedSetHelp') }}</p>
+                  </div>
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input
+                      type="checkbox"
+                      class="toggle toggle-primary"
+                      :checked="!editing.excludedOptionSetIds.includes(set.id)"
+                      @change="toggleOptionSet(set.id, ($event.target as HTMLInputElement).checked)"
+                    />
+                    <span class="label-text">{{ t('admin.productOptions.applySet') }}</span>
+                  </label>
+                </div>
+
+                <div v-if="!editing.excludedOptionSetIds.includes(set.id)" class="mt-4 grid gap-3 lg:grid-cols-2">
+                  <div v-for="option in set.optionGroups.flatMap(group => group.options)" :key="option.id" class="rounded-box border border-base-300 bg-base-100 p-3">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="font-medium">{{ option.label || option.id }}</div>
+                        <div class="mt-1 text-xs opacity-65">{{ inheritedPriceDescription(option) }}</div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        class="checkbox checkbox-sm"
+                        :checked="optionOverride(set.id, option.id).enabled"
+                        :aria-label="t('admin.productOptions.enableOption')"
+                        @change="setOptionEnabled(set.id, option.id, ($event.target as HTMLInputElement).checked)"
+                      />
+                    </div>
+                    <label class="form-control mt-3 gap-1">
+                      <span class="label-text text-xs">{{ t('admin.productOptions.parentPriceOverride') }}</span>
+                      <input
+                        :value="optionOverride(set.id, option.id).price ?? ''"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="input input-bordered input-sm w-full"
+                        :placeholder="t('admin.productOptions.keepInheritedPrice')"
+                        @input="setOptionPrice(set.id, option.id, ($event.target as HTMLInputElement).value)"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </article>
+            </div>
+            <div v-else class="mt-5 rounded-box border border-dashed border-base-300 p-5 text-sm opacity-65">
+              {{ t('admin.productOptions.noInheritedSets') }}
+            </div>
+
+            <div class="divider">{{ t('admin.productOptions.localOptions') }}</div>
+            <p class="mb-4 text-sm opacity-65">{{ t('admin.productOptions.localOptionsHelp') }}</p>
+            <AdminShopProductOptionGroupsEditor
+              v-model="editing.optionGroups"
+              :locales="editorLocales"
+              :products="optionProducts"
+              :billing-documents="billingDocumentsData || []"
+              :excluded-product-id="editing.id"
+            />
           </section>
 
           <section class="card bg-base-100 p-6 shadow-sm">
@@ -341,7 +444,8 @@
 import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
 import { createEmptyCmsLocalizedText, pickCmsLocalizedText, type CmsLocalizedText } from '#modula/shared/cms'
-import type { ProductDetailField, ProductDetailSection, ProductPayload } from '#modula/server/utils/shop'
+import type { ProductDetailField, ProductDetailSection, ProductOptionSetPayload, ProductPayload } from '#modula/server/utils/shop'
+import type { ProductOption, ProductOptionGroup, ProductOptionOverride } from '#modula/shared/productOptions'
 
 definePageMeta({
   layout: 'admin',
@@ -384,14 +488,21 @@ interface ProductEditorState {
   rentalDailyPrice: number | null
   rentalDurations: number[]
   rentalSlotStepMinutes: number
+  rentalDepositAmount: number | null
+  rentalDepositAllowOnsitePayment: boolean
+  rentalDepositAllowOnlinePayment: boolean
   unitLabelLocalized: CmsLocalizedText
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
   allowCustomerCancellation: boolean
   allowRefundRequestAfterEngagement: boolean
   active: boolean
+  catalogVisible: boolean
   position: number
   detailSections: ProductDetailSection[]
+  optionGroups: ProductOptionGroup[]
+  excludedOptionSetIds: number[]
+  optionOverrides: ProductOptionOverride[]
 }
 
 const route = useRoute()
@@ -411,6 +522,8 @@ const deleting = ref(false)
 const { data: categories } = await useFetch<ProductCategory[]>('/api/admin/product-categories')
 const { data: settingsData } = await useFetch<{ shopDefaultVatRate: number }>('/api/admin/settings')
 const { data: billingDocumentsData } = await useFetch<BillingDocumentOption[]>('/api/admin/billing-documents')
+const { data: productOptionsData, refresh: refreshProductOptions } = await useFetch<ProductOptionSetPayload[]>('/api/admin/product-option-sets')
+const { data: optionProductsData } = await useFetch<ProductPayload[]>('/api/admin/products')
 const { data: paymentConfigData } = await useFetch<{
   onlinePaymentsEnabled: boolean
   onlinePayments: { provider: 'none' | 'stripe_connect', configured: boolean }
@@ -425,6 +538,18 @@ const onlinePaymentAvailable = computed(() => Boolean(
 const availableBillingDocuments = computed(() =>
   (billingDocumentsData.value || []).filter((entry) => entry.kind === 'CONTRACT' || entry.kind === 'ASSURANCE')
 )
+const optionProducts = computed(() => (optionProductsData.value || []).map(product => ({
+  id: product.id,
+  name: product.name,
+  saleType: product.saleType,
+})))
+const matchingOptionSets = computed(() => (productOptionsData.value || []).filter((set) => {
+  if (!set.active || !set.saleTypes.includes(editing.saleType)) return false
+  const hasTargets = set.categoryIds.length > 0 || set.productIds.length > 0
+  if (!hasTargets) return true
+  return Boolean(editing.id && set.productIds.includes(editing.id))
+    || Boolean(editing.categoryId && set.categoryIds.includes(editing.categoryId))
+}))
 
 const editing = reactive<ProductEditorState>(createEmptyEditorState(defaultVatRate.value, t, editorLocales.value))
 const rentalDurationsInput = computed({
@@ -447,7 +572,10 @@ watch(defaultVatRate, (value) => {
 })
 
 watch([paymentConfigData, onlinePaymentAvailable], ([config, available]) => {
-  if (config && !available) editing.allowOnlinePayment = false
+  if (config && !available) {
+    editing.allowOnlinePayment = false
+    editing.rentalDepositAllowOnlinePayment = false
+  }
 }, { immediate: true })
 
 watch(() => routeId.value, async () => {
@@ -506,6 +634,11 @@ async function save() {
     $toast.error(t('admin.productEditorPage.paymentRequired'))
     return
   }
+  if (editing.saleType === 'RENTAL' && Number(editing.rentalDepositAmount || 0) > 0
+    && !editing.rentalDepositAllowOnsitePayment && !editing.rentalDepositAllowOnlinePayment) {
+    $toast.error(t('admin.productEditorPage.depositPaymentRequired'))
+    return
+  }
 
   saving.value = true
   try {
@@ -532,14 +665,21 @@ async function save() {
       rentalDailyPrice: editing.rentalDailyPrice,
       rentalDurations: editing.rentalDurations,
       rentalSlotStepMinutes: editing.rentalSlotStepMinutes,
+      rentalDepositAmount: editing.saleType === 'RENTAL' ? normalizeNullableNumber(editing.rentalDepositAmount) : null,
+      rentalDepositAllowOnsitePayment: editing.rentalDepositAllowOnsitePayment,
+      rentalDepositAllowOnlinePayment: editing.rentalDepositAllowOnlinePayment,
       unitLabelLocalized: editing.unitLabelLocalized,
       allowOfflinePayment: editing.allowOfflinePayment,
       allowOnlinePayment: editing.allowOnlinePayment,
       allowCustomerCancellation: editing.allowCustomerCancellation,
       allowRefundRequestAfterEngagement: editing.allowRefundRequestAfterEngagement,
       active: editing.active,
+      catalogVisible: editing.catalogVisible,
       position: editing.position,
-      detailSections: normalizeDetailSectionsForSave(editing.detailSections, editorLocales.value)
+      detailSections: normalizeDetailSectionsForSave(editing.detailSections, editorLocales.value),
+      optionGroups: editing.optionGroups,
+      excludedOptionSetIds: editing.excludedOptionSetIds,
+      optionOverrides: editing.optionOverrides,
     }
 
     const response = isCreateMode.value
@@ -553,6 +693,7 @@ async function save() {
       return
     }
 
+    await refreshProductOptions()
     Object.assign(editing, mapProductToEditor(response))
   } catch (error: any) {
     $toast.error(error?.statusMessage || t('common.error'))
@@ -600,18 +741,25 @@ function createEmptyEditorState(vatRate: number, translate: (key: string) => str
     rentalDailyPrice: null,
     rentalDurations: [60, 120, 240],
     rentalSlotStepMinutes: 30,
+    rentalDepositAmount: null,
+    rentalDepositAllowOnsitePayment: true,
+    rentalDepositAllowOnlinePayment: false,
     unitLabelLocalized: createEmptyCmsLocalizedText(locales),
     allowOfflinePayment: true,
     allowOnlinePayment: false,
     allowCustomerCancellation: true,
     allowRefundRequestAfterEngagement: false,
     active: true,
+    catalogVisible: true,
     position: 0,
     detailSections: [
       createDetailSection(translate('admin.productEditorPage.defaultSectionGeneral'), locales),
       createDetailSection(translate('admin.productEditorPage.defaultSectionTechnical'), locales),
       createDetailSection(translate('admin.productEditorPage.defaultSectionPractical'), locales)
-    ]
+    ],
+    optionGroups: [],
+    excludedOptionSetIds: [],
+    optionOverrides: []
   }
 }
 
@@ -638,12 +786,16 @@ function mapProductToEditor(product: ProductPayload): ProductEditorState {
     rentalDailyPrice: product.rentalDailyPrice ?? (product.rentalBookingMode === 'MULTI_DAY' ? product.price : null),
     rentalDurations: [...product.rentalDurations],
     rentalSlotStepMinutes: product.rentalSlotStepMinutes,
+    rentalDepositAmount: product.rentalDepositAmount,
+    rentalDepositAllowOnsitePayment: product.rentalDepositAllowOnsitePayment,
+    rentalDepositAllowOnlinePayment: product.rentalDepositAllowOnlinePayment,
     unitLabelLocalized: structuredClone(product.unitLabelLocalized),
     allowOfflinePayment: product.allowOfflinePayment,
     allowOnlinePayment: product.allowOnlinePayment,
     allowCustomerCancellation: product.allowCustomerCancellation,
     allowRefundRequestAfterEngagement: product.allowRefundRequestAfterEngagement,
     active: product.active,
+    catalogVisible: product.catalogVisible,
     position: product.position,
     detailSections: Array.isArray(product.detailSections)
       ? product.detailSections.map((section) => ({
@@ -666,8 +818,48 @@ function mapProductToEditor(product: ProductPayload): ProductEditorState {
             mediaDocumentRequiredForRental: item.mediaDocumentRequiredForRental ?? false
           }))
         }))
-      : []
+      : [],
+    optionGroups: structuredClone(product.optionGroups || []),
+    excludedOptionSetIds: [...(product.excludedOptionSetIds || [])],
+    optionOverrides: structuredClone(product.optionOverrides || []),
   }
+}
+
+function toggleOptionSet(optionSetId: number, enabled: boolean) {
+  editing.excludedOptionSetIds = enabled
+    ? editing.excludedOptionSetIds.filter(id => id !== optionSetId)
+    : Array.from(new Set([...editing.excludedOptionSetIds, optionSetId]))
+}
+
+function optionOverride(optionSetId: number, optionId: string): ProductOptionOverride {
+  return editing.optionOverrides.find(entry => entry.optionSetId === optionSetId && entry.optionId === optionId)
+    || { optionSetId, optionId, enabled: true, price: null }
+}
+
+function updateOptionOverride(optionSetId: number, optionId: string, patch: Partial<ProductOptionOverride>) {
+  const current = optionOverride(optionSetId, optionId)
+  const next = { ...current, ...patch }
+  editing.optionOverrides = [
+    ...editing.optionOverrides.filter(entry => entry.optionSetId !== optionSetId || entry.optionId !== optionId),
+    next,
+  ]
+}
+
+function setOptionEnabled(optionSetId: number, optionId: string, enabled: boolean) {
+  updateOptionOverride(optionSetId, optionId, { enabled })
+}
+
+function setOptionPrice(optionSetId: number, optionId: string, value: string) {
+  const normalized = value.trim() === '' ? null : Math.max(0, Number(value) || 0)
+  updateOptionOverride(optionSetId, optionId, { price: normalized })
+}
+
+function inheritedPriceDescription(option: ProductOption) {
+  if (option.kind === 'ACCESSORY' && option.priceSource === 'LINKED_PRODUCT') {
+    const product = optionProductsData.value?.find(entry => entry.id === option.linkedProductId)
+    return t('admin.productOptions.catalogPriceDescription', { price: product?.price ?? 0 })
+  }
+  return t('admin.productOptions.setPriceDescription', { price: option.price })
 }
 
 function createDetailSection(title: string, locales: string[]): ProductDetailSection {

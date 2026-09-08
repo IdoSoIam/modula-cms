@@ -3,6 +3,7 @@ export interface ShopCartItem {
   kind: 'product'
   saleType: 'SALE' | 'RENTAL'
   productId: number | null
+  slug?: string | null
   title: string
   imageUrl?: string | null
   description?: string | null
@@ -12,6 +13,7 @@ export interface ShopCartItem {
   rentalPricingMode?: 'HOURLY' | 'DAILY' | null
   rentalBaseUnitPrice?: number | null
   insuranceSelections?: ShopCartInsuranceSelection[]
+  optionSelections?: ShopCartOptionSelection[]
   associatedDocuments?: ShopCartAssociatedDocument[]
   availableQuantity: number | null
   vatRate: number
@@ -19,6 +21,9 @@ export interface ShopCartItem {
   paymentTaxBehavior?: 'inclusive' | 'exclusive' | null
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
+  rentalDepositAmount?: number | null
+  rentalDepositAllowOnsitePayment?: boolean
+  rentalDepositAllowOnlinePayment?: boolean
   unitPrice: number
   totalPrice: number
 }
@@ -28,6 +33,19 @@ export interface ShopCartInsuranceSelection {
   name: string
   required: boolean
   unitPrice: number
+}
+
+export interface ShopCartOptionSelection {
+  optionId: string
+  label: string
+  kind: 'SUPPLEMENT' | 'INSURANCE' | 'ACCESSORY'
+  quantityMode: 'PER_RESERVATION' | 'PER_PRODUCT_UNIT' | 'CUSTOM'
+  selectedQuantity: number
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+  billingDocumentId?: number | null
+  linkedProductId?: number | null
 }
 
 export interface ShopCartAssociatedDocument {
@@ -82,6 +100,7 @@ export function useShopCart() {
               kind: 'product',
               saleType: item?.saleType === 'RENTAL' ? 'RENTAL' : 'SALE',
               productId: item?.productId == null ? null : Number(item.productId),
+              slug: item?.slug?.trim() || null,
               title: String(item?.title || ''),
               imageUrl: item?.imageUrl ?? null,
               description: item?.description ?? null,
@@ -100,6 +119,7 @@ export function useShopCart() {
                     }))
                     .filter((insurance: ShopCartInsuranceSelection) => insurance.documentId > 0)
                 : [],
+              optionSelections: normalizeCartOptionSelections(item?.optionSelections),
               associatedDocuments: Array.isArray(item?.associatedDocuments)
                 ? item.associatedDocuments
                     .map((document: any) => ({
@@ -117,10 +137,14 @@ export function useShopCart() {
               paymentTaxBehavior: item?.paymentTaxBehavior === 'exclusive' ? 'exclusive' : item?.paymentTaxBehavior === 'inclusive' ? 'inclusive' : null,
               allowOfflinePayment: item?.allowOfflinePayment !== false,
               allowOnlinePayment: item?.allowOnlinePayment === true,
+              rentalDepositAmount: item?.saleType === 'RENTAL' && Number(item?.rentalDepositAmount || 0) > 0 ? Number(item.rentalDepositAmount) : null,
+              rentalDepositAllowOnsitePayment: item?.rentalDepositAllowOnsitePayment !== false,
+              rentalDepositAllowOnlinePayment: item?.rentalDepositAllowOnlinePayment === true,
               unitPrice: Number(item?.unitPrice || 0),
               totalPrice: Number(item?.totalPrice || 0)
             }))
             .filter((item) => item.productId != null && item.key)
+            .map(refreshCartItemTotals)
           : []
       }
     } catch {
@@ -145,6 +169,7 @@ export function useShopCart() {
     const requestedQuantity = clampQuantity(item.quantity, item.availableQuantity)
     if (existing) {
       existing.title = item.title
+      existing.slug = item.slug?.trim() || null
       existing.saleType = item.saleType
       existing.imageUrl = item.imageUrl ?? null
       existing.description = item.description ?? null
@@ -153,6 +178,7 @@ export function useShopCart() {
       existing.rentalPricingMode = item.rentalPricingMode ?? null
       existing.rentalBaseUnitPrice = item.rentalBaseUnitPrice ?? null
       existing.insuranceSelections = item.insuranceSelections ? item.insuranceSelections.map(entry => ({ ...entry })) : []
+      existing.optionSelections = item.optionSelections ? item.optionSelections.map(entry => ({ ...entry })) : []
       existing.associatedDocuments = item.associatedDocuments ? item.associatedDocuments.map(entry => ({ ...entry })) : []
       existing.availableQuantity = item.availableQuantity
       existing.vatRate = item.vatRate
@@ -160,14 +186,33 @@ export function useShopCart() {
       existing.paymentTaxBehavior = item.paymentTaxBehavior ?? null
       existing.allowOfflinePayment = item.allowOfflinePayment
       existing.allowOnlinePayment = item.allowOnlinePayment
+      existing.rentalDepositAmount = item.rentalDepositAmount ?? null
+      existing.rentalDepositAllowOnsitePayment = item.rentalDepositAllowOnsitePayment !== false
+      existing.rentalDepositAllowOnlinePayment = item.rentalDepositAllowOnlinePayment === true
       existing.quantity = clampQuantity(existing.quantity + requestedQuantity, existing.availableQuantity)
-      existing.totalPrice = existing.unitPrice * existing.quantity
+      refreshCartItemTotals(existing)
       return
     }
-    items.value.push({
+    items.value.push(refreshCartItemTotals({
       ...item,
       quantity: requestedQuantity,
-      totalPrice: item.unitPrice * requestedQuantity
+    }))
+  }
+
+  const replace = (key: string, item: ShopCartItem) => {
+    const index = items.value.findIndex((entry) => entry.key === key)
+    if (index < 0) {
+      add(item)
+      return
+    }
+    items.value[index] = refreshCartItemTotals({
+      ...item,
+      key,
+      slug: item.slug?.trim() || null,
+      quantity: clampQuantity(item.quantity, item.availableQuantity),
+      insuranceSelections: item.insuranceSelections?.map(entry => ({ ...entry })) || [],
+      optionSelections: item.optionSelections?.map(entry => ({ ...entry })) || [],
+      associatedDocuments: item.associatedDocuments?.map(entry => ({ ...entry })) || [],
     })
   }
 
@@ -179,7 +224,7 @@ export function useShopCart() {
     const entry = items.value.find((item) => item.key === key)
     if (!entry) return
     entry.quantity = clampQuantity(quantity, entry.availableQuantity)
-    entry.totalPrice = entry.unitPrice * entry.quantity
+    refreshCartItemTotals(entry)
   }
 
   const remove = (key: string) => {
@@ -196,8 +241,42 @@ export function useShopCart() {
     total,
     hydrate,
     add,
+    replace,
     updateQuantity,
     remove,
     clear
   }
+}
+
+function normalizeCartOptionSelections(value: unknown): ShopCartOptionSelection[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((entry: any) => ({
+      optionId: String(entry?.optionId || ''),
+      label: String(entry?.label || ''),
+      kind: entry?.kind === 'ACCESSORY' ? 'ACCESSORY' as const : entry?.kind === 'INSURANCE' ? 'INSURANCE' as const : 'SUPPLEMENT' as const,
+      quantityMode: entry?.quantityMode === 'PER_PRODUCT_UNIT'
+        ? 'PER_PRODUCT_UNIT' as const
+        : entry?.quantityMode === 'CUSTOM' ? 'CUSTOM' as const : 'PER_RESERVATION' as const,
+      selectedQuantity: Math.max(1, Math.round(Number(entry?.selectedQuantity ?? entry?.quantity ?? 1))),
+      quantity: Math.max(1, Math.round(Number(entry?.quantity || 1))),
+      unitPrice: Math.max(0, Number(entry?.unitPrice || 0)),
+      totalPrice: Math.max(0, Number(entry?.totalPrice || 0)),
+      billingDocumentId: entry?.billingDocumentId == null ? null : Number(entry.billingDocumentId),
+      linkedProductId: entry?.linkedProductId == null ? null : Number(entry.linkedProductId),
+    }))
+    .filter(entry => entry.optionId)
+}
+
+function refreshCartItemTotals<T extends ShopCartItem>(item: T): T {
+  for (const option of item.optionSelections || []) {
+    option.quantity = option.quantityMode === 'PER_PRODUCT_UNIT'
+      ? Math.max(1, item.quantity)
+      : option.quantityMode === 'CUSTOM' ? Math.max(1, option.selectedQuantity) : 1
+    option.totalPrice = Number(option.unitPrice || 0) * option.quantity
+  }
+
+  const optionsTotal = (item.optionSelections || []).reduce((sum, option) => sum + option.totalPrice, 0)
+  item.totalPrice = Number(item.unitPrice || 0) * Number(item.quantity || 0) + optionsTotal
+  return item
 }

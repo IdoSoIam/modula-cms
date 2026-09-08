@@ -1,5 +1,6 @@
 import type { PublicSiteShell } from '#modula/shared/cms'
 import type { PublicDaisyUiThemeConfig } from '#modula/shared/themes'
+import type { RentalCalendarConfig } from '#modula/shared/rentalCalendar'
 
 interface PublicSiteConfigState {
   project?: {
@@ -38,6 +39,7 @@ interface PublicSiteConfigState {
     endTime: string
     slotLabel: string
   }
+  rentalCalendar?: RentalCalendarConfig
   contactEmail?: string | null
   adminEmail?: string | null
   adminPhone?: string | null

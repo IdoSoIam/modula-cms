@@ -38,6 +38,7 @@ const admin = localized('Location admin', 'Admin rental')
 
 const customerVariables = [
   'orderNumber', 'customerName', 'rentalStartDate', 'rentalEndDate', 'rentalPeriod',
+  'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation',
   'rentalLines', 'paymentProvider', 'paymentStatus', 'total', 'failureReason',
   'refundRequestReason', 'refundRequestNote',
 ]
@@ -82,12 +83,12 @@ export const rentalEmailTemplateDefinitions: RentalEmailTemplateDefinition[] = [
   definition('rental_refund_rejected', localized('Remboursement de location refusé', 'Rental refund rejected'), localized('Envoyé au client lorsque sa demande de remboursement est refusée.', 'Sent to the customer when a refund request is rejected.')),
 ]
 
-const periodFr = `- Début : {{rentalStartDate}}\n- Retour : {{rentalEndDate}}\n- Total : {{total}}`
-const periodEn = `- Start: {{rentalStartDate}}\n- Return: {{rentalEndDate}}\n- Total: {{total}}`
+const periodFr = `Rendez-vous de retrait :\n- Date : {{fulfillmentDate}}\n- Heure : {{fulfillmentTime}}\n- Adresse : {{fulfillmentLocation}}\n- Retour prévu : {{rentalEndDate}}\n- Total : {{total}}`
+const periodEn = `Pickup appointment:\n- Date: {{fulfillmentDate}}\n- Time: {{fulfillmentTime}}\n- Address: {{fulfillmentLocation}}\n- Scheduled return: {{rentalEndDate}}\n- Total: {{total}}`
 
 export const rentalEmailTemplateDefaults: Record<RentalEmailTemplateAction, Record<string, EmailTemplate>> = {
   rental_request_created: {
-    fr: { subject: 'Demande de location reçue - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nVotre demande de location {{orderNumber}} a bien été enregistrée. Vous recevrez sa confirmation dès que le paiement et les validations nécessaires seront terminés.\n\n${periodFr}\n\nMatériel réservé :\n{{rentalLines}}` },
+    fr: { subject: 'Demande de location reçue - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nVotre demande de location {{orderNumber}} a bien été enregistrée. Vous recevrez sa confirmation dès que les validations nécessaires seront terminés.\n\n${periodFr}\n\nMatériel réservé :\n{{rentalLines}}` },
     en: { subject: 'Rental request received - {{orderNumber}}', body: `Hello {{customerName}},\n\nYour rental request {{orderNumber}} has been recorded. You will receive confirmation once payment and any required approvals are complete.\n\n${periodEn}\n\nReserved equipment:\n{{rentalLines}}` },
   },
   rental_request_created_admin: {
@@ -119,8 +120,8 @@ export const rentalEmailTemplateDefaults: Record<RentalEmailTemplateAction, Reco
     en: { subject: 'Your rental is ready - {{orderNumber}}', body: `Hello {{customerName}},\n\nYour rental equipment is ready.\n\n${periodEn}\n\nEquipment:\n{{rentalLines}}` },
   },
   rental_started: {
-    fr: { subject: 'Location démarrée - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nVotre location a démarré. Le retour est prévu le {{rentalEndDate}}.\n\nMatériel :\n{{rentalLines}}` },
-    en: { subject: 'Rental started - {{orderNumber}}', body: `Hello {{customerName}},\n\nYour rental has started. The equipment is due back on {{rentalEndDate}}.\n\nEquipment:\n{{rentalLines}}` },
+    fr: { subject: 'Location démarrée - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nVotre location a démarré.\n\nRendez-vous de retour :\n- Date et heure : {{rentalEndDate}}\n- Adresse : {{fulfillmentLocation}}\n\nMatériel :\n{{rentalLines}}` },
+    en: { subject: 'Rental started - {{orderNumber}}', body: `Hello {{customerName}},\n\nYour rental has started.\n\nReturn appointment:\n- Date and time: {{rentalEndDate}}\n- Address: {{fulfillmentLocation}}\n\nEquipment:\n{{rentalLines}}` },
   },
   rental_completed: {
     fr: { subject: 'Location terminée - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nLa location {{orderNumber}} est terminée. Merci pour votre confiance.\n\nMatériel :\n{{rentalLines}}` },

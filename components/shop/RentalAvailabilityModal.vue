@@ -110,7 +110,13 @@
           </div>
           <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ rentalEndLabel }}</span></label>
-            <input v-model="selectedEndDate" type="date" class="input input-bordered" />
+            <input
+              v-model="selectedEndDate"
+              type="date"
+              class="input input-bordered"
+              :min="minimumEndDate || undefined"
+              :max="maximumEndDate || undefined"
+            />
             <select v-model="selectedEndTime" class="select select-bordered" :disabled="!endTimeOptions.length">
               <option value="">{{ selectTimeLabel }}</option>
               <option v-for="time in endTimeOptions" :key="time" :value="time">{{ time }}</option>
@@ -159,11 +165,14 @@ const props = defineProps<{
   sourceKind: 'product'
   sourceId: number | null
   sourceName: string
+  initialStartDate?: string | null
+  initialEndDate?: string | null
+  initialPricingMode?: 'HOURLY' | 'DAILY' | null
 }>()
 
 const emit = defineEmits<{
   close: []
-  confirm: [{ rentalStartDate: string, rentalEndDate: string, pricingMode: 'HOURLY' | 'DAILY' }]
+  confirm: [{ rentalStartDate: string, rentalEndDate: string, pricingMode: 'HOURLY' | 'DAILY', availableQuantity: number }]
 }>()
 
 const { contentLocale } = useContentLocale()
@@ -205,15 +214,26 @@ watch(() => props.open, async (open) => {
       dialogRef.value?.showModal()
     }
     errorMessage.value = ''
-    selectedStartDate.value = ''
-    selectedEndDate.value = ''
-    selectedStartTime.value = ''
-    selectedEndTime.value = ''
+    selectedStartDate.value = datePart(props.initialStartDate)
+    selectedEndDate.value = datePart(props.initialEndDate)
+    selectedStartTime.value = timePart(props.initialStartDate)
+    selectedEndTime.value = timePart(props.initialEndDate)
+    selectedDuration.value = initialDurationMinutes(props.initialStartDate, props.initialEndDate) || selectedDuration.value
     selectedSlot.value = null
-    selectedMode.value = data.value?.source.rentalBookingMode === 'MULTI_DAY' ? 'MULTI_DAY' : 'SINGLE_DAY'
-    currentMonth.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    selectedMode.value = props.initialPricingMode === 'DAILY'
+      ? 'MULTI_DAY'
+      : props.initialPricingMode === 'HOURLY'
+        ? 'SINGLE_DAY'
+        : data.value?.source.rentalBookingMode === 'MULTI_DAY' ? 'MULTI_DAY' : 'SINGLE_DAY'
+    const initialMonth = selectedStartDate.value ? new Date(`${selectedStartDate.value}T12:00:00`) : new Date()
+    currentMonth.value = new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1)
     monthInput.value = formatMonth(currentMonth.value)
     await refresh()
+    selectedStartTime.value = timePart(props.initialStartDate)
+    selectedEndTime.value = timePart(props.initialEndDate)
+    if (selectedMode.value === 'SINGLE_DAY' && props.initialStartDate && props.initialEndDate) {
+      selectedSlot.value = data.value?.slots.find(slot => slot.start === props.initialStartDate && slot.end === props.initialEndDate) || null
+    }
     return
   }
   if (dialogRef.value?.open) {
@@ -275,9 +295,25 @@ const endTimeOptions = computed<string[]>(() => {
   if (selectedStartDate.value !== selectedEndDate.value || !selectedStartTime.value) return values
   return values.filter(time => time > selectedStartTime.value)
 })
+const minimumEndDate = computed(() => {
+  if (!selectedStartDate.value || effectiveMode.value !== 'MULTI_DAY') return ''
+  return addIsoDays(selectedStartDate.value, Math.max(1, Number(data.value?.source.rentalMinDays || 1)) - 1)
+})
+const maximumEndDate = computed(() => {
+  const maximumDays = Number(data.value?.source.rentalMaxDays || 0)
+  if (!selectedStartDate.value || effectiveMode.value !== 'MULTI_DAY' || maximumDays <= 0) return ''
+  return addIsoDays(selectedStartDate.value, maximumDays - 1)
+})
 
 watch(selectedStartDate, () => {
   if (!startTimeOptions.value.includes(selectedStartTime.value)) selectedStartTime.value = ''
+  if (selectedEndDate.value && (
+    (minimumEndDate.value && selectedEndDate.value < minimumEndDate.value)
+    || (maximumEndDate.value && selectedEndDate.value > maximumEndDate.value)
+  )) {
+    selectedEndDate.value = ''
+    selectedEndTime.value = ''
+  }
 })
 watch(selectedEndDate, () => {
   if (!endTimeOptions.value.includes(selectedEndTime.value)) selectedEndTime.value = ''
@@ -323,6 +359,7 @@ const canConfirm = computed(() => effectiveMode.value === 'SINGLE_DAY'
       && selectedEndDate.value
       && selectedStartTime.value
       && selectedEndTime.value
+      && isRentalDayDurationValid(selectedStartDate.value, selectedEndDate.value)
       && new Date(`${selectedEndDate.value}T${selectedEndTime.value}:00`).getTime()
         > new Date(`${selectedStartDate.value}T${selectedStartTime.value}:00`).getTime(),
     ))
@@ -362,7 +399,12 @@ function itemIndicatorClass(item: any) {
 }
 
 function daySelectable(day: any) {
-  return Boolean(day?.selectable)
+  if (!day?.selectable) return false
+  if (effectiveMode.value !== 'MULTI_DAY' || !selectedStartDate.value || selectedEndDate.value) return true
+  const iso = String(day.iso)
+  if (iso < selectedStartDate.value) return true
+  return (!minimumEndDate.value || iso >= minimumEndDate.value)
+    && (!maximumEndDate.value || iso <= maximumEndDate.value)
 }
 
 function calendarDayLabel(day: any) {
@@ -394,6 +436,7 @@ function dayClass(day: any) {
   if (day.availabilityStatus === 'outside') return 'opacity-50'
   if (day.availabilityStatus === 'full') return 'bg-error/5'
   if (day.availabilityStatus === 'partial') return 'bg-warning/5'
+  if (!daySelectable(day)) return 'opacity-35'
   return ''
 }
 
@@ -441,6 +484,7 @@ function selectCalendarItem(item: any) {
 }
 
 function isRangeSelectable(startIso: string, endIso: string) {
+  if (!isRentalDayDurationValid(startIso, endIso)) return false
   const days = Array.isArray((data.value as any)?.days) ? (data.value as any).days : []
   if (effectiveMode.value === 'MULTI_DAY') {
     return [startIso, endIso].every(iso => days.some((day: any) => day.iso === iso && day.selectable))
@@ -453,7 +497,12 @@ function isRangeSelectable(startIso: string, endIso: string) {
 function confirmSelection() {
   if (!canConfirm.value) return
   if (effectiveMode.value === 'SINGLE_DAY' && selectedSlot.value) {
-    emit('confirm', { rentalStartDate: selectedSlot.value.start, rentalEndDate: selectedSlot.value.end, pricingMode: 'HOURLY' })
+    emit('confirm', {
+      rentalStartDate: selectedSlot.value.start,
+      rentalEndDate: selectedSlot.value.end,
+      pricingMode: 'HOURLY',
+      availableQuantity: Math.max(0, Number(selectedSlot.value.remaining || 0)),
+    })
     close()
     return
   }
@@ -467,8 +516,35 @@ function confirmSelection() {
     rentalStartDate: `${selectedStartDate.value}T${selectedStartTime.value}:00`,
     rentalEndDate: `${selectedEndDate.value}T${selectedEndTime.value}:00`,
     pricingMode: 'DAILY',
+    availableQuantity: selectedRangeAvailableQuantity(),
   })
   close()
+}
+
+function isRentalDayDurationValid(startIso: string, endIso: string) {
+  if (effectiveMode.value !== 'MULTI_DAY' || !startIso || !endIso || endIso < startIso) return false
+  const durationDays = differenceInCalendarDays(startIso, endIso) + 1
+  const minimumDays = Math.max(1, Number(data.value?.source.rentalMinDays || 1))
+  const maximumDays = Number(data.value?.source.rentalMaxDays || 0)
+  return durationDays >= minimumDays && (maximumDays <= 0 || durationDays <= maximumDays)
+}
+
+function differenceInCalendarDays(startIso: string, endIso: string) {
+  return Math.round((Date.parse(`${endIso}T00:00:00Z`) - Date.parse(`${startIso}T00:00:00Z`)) / 86400000)
+}
+
+function addIsoDays(iso: string, days: number) {
+  const value = new Date(`${iso}T00:00:00Z`)
+  value.setUTCDate(value.getUTCDate() + days)
+  return value.toISOString().slice(0, 10)
+}
+
+function selectedRangeAvailableQuantity() {
+  const days = Array.isArray(data.value?.days) ? data.value.days : []
+  const remaining = days
+    .filter(day => day.iso >= selectedStartDate.value && day.iso <= selectedEndDate.value)
+    .map(day => Math.max(0, Number(day.remaining || 0)))
+  return remaining.length ? Math.min(...remaining) : 0
 }
 
 function selectMode(mode: 'SINGLE_DAY' | 'MULTI_DAY') {
@@ -507,6 +583,19 @@ function timeToMinutes(value: string) {
 
 function minutesToTime(value: number) {
   return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
+}
+
+function datePart(value?: string | null) {
+  return /^\d{4}-\d{2}-\d{2}/.exec(String(value || ''))?.[0] || ''
+}
+
+function timePart(value?: string | null) {
+  return /T(\d{2}:\d{2})/.exec(String(value || ''))?.[1] || ''
+}
+
+function initialDurationMinutes(start?: string | null, end?: string | null) {
+  const duration = new Date(String(end || '')).getTime() - new Date(String(start || '')).getTime()
+  return Number.isFinite(duration) && duration > 0 ? Math.round(duration / 60000) : 0
 }
 
 function formatCalendarDate(value: string) {

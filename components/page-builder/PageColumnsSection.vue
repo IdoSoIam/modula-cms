@@ -390,6 +390,7 @@ import PageFormBlock from '#modula/components/page-builder/PageFormBlock.vue'
 import PageMediaCarousel from '#modula/components/page-builder/PageMediaCarousel.vue'
 import PageMediaLightbox from '#modula/components/page-builder/PageMediaLightbox.vue'
 import PageSectionBackground from '#modula/components/page-builder/PageSectionBackground.vue'
+import { formatWeeklyOpeningHours } from '#modula/shared/openingHours'
 import { pickLocalizedText } from '#modula/shared/pageBuilder'
 
 const props = defineProps<{
@@ -765,6 +766,8 @@ const toLightboxSlide = (
   verticalAlign
 })
 const openingHoursText = computed(() => {
+  const weekly = formatWeeklyOpeningHours(siteConfigState.value?.rentalCalendar, props.locale)
+  if (weekly.length) return weekly.join('\n')
   const farmPickup = siteConfigState.value?.farmPickup
   if (!farmPickup) return ''
   const dayLabel = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][farmPickup.dayOfWeek] || ''

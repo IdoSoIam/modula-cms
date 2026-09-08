@@ -1,5 +1,5 @@
 import { db } from '#modula/server/data/client'
-import { hydrateProductBillingDocumentMetadata, serializeProduct } from '#modula/server/utils/shop'
+import { hydrateProductBillingDocumentMetadata, resolveProductOptionGroups, serializeProduct } from '#modula/server/utils/shop'
 import { getFeatureFlags } from '#modula/server/utils/settings'
 import { isStripeConfiguredFromCache } from '#modula/server/services/payment/paymentService'
 
@@ -12,14 +12,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const numericId = /^\d+$/.test(slug) ? Number(slug) : null
   const row = await db.product.findUnique({
-    where: { slug },
+    where: numericId ? { id: numericId } : { slug },
     include: {
       category: true
     }
   })
 
-  if (!row || !row.active) {
+  if (!row || !row.active || row.catalogVisible === false || Number(row.catalogVisible) === 0) {
     throw createError({
       statusCode: 404,
       statusMessage: 'Produit introuvable'
@@ -33,14 +34,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Produit introuvable' })
   }
 
-  const product = await hydrateProductBillingDocumentMetadata({
+  const resolvedProduct = await resolveProductOptionGroups({
     ...serializeProduct(row),
     allowOnlinePayment: onlinePaymentAvailable && Boolean(row.allowOnlinePayment),
+    rentalDepositAllowOnlinePayment: onlinePaymentAvailable && Boolean(row.rentalDepositAllowOnlinePayment),
   })
+  const product = await hydrateProductBillingDocumentMetadata(resolvedProduct)
 
   const relatedRows = await db.product.findMany({
     where: {
-      active: true
+      active: true,
+      catalogVisible: true,
     },
     include: {
       category: true
@@ -55,6 +59,7 @@ export default defineEventHandler(async (event) => {
     .map((entry: any) => ({
       ...serializeProduct(entry),
       allowOnlinePayment: onlinePaymentAvailable && Boolean(entry.allowOnlinePayment),
+      rentalDepositAllowOnlinePayment: onlinePaymentAvailable && Boolean(entry.rentalDepositAllowOnlinePayment),
     }))
     .filter((entry: ReturnType<typeof serializeProduct>) =>
       entry.id !== product.id

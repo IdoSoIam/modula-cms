@@ -132,7 +132,7 @@ const rentalLabel = computed(() => publicText('shop.catalog.rental', 'Location')
 const stockLabel = computed(() => publicText('shop.catalog.stock', 'Stock'))
 const allCategoriesLabel = computed(() => publicText('shop.catalog.allCategories', 'Toutes les categories'))
 const emptyLabel = computed(() => publicText('shop.catalog.empty', 'Aucun produit n est publie pour le moment.'))
-const offlineLabel = computed(() => publicText('shop.catalog.offlinePayment', 'Paiement hors ligne'))
+const offlineLabel = computed(() => publicText('shop.catalog.onsitePayment', 'Paiement sur place'))
 const onlineLabel = computed(() => publicText('shop.catalog.onlinePayment', 'Paiement en ligne'))
 const viewModeLabel = computed(() => publicText('shop.catalog.viewMode', 'Affichage des produits'))
 const gridViewLabel = computed(() => publicText('shop.catalog.gridView', 'Grille'))
@@ -179,6 +179,7 @@ const handleProductAction = (product: ProductPayload) => {
     key: `product-${product.id}`,
     kind: 'product',
     productId: product.id,
+    slug: product.slug,
     title: getLocalizedName(product),
     imageUrl: product.imageUrl,
     description: getLocalizedExcerpt(product),

@@ -6,12 +6,14 @@ import {
   normalizeProductDetailSectionsInput,
   normalizeProductLocalizedText,
   resolveLocalizedProductText,
+  promoteProductOptionGroups,
   serializeProduct,
 } from '#modula/server/utils/shop'
 import { getShopDefaultVatRate, normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate } from '#modula/server/utils/settings'
 import { normalizeRentalConfig } from '#modula/server/services/shop/rentalConfig'
 import { isStripeConfigured } from '#modula/server/services/payment/paymentService'
 import type { CmsLocalizedText } from '#modula/shared/cms'
+import { normalizeProductOptionGroups, normalizeProductOptionOverrides } from '#modula/shared/productOptions'
 
 interface Body {
   name?: string
@@ -24,6 +26,9 @@ interface Body {
   description?: string | null
   descriptionLocalized?: CmsLocalizedText | null
   detailSections?: unknown
+  optionGroups?: unknown
+  excludedOptionSetIds?: number[]
+  optionOverrides?: unknown
   imageUrl?: string | null
   price?: number
   vatRate?: number
@@ -40,6 +45,9 @@ interface Body {
   rentalDailyPrice?: number | null
   rentalDurations?: number[]
   rentalSlotStepMinutes?: number
+  rentalDepositAmount?: number | null
+  rentalDepositAllowOnsitePayment?: boolean
+  rentalDepositAllowOnlinePayment?: boolean
   unitLabel?: string | null
   unitLabelLocalized?: CmsLocalizedText | null
   allowOfflinePayment?: boolean
@@ -47,6 +55,7 @@ interface Body {
   allowCustomerCancellation?: boolean
   allowRefundRequestAfterEngagement?: boolean
   active?: boolean
+  catalogVisible?: boolean
   position?: number
 }
 
@@ -87,6 +96,9 @@ export default defineEventHandler(async (event) => {
   const allowOnlinePayment = body.allowOnlinePayment ?? false
   const allowCustomerCancellation = body.allowCustomerCancellation ?? true
   const allowRefundRequestAfterEngagement = body.allowRefundRequestAfterEngagement ?? false
+  const rentalDepositAmount = normalizeOptionalPrice(body.rentalDepositAmount)
+  const rentalDepositAllowOnsitePayment = body.rentalDepositAllowOnsitePayment ?? true
+  const rentalDepositAllowOnlinePayment = body.rentalDepositAllowOnlinePayment ?? false
   if (!Number.isFinite(price) || price < 0) {
     throw createError({ statusCode: 400, statusMessage: 'Prix invalide' })
   }
@@ -110,6 +122,14 @@ export default defineEventHandler(async (event) => {
       message: 'Le paiement en ligne doit être configuré et activé avant de pouvoir être autorisé sur un produit',
     })
   }
+  if (rentalDepositAmount != null && rentalDepositAmount > 0) {
+    if (!rentalDepositAllowOnsitePayment && !rentalDepositAllowOnlinePayment) {
+      throw createError({ statusCode: 400, message: 'Au moins un mode de versement du dépôt de garantie doit être activé' })
+    }
+    if (rentalDepositAllowOnlinePayment && !(await isStripeConfigured())) {
+      throw createError({ statusCode: 400, message: 'Le versement en ligne du dépôt de garantie nécessite un fournisseur de paiement configuré' })
+    }
+  }
   if (!allowOfflinePayment && !allowOnlinePayment) {
     throw createError({ statusCode: 400, statusMessage: 'Au moins un mode de paiement doit être activé' })
   }
@@ -117,6 +137,8 @@ export default defineEventHandler(async (event) => {
   const slug = await ensureUniqueSlug('product', body.slug?.trim() || name.trim())
   const categoryId = body.categoryId == null || Number(body.categoryId) <= 0 ? null : Number(body.categoryId)
   const detailsJson = JSON.stringify(normalizeProductDetailSectionsInput(body.detailSections))
+  const optionGroups = normalizeProductOptionGroups(body.optionGroups)
+  const optionGroupsJson = JSON.stringify(optionGroups)
 
   const row = await db.product.create({
     data: {
@@ -130,6 +152,9 @@ export default defineEventHandler(async (event) => {
       description: descriptionPayload.text || null,
       descriptionJson: descriptionPayload.json,
       detailsJson,
+      optionGroupsJson,
+      excludedOptionSetIdsJson: JSON.stringify(normalizeIdList(body.excludedOptionSetIds)),
+      optionOverridesJson: JSON.stringify(normalizeProductOptionOverrides(body.optionOverrides)),
       imageUrl: body.imageUrl || null,
       price,
       vatRate,
@@ -146,6 +171,9 @@ export default defineEventHandler(async (event) => {
       rentalDailyPrice,
       rentalDurationsJson: JSON.stringify(rentalConfig.rentalDurations),
       rentalSlotStepMinutes: rentalConfig.rentalSlotStepMinutes,
+      rentalDepositAmount: body.saleType === 'RENTAL' ? rentalDepositAmount : null,
+      rentalDepositAllowOnsitePayment: body.saleType === 'RENTAL' ? rentalDepositAllowOnsitePayment : true,
+      rentalDepositAllowOnlinePayment: body.saleType === 'RENTAL' ? rentalDepositAllowOnlinePayment : false,
       unitLabel: unitLabelPayload.text || null,
       unitLabelJson: unitLabelPayload.json,
       allowOfflinePayment,
@@ -153,12 +181,19 @@ export default defineEventHandler(async (event) => {
       allowCustomerCancellation,
       allowRefundRequestAfterEngagement,
       active: body.active ?? true,
+      catalogVisible: body.catalogVisible ?? true,
       position: body.position ?? 0
     },
     include: {
       category: true
     }
   })
+
+  if (optionGroups.length) {
+    await promoteProductOptionGroups(Number(row.id), body.saleType === 'RENTAL' ? 'RENTAL' : 'SALE', optionGroups)
+    const promotedRow = await db.product.findUnique({ where: { id: Number(row.id) }, include: { category: true } })
+    return serializeProduct(promotedRow || row)
+  }
 
   return serializeProduct(row)
 })
@@ -170,4 +205,10 @@ function normalizeOptionalPrice(value: unknown) {
     throw createError({ statusCode: 400, message: 'Tarif de location invalide' })
   }
   return price
+}
+
+function normalizeIdList(value: unknown) {
+  return Array.isArray(value)
+    ? Array.from(new Set(value.map(Number).filter(entry => Number.isInteger(entry) && entry > 0)))
+    : []
 }

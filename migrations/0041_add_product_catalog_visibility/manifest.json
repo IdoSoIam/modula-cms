@@ -1,0 +1,24 @@
+{
+  "id": "0041_add_product_catalog_visibility",
+  "name": "add_product_catalog_visibility",
+  "description": "",
+  "beforeSchemaHash": "226b9b93152cd335f399f01b83cfa56f7dc8d2cc9ca1d78b3a28c7de49a1ade1",
+  "afterSchemaHash": "388808945ba4338227d05da9e4f0ed9348149085f48422937cc8b5170d0ce0a2",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: catalogVisible"
+        ]
+      }
+    ]
+  }
+}

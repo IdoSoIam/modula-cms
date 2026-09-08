@@ -537,6 +537,7 @@ import {
 } from '#modula/shared/cms'
 import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
 import { SECTION_CONTAINER_WIDTH_LABELS, SECTION_CONTAINER_WIDTHS, VERTICAL_ALIGNS } from '#modula/shared/pageBuilder'
+import type { RentalCalendarConfig } from '#modula/shared/rentalCalendar'
 
 definePageMeta({
   layout: 'admin',
@@ -605,6 +606,7 @@ const { data: settingsData } = await useFetch<{
     startTime: string
     endTime: string
   }
+  rentalCalendar: RentalCalendarConfig
   contactEmail: string
   adminPhone: string
 }>('/api/admin/settings')
@@ -646,6 +648,7 @@ const previewSiteConfig = computed(() => ({
     endTime: farmOpening.endTime,
     slotLabel: ''
   },
+  rentalCalendar: settingsData.value?.rentalCalendar,
   cms: {
     settings: model.settings,
     navigation: previewNavigation.value

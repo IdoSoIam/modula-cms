@@ -31,6 +31,10 @@ export const ADMIN_ROUTE_PATHS = {
     fr: "/admin/shop/product-categories",
     en: "/admin/shop/product-categories",
   },
+  shopProductOptions: {
+    fr: "/admin/shop/product-options",
+    en: "/admin/shop/product-options",
+  },
   shopOrders: {
     fr: "/admin/shop/orders",
     en: "/admin/shop/orders",
