@@ -1,6 +1,6 @@
 <template>
   <dialog ref="dialogRef" class="modal" @close="emit('close')">
-    <div class="modal-box max-w-6xl">
+    <div class="modal-box relative max-w-6xl p-3 sm:p-6" :aria-busy="pending">
       <div class="mb-4 flex items-start justify-between gap-4">
         <div>
           <h3 class="text-xl font-bold">{{ titleLabel }}</h3>
@@ -9,7 +9,7 @@
         <button type="button" class="btn btn-sm btn-circle" @click="close">x</button>
       </div>
 
-      <div v-if="pending" class="py-10 text-center">
+      <div v-if="pending && !data" class="py-10 text-center">
         <span class="loading loading-spinner loading-lg"></span>
       </div>
 
@@ -18,11 +18,20 @@
       </div>
 
       <template v-else-if="data">
+        <span v-if="pending" class="loading loading-spinner loading-sm absolute right-14 top-5 sm:right-16 sm:top-7" />
+        <div v-if="data.source.rentalBookingMode === 'BOTH'" class="mb-5 grid grid-cols-2 gap-2 rounded-2xl bg-base-200 p-2">
+          <button type="button" class="btn" :class="selectedMode === 'SINGLE_DAY' ? 'btn-primary' : 'btn-ghost'" @click="selectMode('SINGLE_DAY')">
+            {{ hourlyModeLabel }} · {{ formatPrice(data.source.rentalHourlyPrice) }}/{{ hourUnitLabel }}
+          </button>
+          <button type="button" class="btn" :class="selectedMode === 'MULTI_DAY' ? 'btn-primary' : 'btn-ghost'" @click="selectMode('MULTI_DAY')">
+            {{ dailyModeLabel }} · {{ formatPrice(data.source.rentalDailyPrice) }}/{{ dayUnitLabel }}
+          </button>
+        </div>
         <div class="mb-4 flex flex-wrap gap-2">
           <span class="badge badge-outline">{{ data.source.saleType === 'RENTAL' ? rentalLabel : saleLabel }}</span>
           <span class="badge badge-soft">{{ stockLabel }}: {{ data.source.stock }}</span>
-          <span class="badge badge-soft">{{ minDurationLabel }}: {{ data.source.rentalMinDays }}j</span>
-          <span v-if="data.source.rentalMaxDays" class="badge badge-soft">{{ maxDurationLabel }}: {{ data.source.rentalMaxDays }}j</span>
+          <span v-if="effectiveMode === 'MULTI_DAY'" class="badge badge-soft">{{ minDurationLabel }}: {{ data.source.rentalMinDays }}j</span>
+          <span v-if="effectiveMode === 'MULTI_DAY' && data.source.rentalMaxDays" class="badge badge-soft">{{ maxDurationLabel }}: {{ data.source.rentalMaxDays }}j</span>
         </div>
 
         <OrdersCalendar
@@ -33,8 +42,14 @@
           :day-names="data.dayNames"
           :today-label="todayLabel"
           :month-picker-label="monthPickerLabel"
+          :previous-month-label="previousMonthLabel"
+          :next-month-label="nextMonthLabel"
           :day-class="dayClass"
+          :day-selectable="daySelectable"
+          :day-aria-label="calendarDayLabel"
           :item-class="itemClass"
+          :item-indicator-class="itemIndicatorClass"
+          :mobile-details="false"
           :item-title="itemTitle"
           :item-subtitle="itemSubtitle"
           :item-meta="itemMeta"
@@ -44,23 +59,65 @@
           @apply-month-input="applyMonthInput"
           @go-current-month="goCurrentMonth"
           @select-day="selectDay"
+          @select-item="selectCalendarItem"
         />
 
-        <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="mt-4 border border-primary/25 bg-primary/5 p-4 text-sm modula-card" aria-live="polite">
+          <div class="flex items-start gap-3">
+            <Icon name="mdi:calendar-check-outline" size="20" class="mt-0.5 shrink-0 text-primary" />
+            <div>
+              <div class="font-medium">{{ selectedSummaryLabel }}</div>
+              <div class="mt-1 opacity-80">{{ selectedCalendarMessage }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="effectiveMode === 'SINGLE_DAY'" ref="selectionPanelRef" class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+          <div class="space-y-3">
+            <label class="form-control gap-2">
+              <span class="label-text font-medium">{{ rentalDateLabel }}</span>
+              <input v-model="selectedStartDate" type="date" class="input input-bordered w-full" />
+            </label>
+            <div>
+              <div class="mb-2 text-sm font-medium">{{ durationLabel }}</div>
+              <div class="flex flex-wrap gap-2">
+                <button v-for="duration in data.source.rentalDurations" :key="duration" type="button" class="btn btn-sm" :class="selectedDuration === duration ? 'btn-primary' : 'btn-outline'" @click="selectedDuration = duration">
+                  {{ formatDuration(duration) }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="mb-2 text-sm font-medium">{{ timeSlotLabel }}</div>
+            <div v-if="!selectedStartDate" class="rounded-xl border border-dashed border-base-300 p-5 text-sm opacity-60">{{ selectDateFirstLabel }}</div>
+            <div v-else-if="!data.slots.length" class="alert">{{ noSlotLabel }}</div>
+            <div v-else class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <button v-for="slot in data.slots" :key="slot.start" type="button" class="btn btn-sm" :class="selectedSlot?.start === slot.start ? 'btn-primary' : 'btn-outline'" @click="selectedSlot = slot">
+                {{ formatSlot(slot) }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div v-else ref="selectionPanelRef" class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ rentalStartLabel }}</span></label>
             <input v-model="selectedStartDate" type="date" class="input input-bordered" />
+            <select v-model="selectedStartTime" class="select select-bordered" :disabled="!startTimeOptions.length">
+              <option value="">{{ selectTimeLabel }}</option>
+              <option v-for="time in startTimeOptions" :key="time" :value="time">{{ time }}</option>
+            </select>
           </div>
           <div class="form-control flex flex-col gap-3">
             <label class="label"><span class="label-text">{{ rentalEndLabel }}</span></label>
             <input v-model="selectedEndDate" type="date" class="input input-bordered" />
+            <select v-model="selectedEndTime" class="select select-bordered" :disabled="!endTimeOptions.length">
+              <option value="">{{ selectTimeLabel }}</option>
+              <option v-for="time in endTimeOptions" :key="time" :value="time">{{ time }}</option>
+            </select>
           </div>
         </div>
 
-        <div class="mt-4 rounded-2xl bg-base-200 p-4 text-sm">
-          <div class="font-medium">{{ selectedSummaryLabel }}</div>
-          <div class="mt-1 opacity-80">{{ selectedSummaryText }}</div>
-        </div>
       </template>
 
       <div class="modal-action">
@@ -87,8 +144,14 @@ interface RentalAvailabilityResponse {
     stock: number
     rentalMinDays: number
     rentalMaxDays: number | null
+    rentalBookingMode: 'SINGLE_DAY' | 'MULTI_DAY' | 'BOTH'
+    rentalHourlyPrice: number | null
+    rentalDailyPrice: number | null
+    rentalDurations: number[]
+    rentalSlotStepMinutes: number
   }
-  days: any[]
+  days: Array<any & { openingRanges: Array<{ start: string, end: string }> }>
+  slots: Array<{ start: string, end: string, remaining: number }>
 }
 
 const props = defineProps<{
@@ -100,7 +163,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  confirm: [{ rentalStartDate: string, rentalEndDate: string }]
+  confirm: [{ rentalStartDate: string, rentalEndDate: string, pricingMode: 'HOURLY' | 'DAILY' }]
 }>()
 
 const { contentLocale } = useContentLocale()
@@ -108,11 +171,17 @@ const { publicText } = usePublicDictionary()
 const locale = computed(() => contentLocale.value)
 const { $toast } = useNuxtApp() as any
 const dialogRef = ref<HTMLDialogElement | null>(null)
+const selectionPanelRef = ref<HTMLElement | null>(null)
 const currentMonth = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
 const monthInput = ref(formatMonth(currentMonth.value))
 const showMonthPicker = ref(false)
 const selectedStartDate = ref('')
 const selectedEndDate = ref('')
+const selectedStartTime = ref('')
+const selectedEndTime = ref('')
+const selectedDuration = ref(60)
+const selectedSlot = ref<{ start: string, end: string, remaining: number } | null>(null)
+const selectedMode = ref<'SINGLE_DAY' | 'MULTI_DAY'>('SINGLE_DAY')
 const errorMessage = ref('')
 
 const query = computed(() => ({
@@ -120,6 +189,9 @@ const query = computed(() => ({
   id: props.sourceId || undefined,
   month: formatMonth(currentMonth.value),
   locale: locale.value,
+  date: selectedStartDate.value || undefined,
+  duration: selectedDuration.value,
+  mode: selectedMode.value,
 }))
 
 const { data, pending, refresh } = await useFetch<RentalAvailabilityResponse>('/api/shop/rental-availability', {
@@ -135,6 +207,10 @@ watch(() => props.open, async (open) => {
     errorMessage.value = ''
     selectedStartDate.value = ''
     selectedEndDate.value = ''
+    selectedStartTime.value = ''
+    selectedEndTime.value = ''
+    selectedSlot.value = null
+    selectedMode.value = data.value?.source.rentalBookingMode === 'MULTI_DAY' ? 'MULTI_DAY' : 'SINGLE_DAY'
     currentMonth.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     monthInput.value = formatMonth(currentMonth.value)
     await refresh()
@@ -145,13 +221,27 @@ watch(() => props.open, async (open) => {
   }
 }, { immediate: true })
 
-watch(() => props.sourceId, async () => {
+watch(() => props.sourceId, () => {
   if (props.open) {
     selectedStartDate.value = ''
     selectedEndDate.value = ''
-    await refresh()
   }
 })
+
+watch(() => data.value?.source.rentalDurations, (durations) => {
+  if (durations?.length && !durations.includes(selectedDuration.value)) selectedDuration.value = durations[0]!
+}, { immediate: true })
+
+watch(() => data.value?.source.rentalBookingMode, (mode) => {
+  if (mode === 'SINGLE_DAY' || mode === 'MULTI_DAY') selectedMode.value = mode
+}, { immediate: true })
+
+watch([selectedStartDate, selectedDuration], () => {
+  selectedSlot.value = null
+})
+
+const effectiveMode = computed<'SINGLE_DAY' | 'MULTI_DAY'>(() =>
+  data.value?.source.rentalBookingMode === 'BOTH' ? selectedMode.value : data.value?.source.rentalBookingMode || 'MULTI_DAY')
 
 const titleLabel = computed(() => publicText('shop.rentalModal.title', 'Choisir la période de location - {name}', { name: props.sourceName }))
 const helpLabel = computed(() => publicText('shop.rentalModal.help', 'Choisissez une date de début et de fin depuis le calendrier de disponibilité avant d’ajouter cette location au panier.'))
@@ -162,20 +252,80 @@ const minDurationLabel = computed(() => publicText('shop.rentalModal.minimum', '
 const maxDurationLabel = computed(() => publicText('shop.rentalModal.maximum', 'Maximum'))
 const todayLabel = computed(() => publicText('shop.rentalModal.today', 'Aujourd’hui'))
 const monthPickerLabel = computed(() => publicText('shop.rentalModal.month', 'Mois'))
+const previousMonthLabel = computed(() => publicText('shop.rentalModal.previousMonth', 'Mois précédent'))
+const nextMonthLabel = computed(() => publicText('shop.rentalModal.nextMonth', 'Mois suivant'))
 const rentalStartLabel = computed(() => publicText('shop.rentalModal.startDate', 'Début de location'))
 const rentalEndLabel = computed(() => publicText('shop.rentalModal.endDate', 'Fin de location'))
 const selectedSummaryLabel = computed(() => publicText('shop.rentalModal.selectedPeriod', 'Période sélectionnée'))
 const closeLabel = computed(() => publicText('shop.rentalModal.close', 'Fermer'))
 const confirmLabel = computed(() => publicText('shop.rentalModal.confirm', 'Ajouter au panier'))
-
-const selectedSummaryText = computed(() => {
-  if (!selectedStartDate.value || !selectedEndDate.value) {
-    return publicText('shop.rentalModal.selectDates', 'Sélectionnez deux dates dans le calendrier ou via les champs ci-dessous.')
-  }
-  return `${selectedStartDate.value} → ${selectedEndDate.value}`
+const rentalDateLabel = computed(() => publicText('shop.rentalModal.date', 'Date de location'))
+const durationLabel = computed(() => publicText('shop.rentalModal.duration', 'Durée'))
+const timeSlotLabel = computed(() => publicText('shop.rentalModal.timeSlot', 'Créneau de départ'))
+const selectDateFirstLabel = computed(() => publicText('shop.rentalModal.selectDateFirst', 'Sélectionnez d’abord une date disponible.'))
+const noSlotLabel = computed(() => publicText('shop.rentalModal.noSlot', 'Aucun créneau disponible pour cette durée.'))
+const selectTimeLabel = computed(() => publicText('shop.rentalModal.selectTime', 'Choisir une heure'))
+const hourlyModeLabel = computed(() => publicText('shop.rentalModal.hourlyMode', 'À l’heure'))
+const dailyModeLabel = computed(() => publicText('shop.rentalModal.dailyMode', 'À la journée'))
+const hourUnitLabel = computed(() => publicText('shop.rentalModal.hourUnit', 'heure'))
+const dayUnitLabel = computed(() => publicText('shop.rentalModal.dayUnit', 'jour'))
+const startTimeOptions = computed<string[]>(() => getTimesForDate(selectedStartDate.value, 'start'))
+const endTimeOptions = computed<string[]>(() => {
+  const values = getTimesForDate(selectedEndDate.value, 'end')
+  if (selectedStartDate.value !== selectedEndDate.value || !selectedStartTime.value) return values
+  return values.filter(time => time > selectedStartTime.value)
 })
 
-const canConfirm = computed(() => selectedStartDate.value.trim().length > 0 && selectedEndDate.value.trim().length > 0)
+watch(selectedStartDate, () => {
+  if (!startTimeOptions.value.includes(selectedStartTime.value)) selectedStartTime.value = ''
+})
+watch(selectedEndDate, () => {
+  if (!endTimeOptions.value.includes(selectedEndTime.value)) selectedEndTime.value = ''
+})
+watch(selectedStartTime, () => {
+  if (!endTimeOptions.value.includes(selectedEndTime.value)) selectedEndTime.value = ''
+})
+
+const selectedCalendarMessage = computed(() => {
+  if (!selectedStartDate.value) {
+    return effectiveMode.value === 'SINGLE_DAY'
+      ? publicText('shop.rentalModal.selectSingleDate', 'Sélectionnez une date disponible dans le calendrier.')
+      : publicText('shop.rentalModal.selectDateRange', 'Sélectionnez une date de départ puis une date de retour dans le calendrier.')
+  }
+  if (effectiveMode.value === 'SINGLE_DAY') {
+    return publicText(
+      'shop.rentalModal.singleDateSelected',
+      'Date sélectionnée : {date}. Choisissez maintenant votre créneau horaire.',
+      { date: formatCalendarDate(selectedStartDate.value) },
+    )
+  }
+  if (!selectedEndDate.value) {
+    return publicText(
+      'shop.rentalModal.rangeStartSelected',
+      'Date de départ sélectionnée : {date}. Choisissez maintenant la date de retour.',
+      { date: formatCalendarDate(selectedStartDate.value) },
+    )
+  }
+  return publicText(
+    'shop.rentalModal.dateRangeSelected',
+    'Plage sélectionnée : du {start} au {end}. Choisissez les heures de retrait et de retour.',
+    {
+      start: formatCalendarDate(selectedStartDate.value),
+      end: formatCalendarDate(selectedEndDate.value),
+    },
+  )
+})
+
+const canConfirm = computed(() => effectiveMode.value === 'SINGLE_DAY'
+  ? Boolean(selectedSlot.value)
+  : Boolean(
+      selectedStartDate.value
+      && selectedEndDate.value
+      && selectedStartTime.value
+      && selectedEndTime.value
+      && new Date(`${selectedEndDate.value}T${selectedEndTime.value}:00`).getTime()
+        > new Date(`${selectedStartDate.value}T${selectedStartTime.value}:00`).getTime(),
+    ))
 
 function formatMonth(value: Date) {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`
@@ -204,24 +354,46 @@ function itemClass(item: any) {
   return 'bg-success/15 text-success'
 }
 
+function itemIndicatorClass(item: any) {
+  if (item.status === 'full') return 'bg-error'
+  if (item.status === 'partial') return 'bg-warning'
+  if (item.status === 'outside') return 'bg-base-content/30'
+  return 'bg-success'
+}
+
+function daySelectable(day: any) {
+  return Boolean(day?.selectable)
+}
+
+function calendarDayLabel(day: any) {
+  return new Intl.DateTimeFormat(locale.value, {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date(`${day.iso}T12:00:00`))
+}
+
 function itemTitle(item: any) {
-  return item.title
+  if (item.status === 'full') return publicText('shop.rentalModal.full', 'Complet')
+  if (item.status === 'outside') return publicText('shop.rentalModal.unavailable', 'Indisponible')
+  return publicText('shop.rentalModal.remaining', '{count} disponible(s)', { count: item.remaining })
 }
 
 function itemSubtitle(item: any) {
-  return item.subtitle
+  return ''
 }
 
 function itemMeta(item: any) {
-  return item.meta
+  return item.status === 'partial' ? publicText('shop.rentalModal.partial', 'Disponibilité partielle') : ''
 }
 
 function dayClass(day: any) {
+  if (isSelectedDay(day.iso)) return 'bg-primary/20 ring-4 ring-inset ring-primary'
+  if (isInSelectedRange(day.iso)) return 'bg-primary/10 ring-1 ring-inset ring-primary/30'
   if (day.availabilityStatus === 'outside') return 'opacity-50'
-  if (day.availabilityStatus === 'full') return 'border-error/50 bg-error/5'
-  if (day.availabilityStatus === 'partial') return 'border-warning/50 bg-warning/5'
-  if (isSelectedDay(day.iso)) return 'ring-2 ring-primary border-primary'
-  if (isInSelectedRange(day.iso)) return 'border-primary/40 bg-primary/5'
+  if (day.availabilityStatus === 'full') return 'bg-error/5'
+  if (day.availabilityStatus === 'partial') return 'bg-warning/5'
   return ''
 }
 
@@ -234,17 +406,20 @@ function isInSelectedRange(iso: string) {
   return iso > selectedStartDate.value && iso < selectedEndDate.value
 }
 
-function selectDay(day: any) {
+async function selectDay(day: any) {
   if (!day?.selectable) return
   const iso = String(day.iso)
   if (!selectedStartDate.value || (selectedStartDate.value && selectedEndDate.value)) {
     selectedStartDate.value = iso
     selectedEndDate.value = ''
+    if (effectiveMode.value === 'SINGLE_DAY') selectedEndDate.value = iso
+    await scrollToSelectionPanel()
     return
   }
 
   if (iso < selectedStartDate.value) {
     selectedStartDate.value = iso
+    await scrollToSelectionPanel()
     return
   }
 
@@ -257,10 +432,19 @@ function selectDay(day: any) {
   }
 
   selectedEndDate.value = iso
+  await scrollToSelectionPanel()
+}
+
+function selectCalendarItem(item: any) {
+  const day = data.value?.days.find(entry => entry.iso === String(item?.id || ''))
+  if (day) void selectDay(day)
 }
 
 function isRangeSelectable(startIso: string, endIso: string) {
   const days = Array.isArray((data.value as any)?.days) ? (data.value as any).days : []
+  if (effectiveMode.value === 'MULTI_DAY') {
+    return [startIso, endIso].every(iso => days.some((day: any) => day.iso === iso && day.selectable))
+  }
   return days
     .filter((day: any) => day.iso >= startIso && day.iso <= endIso)
     .every((day: any) => day.selectable)
@@ -268,6 +452,11 @@ function isRangeSelectable(startIso: string, endIso: string) {
 
 function confirmSelection() {
   if (!canConfirm.value) return
+  if (effectiveMode.value === 'SINGLE_DAY' && selectedSlot.value) {
+    emit('confirm', { rentalStartDate: selectedSlot.value.start, rentalEndDate: selectedSlot.value.end, pricingMode: 'HOURLY' })
+    close()
+    return
+  }
   if (!isRangeSelectable(selectedStartDate.value, selectedEndDate.value)) {
     $toast.error(locale.value === 'en'
       ? publicText('shop.rentalModal.unavailableRange', 'Cette période contient des jours indisponibles.')
@@ -275,10 +464,71 @@ function confirmSelection() {
     return
   }
   emit('confirm', {
-    rentalStartDate: selectedStartDate.value,
-    rentalEndDate: selectedEndDate.value,
+    rentalStartDate: `${selectedStartDate.value}T${selectedStartTime.value}:00`,
+    rentalEndDate: `${selectedEndDate.value}T${selectedEndTime.value}:00`,
+    pricingMode: 'DAILY',
   })
   close()
+}
+
+function selectMode(mode: 'SINGLE_DAY' | 'MULTI_DAY') {
+  selectedMode.value = mode
+  selectedStartDate.value = ''
+  selectedEndDate.value = ''
+  selectedStartTime.value = ''
+  selectedEndTime.value = ''
+  selectedSlot.value = null
+}
+
+function formatPrice(value: number | null) {
+  return new Intl.NumberFormat(locale.value, { style: 'currency', currency: 'EUR' }).format(Number(value || 0))
+}
+
+function getTimesForDate(iso: string, edge: 'start' | 'end') {
+  const day = data.value?.days.find((entry: any) => entry.iso === iso)
+  if (!day) return []
+  const step = Math.max(1, Number(data.value?.source.rentalSlotStepMinutes || 30))
+  const values = new Set<string>()
+  for (const range of day.openingRanges) {
+    const start = timeToMinutes(range.start)
+    const end = timeToMinutes(range.end)
+    const first = edge === 'start' ? start : start + step
+    const last = edge === 'start' ? end - 1 : end
+    for (let cursor = first; cursor <= last; cursor += step) values.add(minutesToTime(cursor))
+    if (edge === 'end') values.add(minutesToTime(end))
+  }
+  return Array.from(values).sort()
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(':').map(Number)
+  return Number(hours || 0) * 60 + Number(minutes || 0)
+}
+
+function minutesToTime(value: number) {
+  return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
+}
+
+function formatCalendarDate(value: string) {
+  return new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'long', year: 'numeric' })
+    .format(new Date(`${value}T12:00:00`))
+}
+
+async function scrollToSelectionPanel() {
+  await nextTick()
+  selectionPanelRef.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
+
+function formatDuration(minutes: number) {
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return rest ? `${hours} h ${rest}` : `${hours} h`
+}
+
+function formatSlot(slot: { start: string, end: string }) {
+  const format = (value: string) => new Intl.DateTimeFormat(locale.value, { hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+  return `${format(slot.start)} - ${format(slot.end)}`
 }
 
 function close() {

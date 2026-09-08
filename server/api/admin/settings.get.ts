@@ -1,5 +1,5 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
-import { getAdminPhone, getContactEmail, getGmailSenderEmail, getReservationNotificationEmail, getResendSenderEmail, getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig, getImageVariantSettings, getShopDefaultVatRate } from '#modula/server/utils/settings'
+import { getAdminPhone, getContactEmail, getGmailSenderEmail, getReservationNotificationEmail, getResendSenderEmail, getSettings, SETTING_KEYS, getFeatureFlags, getFarmPickupConfig, getImageVariantSettings, getShopDefaultVatRate, getRentalCalendarConfig } from '#modula/server/utils/settings'
 import { listGoogleCalendars } from '#modula/server/utils/gmail'
 import { getAllAdminEmailTemplateDefinitions } from '#modula/server/utils/adminEmailTemplates'
 
@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
     SETTING_KEYS.REGISTER_ENABLED,
     SETTING_KEYS.SUBSCRIPTIONS_ENABLED,
     SETTING_KEYS.SHOP_ENABLED,
+    SETTING_KEYS.RENTALS_ENABLED,
     SETTING_KEYS.ASSOCIATION_ROLES_ENABLED,
     SETTING_KEYS.EVENTS_ENABLED,
     SETTING_KEYS.NEWS_ENABLED,
@@ -38,9 +39,10 @@ export default defineEventHandler(async (event) => {
     SETTING_KEYS.FARM_PICKUP_TIME
   ]
   const s = await getSettings(allSettingKeys)
-  const [featureFlags, farmPickup, gmailSenderEmail, resendSenderEmail, reservationNotificationEmail, contactEmail, adminPhone, imageVariantSettings, shopDefaultVatRate] = await Promise.all([
+  const [featureFlags, farmPickup, rentalCalendar, gmailSenderEmail, resendSenderEmail, reservationNotificationEmail, contactEmail, adminPhone, imageVariantSettings, shopDefaultVatRate] = await Promise.all([
     getFeatureFlags(),
     getFarmPickupConfig(),
+    getRentalCalendarConfig(),
     getGmailSenderEmail(),
     getResendSenderEmail(),
     getReservationNotificationEmail(),
@@ -79,6 +81,7 @@ export default defineEventHandler(async (event) => {
     featureFlags,
     shopDefaultVatRate,
     farmPickup,
+    rentalCalendar,
     imagePersistVariants: imageVariantSettings.persistVariants,
     imagePersistVariantsSupported: imageVariantSettings.persistVariantsSupported,
     imageRuntimeTarget: imageVariantSettings.runtimeTarget,

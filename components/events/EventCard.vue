@@ -1,5 +1,5 @@
 <template>
-  <article class="overflow-hidden rounded-[2rem] border border-base-300 shadow-sm"
+  <article class="modula-card overflow-hidden border border-base-300 shadow-sm"
     :class="mode === 'list' && showImage ? 'grid md:grid-cols-[320px_minmax(0,1fr)]' : 'flex flex-col'"
     :style="{ backgroundColor: settings.cardBackgroundColor?.token ? `var(--color-${settings.cardBackgroundColor.token})` : 'var(--color-base-200)' }">
     <div v-if="showImage" :class="mode === 'list' ? 'h-60 md:h-full' : 'h-56'">

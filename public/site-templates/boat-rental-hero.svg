@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Voilier dans une baie</title>
+  <desc id="desc">Illustration maritime aux tons bleu profond, turquoise et sable.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#dff6f4"/><stop offset="1" stop-color="#f8f5e9"/></linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#087f8c"/><stop offset="1" stop-color="#193846"/></linearGradient>
+  </defs>
+  <rect width="1400" height="1000" fill="url(#sky)"/>
+  <circle cx="1110" cy="185" r="92" fill="#d8a84e"/>
+  <path d="M0 530C220 470 405 485 620 545s405 40 780-35v490H0Z" fill="#65c5c4"/>
+  <path d="M0 650c280-80 490 45 720 0s430-92 680-18v368H0Z" fill="url(#sea)"/>
+  <path d="M820 590h345l-62 95H882Z" fill="#f7faf9"/>
+  <path d="M962 225v373" stroke="#172a32" stroke-width="18"/>
+  <path d="M945 250 720 548h225Z" fill="#fff" opacity=".96"/>
+  <path d="m980 284 170 264H980Z" fill="#df6b45"/>
+  <path d="M820 686h282" stroke="#d8a84e" stroke-width="14"/>
+  <path d="M112 620c150-45 290-22 425 26" fill="none" stroke="#eefafa" stroke-width="12" stroke-linecap="round" opacity=".55"/>
+  <path d="M170 725c160-38 315-12 440 34" fill="none" stroke="#eefafa" stroke-width="9" stroke-linecap="round" opacity=".3"/>
+</svg>

@@ -6,7 +6,7 @@
           <h1 class="text-4xl font-semibold">{{ pageTitle }}</h1>
           <p v-if="pageSubtitle" class="mt-3 text-base opacity-80">{{ pageSubtitle }}</p>
         </div>
-        <button class="btn btn-primary gap-2" @click="goToCart">
+        <button type="button" class="btn btn-primary gap-2" @click="goToCart">
           <Icon name="mdi:cart-outline" size="20" />
           {{ cartButtonLabel }}
         </button>
@@ -14,24 +14,37 @@
 
       <div v-if="pending" class="loading loading-spinner" />
       <template v-else>
-        <div v-if="showCategoryFilters" class="mb-6 flex flex-wrap gap-2">
-          <button
-            v-if="showAllCategoriesButton"
-            class="btn btn-sm"
-            :class="selectedCategorySlug ? 'btn-ghost' : 'btn-primary'"
-            @click="selectCategory('')"
-          >
-            {{ allCategoriesLabel }}
-          </button>
-          <button
-            v-for="category in categories"
-            :key="category.id"
-            class="btn btn-sm"
-            :class="selectedCategorySlug === category.slug ? 'btn-primary' : 'btn-ghost'"
-            @click="selectCategory(category.slug)"
-          >
-            {{ category.name }}
-          </button>
+        <div v-if="showCatalogControls" class="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div v-if="showCategoryFilters" class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="btn btn-sm"
+              :class="selectedCategorySlug ? 'btn-ghost' : 'btn-primary'"
+              @click="selectCategory('')"
+            >
+              {{ allCategoriesLabel }}
+            </button>
+            <button
+              v-for="category in categories"
+              :key="category.id"
+              type="button"
+              class="btn btn-sm"
+              :class="selectedCategorySlug === category.slug ? 'btn-primary' : 'btn-ghost'"
+              @click="selectCategory(category.slug)"
+            >
+              {{ category.name }}
+            </button>
+          </div>
+          <div v-if="showViewToggle" class="join" :aria-label="viewModeLabel">
+            <button type="button" class="btn btn-sm join-item" :class="viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'" :aria-label="gridViewLabel" @click="viewMode = 'grid'">
+              <Icon name="mdi:view-grid-outline" size="18" />
+              <span class="hidden sm:inline">{{ gridViewLabel }}</span>
+            </button>
+            <button type="button" class="btn btn-sm join-item" :class="viewMode === 'list' ? 'btn-primary' : 'btn-ghost'" :aria-label="listViewLabel" @click="viewMode = 'list'">
+              <Icon name="mdi:view-list-outline" size="18" />
+              <span class="hidden sm:inline">{{ listViewLabel }}</span>
+            </button>
+          </div>
         </div>
 
         <ProductList
@@ -50,11 +63,13 @@
           :offline-label="offlineLabel"
           :online-label="onlineLabel"
           :disable-on-sold-out="false"
+          :layout="viewMode"
+          :grid-columns="settings?.gridColumns || 3"
           @add="handleProductAction"
           @view="openProductDetail"
         />
 
-        <div v-else class="rounded-3xl border border-dashed border-base-300 px-6 py-14 text-center opacity-60">
+        <div v-else class="modula-card border border-dashed border-base-300 px-6 py-14 text-center opacity-60">
           {{ emptyLabel }}
         </div>
       </template>
@@ -63,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CmsBasketsPageSettings } from '#modula/shared/cms'
+import type { CmsBasketsPageSettings, CmsPageApplicationConfig } from '#modula/shared/cms'
 import { pickCmsLocalizedText } from '#modula/shared/cms'
 import ProductList from '#modula/components/shop/ProductList.vue'
 import { useShopCart } from '#modula/composables/useShopCart'
@@ -71,6 +86,7 @@ import type { ProductCategoryPayload, ProductPayload } from '#modula/server/util
 
 const props = defineProps<{
   settings?: CmsBasketsPageSettings | null
+  applicationConfig?: CmsPageApplicationConfig | null
   pageTitleOverride?: string | null
   pageSubtitleOverride?: string | null
 }>()
@@ -85,10 +101,12 @@ const { $toast } = useNuxtApp() as any
 const { count, add } = useShopCart()
 
 const selectedCategorySlug = ref(typeof route.query.category === 'string' ? route.query.category : '')
-const { data, pending, refresh } = await useFetch<{ categories: ProductCategoryPayload[], products: ProductPayload[] }>('/api/shop/catalog', {
+const viewMode = ref<'grid' | 'list'>(props.applicationConfig?.shopDefaultViewMode === 'list' ? 'list' : 'grid')
+const { data, pending } = await useFetch<{ categories: ProductCategoryPayload[], products: ProductPayload[] }>('/api/shop/catalog', {
   query: computed(() => ({
     view: 'products',
-    category: selectedCategorySlug.value || undefined
+    category: selectedCategorySlug.value || undefined,
+    categoryIds: props.applicationConfig?.shopCategoryIds?.join(',') || undefined
   }))
 })
 
@@ -116,9 +134,22 @@ const allCategoriesLabel = computed(() => publicText('shop.catalog.allCategories
 const emptyLabel = computed(() => publicText('shop.catalog.empty', 'Aucun produit n est publie pour le moment.'))
 const offlineLabel = computed(() => publicText('shop.catalog.offlinePayment', 'Paiement hors ligne'))
 const onlineLabel = computed(() => publicText('shop.catalog.onlinePayment', 'Paiement en ligne'))
+const viewModeLabel = computed(() => publicText('shop.catalog.viewMode', 'Affichage des produits'))
+const gridViewLabel = computed(() => publicText('shop.catalog.gridView', 'Grille'))
+const listViewLabel = computed(() => publicText('shop.catalog.listView', 'Liste'))
 const itemBackgroundColor = computed(() => 'var(--fallback-b1,oklch(var(--b1)/1))')
-const showCategoryFilters = computed(() => categories.value.length > 0)
-const showAllCategoriesButton = computed(() => categories.value.length > 1)
+const showCategoryFilters = computed(() => categories.value.length > 1)
+const showViewToggle = computed(() => props.applicationConfig?.shopShowViewToggle !== false)
+const showCatalogControls = computed(() => showCategoryFilters.value || showViewToggle.value)
+
+watch(() => route.query.category, (value) => {
+  const nextSlug = typeof value === 'string' ? value : ''
+  if (nextSlug !== selectedCategorySlug.value) selectedCategorySlug.value = nextSlug
+})
+
+watch(() => props.applicationConfig?.shopDefaultViewMode, value => {
+  viewMode.value = value === 'list' ? 'list' : 'grid'
+})
 
 const selectCategory = async (slug: string) => {
   selectedCategorySlug.value = slug
@@ -128,7 +159,6 @@ const selectCategory = async (slug: string) => {
       category: slug || undefined
     }
   })
-  await refresh()
 }
 
 const getLocalizedName = (product: ProductPayload) =>

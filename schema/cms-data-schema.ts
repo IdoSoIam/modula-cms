@@ -2,6 +2,7 @@ import { defineModel, defineSchema, field, index, relation, unique } from './dsl
 
 const deliveryTypes = ['ONSITE', 'PICKUP', 'TOUR']
 const productSaleTypes = ['SALE', 'RENTAL']
+const rentalApprovalModes = ['AUTO', 'MANUAL']
 const billingDocumentKinds = ['INVOICE', 'CONTRACT', 'ASSURANCE']
 const shopOrderStatuses = ['DRAFT', 'PENDING', 'CONFIRMED', 'IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED', 'CANCELLED']
 const shopPaymentProviders = ['OFFLINE', 'STRIPE']
@@ -241,6 +242,12 @@ export const cmsDataSchema = defineSchema({
         rentalAvailableTo: field.datetime({ nullable: true }),
         rentalMinDays: field.int({ default: 1 }),
         rentalMaxDays: field.int({ nullable: true }),
+        rentalBookingMode: field.string({ default: 'MULTI_DAY' }),
+        rentalApprovalMode: field.enum(rentalApprovalModes, { default: 'AUTO' }),
+        rentalHourlyPrice: field.decimal({ nullable: true }),
+        rentalDailyPrice: field.decimal({ nullable: true }),
+        rentalDurationsJson: field.string({ default: '[60,120,240]' }),
+        rentalSlotStepMinutes: field.int({ default: 30 }),
         unitLabel: field.string({ nullable: true }),
         unitLabelJson: field.string({ default: '{"fr":"","en":""}' }),
         allowOfflinePayment: field.boolean({ default: true }),
@@ -293,6 +300,9 @@ export const cmsDataSchema = defineSchema({
         logoUrl: field.string({ nullable: true }),
         accentColor: field.string({ nullable: true }),
         sourcePdfUrl: field.string({ nullable: true }),
+        rentalHourlyPrice: field.decimal({ nullable: true }),
+        rentalDailyPrice: field.decimal({ nullable: true }),
+        requiredForRental: field.boolean({ default: false }),
         titleJson: field.string({ default: '{"fr":"","en":""}' }),
         contentJson: field.string({ default: '{"fr":"","en":""}' }),
         footerJson: field.string({ default: '{"fr":"","en":""}' }),
@@ -664,6 +674,7 @@ export const cmsDataSchema = defineSchema({
         templateKey: field.string({ default: 'default' }),
         rendererKey: field.string({ nullable: true }),
         applicationPosition: field.enum(cmsApplicationPositions, { default: 'AFTER_CONTENT' }),
+        applicationConfigJson: field.string({ default: '{}' }),
         translationsJson: field.string(),
         createdAt: field.datetime({ default: 'now' }),
         updatedAt: field.datetime()

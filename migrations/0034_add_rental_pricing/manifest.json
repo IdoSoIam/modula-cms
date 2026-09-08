@@ -1,0 +1,25 @@
+{
+  "id": "0034_add_rental_pricing",
+  "name": "add_rental_pricing",
+  "description": "",
+  "beforeSchemaHash": "6ff424d7ced195a917457052805192b58f5d989abc303d483538949f89dac77c",
+  "afterSchemaHash": "b85ced7db48d8fe204dc70ccdb96e464b6ab3deefab092151183cd1ee3d34baf",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: rentalDailyPrice",
+          "field added: rentalHourlyPrice"
+        ]
+      }
+    ]
+  }
+}

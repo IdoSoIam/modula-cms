@@ -1,5 +1,7 @@
 import { db } from '#modula/server/data/client'
-import { serializeProduct } from '#modula/server/utils/shop'
+import { hydrateProductBillingDocumentMetadata, serializeProduct } from '#modula/server/utils/shop'
+import { getFeatureFlags } from '#modula/server/utils/settings'
+import { isStripeConfiguredFromCache } from '#modula/server/services/payment/paymentService'
 
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
@@ -23,8 +25,18 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Produit introuvable'
     })
   }
+  const [featureFlags, onlinePaymentAvailable] = await Promise.all([
+    getFeatureFlags(),
+    isStripeConfiguredFromCache(),
+  ])
+  if (row.saleType === 'RENTAL' && !featureFlags.rentalsEnabled) {
+    throw createError({ statusCode: 404, message: 'Produit introuvable' })
+  }
 
-  const product = serializeProduct(row)
+  const product = await hydrateProductBillingDocumentMetadata({
+    ...serializeProduct(row),
+    allowOnlinePayment: onlinePaymentAvailable && Boolean(row.allowOnlinePayment),
+  })
 
   const relatedRows = await db.product.findMany({
     where: {
@@ -40,9 +52,13 @@ export default defineEventHandler(async (event) => {
   })
 
   const relatedProducts = relatedRows
-    .map(serializeProduct)
+    .map((entry: any) => ({
+      ...serializeProduct(entry),
+      allowOnlinePayment: onlinePaymentAvailable && Boolean(entry.allowOnlinePayment),
+    }))
     .filter((entry: ReturnType<typeof serializeProduct>) =>
       entry.id !== product.id
+      && (featureFlags.rentalsEnabled || entry.saleType !== 'RENTAL')
       && (
         (product.categoryId != null && entry.categoryId === product.categoryId)
         || entry.saleType === product.saleType

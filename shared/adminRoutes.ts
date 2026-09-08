@@ -47,6 +47,10 @@ export const ADMIN_ROUTE_PATHS = {
     fr: "/admin/management/reservations",
     en: "/admin/management/reservations",
   },
+  managementRentals: {
+    fr: "/admin/management/location",
+    en: "/admin/management/location",
+  },
   managementMemberRoles: {
     fr: "/admin/management/member-roles",
     en: "/admin/management/member-roles",

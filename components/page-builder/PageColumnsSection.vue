@@ -194,7 +194,7 @@
                       @edit="emit('edit', { kind: 'card', label: `Carte colonne ${columnIndex + 1}`, card, parentCards: item.cards, cardIndex })"
                     >
                         <div
-                          class="rounded-2xl border p-5 shadow-sm"
+                          class="modula-card border p-5 shadow-sm"
                           :class="[cardClass(card), cardSizeClass(card, item.display)]"
                           :style="cardStyle(card)"
                         >

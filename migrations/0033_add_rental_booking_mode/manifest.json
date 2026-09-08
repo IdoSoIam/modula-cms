@@ -1,0 +1,26 @@
+{
+  "id": "0033_add_rental_booking_mode",
+  "name": "add_rental_booking_mode",
+  "description": "",
+  "beforeSchemaHash": "31f092d527e4b2a44c3eaba1d8c271992c693b1fd696b94f6f15b4f78309261f",
+  "afterSchemaHash": "6ff424d7ced195a917457052805192b58f5d989abc303d483538949f89dac77c",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: rentalBookingMode",
+          "field added: rentalDurationsJson",
+          "field added: rentalSlotStepMinutes"
+        ]
+      }
+    ]
+  }
+}

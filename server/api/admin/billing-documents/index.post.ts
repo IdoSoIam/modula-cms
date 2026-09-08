@@ -4,6 +4,7 @@ import { getSiteLocales } from '#modula/server/utils/settings'
 import {
   buildBillingDocumentLocalizedPayload,
   normalizeBillingDocumentInvoiceOptions,
+  normalizeOptionalBillingPrice,
   sanitizeBillingDocumentInvoiceColumns,
   enforceSingleDefaultBillingDocument,
   ensureUniqueBillingDocumentSlug,
@@ -22,6 +23,9 @@ interface Body {
   logoUrl?: string | null
   accentColor?: string | null
   sourcePdfUrl?: string | null
+  rentalHourlyPrice?: number | null
+  rentalDailyPrice?: number | null
+  requiredForRental?: boolean
   titleLocalized?: CmsLocalizedText | null
   contentLocalized?: CmsLocalizedText | null
   footerLocalized?: CmsLocalizedText | null
@@ -73,6 +77,9 @@ export default defineEventHandler(async (event) => {
       logoUrl: body.logoUrl?.trim() || null,
       accentColor: body.accentColor?.trim() || null,
       sourcePdfUrl: body.sourcePdfUrl?.trim() || null,
+      rentalHourlyPrice: kind === 'ASSURANCE' ? normalizeOptionalBillingPrice(body.rentalHourlyPrice) : null,
+      rentalDailyPrice: kind === 'ASSURANCE' ? normalizeOptionalBillingPrice(body.rentalDailyPrice) : null,
+      requiredForRental: kind === 'ASSURANCE' && Boolean(body.requiredForRental),
       titleJson: titlePayload.json,
       contentJson: contentPayload.json,
       footerJson: footerPayload.json,

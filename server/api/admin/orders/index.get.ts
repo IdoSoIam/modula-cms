@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
   const page = Math.max(1, Number.parseInt(String(query.page || '1'), 10) || 1)
   const limit = Math.min(100, Math.max(1, Number.parseInt(String(query.limit || '20'), 10) || 20))
   const status = typeof query.status === 'string' ? query.status.trim().toUpperCase() : ''
+  const paymentStatus = typeof query.paymentStatus === 'string' ? query.paymentStatus.trim().toUpperCase() : ''
 
   const where: Record<string, any> = {
     status: {
@@ -18,6 +19,9 @@ export default defineEventHandler(async (event) => {
 
   if (status) {
     where.status = status
+  }
+  if (paymentStatus) {
+    where.paymentStatus = paymentStatus
   }
 
   const [rows, total] = await Promise.all([

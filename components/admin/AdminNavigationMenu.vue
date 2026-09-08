@@ -4,17 +4,18 @@
       <NuxtLink
         v-if="section.items.length === 1"
         :to="section.items[0]!.path"
-        class="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition"
+        class="modula-navigation flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2 text-sm transition"
         :class="linkClass(section.items[0]!)"
+        :title="collapsed ? t(section.items[0]!.labelKey) : undefined"
       >
         <Icon v-if="section.items[0]!.icon" :name="section.items[0]!.icon" size="18" class="shrink-0" />
         <span v-if="!collapsed" class="truncate">{{ t(section.items[0]!.labelKey) }}</span>
       </NuxtLink>
 
-      <section v-else class="rounded-2xl border border-base-300/80 bg-base-200/40">
+      <section v-else class="group relative border border-base-300/80 bg-base-200/40 modula-navigation">
         <button
           type="button"
-          class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-semibold transition hover:bg-base-100/60"
+          class="modula-navigation flex min-h-11 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left text-sm font-semibold transition hover:bg-base-100/60"
           :class="collapsed ? 'justify-center' : ''"
           @click="toggleSection(section.id)"
         >
@@ -33,12 +34,31 @@
             v-for="item in section.items"
             :key="item.id"
             :to="item.path"
-            class="flex min-h-10 cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition"
+            class="modula-navigation flex min-h-10 cursor-pointer items-center gap-3 px-3 py-2 text-sm transition"
             :class="linkClass(item)"
           >
             <Icon v-if="item.icon" :name="item.icon" size="18" class="shrink-0" />
             <span class="truncate">{{ t(item.labelKey) }}</span>
           </NuxtLink>
+        </div>
+
+        <div
+          v-if="collapsed"
+          class="absolute left-full top-0 z-[70] hidden w-64 pl-2 group-hover:block group-focus-within:block"
+        >
+          <div class="border border-base-300 bg-base-100 p-2 shadow-xl modula-card">
+            <div class="px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] opacity-60">{{ t(section.labelKey) }}</div>
+            <NuxtLink
+              v-for="item in section.items"
+              :key="item.id"
+              :to="item.path"
+              class="modula-navigation flex min-h-10 items-center gap-3 px-3 py-2 text-sm transition"
+              :class="flyoutLinkClass(item)"
+            >
+              <Icon v-if="item.icon" :name="item.icon" size="18" class="shrink-0" />
+              <span class="truncate">{{ t(item.labelKey) }}</span>
+            </NuxtLink>
+          </div>
         </div>
       </section>
     </template>
@@ -54,7 +74,7 @@
           v-for="item in section.items"
           :key="item.id"
           :to="item.path"
-          class="block cursor-pointer rounded-lg px-3 py-2 text-sm transition hover:bg-base-200"
+          class="modula-navigation block cursor-pointer px-3 py-2 text-sm transition hover:bg-base-200"
           :class="isActive(item) ? 'bg-base-200 font-medium text-primary' : ''"
         >
           {{ t(item.labelKey) }}
@@ -129,6 +149,14 @@ const linkClass = (item: AdminNavigationItem) => {
   const active = isActive(item)
   return {
     'justify-center': props.collapsed,
+    'bg-primary text-primary-content shadow-sm': active,
+    'hover:bg-base-200': !active
+  }
+}
+
+const flyoutLinkClass = (item: AdminNavigationItem) => {
+  const active = isActive(item)
+  return {
     'bg-primary text-primary-content shadow-sm': active,
     'hover:bg-base-200': !active
   }

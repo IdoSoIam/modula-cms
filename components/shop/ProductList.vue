@@ -3,7 +3,7 @@
     <article
       v-for="product in products"
       :key="`product-${product.id}`"
-      class="flex h-full flex-col rounded-[1.75rem] border border-base-300 bg-base-100 p-5 shadow-sm"
+      class="modula-card flex h-full flex-col border border-base-300 bg-base-100 p-5 shadow-sm"
       :class="articleClass"
       :style="{ backgroundColor: itemBackgroundColor }"
     >
@@ -27,8 +27,16 @@
               <p v-if="showDescriptions && getLocalizedExcerpt(product)" class="mt-2 text-sm opacity-75 wrap-break-word">{{ getLocalizedExcerpt(product) }}</p>
             </div>
             <div class="text-right">
-              <div class="text-lg font-semibold text-primary">{{ $formatPrice(product.price) }}</div>
-              <div class="text-xs opacity-60">{{ getLocalizedUnitLabel(product) }}</div>
+              <template v-if="product.saleType === 'RENTAL'">
+                <div v-for="rate in getRentalRates(product)" :key="rate.unit" class="whitespace-nowrap">
+                  <span class="text-lg font-semibold text-primary">{{ $formatPrice(rate.price) }}</span>
+                  <span class="text-xs opacity-60"> / {{ rate.unit }}</span>
+                </div>
+              </template>
+              <template v-else>
+                <div class="text-lg font-semibold text-primary">{{ $formatPrice(product.price) }}</div>
+                <div class="text-xs opacity-60">{{ getLocalizedUnitLabel(product) }}</div>
+              </template>
             </div>
           </div>
           <div class="mt-4 flex items-center justify-between gap-3 text-sm">
@@ -41,13 +49,13 @@
               <span v-if="product.allowOnlinePayment" class="badge badge-outline">{{ onlineLabel }}</span>
             </div>
           </div>
-          <div class="mt-auto grid gap-3 pt-8" :class="product.saleType === 'RENTAL' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'">
-            <button class="btn btn-ghost p-0" @click="$emit('view', product)">
+          <div class="mt-auto grid grid-cols-1 gap-2 pt-8" :class="isSingleProduct && product.saleType !== 'RENTAL' ? 'sm:grid-cols-2' : ''">
+            <button v-if="product.saleType !== 'RENTAL'" type="button" class="btn btn-ghost h-auto min-h-10 whitespace-normal py-2 leading-tight" @click="$emit('view', product)">
               {{ viewLabel }}
             </button>
             <button
-              class="btn btn-primary"
-              :class="product.saleType === 'RENTAL' ? 'sm:col-span-1' : ''"
+              type="button"
+              class="btn btn-primary h-auto min-h-10 whitespace-normal py-2 leading-tight"
               :disabled="disableOnSoldOut && product.stock <= 0"
               @click="$emit('add', product)"
             >
@@ -79,6 +87,8 @@ const props = defineProps<{
   offlineLabel: string
   onlineLabel: string
   disableOnSoldOut?: boolean
+  layout?: 'grid' | 'list'
+  gridColumns?: 1 | 2 | 3 | 4
 }>()
 
 defineEmits<{
@@ -87,20 +97,38 @@ defineEmits<{
 }>()
 
 const { contentLocale } = useContentLocale()
+const { publicText } = usePublicDictionary()
+const hourUnitLabel = computed(() => publicText('shop.rentalModal.hourUnit', 'heure'))
+const dayUnitLabel = computed(() => publicText('shop.rentalModal.dayUnit', 'jour'))
 const isSingleProduct = computed(() => props.products.length === 1)
-const containerClass = computed(() => isSingleProduct.value
-  ? 'grid grid-cols-1 gap-6'
-  : 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4')
-const articleClass = computed(() => isSingleProduct.value ? 'overflow-hidden xl:col-span-1' : '')
-const contentClass = computed(() => isSingleProduct.value
+const isListLayout = computed(() => props.layout === 'list')
+const gridColumnsClass = computed(() => ({
+  1: 'grid-cols-1',
+  2: 'grid-cols-1 md:grid-cols-2',
+  3: 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3',
+  4: 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4',
+}[props.gridColumns || 3]))
+const containerClass = computed(() => {
+  if (isSingleProduct.value) return 'grid grid-cols-1 gap-6'
+  if (isListLayout.value) return 'flex flex-col gap-4'
+  return ['grid gap-4', gridColumnsClass.value]
+})
+const articleClass = computed(() => isSingleProduct.value || isListLayout.value ? 'overflow-hidden' : '')
+const contentClass = computed(() => isSingleProduct.value || isListLayout.value
   ? 'flex h-full flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)] lg:gap-8'
   : 'flex h-full flex-col')
-const imageClass = computed(() => isSingleProduct.value ? 'h-72 lg:h-full lg:min-h-[24rem]' : 'mb-4 h-44')
-const imageSizes = computed(() => isSingleProduct.value
+const imageClass = computed(() => isSingleProduct.value || isListLayout.value ? 'h-72 lg:h-full lg:min-h-[18rem]' : 'mb-4 h-44')
+const imageSizes = computed(() => isSingleProduct.value || isListLayout.value
   ? '(min-width: 1024px) 55vw, 100vw'
   : '(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw')
 
 const getLocalizedName = (product: ProductPayload) => pickCmsLocalizedText(contentLocale.value, product.nameLocalized) || product.name
 const getLocalizedExcerpt = (product: ProductPayload) => pickCmsLocalizedText(contentLocale.value, product.excerptLocalized) || product.excerpt || ''
 const getLocalizedUnitLabel = (product: ProductPayload) => pickCmsLocalizedText(contentLocale.value, product.unitLabelLocalized) || product.unitLabel || ''
+const getRentalRates = (product: ProductPayload) => {
+  const rates: Array<{ price: number, unit: string }> = []
+  if (product.rentalBookingMode !== 'MULTI_DAY') rates.push({ price: Number(product.rentalHourlyPrice ?? product.price), unit: hourUnitLabel.value })
+  if (product.rentalBookingMode !== 'SINGLE_DAY') rates.push({ price: Number(product.rentalDailyPrice ?? product.price), unit: dayUnitLabel.value })
+  return rates
+}
 </script>

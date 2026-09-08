@@ -1,0 +1,2348 @@
+{
+  "models": {
+    "Article": {
+      "tableName": "Article",
+      "primaryKey": "id",
+      "fields": {
+        "authorId": {
+          "kind": "int",
+          "nullable": true
+        },
+        "content": {
+          "kind": "string"
+        },
+        "coverUrl": {
+          "kind": "string",
+          "nullable": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "excerpt": {
+          "kind": "string",
+          "nullable": true
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "published": {
+          "kind": "boolean",
+          "default": false
+        },
+        "publishedAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "slug": {
+          "kind": "string",
+          "unique": true
+        },
+        "title": {
+          "kind": "string"
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "relations": {
+        "author": {
+          "kind": "belongsTo",
+          "target": "User",
+          "foreignKey": "authorId",
+          "references": "id",
+          "onDelete": "setNull"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "published",
+            "publishedAt"
+          ],
+          "name": "Article_published_publishedAt_idx"
+        },
+        {
+          "fields": [
+            "slug"
+          ],
+          "name": "Article_slug_key",
+          "unique": true
+        }
+      ]
+    },
+    "BillingDocumentTemplate": {
+      "tableName": "BillingDocumentTemplate",
+      "primaryKey": "id",
+      "fields": {
+        "accentColor": {
+          "kind": "string",
+          "nullable": true
+        },
+        "active": {
+          "kind": "boolean",
+          "default": true
+        },
+        "brandName": {
+          "kind": "string",
+          "nullable": true
+        },
+        "contentJson": {
+          "kind": "string",
+          "default": "{\"fr\":\"\",\"en\":\"\"}"
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "description": {
+          "kind": "string",
+          "nullable": true
+        },
+        "footerJson": {
+          "kind": "string",
+          "default": "{\"fr\":\"\",\"en\":\"\"}"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "invoiceColumnsJson": {
+          "kind": "string",
+          "default": "[]"
+        },
+        "invoiceOptionsJson": {
+          "kind": "string",
+          "default": "{\"showDeliveryMethod\":true}"
+        },
+        "isDefault": {
+          "kind": "boolean",
+          "default": false
+        },
+        "kind": {
+          "kind": "enum",
+          "default": "CONTRACT",
+          "enumValues": [
+            "INVOICE",
+            "CONTRACT",
+            "ASSURANCE"
+          ]
+        },
+        "logoUrl": {
+          "kind": "string",
+          "nullable": true
+        },
+        "name": {
+          "kind": "string"
+        },
+        "position": {
+          "kind": "int",
+          "default": 0
+        },
+        "rentalDailyPrice": {
+          "kind": "decimal",
+          "nullable": true
+        },
+        "rentalHourlyPrice": {
+          "kind": "decimal",
+          "nullable": true
+        },
+        "requiredForRental": {
+          "kind": "boolean",
+          "default": false
+        },
+        "slug": {
+          "kind": "string",
+          "unique": true
+        },
+        "sourcePdfUrl": {
+          "kind": "string",
+          "nullable": true
+        },
+        "titleJson": {
+          "kind": "string",
+          "default": "{\"fr\":\"\",\"en\":\"\"}"
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "kind",
+            "active",
+            "position"
+          ],
+          "name": "BillingDocumentTemplate_kind_active_position_idx"
+        },
+        {
+          "fields": [
+            "kind",
+            "isDefault"
+          ],
+          "name": "BillingDocumentTemplate_kind_isDefault_idx"
+        },
+        {
+          "fields": [
+            "slug"
+          ],
+          "name": "BillingDocumentTemplate_slug_key",
+          "unique": true
+        }
+      ]
+    },
+    "CmsNavigationItem": {
+      "tableName": "CmsNavigationItem",
+      "primaryKey": "id",
+      "fields": {
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "href": {
+          "kind": "string"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "itemType": {
+          "kind": "enum",
+          "default": "CMS_PAGE",
+          "enumValues": [
+            "CMS_PAGE",
+            "APPLICATION_ROUTE",
+            "EXTERNAL_URL"
+          ]
+        },
+        "labelsJson": {
+          "kind": "string"
+        },
+        "menu": {
+          "kind": "enum",
+          "default": "PRIMARY",
+          "enumValues": [
+            "PRIMARY",
+            "FOOTER"
+          ]
+        },
+        "newTab": {
+          "kind": "boolean",
+          "default": false
+        },
+        "pageId": {
+          "kind": "int",
+          "nullable": true
+        },
+        "position": {
+          "kind": "int",
+          "default": 0
+        },
+        "title": {
+          "kind": "string"
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        },
+        "visible": {
+          "kind": "boolean",
+          "default": true
+        }
+      },
+      "relations": {
+        "page": {
+          "kind": "belongsTo",
+          "target": "CmsPage",
+          "foreignKey": "pageId",
+          "references": "id",
+          "onDelete": "setNull"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "menu",
+            "visible",
+            "position"
+          ],
+          "name": "CmsNavigationItem_menu_visible_position_idx"
+        },
+        {
+          "fields": [
+            "pageId"
+          ],
+          "name": "CmsNavigationItem_pageId_idx"
+        }
+      ]
+    },
+    "CmsPage": {
+      "tableName": "CmsPage",
+      "primaryKey": "id",
+      "fields": {
+        "applicationPosition": {
+          "kind": "enum",
+          "default": "AFTER_CONTENT",
+          "enumValues": [
+            "BEFORE_CONTENT",
+            "AFTER_CONTENT"
+          ]
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "pageType": {
+          "kind": "enum",
+          "default": "CMS",
+          "enumValues": [
+            "CMS",
+            "APPLICATION",
+            "HYBRID"
+          ]
+        },
+        "path": {
+          "kind": "string",
+          "unique": true
+        },
+        "rendererKey": {
+          "kind": "string",
+          "nullable": true
+        },
+        "slug": {
+          "kind": "string",
+          "unique": true
+        },
+        "specialRole": {
+          "kind": "string",
+          "nullable": true
+        },
+        "status": {
+          "kind": "enum",
+          "default": "DRAFT",
+          "enumValues": [
+            "DRAFT",
+            "PUBLISHED"
+          ]
+        },
+        "templateKey": {
+          "kind": "string",
+          "default": "default"
+        },
+        "title": {
+          "kind": "string"
+        },
+        "translationsJson": {
+          "kind": "string"
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "status",
+            "pageType"
+          ],
+          "name": "CmsPage_status_pageType_idx"
+        },
+        {
+          "fields": [
+            "path"
+          ],
+          "name": "CmsPage_path_key",
+          "unique": true
+        },
+        {
+          "fields": [
+            "slug"
+          ],
+          "name": "CmsPage_slug_key",
+          "unique": true
+        }
+      ]
+    },
+    "DeliveryTour": {
+      "tableName": "DeliveryTour",
+      "primaryKey": "id",
+      "fields": {
+        "active": {
+          "kind": "boolean",
+          "default": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "dayOfWeek": {
+          "kind": "int"
+        },
+        "endTime": {
+          "kind": "string"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "monthlyPrice": {
+          "kind": "decimal",
+          "nullable": true
+        },
+        "name": {
+          "kind": "string"
+        },
+        "notes": {
+          "kind": "string",
+          "nullable": true
+        },
+        "startTime": {
+          "kind": "string"
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "indexes": []
+    },
+    "Event": {
+      "tableName": "Event",
+      "primaryKey": "id",
+      "fields": {
+        "coverImageUrl": {
+          "kind": "string",
+          "nullable": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "createdById": {
+          "kind": "int",
+          "nullable": true
+        },
+        "endsAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "galleryJson": {
+          "kind": "string",
+          "default": "[]"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "internalCapacity": {
+          "kind": "int",
+          "nullable": true
+        },
+        "internalParticipationApprovalMode": {
+          "kind": "enum",
+          "default": "MANUAL",
+          "enumValues": [
+            "AUTO",
+            "MANUAL"
+          ]
+        },
+        "internalParticipationEnabled": {
+          "kind": "boolean",
+          "default": false
+        },
+        "internalParticipationInfo": {
+          "kind": "string",
+          "nullable": true
+        },
+        "kind": {
+          "kind": "enum",
+          "default": "EVENT",
+          "enumValues": [
+            "EVENT",
+            "PERMANENCE"
+          ]
+        },
+        "mapUrl": {
+          "kind": "string",
+          "nullable": true
+        },
+        "notifyAdminOnInternalParticipation": {
+          "kind": "boolean",
+          "default": true
+        },
+        "placeAddress": {
+          "kind": "string",
+          "nullable": true
+        },
+        "placeCity": {
+          "kind": "string",
+          "nullable": true
+        },
+        "placeName": {
+          "kind": "string",
+          "nullable": true
+        },
+        "publicCapacity": {
+          "kind": "int",
+          "nullable": true
+        },
+        "publicReservationEnabled": {
+          "kind": "boolean",
+          "default": false
+        },
+        "recurrenceDaysJson": {
+          "kind": "string",
+          "default": "[]"
+        },
+        "recurrenceEndDate": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "recurrenceEndTime": {
+          "kind": "string",
+          "nullable": true
+        },
+        "recurrenceStartDate": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "recurrenceStartTime": {
+          "kind": "string",
+          "nullable": true
+        },
+        "recurrenceType": {
+          "kind": "enum",
+          "default": "NONE",
+          "enumValues": [
+            "NONE",
+            "WEEKLY"
+          ]
+        },
+        "slug": {
+          "kind": "string",
+          "unique": true
+        },
+        "startsAt": {
+          "kind": "datetime"
+        },
+        "status": {
+          "kind": "enum",
+          "default": "DRAFT",
+          "enumValues": [
+            "DRAFT",
+            "PUBLISHED",
+            "ARCHIVED",
+            "CANCELLED"
+          ]
+        },
+        "translationsJson": {
+          "kind": "string"
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        },
+        "updatedById": {
+          "kind": "int",
+          "nullable": true
+        },
+        "visibility": {
+          "kind": "enum",
+          "default": "PUBLIC",
+          "enumValues": [
+            "PUBLIC",
+            "PRIVATE"
+          ]
+        }
+      },
+      "relations": {
+        "createdBy": {
+          "kind": "belongsTo",
+          "target": "User",
+          "foreignKey": "createdById",
+          "references": "id",
+          "onDelete": "setNull"
+        },
+        "updatedBy": {
+          "kind": "belongsTo",
+          "target": "User",
+          "foreignKey": "updatedById",
+          "references": "id",
+          "onDelete": "setNull"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "createdById"
+          ],
+          "name": "Event_createdById_idx"
+        },
+        {
+          "fields": [
+            "kind",
+            "status",
+            "startsAt"
+          ],
+          "name": "Event_kind_status_startsAt_idx"
+        },
+        {
+          "fields": [
+            "status",
+            "startsAt"
+          ],
+          "name": "Event_status_startsAt_idx"
+        },
+        {
+          "fields": [
+            "updatedById"
+          ],
+          "name": "Event_updatedById_idx"
+        },
+        {
+          "fields": [
+            "visibility",
+            "startsAt"
+          ],
+          "name": "Event_visibility_startsAt_idx"
+        },
+        {
+          "fields": [
+            "slug"
+          ],
+          "name": "Event_slug_key",
+          "unique": true
+        }
+      ]
+    },
+    "EventAudienceMemberRole": {
+      "tableName": "EventAudienceMemberRole",
+      "primaryKey": "id",
+      "fields": {
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "eventId": {
+          "kind": "int"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "memberRoleId": {
+          "kind": "int"
+        }
+      },
+      "relations": {
+        "event": {
+          "kind": "belongsTo",
+          "target": "Event",
+          "foreignKey": "eventId",
+          "references": "id",
+          "onDelete": "cascade"
+        },
+        "memberRole": {
+          "kind": "belongsTo",
+          "target": "MemberRole",
+          "foreignKey": "memberRoleId",
+          "references": "id",
+          "onDelete": "cascade"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "memberRoleId"
+          ],
+          "name": "EventAudienceMemberRole_memberRoleId_idx"
+        },
+        {
+          "fields": [
+            "eventId",
+            "memberRoleId"
+          ],
+          "name": "EventAudienceMemberRole_eventId_memberRoleId_key",
+          "unique": true
+        }
+      ]
+    },
+    "EventInternalParticipation": {
+      "tableName": "EventInternalParticipation",
+      "primaryKey": "id",
+      "fields": {
+        "adminNote": {
+          "kind": "string",
+          "nullable": true
+        },
+        "cancelledAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "confirmedAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "eventId": {
+          "kind": "int"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "locale": {
+          "kind": "string",
+          "nullable": true
+        },
+        "message": {
+          "kind": "string",
+          "nullable": true
+        },
+        "rejectedAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "status": {
+          "kind": "enum",
+          "default": "PENDING",
+          "enumValues": [
+            "PENDING",
+            "CONFIRMED",
+            "CANCELLED",
+            "REJECTED"
+          ]
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        },
+        "userId": {
+          "kind": "int"
+        }
+      },
+      "relations": {
+        "event": {
+          "kind": "belongsTo",
+          "target": "Event",
+          "foreignKey": "eventId",
+          "references": "id",
+          "onDelete": "cascade"
+        },
+        "user": {
+          "kind": "belongsTo",
+          "target": "User",
+          "foreignKey": "userId",
+          "references": "id",
+          "onDelete": "cascade"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "status",
+            "createdAt"
+          ],
+          "name": "EventInternalParticipation_status_createdAt_idx"
+        },
+        {
+          "fields": [
+            "userId"
+          ],
+          "name": "EventInternalParticipation_userId_idx"
+        },
+        {
+          "fields": [
+            "eventId",
+            "userId"
+          ],
+          "name": "EventInternalParticipation_eventId_userId_key",
+          "unique": true
+        }
+      ]
+    },
+    "EventOccurrence": {
+      "tableName": "EventOccurrence",
+      "primaryKey": "id",
+      "fields": {
+        "contentOverrideJson": {
+          "kind": "string",
+          "nullable": true
+        },
+        "coverImageOverrideUrl": {
+          "kind": "string",
+          "nullable": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "endsAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "eventId": {
+          "kind": "int"
+        },
+        "excerptOverride": {
+          "kind": "string",
+          "nullable": true
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "internalCapacityOverride": {
+          "kind": "int",
+          "nullable": true
+        },
+        "internalParticipationInfoOverride": {
+          "kind": "string",
+          "nullable": true
+        },
+        "isOverride": {
+          "kind": "boolean",
+          "default": false
+        },
+        "mapUrlOverride": {
+          "kind": "string",
+          "nullable": true
+        },
+        "occurrenceDate": {
+          "kind": "datetime"
+        },
+        "placeAddressOverride": {
+          "kind": "string",
+          "nullable": true
+        },
+        "placeCityOverride": {
+          "kind": "string",
+          "nullable": true
+        },
+        "placeNameOverride": {
+          "kind": "string",
+          "nullable": true
+        },
+        "publicCapacityOverride": {
+          "kind": "int",
+          "nullable": true
+        },
+        "startsAt": {
+          "kind": "datetime"
+        },
+        "status": {
+          "kind": "enum",
+          "default": "SCHEDULED",
+          "enumValues": [
+            "SCHEDULED",
+            "CANCELLED"
+          ]
+        },
+        "subtitleOverride": {
+          "kind": "string",
+          "nullable": true
+        },
+        "titleOverride": {
+          "kind": "string",
+          "nullable": true
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "relations": {
+        "event": {
+          "kind": "belongsTo",
+          "target": "Event",
+          "foreignKey": "eventId",
+          "references": "id",
+          "onDelete": "cascade"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "eventId",
+            "startsAt"
+          ],
+          "name": "EventOccurrence_eventId_startsAt_idx"
+        },
+        {
+          "fields": [
+            "occurrenceDate",
+            "status"
+          ],
+          "name": "EventOccurrence_occurrenceDate_status_idx"
+        },
+        {
+          "fields": [
+            "eventId",
+            "occurrenceDate"
+          ],
+          "name": "EventOccurrence_eventId_occurrenceDate_key",
+          "unique": true
+        }
+      ]
+    },
+    "EventPublicReservation": {
+      "tableName": "EventPublicReservation",
+      "primaryKey": "id",
+      "fields": {
+        "adminNote": {
+          "kind": "string",
+          "nullable": true
+        },
+        "cancelledAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "confirmedAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "customerName": {
+          "kind": "string"
+        },
+        "email": {
+          "kind": "string"
+        },
+        "eventId": {
+          "kind": "int"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "locale": {
+          "kind": "string",
+          "nullable": true
+        },
+        "message": {
+          "kind": "string",
+          "nullable": true
+        },
+        "phone": {
+          "kind": "string",
+          "nullable": true
+        },
+        "rejectedAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "seats": {
+          "kind": "int",
+          "default": 1
+        },
+        "status": {
+          "kind": "enum",
+          "default": "PENDING",
+          "enumValues": [
+            "PENDING",
+            "CONFIRMED",
+            "CANCELLED",
+            "REJECTED"
+          ]
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        },
+        "userId": {
+          "kind": "int",
+          "nullable": true
+        }
+      },
+      "relations": {
+        "event": {
+          "kind": "belongsTo",
+          "target": "Event",
+          "foreignKey": "eventId",
+          "references": "id",
+          "onDelete": "cascade"
+        },
+        "user": {
+          "kind": "belongsTo",
+          "target": "User",
+          "foreignKey": "userId",
+          "references": "id",
+          "onDelete": "setNull"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "eventId",
+            "status",
+            "createdAt"
+          ],
+          "name": "EventPublicReservation_eventId_status_createdAt_idx"
+        },
+        {
+          "fields": [
+            "userId"
+          ],
+          "name": "EventPublicReservation_userId_idx"
+        }
+      ]
+    },
+    "Image": {
+      "tableName": "Image",
+      "primaryKey": "id",
+      "fields": {
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "filename": {
+          "kind": "string"
+        },
+        "height": {
+          "kind": "int",
+          "nullable": true
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "mimeType": {
+          "kind": "string"
+        },
+        "size": {
+          "kind": "int"
+        },
+        "uploadedById": {
+          "kind": "int",
+          "nullable": true
+        },
+        "url": {
+          "kind": "string"
+        },
+        "width": {
+          "kind": "int",
+          "nullable": true
+        }
+      },
+      "relations": {
+        "uploadedBy": {
+          "kind": "belongsTo",
+          "target": "User",
+          "foreignKey": "uploadedById",
+          "references": "id",
+          "onDelete": "setNull"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "createdAt"
+          ],
+          "name": "Image_createdAt_idx"
+        }
+      ]
+    },
+    "ImageUsage": {
+      "tableName": "ImageUsage",
+      "primaryKey": "id",
+      "fields": {
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "fieldKey": {
+          "kind": "string"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "imageId": {
+          "kind": "int"
+        },
+        "label": {
+          "kind": "string"
+        },
+        "scopeId": {
+          "kind": "string"
+        },
+        "scopeType": {
+          "kind": "string"
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "relations": {
+        "image": {
+          "kind": "belongsTo",
+          "target": "Image",
+          "foreignKey": "imageId",
+          "references": "id",
+          "onDelete": "cascade"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "imageId",
+            "scopeType"
+          ],
+          "name": "ImageUsage_imageId_scopeType_idx"
+        },
+        {
+          "fields": [
+            "imageId",
+            "scopeType",
+            "scopeId",
+            "fieldKey"
+          ],
+          "name": "ImageUsage_unique_scope",
+          "unique": true
+        }
+      ]
+    },
+    "ImageVariant": {
+      "tableName": "ImageVariant",
+      "primaryKey": "id",
+      "fields": {
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "fit": {
+          "kind": "string",
+          "nullable": true
+        },
+        "format": {
+          "kind": "string"
+        },
+        "height": {
+          "kind": "int",
+          "nullable": true
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "imageId": {
+          "kind": "int"
+        },
+        "mimeType": {
+          "kind": "string"
+        },
+        "quality": {
+          "kind": "int",
+          "nullable": true
+        },
+        "size": {
+          "kind": "int"
+        },
+        "storageKey": {
+          "kind": "string",
+          "unique": true
+        },
+        "width": {
+          "kind": "int",
+          "nullable": true
+        }
+      },
+      "relations": {
+        "image": {
+          "kind": "belongsTo",
+          "target": "Image",
+          "foreignKey": "imageId",
+          "references": "id",
+          "onDelete": "cascade"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "imageId",
+            "createdAt"
+          ],
+          "name": "ImageVariant_imageId_createdAt_idx"
+        },
+        {
+          "fields": [
+            "storageKey"
+          ],
+          "name": "ImageVariant_storageKey_key",
+          "unique": true
+        },
+        {
+          "fields": [
+            "imageId",
+            "width",
+            "height",
+            "fit",
+            "quality",
+            "format"
+          ],
+          "name": "ImageVariant_unique_signature",
+          "unique": true
+        }
+      ]
+    },
+    "MemberRole": {
+      "tableName": "MemberRole",
+      "primaryKey": "id",
+      "fields": {
+        "color": {
+          "kind": "string",
+          "nullable": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "description": {
+          "kind": "string",
+          "nullable": true
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "isDefault": {
+          "kind": "boolean",
+          "default": false
+        },
+        "isSystem": {
+          "kind": "boolean",
+          "default": false
+        },
+        "name": {
+          "kind": "string"
+        },
+        "slug": {
+          "kind": "string",
+          "unique": true
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "slug"
+          ],
+          "name": "MemberRole_slug_key",
+          "unique": true
+        }
+      ]
+    },
+    "PasswordSetupToken": {
+      "tableName": "PasswordSetupToken",
+      "primaryKey": "id",
+      "fields": {
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "expiresAt": {
+          "kind": "datetime"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "token": {
+          "kind": "string",
+          "unique": true
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        },
+        "usedAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "userId": {
+          "kind": "int"
+        }
+      },
+      "relations": {
+        "user": {
+          "kind": "belongsTo",
+          "target": "User",
+          "foreignKey": "userId",
+          "references": "id",
+          "onDelete": "cascade"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "expiresAt"
+          ],
+          "name": "PasswordSetupToken_expiresAt_idx"
+        },
+        {
+          "fields": [
+            "userId"
+          ],
+          "name": "PasswordSetupToken_userId_idx"
+        },
+        {
+          "fields": [
+            "token"
+          ],
+          "name": "PasswordSetupToken_token_key",
+          "unique": true
+        }
+      ]
+    },
+    "PickupPoint": {
+      "tableName": "PickupPoint",
+      "primaryKey": "id",
+      "fields": {
+        "active": {
+          "kind": "boolean",
+          "default": true
+        },
+        "address": {
+          "kind": "string",
+          "nullable": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "delayDays": {
+          "kind": "int",
+          "default": 0
+        },
+        "deliveryDay": {
+          "kind": "int",
+          "nullable": true
+        },
+        "details": {
+          "kind": "string",
+          "nullable": true
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "name": {
+          "kind": "string"
+        },
+        "openingHours": {
+          "kind": "string",
+          "nullable": true
+        },
+        "pickupStartTime": {
+          "kind": "string",
+          "nullable": true
+        },
+        "position": {
+          "kind": "int",
+          "default": 0
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        },
+        "websiteUrl": {
+          "kind": "string",
+          "nullable": true
+        }
+      },
+      "indexes": []
+    },
+    "Product": {
+      "tableName": "Product",
+      "primaryKey": "id",
+      "fields": {
+        "active": {
+          "kind": "boolean",
+          "default": true
+        },
+        "allowCustomerCancellation": {
+          "kind": "boolean",
+          "default": true
+        },
+        "allowOfflinePayment": {
+          "kind": "boolean",
+          "default": true
+        },
+        "allowOnlinePayment": {
+          "kind": "boolean",
+          "default": false
+        },
+        "allowRefundRequestAfterEngagement": {
+          "kind": "boolean",
+          "default": false
+        },
+        "categoryId": {
+          "kind": "int",
+          "nullable": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "description": {
+          "kind": "string",
+          "nullable": true
+        },
+        "descriptionJson": {
+          "kind": "string",
+          "default": "{\"fr\":\"\",\"en\":\"\"}"
+        },
+        "detailsJson": {
+          "kind": "string",
+          "default": "[]"
+        },
+        "excerpt": {
+          "kind": "string",
+          "nullable": true
+        },
+        "excerptJson": {
+          "kind": "string",
+          "default": "{\"fr\":\"\",\"en\":\"\"}"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "imageUrl": {
+          "kind": "string",
+          "nullable": true
+        },
+        "name": {
+          "kind": "string"
+        },
+        "nameJson": {
+          "kind": "string",
+          "default": "{\"fr\":\"\",\"en\":\"\"}"
+        },
+        "paymentTaxBehavior": {
+          "kind": "enum",
+          "nullable": true,
+          "enumValues": [
+            "inclusive",
+            "exclusive"
+          ]
+        },
+        "paymentTaxCode": {
+          "kind": "string",
+          "nullable": true
+        },
+        "position": {
+          "kind": "int",
+          "default": 0
+        },
+        "price": {
+          "kind": "decimal",
+          "default": 0
+        },
+        "rentalApprovalMode": {
+          "kind": "enum",
+          "default": "AUTO",
+          "enumValues": [
+            "AUTO",
+            "MANUAL"
+          ]
+        },
+        "rentalAvailableFrom": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "rentalAvailableTo": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "rentalBookingMode": {
+          "kind": "string",
+          "default": "MULTI_DAY"
+        },
+        "rentalDailyPrice": {
+          "kind": "decimal",
+          "nullable": true
+        },
+        "rentalDurationsJson": {
+          "kind": "string",
+          "default": "[60,120,240]"
+        },
+        "rentalHourlyPrice": {
+          "kind": "decimal",
+          "nullable": true
+        },
+        "rentalMaxDays": {
+          "kind": "int",
+          "nullable": true
+        },
+        "rentalMinDays": {
+          "kind": "int",
+          "default": 1
+        },
+        "rentalSlotStepMinutes": {
+          "kind": "int",
+          "default": 30
+        },
+        "saleType": {
+          "kind": "enum",
+          "default": "SALE",
+          "enumValues": [
+            "SALE",
+            "RENTAL"
+          ]
+        },
+        "slug": {
+          "kind": "string",
+          "unique": true
+        },
+        "stock": {
+          "kind": "int",
+          "default": 0
+        },
+        "unitLabel": {
+          "kind": "string",
+          "nullable": true
+        },
+        "unitLabelJson": {
+          "kind": "string",
+          "default": "{\"fr\":\"\",\"en\":\"\"}"
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        },
+        "vatRate": {
+          "kind": "decimal",
+          "default": 20
+        }
+      },
+      "relations": {
+        "category": {
+          "kind": "belongsTo",
+          "target": "ProductCategory",
+          "foreignKey": "categoryId",
+          "references": "id",
+          "onDelete": "setNull"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "active",
+            "position"
+          ],
+          "name": "Product_active_position_idx"
+        },
+        {
+          "fields": [
+            "categoryId"
+          ],
+          "name": "Product_categoryId_idx"
+        },
+        {
+          "fields": [
+            "saleType"
+          ],
+          "name": "Product_saleType_idx"
+        },
+        {
+          "fields": [
+            "slug"
+          ],
+          "name": "Product_slug_key",
+          "unique": true
+        }
+      ]
+    },
+    "ProductCategory": {
+      "tableName": "ProductCategory",
+      "primaryKey": "id",
+      "fields": {
+        "active": {
+          "kind": "boolean",
+          "default": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "description": {
+          "kind": "string",
+          "nullable": true
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "name": {
+          "kind": "string"
+        },
+        "position": {
+          "kind": "int",
+          "default": 0
+        },
+        "slug": {
+          "kind": "string",
+          "unique": true
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "active",
+            "position"
+          ],
+          "name": "ProductCategory_active_position_idx"
+        },
+        {
+          "fields": [
+            "slug"
+          ],
+          "name": "ProductCategory_slug_key",
+          "unique": true
+        }
+      ]
+    },
+    "Role": {
+      "tableName": "Role",
+      "primaryKey": "id",
+      "fields": {
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "description": {
+          "kind": "string",
+          "nullable": true
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "isDefault": {
+          "kind": "boolean",
+          "default": false
+        },
+        "isSystem": {
+          "kind": "boolean",
+          "default": false
+        },
+        "name": {
+          "kind": "string"
+        },
+        "slug": {
+          "kind": "string",
+          "unique": true
+        },
+        "specialPermissionsJson": {
+          "kind": "string",
+          "default": "[]"
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "slug"
+          ],
+          "name": "Role_slug_key",
+          "unique": true
+        }
+      ]
+    },
+    "RolePermission": {
+      "tableName": "RolePermission",
+      "primaryKey": "id",
+      "fields": {
+        "canCreate": {
+          "kind": "boolean",
+          "default": false
+        },
+        "canDelete": {
+          "kind": "boolean",
+          "default": false
+        },
+        "canRead": {
+          "kind": "boolean",
+          "default": false
+        },
+        "canUpdate": {
+          "kind": "boolean",
+          "default": false
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "module": {
+          "kind": "string"
+        },
+        "roleId": {
+          "kind": "int"
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "relations": {
+        "role": {
+          "kind": "belongsTo",
+          "target": "Role",
+          "foreignKey": "roleId",
+          "references": "id",
+          "onDelete": "cascade"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "module"
+          ],
+          "name": "RolePermission_module_idx"
+        },
+        {
+          "fields": [
+            "roleId",
+            "module"
+          ],
+          "name": "RolePermission_roleId_module_key",
+          "unique": true
+        }
+      ]
+    },
+    "ShopOrder": {
+      "tableName": "ShopOrder",
+      "primaryKey": "id",
+      "fields": {
+        "afterSalesStatus": {
+          "kind": "enum",
+          "default": "NONE",
+          "enumValues": [
+            "NONE",
+            "REFUND_REQUESTED",
+            "REFUND_REJECTED"
+          ]
+        },
+        "cancelledAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "checkoutUrl": {
+          "kind": "string",
+          "nullable": true
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "currency": {
+          "kind": "string",
+          "default": "eur"
+        },
+        "customerName": {
+          "kind": "string"
+        },
+        "deliveryAddress": {
+          "kind": "string",
+          "nullable": true
+        },
+        "deliveryCity": {
+          "kind": "string",
+          "nullable": true
+        },
+        "deliveryPostalCode": {
+          "kind": "string",
+          "nullable": true
+        },
+        "deliveryTourId": {
+          "kind": "int",
+          "nullable": true
+        },
+        "deliveryType": {
+          "kind": "enum",
+          "nullable": true,
+          "enumValues": [
+            "ONSITE",
+            "PICKUP",
+            "TOUR"
+          ]
+        },
+        "email": {
+          "kind": "string"
+        },
+        "fulfillmentDate": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "fulfillmentLocation": {
+          "kind": "string",
+          "nullable": true
+        },
+        "fulfillmentTime": {
+          "kind": "string",
+          "nullable": true
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "language": {
+          "kind": "string",
+          "default": "fr"
+        },
+        "message": {
+          "kind": "string",
+          "nullable": true
+        },
+        "orderNumber": {
+          "kind": "string",
+          "unique": true
+        },
+        "paidAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "paymentFailureReason": {
+          "kind": "string",
+          "nullable": true
+        },
+        "paymentProvider": {
+          "kind": "enum",
+          "default": "OFFLINE",
+          "enumValues": [
+            "OFFLINE",
+            "STRIPE"
+          ]
+        },
+        "paymentStatus": {
+          "kind": "enum",
+          "default": "UNPAID",
+          "enumValues": [
+            "UNPAID",
+            "PENDING",
+            "PAID",
+            "FAILED",
+            "REFUNDED"
+          ]
+        },
+        "phone": {
+          "kind": "string",
+          "nullable": true
+        },
+        "pickupPointId": {
+          "kind": "int",
+          "nullable": true
+        },
+        "providerLastEventId": {
+          "kind": "string",
+          "nullable": true
+        },
+        "providerPaymentIntentId": {
+          "kind": "string",
+          "nullable": true,
+          "unique": true
+        },
+        "providerPaymentStatus": {
+          "kind": "string",
+          "nullable": true
+        },
+        "providerSessionId": {
+          "kind": "string",
+          "nullable": true,
+          "unique": true
+        },
+        "refundedAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "refundRequestedAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "refundRequestNote": {
+          "kind": "string",
+          "nullable": true
+        },
+        "refundRequestReason": {
+          "kind": "string",
+          "nullable": true
+        },
+        "refundReviewedAt": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "rentalEndDate": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "rentalStartDate": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "status": {
+          "kind": "enum",
+          "default": "PENDING",
+          "enumValues": [
+            "DRAFT",
+            "PENDING",
+            "CONFIRMED",
+            "IN_PREPARATION",
+            "READY",
+            "IN_DELIVERY",
+            "COMPLETED",
+            "CANCELLED"
+          ]
+        },
+        "subtotal": {
+          "kind": "decimal",
+          "default": 0
+        },
+        "total": {
+          "kind": "decimal",
+          "default": 0
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        },
+        "userId": {
+          "kind": "int",
+          "nullable": true
+        }
+      },
+      "relations": {
+        "deliveryTour": {
+          "kind": "belongsTo",
+          "target": "DeliveryTour",
+          "foreignKey": "deliveryTourId",
+          "references": "id",
+          "onDelete": "setNull"
+        },
+        "pickupPoint": {
+          "kind": "belongsTo",
+          "target": "PickupPoint",
+          "foreignKey": "pickupPointId",
+          "references": "id",
+          "onDelete": "setNull"
+        },
+        "user": {
+          "kind": "belongsTo",
+          "target": "User",
+          "foreignKey": "userId",
+          "references": "id",
+          "onDelete": "setNull"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "deliveryTourId"
+          ],
+          "name": "ShopOrder_deliveryTourId_idx"
+        },
+        {
+          "fields": [
+            "paymentStatus",
+            "createdAt"
+          ],
+          "name": "ShopOrder_paymentStatus_createdAt_idx"
+        },
+        {
+          "fields": [
+            "pickupPointId"
+          ],
+          "name": "ShopOrder_pickupPointId_idx"
+        },
+        {
+          "fields": [
+            "status",
+            "createdAt"
+          ],
+          "name": "ShopOrder_status_createdAt_idx"
+        },
+        {
+          "fields": [
+            "status",
+            "rentalStartDate"
+          ],
+          "name": "ShopOrder_status_rentalStartDate_idx"
+        },
+        {
+          "fields": [
+            "userId"
+          ],
+          "name": "ShopOrder_userId_idx"
+        },
+        {
+          "fields": [
+            "orderNumber"
+          ],
+          "name": "ShopOrder_orderNumber_key",
+          "unique": true
+        },
+        {
+          "fields": [
+            "providerPaymentIntentId"
+          ],
+          "name": "ShopOrder_providerPaymentIntentId_key",
+          "unique": true
+        },
+        {
+          "fields": [
+            "providerSessionId"
+          ],
+          "name": "ShopOrder_providerSessionId_key",
+          "unique": true
+        }
+      ]
+    },
+    "ShopOrderLine": {
+      "tableName": "ShopOrderLine",
+      "primaryKey": "id",
+      "fields": {
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "metaJson": {
+          "kind": "string",
+          "default": "{}"
+        },
+        "orderId": {
+          "kind": "int"
+        },
+        "productId": {
+          "kind": "int",
+          "nullable": true
+        },
+        "quantity": {
+          "kind": "int",
+          "default": 1
+        },
+        "rentalEndDate": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "rentalStartDate": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "title": {
+          "kind": "string"
+        },
+        "totalPrice": {
+          "kind": "decimal",
+          "default": 0
+        },
+        "unitPrice": {
+          "kind": "decimal",
+          "default": 0
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "relations": {
+        "order": {
+          "kind": "belongsTo",
+          "target": "ShopOrder",
+          "foreignKey": "orderId",
+          "references": "id",
+          "onDelete": "cascade"
+        },
+        "product": {
+          "kind": "belongsTo",
+          "target": "Product",
+          "foreignKey": "productId",
+          "references": "id",
+          "onDelete": "setNull"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "orderId"
+          ],
+          "name": "ShopOrderLine_orderId_idx"
+        },
+        {
+          "fields": [
+            "productId"
+          ],
+          "name": "ShopOrderLine_productId_idx"
+        },
+        {
+          "fields": [
+            "productId",
+            "rentalStartDate"
+          ],
+          "name": "ShopOrderLine_productId_rentalStartDate_idx"
+        }
+      ]
+    },
+    "SiteParams": {
+      "tableName": "SiteParams",
+      "primaryKey": "id",
+      "fields": {
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "key": {
+          "kind": "string",
+          "unique": true
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        },
+        "value": {
+          "kind": "string"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "key"
+          ],
+          "name": "SiteParams_key_key",
+          "unique": true
+        }
+      ]
+    },
+    "TourCity": {
+      "tableName": "TourCity",
+      "primaryKey": "id",
+      "fields": {
+        "city": {
+          "kind": "string"
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "postalCodes": {
+          "kind": "string",
+          "nullable": true
+        },
+        "tourId": {
+          "kind": "int"
+        }
+      },
+      "relations": {
+        "tour": {
+          "kind": "belongsTo",
+          "target": "DeliveryTour",
+          "foreignKey": "tourId",
+          "references": "id",
+          "onDelete": "cascade"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "tourId"
+          ],
+          "name": "TourCity_tourId_idx"
+        }
+      ]
+    },
+    "User": {
+      "tableName": "User",
+      "primaryKey": "id",
+      "fields": {
+        "birthDate": {
+          "kind": "datetime",
+          "nullable": true
+        },
+        "city": {
+          "kind": "string",
+          "nullable": true
+        },
+        "country": {
+          "kind": "string",
+          "nullable": true,
+          "default": "France"
+        },
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "email": {
+          "kind": "string",
+          "unique": true
+        },
+        "firstName": {
+          "kind": "string",
+          "nullable": true
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "isActive": {
+          "kind": "boolean",
+          "default": true
+        },
+        "lastName": {
+          "kind": "string",
+          "nullable": true
+        },
+        "password": {
+          "kind": "string"
+        },
+        "postalCode": {
+          "kind": "string",
+          "nullable": true
+        },
+        "role": {
+          "kind": "string",
+          "default": "user"
+        },
+        "roleId": {
+          "kind": "int",
+          "nullable": true
+        },
+        "street": {
+          "kind": "string",
+          "nullable": true
+        },
+        "updatedAt": {
+          "kind": "datetime"
+        }
+      },
+      "relations": {
+        "managedRole": {
+          "kind": "belongsTo",
+          "target": "Role",
+          "foreignKey": "roleId",
+          "references": "id",
+          "onDelete": "setNull"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "isActive"
+          ],
+          "name": "User_isActive_idx"
+        },
+        {
+          "fields": [
+            "roleId"
+          ],
+          "name": "User_roleId_idx"
+        },
+        {
+          "fields": [
+            "email"
+          ],
+          "name": "User_email_key",
+          "unique": true
+        }
+      ]
+    },
+    "UserMemberRole": {
+      "tableName": "UserMemberRole",
+      "primaryKey": "id",
+      "fields": {
+        "createdAt": {
+          "kind": "datetime",
+          "default": "now"
+        },
+        "id": {
+          "kind": "id",
+          "unique": true,
+          "default": "autoincrement"
+        },
+        "memberRoleId": {
+          "kind": "int"
+        },
+        "userId": {
+          "kind": "int"
+        }
+      },
+      "relations": {
+        "memberRole": {
+          "kind": "belongsTo",
+          "target": "MemberRole",
+          "foreignKey": "memberRoleId",
+          "references": "id",
+          "onDelete": "cascade"
+        },
+        "user": {
+          "kind": "belongsTo",
+          "target": "User",
+          "foreignKey": "userId",
+          "references": "id",
+          "onDelete": "cascade"
+        }
+      },
+      "indexes": [
+        {
+          "fields": [
+            "memberRoleId"
+          ],
+          "name": "UserMemberRole_memberRoleId_idx"
+        },
+        {
+          "fields": [
+            "userId",
+            "memberRoleId"
+          ],
+          "name": "UserMemberRole_userId_memberRoleId_key",
+          "unique": true
+        }
+      ]
+    }
+  }
+}

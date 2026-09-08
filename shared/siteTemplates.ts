@@ -3,6 +3,7 @@ import type { CmsLocalizedText } from '#modula/shared/cms'
 export const FALLBACK_SITE_TEMPLATE_KEY = 'modula-presentation'
 export const CMS_SITE_TEMPLATE_KEYS = [FALLBACK_SITE_TEMPLATE_KEY] as const
 export const BUNDLED_SYSTEM_SITE_TEMPLATE_KEYS = ['modula-presentation', 'farm', 'association'] as const
+export const REGISTRY_ONLY_SYSTEM_SITE_TEMPLATE_KEYS = ['boat-rental'] as const
 export const BUNDLED_SYSTEM_TEMPLATE_ASSET_SOURCES: Record<string, string[]> = {
   'modula-presentation': [
     '/site-templates/modula-hero.svg',
@@ -23,6 +24,8 @@ export const BUNDLED_SYSTEM_TEMPLATE_ASSET_SOURCES: Record<string, string[]> = {
 
 export type CmsSiteTemplateKey = string
 export type BundledSystemSiteTemplateKey = typeof BUNDLED_SYSTEM_SITE_TEMPLATE_KEYS[number]
+export type RegistryOnlySystemSiteTemplateKey = typeof REGISTRY_ONLY_SYSTEM_SITE_TEMPLATE_KEYS[number]
+export type SystemSiteTemplateSeedKey = BundledSystemSiteTemplateKey | RegistryOnlySystemSiteTemplateKey
 
 export interface CmsSiteTemplateDefinition {
   key: string
@@ -131,6 +134,31 @@ export const BUNDLED_SYSTEM_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
       }
     ],
     themeNames: ['Collective Day'],
+    sourceType: 'system'
+  }
+]
+
+export const REGISTRY_ONLY_SYSTEM_SITE_TEMPLATES: CmsSiteTemplateDefinition[] = [
+  {
+    key: 'boat-rental',
+    label: { fr: 'Location nautique', en: 'Boat rental' },
+    description: {
+      fr: 'Vitrine responsive pour présenter et réserver bateaux, équipements nautiques et prestations de location.',
+      en: 'Responsive showcase for browsing and booking boats, water equipment, and rental services.'
+    },
+    icon: 'mdi:sail-boat',
+    previewImage: '/site-templates/preview-boat-rental.svg',
+    highlights: [
+      {
+        fr: 'Parcours centré sur les disponibilités, les fiches détaillées et la réservation.',
+        en: 'A journey focused on availability, detailed listings, and booking.'
+      },
+      {
+        fr: 'Réutilise les produits en mode location, le panier, les contrats et les paiements existants.',
+        en: 'Reuses rental products, cart, contracts, and existing payment flows.'
+      }
+    ],
+    themeNames: ['Horizon Marin'],
     sourceType: 'system'
   }
 ]

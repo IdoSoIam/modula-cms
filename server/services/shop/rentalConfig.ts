@@ -3,6 +3,9 @@ interface RentalConfigInput {
   rentalAvailableTo?: unknown
   rentalMinDays?: number | null
   rentalMaxDays?: number | null
+  rentalBookingMode?: unknown
+  rentalDurations?: unknown
+  rentalSlotStepMinutes?: unknown
 }
 
 interface RentalConfigOptions {
@@ -14,6 +17,9 @@ export interface NormalizedRentalConfig {
   rentalAvailableTo: string | null
   rentalMinDays: number
   rentalMaxDays: number | null
+  rentalBookingMode: 'SINGLE_DAY' | 'MULTI_DAY' | 'BOTH'
+  rentalDurations: number[]
+  rentalSlotStepMinutes: number
 }
 
 export function normalizeRentalConfig(
@@ -24,6 +30,11 @@ export function normalizeRentalConfig(
   const rentalAvailableTo = normalizeOptionalDate(input.rentalAvailableTo, "Date de fin de location invalide")
   const rentalMinDays = normalizeMinDays(input.rentalMinDays, options.defaultMinDays ?? 1)
   const rentalMaxDays = normalizeMaxDays(input.rentalMaxDays, rentalMinDays)
+  const rentalBookingMode = input.rentalBookingMode === 'SINGLE_DAY' || input.rentalBookingMode === 'BOTH'
+    ? input.rentalBookingMode
+    : 'MULTI_DAY'
+  const rentalDurations = normalizeDurations(input.rentalDurations)
+  const rentalSlotStepMinutes = normalizePositiveInteger(input.rentalSlotStepMinutes, 30, 5, 240)
 
   if (rentalAvailableFrom && rentalAvailableTo) {
     const startAt = new Date(rentalAvailableFrom).getTime()
@@ -41,7 +52,26 @@ export function normalizeRentalConfig(
     rentalAvailableTo,
     rentalMinDays,
     rentalMaxDays,
+    rentalBookingMode,
+    rentalDurations,
+    rentalSlotStepMinutes,
   }
+}
+
+function normalizeDurations(value: unknown) {
+  let source = value
+  if (typeof source === 'string') {
+    try { source = JSON.parse(source) } catch { source = [] }
+  }
+  const durations = (Array.isArray(source) ? source : [60, 120, 240])
+    .map(Number)
+    .filter(entry => Number.isInteger(entry) && entry >= 15 && entry <= 1440)
+  return [...new Set(durations)].sort((a, b) => a - b).slice(0, 12)
+}
+
+function normalizePositiveInteger(value: unknown, fallback: number, min: number, max: number) {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback
 }
 
 function normalizeOptionalDate(value: unknown, errorMessage: string) {

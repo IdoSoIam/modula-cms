@@ -29,7 +29,7 @@
       <span class="loading loading-spinner loading-lg" />
     </div>
 
-    <div v-else-if="isEmpty" class="rounded-3xl border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
+    <div v-else-if="isEmpty" class="modula-card border border-dashed border-base-300 bg-base-200/40 px-6 py-12 text-center opacity-70">
       {{ publicText('planning.page.empty', 'Aucun élément de planning public pour le moment.') }}
     </div>
 
@@ -51,7 +51,7 @@
         <section
           v-for="column in weekColumns"
           :key="column.iso"
-          class="min-w-0 rounded-[2rem] border border-base-300 p-4 shadow-sm"
+          class="modula-card min-w-0 border border-base-300 p-4 shadow-sm"
           :style="cardStyle"
         >
           <header class="mb-4 border-b border-base-300/70 pb-3">
@@ -63,7 +63,7 @@
             <article
               v-for="item in column.items"
               :key="item.id"
-              class="rounded-2xl border border-base-300 bg-base-100/80 p-3"
+              class="modula-card border border-base-300 bg-base-100/80 p-3"
             >
               <div class="text-xs opacity-60">{{ formatTime(item.startsAt) }}</div>
               <h3 class="mt-1 text-sm font-semibold">{{ item.title }}</h3>
@@ -104,7 +104,13 @@
         :day-names="calendarDayNames"
         :today-label="publicText('planning.page.currentMonth', 'Mois en cours')"
         :month-picker-label="publicText('planning.page.monthPicker', 'Choisir un mois')"
+        :previous-month-label="publicText('planning.page.previousMonth', 'Mois précédent')"
+        :next-month-label="publicText('planning.page.nextMonth', 'Mois suivant')"
         :item-class="calendarItemClass"
+        :item-indicator-class="calendarItemIndicatorClass"
+        :desktop-day-selection="false"
+        :mobile-day-label="calendarMobileDayLabel"
+        :day-aria-label="calendarMobileDayLabel"
         :item-title="calendarItemTitle"
         :item-subtitle="calendarItemSubtitle"
         :item-meta="calendarItemMeta"
@@ -112,7 +118,6 @@
         @toggle-month-picker="toggleMonthPicker"
         @apply-month-input="applyMonthInput"
         @go-current-month="goCurrentMonth"
-        @select-day="() => {}"
         @select-item="openPlanningItem"
         @change-day-page="changeCalendarDayPage"
         @update:month-input="updateMonthInput"
@@ -422,6 +427,12 @@ const planningCalendarItemClass = (item: EventListItem) => {
   return 'bg-neutral text-neutral-content shadow-sm'
 }
 const calendarItemClass = (item: EventListItem) => planningCalendarItemClass(item)
+const calendarItemIndicatorClass = (item: EventListItem) => {
+  if (item.internalParticipationEnabled) return 'bg-secondary'
+  if (item.publicReservationEnabled) return 'bg-primary'
+  return 'bg-neutral'
+}
+const calendarMobileDayLabel = (day: { iso: string }) => formatLocalizedDateValue(new Date(`${day.iso}T12:00:00`), locale.value, { weekday: 'long', day: '2-digit', month: 'long' })
 const calendarItemTitle = (item: EventListItem) => item.title
 const calendarItemSubtitle = (item: EventListItem) => [item.placeName, item.placeCity].filter(Boolean).join(', ')
 const calendarItemMeta = (item: EventListItem) => formatTime(item.startsAt)

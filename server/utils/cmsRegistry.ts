@@ -868,6 +868,7 @@ export async function importTemplateSnapshot(
     setSetting(SETTING_KEYS.REGISTER_ENABLED, prepared.featureFlags.registerEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SUBSCRIPTIONS_ENABLED, prepared.featureFlags.subscriptionsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SHOP_ENABLED, prepared.featureFlags.shop.enabled ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.RENTALS_ENABLED, (prepared.featureFlags.rentalsEnabled ?? prepared.featureFlags.shop.enabled) ? 'true' : 'false'),
     setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, prepared.featureFlags.associationRolesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.EVENTS_ENABLED, prepared.featureFlags.eventsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.NEWS_ENABLED, prepared.featureFlags.newsEnabled ? 'true' : 'false')
@@ -1372,7 +1373,7 @@ function normalizeRegistryPaymentConfig(value: Partial<CmsRegistryPaymentConfig>
   }
 }
 
-async function getCachedRegistryPaymentConfig() {
+export async function getCachedRegistryPaymentConfig() {
   const raw = await getSetting(SETTING_KEYS.CMS_REGISTRY_PAYMENT_CONFIG_CACHE)
   if (!raw) return null
   try {

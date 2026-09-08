@@ -1,0 +1,24 @@
+{
+  "id": "0035_add_rental_approval_mode",
+  "name": "add_rental_approval_mode",
+  "description": "",
+  "beforeSchemaHash": "b85ced7db48d8fe204dc70ccdb96e464b6ab3deefab092151183cd1ee3d34baf",
+  "afterSchemaHash": "dfc5699197e7f60942121c71e23d615f3c1ad8ef79ee903487a23cdd5df74021",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: rentalApprovalMode"
+        ]
+      }
+    ]
+  }
+}

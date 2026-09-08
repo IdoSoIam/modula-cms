@@ -32,6 +32,7 @@ export interface AdminNavigationOptions {
     shop: {
       enabled: boolean;
     };
+    rentalsEnabled?: boolean;
     associationRolesEnabled: boolean;
     eventsEnabled: boolean;
     newsEnabled: boolean;
@@ -169,6 +170,14 @@ export function getAdminNavigationSections(
       labelKey: "admin.navigation.sections.management",
       icon: "mdi:account-multiple-outline",
       items: [
+        createAdminNavigationItem(
+          "management-rentals",
+          "admin.navigation.items.rentals",
+          getAdminRoutePath("managementRentals", routeLocale),
+          "mdi:sail-boat",
+          getAdminRoutePaths("managementRentals"),
+          { requiredModule: "shop_orders", requiredAction: "read" },
+        ),
         createAdminNavigationItem(
           "management-event-reservations",
           "admin.navigation.items.eventReservations",
@@ -355,6 +364,7 @@ export function getAdminNavigationSections(
     options.featureFlags?.associationRolesEnabled ?? true;
   const eventsEnabled = options.featureFlags?.eventsEnabled ?? true;
   const newsEnabled = options.featureFlags?.newsEnabled ?? true;
+  const rentalsEnabled = options.featureFlags?.rentalsEnabled ?? shopEnabled;
 
   const filteredSections = sections
     .map((section) => ({
@@ -371,6 +381,7 @@ export function getAdminNavigationSections(
         )
           return eventsEnabled;
         if (item.id === "shop-vegetables") return shopEnabled;
+        if (item.id === "management-rentals") return shopEnabled && rentalsEnabled;
         if (
           item.id === "shop-product-categories" ||
           item.id === "shop-orders" ||

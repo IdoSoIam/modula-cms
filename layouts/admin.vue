@@ -4,7 +4,7 @@
     <aside
       class="fixed inset-y-0 left-0 z-50 flex flex-col border-r border-base-300 bg-base-100 transition-all duration-300"
       :class="[
-        sidebarCollapsed ? 'w-20' : 'w-72',
+        sidebarCollapsed ? 'w-72 lg:w-20' : 'w-72',
         mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       ]"
     >
@@ -13,21 +13,21 @@
           <div class="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
             <Icon name="mdi:storefront-outline" size="22" />
           </div>
-          <div v-if="!sidebarCollapsed" class="min-w-0">
+          <div v-if="!sidebarCollapsed || mobileSidebarOpen" class="min-w-0">
             <div class="truncate text-sm font-semibold">{{ t('admin.title') }}</div>
             <div class="truncate text-xs opacity-60">{{ siteConfig?.siteName || t('admin.settingsGlobalPage.title') }}</div>
           </div>
         </NuxtLink>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-3 py-4">
-        <AdminNavigationMenu :sections="adminSections" :collapsed="sidebarCollapsed" variant="sidebar" />
+      <div class="flex-1 px-3 py-4 justify-start" :class="sidebarCollapsed && !mobileSidebarOpen ? 'overflow-visible' : 'overflow-y-auto'">
+        <AdminNavigationMenu :sections="adminSections" :collapsed="sidebarCollapsed && !mobileSidebarOpen" variant="sidebar" />
       </div>
 
       <div class="border-t border-base-300 p-3">
-        <button class="btn btn-block btn-ghost justify-start" :class="sidebarCollapsed ? 'justify-center' : ''" @click="sidebarCollapsed = !sidebarCollapsed">
+        <button class="btn btn-block btn-ghost justify-start" :class="sidebarCollapsed && !mobileSidebarOpen ? 'justify-center' : ''" @click="sidebarCollapsed = !sidebarCollapsed">
           <Icon :name="sidebarCollapsed ? 'mdi:chevron-right' : 'mdi:chevron-left'" size="18" />
-          <span v-if="!sidebarCollapsed">{{ t('admin.layout.collapse') }}</span>
+          <span v-if="!sidebarCollapsed || mobileSidebarOpen">{{ t('admin.layout.collapse') }}</span>
         </button>
       </div>
     </aside>

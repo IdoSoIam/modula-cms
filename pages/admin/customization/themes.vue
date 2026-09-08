@@ -81,8 +81,8 @@
           <label class="form-control gap-2">
             <span class="label"><span class="label-text">{{ t('admin.themesPage.colorScheme') }}</span></span>
             <select v-model="selectedTheme.colorScheme" class="select select-bordered w-full">
-              <option value="light">light</option>
-              <option value="dark">dark</option>
+              <option value="light">{{ t('admin.themesPage.lightScheme') }}</option>
+              <option value="dark">{{ t('admin.themesPage.darkScheme') }}</option>
             </select>
           </label>
         </div>
@@ -134,12 +134,44 @@
 
         <section class="space-y-4">
           <h3 class="text-lg font-semibold">{{ t('admin.themesPage.tokens') }}</h3>
-          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <label v-for="field in tokenFields" :key="field.key" class="form-control gap-2">
-              <span class="label"><span class="label-text">{{ field.label }}</span></span>
-              <input v-model="selectedTheme.tokens[field.key]" class="input input-bordered w-full" />
+          <p class="text-sm opacity-70">{{ t('admin.themesPage.tokensDescription') }}</p>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <label v-for="field in radiusFields" :key="field.key" class="form-control gap-3 rounded-box border border-base-300 bg-base-200/40 p-4">
+              <span class="flex items-center justify-between gap-3">
+                <span class="label-text font-medium">{{ field.label }}</span>
+                <span class="badge badge-outline tabular-nums">{{ tokenPixelValue(selectedTheme.tokens[field.key]) }} px</span>
+              </span>
+              <input
+                :value="tokenPixelValue(selectedTheme.tokens[field.key])"
+                type="range"
+                min="0"
+                max="48"
+                step="1"
+                class="range range-primary range-sm"
+                @input="setTokenPixelValue(field.key, $event)"
+              />
+              <input
+                :value="tokenPixelValue(selectedTheme.tokens[field.key])"
+                type="number"
+                min="0"
+                max="48"
+                step="1"
+                class="input input-bordered input-sm w-full"
+                @input="setTokenPixelValue(field.key, $event)"
+              />
             </label>
           </div>
+
+          <details class="collapse collapse-arrow border border-base-300 bg-base-100">
+            <summary class="collapse-title font-medium">{{ t('admin.themesPage.advancedAppearance') }}</summary>
+            <div class="collapse-content grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <label v-for="field in appearanceFields" :key="field.key" class="form-control gap-2">
+                <span class="label"><span class="label-text">{{ field.label }}</span></span>
+                <input v-model="selectedTheme.tokens[field.key]" class="input input-bordered w-full" />
+              </label>
+            </div>
+          </details>
         </section>
 
         <section class="space-y-4">
@@ -153,17 +185,32 @@
                 <div class="text-lg font-semibold">{{ t('admin.themesPage.previewCardTitle') }}</div>
                 <div class="text-sm opacity-75">{{ t('admin.themesPage.previewCardDescription') }}</div>
               </div>
-              <button class="rounded-full px-4 py-2 text-sm font-medium" :style="previewPrimaryButtonStyle">{{ t('admin.themesPage.previewButton') }}</button>
+              <button type="button" class="px-4 py-2 text-sm font-medium" :style="previewPrimaryButtonStyle">{{ t('admin.themesPage.previewButton') }}</button>
             </div>
 
             <div class="grid gap-3 md:grid-cols-2">
-              <div class="rounded-2xl border p-4" :style="previewSoftCardStyle">
+              <div class="border p-4" :style="previewSoftCardStyle">
                 <div class="font-medium">{{ t('admin.themesPage.previewBase') }}</div>
                 <div class="mt-1 text-sm opacity-80">{{ t('admin.themesPage.previewBaseDescription') }}</div>
               </div>
-              <div class="rounded-2xl border p-4" :style="previewAccentCardStyle">
+              <div class="border p-4" :style="previewAccentCardStyle">
                 <div class="font-medium">{{ t('admin.themesPage.previewAccent') }}</div>
                 <div class="mt-1 text-sm opacity-80">{{ t('admin.themesPage.previewAccentDescription') }}</div>
+              </div>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span class="px-4 py-2 text-sm font-medium" :style="previewNavigationStyle">{{ t('admin.themesPage.previewNavigationItem') }}</span>
+              <span class="px-4 py-2 text-sm font-medium" :style="previewNavigationStyle">{{ t('admin.themesPage.previewNavigationItemSecond') }}</span>
+            </div>
+
+            <div class="mt-4 flex justify-center rounded-box bg-black/10 p-4">
+              <div class="w-full max-w-md border p-4 shadow-lg" :style="previewModalStyle">
+                <div class="font-semibold">{{ t('admin.themesPage.previewModalTitle') }}</div>
+                <div class="mt-1 text-sm opacity-75">{{ t('admin.themesPage.previewModalDescription') }}</div>
+                <div class="mt-4 flex justify-end">
+                  <button type="button" class="px-4 py-2 text-sm font-medium" :style="previewPrimaryButtonStyle">{{ t('admin.themesPage.previewButton') }}</button>
+                </div>
               </div>
             </div>
           </div>
@@ -198,43 +245,48 @@ definePageMeta({
 
 type ColorFieldKey = keyof DaisyUiThemeColors
 type TokenFieldKey = keyof DaisyUiThemeTokens
-
-const colorFields: Array<{ key: ColorFieldKey; label: string }> = [
-  { key: 'base100', label: 'Base 100' },
-  { key: 'base200', label: 'Base 200' },
-  { key: 'base300', label: 'Base 300' },
-  { key: 'baseContent', label: 'Base content' },
-  { key: 'primary', label: 'Primary' },
-  { key: 'primaryContent', label: 'Primary content' },
-  { key: 'secondary', label: 'Secondary' },
-  { key: 'secondaryContent', label: 'Secondary content' },
-  { key: 'accent', label: 'Accent' },
-  { key: 'accentContent', label: 'Accent content' },
-  { key: 'neutral', label: 'Neutral' },
-  { key: 'neutralContent', label: 'Neutral content' },
-  { key: 'info', label: 'Info' },
-  { key: 'infoContent', label: 'Info content' },
-  { key: 'success', label: 'Success' },
-  { key: 'successContent', label: 'Success content' },
-  { key: 'warning', label: 'Warning' },
-  { key: 'warningContent', label: 'Warning content' },
-  { key: 'error', label: 'Error' },
-  { key: 'errorContent', label: 'Error content' }
-]
-
-const tokenFields: Array<{ key: TokenFieldKey; label: string }> = [
-  { key: 'radiusSelector', label: 'Radius selector' },
-  { key: 'radiusField', label: 'Radius field' },
-  { key: 'radiusBox', label: 'Radius box' },
-  { key: 'sizeSelector', label: 'Size selector' },
-  { key: 'sizeField', label: 'Size field' },
-  { key: 'border', label: 'Border' },
-  { key: 'depth', label: 'Depth' },
-  { key: 'noise', label: 'Noise' }
-]
+type RadiusTokenFieldKey = Extract<TokenFieldKey, 'radiusSelector' | 'radiusField' | 'radiusBox' | 'radiusCard' | 'radiusModal' | 'radiusNavigation'>
+type AppearanceTokenFieldKey = Exclude<TokenFieldKey, RadiusTokenFieldKey>
 
 const { $toast } = useNuxtApp() as any
 const { t } = useI18n()
+const colorFields = computed<Array<{ key: ColorFieldKey; label: string }>>(() => [
+  { key: 'base100', label: t('admin.themesPage.colorBaseSurface') },
+  { key: 'base200', label: t('admin.themesPage.colorSecondarySurface') },
+  { key: 'base300', label: t('admin.themesPage.colorBorders') },
+  { key: 'baseContent', label: t('admin.themesPage.colorMainText') },
+  { key: 'primary', label: t('admin.themesPage.colorPrimary') },
+  { key: 'primaryContent', label: t('admin.themesPage.colorPrimaryText') },
+  { key: 'secondary', label: t('admin.themesPage.colorSecondary') },
+  { key: 'secondaryContent', label: t('admin.themesPage.colorSecondaryText') },
+  { key: 'accent', label: t('admin.themesPage.colorAccent') },
+  { key: 'accentContent', label: t('admin.themesPage.colorAccentText') },
+  { key: 'neutral', label: t('admin.themesPage.colorNeutral') },
+  { key: 'neutralContent', label: t('admin.themesPage.colorNeutralText') },
+  { key: 'info', label: t('admin.themesPage.colorInfo') },
+  { key: 'infoContent', label: t('admin.themesPage.colorInfoText') },
+  { key: 'success', label: t('admin.themesPage.colorSuccess') },
+  { key: 'successContent', label: t('admin.themesPage.colorSuccessText') },
+  { key: 'warning', label: t('admin.themesPage.colorWarning') },
+  { key: 'warningContent', label: t('admin.themesPage.colorWarningText') },
+  { key: 'error', label: t('admin.themesPage.colorError') },
+  { key: 'errorContent', label: t('admin.themesPage.colorErrorText') }
+])
+const radiusFields = computed<Array<{ key: RadiusTokenFieldKey; label: string }>>(() => [
+  { key: 'radiusSelector', label: t('admin.themesPage.radiusSelector') },
+  { key: 'radiusField', label: t('admin.themesPage.radiusField') },
+  { key: 'radiusBox', label: t('admin.themesPage.radiusBox') },
+  { key: 'radiusCard', label: t('admin.themesPage.radiusCard') },
+  { key: 'radiusModal', label: t('admin.themesPage.radiusModal') },
+  { key: 'radiusNavigation', label: t('admin.themesPage.radiusNavigation') }
+])
+const appearanceFields = computed<Array<{ key: AppearanceTokenFieldKey; label: string }>>(() => [
+  { key: 'sizeSelector', label: t('admin.themesPage.sizeSelector') },
+  { key: 'sizeField', label: t('admin.themesPage.sizeField') },
+  { key: 'border', label: t('admin.themesPage.borderWidth') },
+  { key: 'depth', label: t('admin.themesPage.depth') },
+  { key: 'noise', label: t('admin.themesPage.noise') }
+])
 const pending = ref(true)
 const saving = ref(false)
 const model = ref<DaisyUiThemeConfig | null>(null)
@@ -268,7 +320,27 @@ const previewSoftCardStyle = computed(() => {
     backgroundColor: selectedTheme.value.colors.base200,
     color: selectedTheme.value.colors.baseContent,
     borderColor: selectedTheme.value.colors.base300,
-    borderRadius: selectedTheme.value.tokens.radiusBox
+    borderRadius: selectedTheme.value.tokens.radiusCard
+  }
+})
+
+const previewNavigationStyle = computed(() => {
+  if (!selectedTheme.value) return {}
+  return {
+    backgroundColor: selectedTheme.value.colors.base200,
+    color: selectedTheme.value.colors.baseContent,
+    borderRadius: selectedTheme.value.tokens.radiusNavigation || selectedTheme.value.tokens.radiusField,
+    border: `${selectedTheme.value.tokens.border} solid ${selectedTheme.value.colors.base300}`
+  }
+})
+
+const previewModalStyle = computed(() => {
+  if (!selectedTheme.value) return {}
+  return {
+    backgroundColor: selectedTheme.value.colors.base100,
+    color: selectedTheme.value.colors.baseContent,
+    borderColor: selectedTheme.value.colors.base300,
+    borderRadius: selectedTheme.value.tokens.radiusModal
   }
 })
 
@@ -278,7 +350,7 @@ const previewAccentCardStyle = computed(() => {
     backgroundColor: selectedTheme.value.colors.accent,
     color: selectedTheme.value.colors.accentContent,
     borderColor: selectedTheme.value.colors.accent,
-    borderRadius: selectedTheme.value.tokens.radiusBox
+    borderRadius: selectedTheme.value.tokens.radiusCard
   }
 })
 
@@ -286,6 +358,21 @@ const generatedCssPreview = computed(() => {
   if (!model.value || !selectedTheme.value) return ''
   return renderDaisyUiThemeCss(selectedTheme.value, model.value.enableThemeController)
 })
+
+function tokenPixelValue(value: unknown) {
+  const normalized = String(value || '').trim().toLowerCase()
+  const parsed = Number.parseFloat(normalized)
+  if (!Number.isFinite(parsed)) return 0
+  const pixels = normalized.endsWith('rem') ? parsed * 16 : parsed
+  return Math.round(pixels * 10) / 10
+}
+
+function setTokenPixelValue(key: RadiusTokenFieldKey, event: Event) {
+  if (!selectedTheme.value) return
+  const value = Number.parseFloat((event.target as HTMLInputElement).value)
+  if (!Number.isFinite(value)) return
+  selectedTheme.value.tokens[key] = `${Math.min(48, Math.max(0, value))}px`
+}
 
 onMounted(async () => {
   try {

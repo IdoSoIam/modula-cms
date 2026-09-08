@@ -2,6 +2,7 @@ import cmsProjectConfig from '#modula/cms.project.config'
 import { db } from '#modula/server/data/client'
 import { resolveCmsPlatformConfig } from '#modula/shared/platform'
 import { normalizeEmailAccentColors } from '#modula/shared/emailCustomization'
+import { createDefaultRentalCalendar, normalizeRentalCalendar, type RentalCalendarConfig } from '#modula/shared/rentalCalendar'
 
 export const SETTING_KEYS = {
   ADMIN_EMAIL: 'admin_email',
@@ -81,6 +82,7 @@ export const SETTING_KEYS = {
   REGISTER_ENABLED: 'register_enabled',
   SUBSCRIPTIONS_ENABLED: 'subscriptions_enabled',
   SHOP_ENABLED: 'shop_enabled',
+  RENTALS_ENABLED: 'rentals_enabled',
   ASSOCIATION_ROLES_ENABLED: 'association_roles_enabled',
   EVENTS_ENABLED: 'events_enabled',
   NEWS_ENABLED: 'news_enabled',
@@ -89,6 +91,7 @@ export const SETTING_KEYS = {
   FARM_PICKUP_START_TIME: 'farm_pickup_start_time',
   FARM_PICKUP_END_TIME: 'farm_pickup_end_time',
   FARM_PICKUP_TIME: 'farm_pickup_time',
+  RENTAL_CALENDAR: 'rental_calendar_v1',
   SITE_LOCALES: 'site_locales',
   SITE_DEFAULT_LOCALE: 'site_default_locale',
   SITE_LOCALE_LABELS: 'site_locale_labels',
@@ -158,6 +161,7 @@ export interface FeatureFlags {
   shop: {
     enabled: boolean
   }
+  rentalsEnabled: boolean
   associationRolesEnabled: boolean
   eventsEnabled: boolean
   newsEnabled: boolean
@@ -180,6 +184,7 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   shop: {
     enabled: cmsProjectConfig.modules.shop
   },
+  rentalsEnabled: cmsProjectConfig.modules.shop,
   associationRolesEnabled: cmsProjectConfig.modules.associationRoles,
   eventsEnabled: cmsProjectConfig.modules.events || cmsProjectConfig.modules.planning,
   newsEnabled: cmsProjectConfig.modules.news
@@ -331,6 +336,25 @@ export async function getSettings(keys: string[]): Promise<Record<string, string
   return Object.fromEntries(rows.map((r: any) => [r.key, r.value]))
 }
 
+export async function getRentalCalendarConfig(): Promise<RentalCalendarConfig> {
+  const settings = await getSettings([
+    SETTING_KEYS.RENTAL_CALENDAR,
+    SETTING_KEYS.FARM_PICKUP_DAY_OF_WEEK,
+    SETTING_KEYS.FARM_PICKUP_START_TIME,
+    SETTING_KEYS.FARM_PICKUP_END_TIME,
+  ])
+  const fallback = createDefaultRentalCalendar(
+    parseIntegerSetting(settings[SETTING_KEYS.FARM_PICKUP_DAY_OF_WEEK], 5),
+    settings[SETTING_KEYS.FARM_PICKUP_START_TIME] || '17:30',
+    settings[SETTING_KEYS.FARM_PICKUP_END_TIME] || '19:00',
+  )
+  try {
+    return normalizeRentalCalendar(JSON.parse(settings[SETTING_KEYS.RENTAL_CALENDAR] || 'null'), fallback)
+  } catch {
+    return fallback
+  }
+}
+
 export async function getFeatureFlags(): Promise<FeatureFlags> {
   const settings = await getSettings([
     SETTING_KEYS.IN_DEVELOPMENT,
@@ -338,6 +362,7 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     SETTING_KEYS.SUBSCRIPTIONS_ENABLED,
     SETTING_KEYS.PAYMENTS_ENABLED,
     SETTING_KEYS.SHOP_ENABLED,
+    SETTING_KEYS.RENTALS_ENABLED,
     SETTING_KEYS.ASSOCIATION_ROLES_ENABLED,
     SETTING_KEYS.EVENTS_ENABLED,
     SETTING_KEYS.NEWS_ENABLED
@@ -353,6 +378,7 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     shop: {
       enabled: shopEnabled
     },
+    rentalsEnabled: parseBooleanSetting(settings[SETTING_KEYS.RENTALS_ENABLED], shopEnabled),
     associationRolesEnabled: parseBooleanSetting(settings[SETTING_KEYS.ASSOCIATION_ROLES_ENABLED], DEFAULT_FEATURE_FLAGS.associationRolesEnabled),
     eventsEnabled: parseBooleanSetting(settings[SETTING_KEYS.EVENTS_ENABLED], DEFAULT_FEATURE_FLAGS.eventsEnabled),
     newsEnabled: parseBooleanSetting(settings[SETTING_KEYS.NEWS_ENABLED], DEFAULT_FEATURE_FLAGS.newsEnabled)
@@ -364,7 +390,8 @@ export function normalizeFeatureFlags(flags: FeatureFlags): FeatureFlags {
     ...flags,
     shop: {
       enabled: flags.shop.enabled
-    }
+    },
+    rentalsEnabled: flags.rentalsEnabled ?? flags.shop.enabled
   }
 }
 

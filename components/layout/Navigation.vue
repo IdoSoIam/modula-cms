@@ -442,26 +442,26 @@ const isActiveItem = (item: ResolvedCmsNavigationItem): boolean => {
 }
 
 const navLinkClass = (item: ResolvedCmsNavigationItem) => {
-  const base = 'inline-flex min-h-11 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer'
+  const base = 'modula-navigation inline-flex min-h-11 items-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer'
   switch (headerSettings.value.navigationStyle) {
     case 'menu':
-      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
+      return `${base} hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'underline':
-      return `${base} rounded-none border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]`
+      return `${base} border-b-2 border-transparent px-2 hover:[border-bottom-color:var(--nav-active-accent)] hover:[color:var(--nav-hover-text)]`
     case 'soft':
-      return `${base} rounded-full border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
+      return `${base} border border-base-300 bg-base-200/70 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'outline':
-      return `${base} rounded-full border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
+      return `${base} border border-current/20 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     case 'solid':
-      return `${base} rounded-xl bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
+      return `${base} bg-base-200/40 hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
     default:
-      return `${base} rounded-xl hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
+      return `${base} hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]`
   }
 }
 
 const navChildLinkClass = (item: ResolvedCmsNavigationItem) => {
   return [
-    'block rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150',
+    'modula-navigation block px-3 py-2 text-sm font-medium transition-colors duration-150',
     'hover:[background-color:var(--nav-hover-bg)] hover:[color:var(--nav-hover-text)]'
   ]
 }

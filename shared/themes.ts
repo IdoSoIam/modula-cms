@@ -27,6 +27,9 @@ export interface DaisyUiThemeTokens {
   radiusSelector: string
   radiusField: string
   radiusBox: string
+  radiusCard: string
+  radiusModal: string
+  radiusNavigation?: string
   sizeSelector: string
   sizeField: string
   border: string
@@ -70,6 +73,9 @@ const DEFAULT_TOKENS: DaisyUiThemeTokens = {
   radiusSelector: '0.425rem',
   radiusField: '0.425rem',
   radiusBox: '0.5rem',
+  radiusCard: '0.5rem',
+  radiusModal: '0.5rem',
+  radiusNavigation: '0.425rem',
   sizeSelector: '0.25rem',
   sizeField: '0.25rem',
   border: '1px',
@@ -191,6 +197,8 @@ export function createDefaultDaisyUiThemeConfig(): DaisyUiThemeConfig {
           radiusBox: '1.1rem',
           radiusField: '0.5rem',
           radiusSelector: '0.5rem',
+          radiusCard: '1.1rem',
+          radiusModal: '1.1rem',
           sizeSelector: '0.25rem',
           sizeField: '0.25rem',
           border: '1px',
@@ -285,6 +293,9 @@ function normalizeThemeDefinition(theme: Record<string, unknown>, fallback: Dais
       radiusSelector: stringOrFallback(tokens.radiusSelector, fallback.tokens.radiusSelector),
       radiusField: stringOrFallback(tokens.radiusField, fallback.tokens.radiusField),
       radiusBox: stringOrFallback(tokens.radiusBox, fallback.tokens.radiusBox),
+      radiusCard: stringOrFallback(tokens.radiusCard, stringOrFallback(tokens.radiusBox, fallback.tokens.radiusCard)),
+      radiusModal: stringOrFallback(tokens.radiusModal, stringOrFallback(tokens.radiusBox, fallback.tokens.radiusModal)),
+      radiusNavigation: stringOrFallback(tokens.radiusNavigation, stringOrFallback(tokens.radiusField, fallback.tokens.radiusField)),
       sizeSelector: stringOrFallback(tokens.sizeSelector, fallback.tokens.sizeSelector),
       sizeField: stringOrFallback(tokens.sizeField, fallback.tokens.sizeField),
       border: stringOrFallback(tokens.border, fallback.tokens.border),
@@ -395,6 +406,9 @@ export function renderDaisyUiThemeCss(theme: DaisyUiThemeDefinition, includeThem
   --radius-selector: ${theme.tokens.radiusSelector};
   --radius-field: ${theme.tokens.radiusField};
   --radius-box: ${theme.tokens.radiusBox};
+  --radius-card: ${theme.tokens.radiusCard};
+  --radius-modal: ${theme.tokens.radiusModal};
+  --radius-navigation: ${theme.tokens.radiusNavigation || theme.tokens.radiusField};
   --size-selector: ${theme.tokens.sizeSelector};
   --size-field: ${theme.tokens.sizeField};
   --border: ${theme.tokens.border};

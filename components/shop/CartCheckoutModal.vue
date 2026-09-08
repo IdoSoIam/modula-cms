@@ -12,7 +12,7 @@
       </div>
 
       <div v-if="items.length" class="space-y-3">
-        <div v-for="item in items" :key="item.key" class="rounded-2xl border border-base-300 p-4">
+        <div v-for="item in items" :key="item.key" class="rounded-box border border-base-300 p-4">
           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <div class="font-medium">{{ item.title }}</div>
@@ -34,7 +34,7 @@
           </div>
         </div>
       </div>
-      <div v-else class="rounded-2xl border border-dashed border-base-300 px-6 py-10 text-center opacity-60">
+      <div v-else class="rounded-box border border-dashed border-base-300 px-6 py-10 text-center opacity-60">
         {{ emptyLabel }}
       </div>
 
@@ -67,7 +67,7 @@
         </div>
       </div>
 
-      <div class="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-base-200 p-4">
+      <div class="mt-6 flex items-center justify-between gap-4 rounded-box bg-base-200 p-4">
         <div>
           <div class="text-sm opacity-60">{{ totalLabel }}</div>
           <div class="text-3xl font-semibold">{{ $formatPrice(total) }}</div>

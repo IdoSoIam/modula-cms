@@ -1,3 +1,17 @@
+.card,
+.modula-card {
+  border-radius: var(--radius-card, var(--radius-box)) !important;
+}
+
+.modula-navigation {
+  border-radius: var(--radius-navigation, var(--radius-field)) !important;
+}
+
+.modal > .modal-box,
+.modula-modal {
+  border-radius: var(--radius-modal, var(--radius-box));
+}
+
 @media (max-width: 639px) {
   .modal {
     padding: 0;
@@ -14,5 +28,9 @@
     border-radius: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+
+  .modula-modal {
+    border-radius: 0;
   }
 }

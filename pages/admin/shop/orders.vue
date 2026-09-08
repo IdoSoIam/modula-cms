@@ -5,16 +5,19 @@
         <h1 class="text-3xl font-bold">{{ t('admin.ordersPage.title') }}</h1>
         <p class="mt-1 text-sm opacity-70">{{ t('admin.ordersPage.description') }}</p>
       </div>
-      <div class="join">
-        <button
-          v-for="option in statusOptions"
-          :key="option.value"
-          class="btn join-item btn-sm"
-          :class="selectedStatus === option.value ? 'btn-primary' : 'btn-ghost'"
-          @click="selectedStatus = option.value"
-        >
-          {{ option.label }}
-        </button>
+      <div class="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
+        <label class="form-control w-full sm:w-64">
+          <span class="label"><span class="label-text">{{ t('admin.ordersPage.filterStatusLabel') }}</span></span>
+          <select v-model="selectedStatus" class="select select-bordered w-full">
+            <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </label>
+        <label class="form-control w-full sm:w-64">
+          <span class="label"><span class="label-text">{{ t('admin.ordersPage.filterPaymentLabel') }}</span></span>
+          <select v-model="selectedPaymentStatus" class="select select-bordered w-full">
+            <option v-for="option in paymentStatusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </label>
       </div>
     </div>
 
@@ -78,7 +81,7 @@
     </div>
 
     <dialog ref="detailsDialog" class="modal">
-      <div class="modal-box max-w-3xl">
+      <div class="modal-box max-w-5xl">
         <div class="mb-4 flex items-start justify-between gap-4">
           <div>
             <h3 class="text-lg font-bold">{{ details?.orderNumber || '-' }}</h3>
@@ -178,9 +181,26 @@
                 </thead>
                 <tbody>
                   <tr v-for="line in details.lines" :key="line.id">
-                    <td>{{ line.title }}</td>
+                    <td>
+                      <div class="font-medium">{{ line.title }}</div>
+                      <div v-if="line.meta?.lineKind === 'INSURANCE'" class="mt-1 badge badge-sm badge-outline">{{ t('admin.ordersPage.insuranceLine') }}</div>
+                      <div v-if="line.meta?.rentalDurationUnits" class="mt-1 text-xs opacity-65">{{ rentalDurationLabel(line) }}</div>
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        <a
+                          v-for="document in lineDocuments(line)"
+                          :key="document.key"
+                          :href="document.url"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="btn btn-xs btn-outline"
+                        >{{ document.name }}</a>
+                      </div>
+                    </td>
                     <td>{{ line.quantity }}</td>
-                    <td>{{ $formatPrice(line.unitPrice) }}</td>
+                    <td>
+                      <div>{{ $formatPrice(line.unitPrice) }}</div>
+                      <div class="text-xs opacity-60">{{ vatLineLabel(line) }}</div>
+                    </td>
                     <td>{{ $formatPrice(line.totalPrice) }}</td>
                   </tr>
                 </tbody>
@@ -188,10 +208,35 @@
             </div>
           </div>
 
-          <div class="mt-6 flex flex-wrap gap-2">
+          <div class="mt-6 grid gap-4 md:grid-cols-3">
+            <section class="rounded-xl border border-base-300 p-4">
+              <h4 class="font-medium">{{ t('admin.ordersPage.workflowTitle') }}</h4>
+              <p class="mt-1 text-xs opacity-65">{{ t('admin.ordersPage.workflowHelp') }}</p>
+              <div class="mt-3 flex flex-col gap-2">
+                <select v-model="nextStatus" class="select select-bordered select-sm w-full" :disabled="!availableStatusTransitions.length">
+                  <option value="">{{ t('admin.ordersPage.chooseNextStatus') }}</option>
+                  <option v-for="option in availableStatusTransitions" :key="option" :value="option">{{ statusLabel(option) }}</option>
+                </select>
+                <button class="btn btn-primary btn-sm" :disabled="actionPending || !nextStatus" @click="updateStatus(nextStatus as ShopOrder['status'])">
+                  {{ t('admin.ordersPage.applyStatus') }}
+                </button>
+              </div>
+            </section>
+            <section class="rounded-xl border border-base-300 p-4">
+              <h4 class="font-medium">{{ t('admin.ordersPage.paymentActionsTitle') }}</h4>
+              <p class="mt-1 text-xs opacity-65">{{ paymentStatusLabel(details.paymentStatus) }}</p>
+              <button
+                v-if="details.paymentProvider === 'OFFLINE' && !['PAID', 'REFUNDED'].includes(details.paymentStatus)"
+                class="btn btn-success btn-sm mt-3 w-full"
+                :disabled="actionPending"
+                @click="markPaidOnSite"
+              >{{ t('admin.ordersPage.markPaidOnSite') }}</button>
+              <p v-else-if="details.paidAt" class="mt-3 text-sm">{{ t('admin.ordersPage.paidAtLabel') }} : {{ $formatDate(details.paidAt) }}</p>
+            </section>
+            <section class="rounded-xl border border-base-300 p-4">
+              <h4 class="font-medium">{{ t('admin.ordersPage.documentsTitle') }}</h4>
             <a
-              v-if="details.paymentStatus === 'PAID' || details.paymentStatus === 'REFUNDED'"
-              class="btn btn-outline btn-sm"
+              class="btn btn-outline btn-sm mt-3 w-full"
               :href="`/api/admin/orders/${details.id}/invoice`"
               target="_blank"
               rel="noopener noreferrer"
@@ -199,24 +244,10 @@
               <Icon name="mdi:file-document-outline" size="16" />
               {{ t('admin.ordersPage.viewInvoice') }}
             </a>
-            <button class="btn btn-success btn-sm" :disabled="actionPending || details.status === 'CONFIRMED'" @click="updateStatus('CONFIRMED', details.paymentStatus)">
-              {{ t('admin.ordersPage.markConfirmed') }}
-            </button>
-            <button class="btn btn-warning btn-sm" :disabled="actionPending || details.status === 'IN_PREPARATION'" @click="updateStatus('IN_PREPARATION', details.paymentStatus)">
-              {{ t('admin.ordersPage.markInPreparation') }}
-            </button>
-            <button class="btn btn-info btn-sm" :disabled="actionPending || details.status === 'READY'" @click="updateStatus('READY', details.paymentStatus)">
-              {{ t('admin.ordersPage.markReady') }}
-            </button>
-            <button class="btn btn-secondary btn-sm" :disabled="actionPending || details.status === 'IN_DELIVERY'" @click="updateStatus('IN_DELIVERY', details.paymentStatus)">
-              {{ t('admin.ordersPage.markInDelivery') }}
-            </button>
-            <button class="btn btn-neutral btn-sm" :disabled="actionPending || details.status === 'COMPLETED'" @click="updateStatus('COMPLETED', details.paymentStatus)">
-              {{ t('admin.ordersPage.markCompleted') }}
-            </button>
-            <button class="btn btn-ghost btn-sm" :disabled="actionPending || details.status === 'PENDING'" @click="updateStatus('PENDING', details.paymentStatus)">
-              {{ t('admin.ordersPage.markPending') }}
-            </button>
+            </section>
+          </div>
+
+          <div class="mt-4 flex flex-wrap gap-2">
             <button
               v-if="details.afterSalesStatus === 'REFUND_REQUESTED'"
               class="btn btn-warning btn-sm"
@@ -298,15 +329,18 @@ definePageMeta({
 
 interface ShopOrderLine {
   id: number
+  productId: number | null
   title: string
   quantity: number
   unitPrice: number
   totalPrice: number
+  meta: Record<string, any>
 }
 
 interface ShopOrder {
   id: number
   orderNumber: string
+  language: string
   status: 'DRAFT' | 'PENDING' | 'CONFIRMED' | 'IN_PREPARATION' | 'READY' | 'IN_DELIVERY' | 'COMPLETED' | 'CANCELLED'
   paymentProvider: 'OFFLINE' | 'STRIPE'
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
@@ -342,19 +376,23 @@ interface ShopOrder {
 }
 
 const { t } = useI18n()
+const route = useRoute()
 const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
 
 const page = ref(1)
 const selectedStatus = ref('')
+const selectedPaymentStatus = ref('')
 const detailsDialog = ref<HTMLDialogElement>()
 const details = ref<ShopOrder | null>(null)
 const loadingDetails = ref(false)
 const actionPending = ref(false)
+const nextStatus = ref<ShopOrder['status'] | ''>('')
 
 const query = computed(() => ({
   page: page.value,
   limit: 20,
-  ...(selectedStatus.value ? { status: selectedStatus.value } : {})
+  ...(selectedStatus.value ? { status: selectedStatus.value } : {}),
+  ...(selectedPaymentStatus.value ? { paymentStatus: selectedPaymentStatus.value } : {})
 }))
 
 const { data, pending, refresh } = await useFetch<{ items: ShopOrder[], pagination: { totalPages: number } }>('/api/admin/orders', {
@@ -368,6 +406,9 @@ const totalPages = computed(() => data.value?.pagination?.totalPages || 1)
 watch(selectedStatus, () => {
   page.value = 1
 })
+watch(selectedPaymentStatus, () => {
+  page.value = 1
+})
 
 const statusOptions = computed(() => [
   { value: '', label: t('admin.ordersPage.filterAll') },
@@ -378,6 +419,14 @@ const statusOptions = computed(() => [
   { value: 'IN_DELIVERY', label: t('admin.ordersPage.status.inDelivery') },
   { value: 'COMPLETED', label: t('admin.ordersPage.status.completed') },
   { value: 'CANCELLED', label: t('admin.ordersPage.status.cancelled') }
+])
+const paymentStatusOptions = computed(() => [
+  { value: '', label: t('admin.ordersPage.filterAll') },
+  { value: 'UNPAID', label: t('admin.ordersPage.paymentStatus.unpaid') },
+  { value: 'PENDING', label: t('admin.ordersPage.paymentStatus.pending') },
+  { value: 'PAID', label: t('admin.ordersPage.paymentStatus.paid') },
+  { value: 'FAILED', label: t('admin.ordersPage.paymentStatus.failed') },
+  { value: 'REFUNDED', label: t('admin.ordersPage.paymentStatus.refunded') },
 ])
 
 const statusLabel = (status: ShopOrder['status']) => ({
@@ -424,6 +473,18 @@ const paymentBadgeClass = (status: ShopOrder['paymentStatus']) => ({
   REFUNDED: 'badge-info'
 }[status] || 'badge-ghost')
 
+const statusTransitions: Record<ShopOrder['status'], ShopOrder['status'][]> = {
+  DRAFT: ['PENDING'],
+  PENDING: ['CONFIRMED'],
+  CONFIRMED: ['PENDING', 'IN_PREPARATION', 'READY', 'COMPLETED'],
+  IN_PREPARATION: ['READY', 'IN_DELIVERY', 'COMPLETED'],
+  READY: ['IN_DELIVERY', 'COMPLETED'],
+  IN_DELIVERY: ['COMPLETED'],
+  COMPLETED: [],
+  CANCELLED: [],
+}
+const availableStatusTransitions = computed(() => details.value ? statusTransitions[details.value.status] : [])
+
 const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => ({
   ONSITE: t('admin.ordersPage.deliveryTypeOnSite'),
   PICKUP: t('admin.ordersPage.deliveryTypePickup'),
@@ -438,6 +499,7 @@ const openDetails = async (id: number) => {
   detailsDialog.value?.showModal()
   try {
     details.value = await $fetch<ShopOrder>(`/api/admin/orders/${id}`)
+    nextStatus.value = ''
   } catch (error: any) {
     $toast.error(error?.statusMessage || t('common.error'))
     closeDetails()
@@ -446,26 +508,77 @@ const openDetails = async (id: number) => {
   }
 }
 
+onMounted(() => {
+  const requestedOrderId = Number(route.query.open)
+  if (Number.isInteger(requestedOrderId) && requestedOrderId > 0) {
+    void openDetails(requestedOrderId)
+  }
+})
+
 const closeDetails = () => {
   detailsDialog.value?.close()
   details.value = null
 }
 
-const updateStatus = async (status: ShopOrder['status'], paymentStatus: ShopOrder['paymentStatus']) => {
+const updateStatus = async (status: ShopOrder['status']) => {
   if (!details.value) return
   actionPending.value = true
   try {
     details.value = await $fetch<ShopOrder>(`/api/admin/orders/${details.value.id}/status`, {
       method: 'POST',
-      body: { status, paymentStatus }
+      body: { status }
     })
     await refresh()
+    nextStatus.value = ''
     $toast.success(t('admin.ordersPage.saved'))
   } catch (error: any) {
     $toast.error(error?.statusMessage || t('common.error'))
   } finally {
     actionPending.value = false
   }
+}
+
+const markPaidOnSite = async () => {
+  if (!details.value || actionPending.value) return
+  if (!globalThis.confirm(t('admin.ordersPage.markPaidOnSiteConfirm'))) return
+  actionPending.value = true
+  try {
+    details.value = await $fetch<ShopOrder>(`/api/admin/orders/${details.value.id}/mark-paid`, { method: 'POST' })
+    await refresh()
+    $toast.success(t('admin.ordersPage.markPaidOnSiteSuccess'))
+  } catch (error: any) {
+    $toast.error(error?.data?.message || error?.statusMessage || t('common.error'))
+  } finally {
+    actionPending.value = false
+  }
+}
+
+function rentalDurationLabel(line: ShopOrderLine) {
+  const mode = line.meta?.rentalPricingMode === 'HOURLY' ? 'hours' : 'days'
+  return t(`admin.ordersPage.rentalDuration.${mode}`, { count: line.meta?.rentalDurationUnits })
+}
+
+function vatLineLabel(line: ShopOrderLine) {
+  const rate = Number(line.meta?.vatRate || 0)
+  return rate > 0 ? t('admin.ordersPage.vatRate', { rate }) : t('admin.ordersPage.vatNotApplicable')
+}
+
+function lineDocuments(line: ShopOrderLine) {
+  const productId = Number(line.meta?.relatedProductId || line.productId || 0)
+  const documents = Array.isArray(line.meta?.linkedBillingDocuments) ? line.meta.linkedBillingDocuments : []
+  const files = Array.isArray(line.meta?.linkedFiles) ? line.meta.linkedFiles : []
+  return [
+    ...documents.filter((document: any) => Number(document?.id) > 0).map((document: any) => ({
+      key: `document:${document.id}`,
+      name: String(document.name || t('admin.ordersPage.document')),
+      url: `/api/shop/billing-documents/${document.id}/preview?productId=${productId}&locale=${encodeURIComponent(details.value?.language || 'fr')}`,
+    })),
+    ...files.filter((file: any) => file?.url).map((file: any, index: number) => ({
+      key: `file:${index}:${file.url}`,
+      name: String(file.name || t('admin.ordersPage.document')),
+      url: String(file.url),
+    })),
+  ]
 }
 
 const cancelOrder = async () => {

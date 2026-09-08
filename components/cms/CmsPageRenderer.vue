@@ -80,6 +80,7 @@ const isRendererEnabled = (rendererKey: string) => {
 
 const shopPageProps = computed(() => ({
   settings: cmsSettings.value?.basketsPage ?? null,
+  applicationConfig: props.resolvedPage.applicationConfig,
   pageTitleOverride: props.resolvedPage.title ?? '',
   pageSubtitleOverride: pickCmsLocalizedText(props.locale, cmsSettings.value?.basketsPage?.subtitle) || ''
 }))

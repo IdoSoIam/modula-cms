@@ -72,10 +72,11 @@
                   </select>
                 </label>
 
-                <label class="form-control gap-2">
-                  <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.position') }}</span></span>
-                  <input v-model.number="item.position" type="number" class="input input-bordered w-full" />
-                </label>
+                <AdminSortPositionControl
+                  v-model="item.position"
+                  :label="t('admin.customizationNavigationPage.position')"
+                  :help="t('admin.customizationNavigationPage.positionHelp')"
+                />
 
                 <label class="form-control gap-2">
                   <span class="label"><span class="label-text">{{ t('admin.customizationNavigationPage.parentLink') }}</span></span>

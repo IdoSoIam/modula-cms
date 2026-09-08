@@ -1,6 +1,7 @@
 import { db } from '#modula/server/data/client'
 import {
   computeAvailabilityForSource,
+  computeRentalSlots,
   eachDayBetween,
   endOfDay,
   startOfDay,
@@ -8,6 +9,8 @@ import {
 } from '#modula/server/services/shop/rentalAvailability'
 import { formatLocalizedDateValue } from '#modula/shared/date'
 import { serializeProduct } from '#modula/server/utils/shop'
+import { getFeatureFlags, getRentalCalendarConfig } from '#modula/server/utils/settings'
+import { getRentalOpeningRanges } from '#modula/shared/rentalCalendar'
 
 function parseMonth(value: string | undefined) {
   const source = value && /^\d{4}-\d{2}$/.test(value) ? value : toIsoDate(new Date()).slice(0, 7)
@@ -30,6 +33,10 @@ function buildCalendarDays(monthDate: Date) {
 }
 
 export default defineEventHandler(async (event) => {
+  const featureFlags = await getFeatureFlags()
+  if (!featureFlags.shop.enabled || !featureFlags.rentalsEnabled) {
+    throw createError({ statusCode: 404, message: 'Location désactivée' })
+  }
   const query = getQuery(event)
   const locale = typeof query.locale === 'string' && query.locale.trim() ? query.locale : 'fr'
   const kind = query.kind === 'product' ? 'product' : ''
@@ -67,14 +74,31 @@ export default defineEventHandler(async (event) => {
       rentalAvailableTo: product.rentalAvailableTo,
       rentalMinDays: product.rentalMinDays,
       rentalMaxDays: product.rentalMaxDays,
+      rentalBookingMode: product.rentalBookingMode,
+      rentalDurations: product.rentalDurations,
+      rentalSlotStepMinutes: product.rentalSlotStepMinutes,
     }, gridStart, gridEnd)
-    return buildResponse(monthDate, gridDays, availability, product, locale)
+    const selectedDate = typeof query.date === 'string' ? query.date : ''
+    const duration = Number(query.duration || product.rentalDurations[0] || 60)
+    const hourlyMode = product.rentalBookingMode === 'SINGLE_DAY'
+      || (product.rentalBookingMode === 'BOTH' && query.mode === 'SINGLE_DAY')
+    const slots = hourlyMode && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
+      ? await computeRentalSlots({
+          kind, id: product.id, title: product.name, quantity: 1, stock: product.stock,
+          rentalAvailableFrom: product.rentalAvailableFrom, rentalAvailableTo: product.rentalAvailableTo,
+          rentalMinDays: product.rentalMinDays, rentalMaxDays: product.rentalMaxDays,
+          rentalBookingMode: product.rentalBookingMode, rentalDurations: product.rentalDurations,
+          rentalSlotStepMinutes: product.rentalSlotStepMinutes,
+        }, selectedDate, duration)
+      : []
+    const calendar = await getRentalCalendarConfig()
+    return { ...buildResponse(monthDate, gridDays, availability, product, locale, calendar), slots }
   }
 
   throw createError({ statusCode: 400, statusMessage: 'Source de location invalide' })
 })
 
-function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<ReturnType<typeof computeAvailabilityForSource>>, source: any, locale: string) {
+function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<ReturnType<typeof computeAvailabilityForSource>>, source: any, locale: string, calendar: Awaited<ReturnType<typeof getRentalCalendarConfig>>) {
   const dayNames = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(2026, 0, 5 + index)
     const label = formatLocalizedDateValue(date, locale, { weekday: 'short' })
@@ -91,18 +115,16 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
     days: gridDays.map((day) => {
       const iso = toIsoDate(day)
       const state = byIso.get(iso)
+      const openingRanges = getRentalOpeningRanges(calendar, iso)
+      const calendarClosed = openingRanges.length === 0
       const inCurrentMonth = day.getMonth() === monthDate.getMonth()
       const item = state
         ? {
             id: iso,
-            title: state.status === 'full'
-              ? 'Complet'
-              : state.status === 'outside'
-                ? 'Indisponible'
-                : `${state.remaining} dispo.`,
-            subtitle: state.reserved > 0 ? `${state.reserved} réservé(s)` : '',
-            meta: state.status === 'partial' ? 'Disponibilité partielle' : '',
-            status: state.status,
+            title: '',
+            subtitle: '',
+            meta: '',
+            status: calendarClosed ? 'outside' : state.status,
             remaining: state.remaining,
           }
         : {
@@ -122,9 +144,10 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
         total: 1,
         totalPages: 1,
         items: [item],
-        availabilityStatus: state?.status || 'outside',
+        availabilityStatus: calendarClosed ? 'outside' : state?.status || 'outside',
         remaining: state?.remaining || 0,
-        selectable: Boolean(state?.selectable),
+        selectable: Boolean(state?.selectable && !calendarClosed),
+        openingRanges,
       }
     }),
   }

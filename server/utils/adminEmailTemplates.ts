@@ -7,6 +7,7 @@ import {
 } from './orderEmailContent'
 
 import { eventStatusTemplates } from './eventStatusTemplates'
+import { rentalEmailTemplateDefaults, rentalEmailTemplateDefinitions } from '#modula/server/services/shop/rentalEmailTemplates'
 
 interface LocalizedText {
   fr: string
@@ -60,6 +61,7 @@ const RESERVATION_ACTIONS = new Set(
 
 const CUSTOM_TEMPLATE_DEFAULTS: Record<string, Record<string, EmailTemplate>> = {
   ...Object.fromEntries(eventStatusTemplates.map(entry => [entry.action, entry.templates])),
+  ...rentalEmailTemplateDefaults,
   event_call_for_participation: {
     fr: {
       subject: 'Appel à participation - {{eventTitle}}',
@@ -594,6 +596,7 @@ const SYSTEM_TEMPLATE_DEFINITIONS: AdminEmailTemplateDefinition[] = [
     locked: true,
     system: true,
   })),
+  ...rentalEmailTemplateDefinitions,
   {
     action: 'shop_order_created',
     settingKey: SETTING_KEYS.SHOP_ORDER_TEMPLATE_CREATED,

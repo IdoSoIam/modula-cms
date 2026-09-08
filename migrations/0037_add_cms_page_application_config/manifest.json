@@ -1,0 +1,24 @@
+{
+  "id": "0037_add_cms_page_application_config",
+  "name": "add_cms_page_application_config",
+  "description": "Store per-page application display settings, including shop category scope and layout.",
+  "beforeSchemaHash": "6d94623d704021754ec2e6b2188d9251a3da6a80675639f472967c0601918585",
+  "afterSchemaHash": "21f8545fc84c99541de86a8c439933a4a6f9c33a2c2913050ef47dadee9e91fc",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "CmsPage",
+        "changes": [
+          "field added: applicationConfigJson"
+        ]
+      }
+    ]
+  }
+}

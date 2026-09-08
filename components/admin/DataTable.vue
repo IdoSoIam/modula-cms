@@ -271,6 +271,10 @@ const filteredData = computed(() => {
   }))
 })
 
+function resolveValue(row: Row, key: string): unknown {
+  return row[key]
+}
+
 function compareValues(left: unknown, right: unknown) {
   if (left === right) {
     return 0
@@ -386,8 +390,6 @@ onBeforeUnmount(() => {
     clearTimeout(searchDebounce)
   }
 })
-
-const resolveValue = (row: Row, key: string): unknown => row[key]
 
 const isColumnVisible = (col: Column<Row>) => !hiddenColumnKeys.value.has(col.key)
 

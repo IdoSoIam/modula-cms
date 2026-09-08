@@ -80,6 +80,53 @@
             </div>
           </section>
 
+          <section v-if="selectedPageRenderer === 'shop'" class="rounded-box border border-base-300 bg-base-100 p-5">
+            <div class="flex items-start gap-3">
+              <Icon name="mdi:store-settings-outline" size="22" class="mt-0.5 text-primary" />
+              <div>
+                <h2 class="text-lg font-semibold">{{ t('admin.pageEditorPage.shopDisplayTitle') }}</h2>
+                <p class="mt-1 text-sm opacity-70">{{ t('admin.pageEditorPage.shopDisplayDescription') }}</p>
+              </div>
+            </div>
+
+            <div class="mt-5 space-y-5">
+              <fieldset>
+                <legend class="text-sm font-semibold">{{ t('admin.pageEditorPage.shopCategories') }}</legend>
+                <p class="mt-1 text-xs opacity-65">{{ t('admin.pageEditorPage.shopCategoriesHelp') }}</p>
+                <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                  <label
+                    v-for="category in productCategories || []"
+                    :key="category.id"
+                    class="label cursor-pointer justify-start gap-3 rounded-box border border-base-300 px-3 py-2"
+                  >
+                    <input
+                      type="checkbox"
+                      class="checkbox checkbox-primary checkbox-sm"
+                      :checked="page.applicationConfig.shopCategoryIds.includes(category.id)"
+                      @change="toggleShopCategory(category.id)"
+                    >
+                    <span class="label-text">{{ category.name }}</span>
+                  </label>
+                </div>
+                <p v-if="!productCategories?.length" class="mt-3 text-sm opacity-60">{{ t('admin.pageEditorPage.shopNoCategories') }}</p>
+              </fieldset>
+
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="form-control gap-2 flex flex-col">
+                  <span class="label-text font-semibold">{{ t('admin.pageEditorPage.shopDefaultView') }}</span>
+                  <select v-model="page.applicationConfig.shopDefaultViewMode" class="select select-bordered">
+                    <option value="grid">{{ t('admin.pageEditorPage.shopViewGrid') }}</option>
+                    <option value="list">{{ t('admin.pageEditorPage.shopViewList') }}</option>
+                  </select>
+                </label>
+                <label class="label cursor-pointer justify-start gap-3 self-end rounded-box border border-base-300 px-4 py-3">
+                  <input v-model="page.applicationConfig.shopShowViewToggle" type="checkbox" class="checkbox checkbox-primary checkbox-sm">
+                  <span class="label-text">{{ t('admin.pageEditorPage.shopShowViewToggle') }}</span>
+                </label>
+              </div>
+            </div>
+          </section>
+
           <section class="rounded-box border border-base-300 bg-base-100 p-5">
             <button type="button" class="flex w-full cursor-pointer items-center gap-3 text-left" @click="togglePanel('seo')">
               <Icon :name="isPanelOpen('seo') ? 'mdi:chevron-down' : 'mdi:chevron-right'" size="20" />
@@ -201,6 +248,11 @@ interface CmsPageEditor extends CmsPagePayload {
   id: number
 }
 
+interface ProductCategoryOption {
+  id: number
+  name: string
+}
+
 const route = useRoute()
 const localePath = useLocalePath()
 const { $toast } = useNuxtApp() as any
@@ -221,6 +273,7 @@ const allPageRendererOptions = [
 ] as const
 
 const { data } = await useFetch<CmsPageEditor>(`/api/admin/cms/pages/${route.params.id}`)
+const { data: productCategories } = await useFetch<ProductCategoryOption[]>('/api/admin/product-categories')
 const { data: siteShellData } = await useFetch<{ settings: CmsSiteSettings, navigation: Array<CmsNavigationItemPayload & { id?: number | null }>, featureFlags: {
   inDevelopment: boolean
   registerEnabled: boolean
@@ -246,9 +299,21 @@ if (!siteShellData.value) {
 }
 
 const page = reactive<CmsPageEditor>(structuredClone(data.value))
+page.applicationConfig ??= {
+  shopCategoryIds: [],
+  shopDefaultViewMode: 'grid',
+  shopShowViewToggle: true
+}
 const siteShellModel = reactive(structuredClone(siteShellData.value))
 const featureFlags = computed(() => siteShellModel.featureFlags)
 const clonePlainData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+
+const toggleShopCategory = (categoryId: number) => {
+  const selected = page.applicationConfig.shopCategoryIds
+  page.applicationConfig.shopCategoryIds = selected.includes(categoryId)
+    ? selected.filter(id => id !== categoryId)
+    : [...selected, categoryId]
+}
 
 const isEmptyPageBuilderContent = (content: PageBuilderContent | null | undefined) =>
   !content || !Array.isArray(content.sections) || content.sections.length === 0

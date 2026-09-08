@@ -4,6 +4,7 @@ import { getSiteLocales } from '#modula/server/utils/settings'
 import {
   buildBillingDocumentLocalizedPayload,
   normalizeBillingDocumentInvoiceOptions,
+  normalizeOptionalBillingPrice,
   sanitizeBillingDocumentInvoiceColumns,
   enforceSingleDefaultBillingDocument,
   ensureUniqueBillingDocumentSlug,
@@ -22,6 +23,9 @@ interface Body {
   logoUrl?: string | null
   accentColor?: string | null
   sourcePdfUrl?: string | null
+  rentalHourlyPrice?: number | null
+  rentalDailyPrice?: number | null
+  requiredForRental?: boolean
   titleLocalized?: CmsLocalizedText | null
   contentLocalized?: CmsLocalizedText | null
   footerLocalized?: CmsLocalizedText | null
@@ -77,6 +81,15 @@ export default defineEventHandler(async (event) => {
   if (body.logoUrl !== undefined) data.logoUrl = body.logoUrl?.trim() || null
   if (body.accentColor !== undefined) data.accentColor = body.accentColor?.trim() || null
   if (body.sourcePdfUrl !== undefined) data.sourcePdfUrl = body.sourcePdfUrl?.trim() || null
+  if (body.rentalHourlyPrice !== undefined || nextKind !== 'ASSURANCE') {
+    data.rentalHourlyPrice = nextKind === 'ASSURANCE' ? normalizeOptionalBillingPrice(body.rentalHourlyPrice) : null
+  }
+  if (body.rentalDailyPrice !== undefined || nextKind !== 'ASSURANCE') {
+    data.rentalDailyPrice = nextKind === 'ASSURANCE' ? normalizeOptionalBillingPrice(body.rentalDailyPrice) : null
+  }
+  if (body.requiredForRental !== undefined || nextKind !== 'ASSURANCE') {
+    data.requiredForRental = nextKind === 'ASSURANCE' && Boolean(body.requiredForRental)
+  }
   if (body.active !== undefined) data.active = Boolean(body.active)
   if (body.isDefault !== undefined || nextKind === 'INVOICE') data.isDefault = nextKind === 'INVOICE' ? true : Boolean(body.isDefault)
   if (body.position !== undefined) data.position = Number.isFinite(Number(body.position)) ? Number(body.position) : 0

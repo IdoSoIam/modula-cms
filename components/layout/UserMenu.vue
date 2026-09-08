@@ -17,39 +17,39 @@
       class="w-full"
     >
       <template v-if="!authStore.isAuthenticated">
-        <div v-if="shopVisible" class="px-3 py-2 hover:bg-base-200">
+        <div v-if="shopVisible" class="modula-navigation px-3 py-2 hover:bg-base-200">
           <NuxtLink :to="localePath('/panier')" class="inline-flex h-full w-full items-center justify-between text-sm text-primary">
             <span>{{ publicText('auth.userMenu.viewCart', 'Voir le panier') }}</span>
             <span v-if="cartCount > 0" class="badge badge-primary badge-sm">{{ cartCount }}</span>
           </NuxtLink>
         </div>
-        <div class="px-3 py-2 hover:bg-base-200">
+        <div class="modula-navigation px-3 py-2 hover:bg-base-200">
           <NuxtLink :to="localePath('/login')" class="inline-flex h-full w-full text-sm text-primary">{{ publicText('auth.userMenu.login', 'Connexion') }}</NuxtLink>
         </div>
-        <div v-if="registerVisible" class="px-3 py-2 hover:bg-base-200">
+        <div v-if="registerVisible" class="modula-navigation px-3 py-2 hover:bg-base-200">
           <NuxtLink :to="localePath('/register')" class="inline-flex h-full w-full text-sm text-primary">{{ publicText('auth.userMenu.register', 'Inscription') }}</NuxtLink>
         </div>
       </template>
       <template v-else>
-        <div class="px-3 py-2 hover:bg-base-200">
+        <div class="modula-navigation px-3 py-2 hover:bg-base-200">
           <div class="text-sm font-semibold">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</div>
           <NuxtLink :to="localePath('/profile')" class="inline-flex h-full w-full text-sm text-primary">{{ publicText('auth.userMenu.profile', 'Profil') }}</NuxtLink>
         </div>
-        <div v-if="shopVisible && !authStore.isAdmin" class="px-3 py-2 hover:bg-base-200">
+        <div v-if="shopVisible && !authStore.isAdmin" class="modula-navigation px-3 py-2 hover:bg-base-200">
           <NuxtLink :to="ordersProfileLink" class="inline-flex h-full w-full text-sm text-primary">{{ publicText('auth.userMenu.orders', 'Commandes') }}</NuxtLink>
         </div>
-        <div v-if="shopVisible" class="px-3 py-2 hover:bg-base-200">
+        <div v-if="shopVisible" class="modula-navigation px-3 py-2 hover:bg-base-200">
           <NuxtLink :to="localePath('/panier')" class="inline-flex h-full w-full items-center justify-between text-sm text-primary">
             <span>{{ publicText('auth.userMenu.viewCart', 'Voir le panier') }}</span>
             <span v-if="cartCount > 0" class="badge badge-primary badge-sm">{{ cartCount }}</span>
           </NuxtLink>
         </div>
         <template v-if="authStore.canAccessAdmin">
-          <div class="px-3 py-2 hover:bg-base-200">
+          <div class="modula-navigation px-3 py-2 hover:bg-base-200">
             <NuxtLink :to="adminLocalePath('/admin')" class="inline-flex h-full w-full text-sm text-primary">{{ $t('admin.title') }}</NuxtLink>
           </div>
         </template>
-        <div class="px-3 py-2 hover:bg-base-200">
+        <div class="modula-navigation px-3 py-2 hover:bg-base-200">
           <button type="button" class="inline-flex h-full w-full cursor-pointer text-sm text-primary" @click="handleLogout">{{ publicText('auth.userMenu.logout', 'Déconnexion') }}</button>
         </div>
       </template>

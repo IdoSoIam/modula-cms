@@ -80,35 +80,7 @@
       <div class="collapse-content space-y-5">
         <p class="mt-1 text-sm opacity-70">{{ t('admin.settingsGlobalPage.openingDescription') }}</p>
 
-        <div class="grid gap-4 lg:grid-cols-3">
-          <label class="form-control gap-2">
-            <span class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.mainOpeningDay') }}</span></span>
-            <select v-model.number="farmOpening.dayOfWeek" class="select select-bordered w-full">
-              <option :value="1">{{ t('admin.settingsGlobalPage.days.monday') }}</option>
-              <option :value="2">{{ t('admin.settingsGlobalPage.days.tuesday') }}</option>
-              <option :value="3">{{ t('admin.settingsGlobalPage.days.wednesday') }}</option>
-              <option :value="4">{{ t('admin.settingsGlobalPage.days.thursday') }}</option>
-              <option :value="5">{{ t('admin.settingsGlobalPage.days.friday') }}</option>
-              <option :value="6">{{ t('admin.settingsGlobalPage.days.saturday') }}</option>
-              <option :value="0">{{ t('admin.settingsGlobalPage.days.sunday') }}</option>
-            </select>
-          </label>
-
-          <label class="form-control gap-2">
-            <span class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.openingStart') }}</span></span>
-            <input v-model="farmOpening.startTime" type="time" class="input input-bordered w-full" />
-          </label>
-
-          <label class="form-control gap-2">
-            <span class="label"><span class="label-text">{{ t('admin.settingsGlobalPage.openingEnd') }}</span></span>
-            <input v-model="farmOpening.endTime" type="time" class="input input-bordered w-full" />
-          </label>
-        </div>
-
-        <div class="rounded-2xl border border-base-300 bg-base-200 p-4 text-sm">
-          <div class="font-medium">{{ t('admin.settingsGlobalPage.preview') }}</div>
-          <div class="mt-2 opacity-80">{{ openingHoursPreview }}</div>
-        </div>
+        <AdminRentalCalendarEditor v-model="rentalCalendar" />
       </div>
     </section>
 
@@ -236,6 +208,7 @@
 </template>
 
 <script setup lang="ts">
+import { createDefaultRentalCalendar, type RentalCalendarConfig } from '#modula/shared/rentalCalendar'
 import ImageInput from '#modula/components/ImageInput.vue'
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
 import type { CmsNavigationItemPayload, CmsSiteSettings } from '#modula/shared/cms'
@@ -268,6 +241,7 @@ const { data: settingsData } = await useFetch<{
     startTime: string
     endTime: string
   }
+  rentalCalendar: RentalCalendarConfig
   contactEmail: string
   adminPhone: string
   shopDefaultVatRate: number
@@ -290,6 +264,7 @@ const farmOpening = reactive({
   startTime: settingsData.value?.farmPickup.startTime ?? '17:30',
   endTime: settingsData.value?.farmPickup.endTime ?? '19:00'
 })
+const rentalCalendar = ref(structuredClone(settingsData.value?.rentalCalendar ?? createDefaultRentalCalendar()))
 
 watchEffect(() => {
   if (!settingsData.value) return
@@ -297,23 +272,10 @@ watchEffect(() => {
   farmOpening.dayOfWeek = settingsData.value.farmPickup.dayOfWeek
   farmOpening.startTime = settingsData.value.farmPickup.startTime
   farmOpening.endTime = settingsData.value.farmPickup.endTime
+  rentalCalendar.value = structuredClone(settingsData.value.rentalCalendar)
   publicPhone.value = settingsData.value.adminPhone
   contactEmail.value = settingsData.value.contactEmail
   shopDefaultVatRate.value = Number(settingsData.value.shopDefaultVatRate ?? 20)
-})
-
-const dayLabels = [
-  t('admin.settingsGlobalPage.days.sunday'),
-  t('admin.settingsGlobalPage.days.monday'),
-  t('admin.settingsGlobalPage.days.tuesday'),
-  t('admin.settingsGlobalPage.days.wednesday'),
-  t('admin.settingsGlobalPage.days.thursday'),
-  t('admin.settingsGlobalPage.days.friday'),
-  t('admin.settingsGlobalPage.days.saturday')
-]
-const openingHoursPreview = computed(() => {
-  const day = dayLabels[farmOpening.dayOfWeek] || t('admin.settingsGlobalPage.days.friday')
-  return `${day} ${farmOpening.startTime} - ${farmOpening.endTime}`
 })
 
 const addCookieService = () => {
@@ -355,7 +317,8 @@ const save = async () => {
           farmPickupAddress: farmOpening.address,
           farmPickupDayOfWeek: farmOpening.dayOfWeek,
           farmPickupStartTime: farmOpening.startTime,
-          farmPickupEndTime: farmOpening.endTime
+          farmPickupEndTime: farmOpening.endTime,
+          rentalCalendar: rentalCalendar.value
         }
       })
     ])

@@ -3,6 +3,7 @@ import { normalizeFeatureFlags, normalizeVatRate, saveShopDefaultVatRate, saveSi
 import { findAdminEmailTemplateDefinition } from '#modula/server/utils/adminEmailTemplates'
 import { savePublicDictionary } from '#modula/server/utils/publicDictionary'
 import type { CmsLocalizedText } from '#modula/shared/cms'
+import { normalizeRentalCalendar, validateRentalCalendar, type RentalCalendarConfig } from '#modula/shared/rentalCalendar'
 
 interface Body {
   gmailSenderEmail?: string
@@ -27,6 +28,7 @@ interface Body {
     shop?: {
       enabled?: boolean
     }
+    rentalsEnabled?: boolean
     associationRolesEnabled?: boolean
     eventsEnabled?: boolean
     newsEnabled?: boolean
@@ -35,6 +37,7 @@ interface Body {
   farmPickupDayOfWeek?: number
   farmPickupStartTime?: string
   farmPickupEndTime?: string
+  rentalCalendar?: RentalCalendarConfig
   ordersOpenFrom?: string
   ordersOpenTo?: string
   ordersClosedMessage?: string
@@ -70,6 +73,7 @@ export default defineEventHandler(async (event) => {
     shop: {
       enabled: body.featureFlags?.shop?.enabled ?? false
     },
+    rentalsEnabled: body.featureFlags?.rentalsEnabled ?? body.featureFlags?.shop?.enabled ?? false,
     associationRolesEnabled: body.featureFlags?.associationRolesEnabled ?? false,
     eventsEnabled: body.featureFlags?.eventsEnabled ?? false,
     newsEnabled: body.featureFlags?.newsEnabled ?? false
@@ -142,6 +146,17 @@ export default defineEventHandler(async (event) => {
   }
   if (typeof body.farmPickupEndTime === 'string') {
     await setSetting(SETTING_KEYS.FARM_PICKUP_END_TIME, body.farmPickupEndTime.trim())
+  }
+  if (typeof body.featureFlags?.rentalsEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.RENTALS_ENABLED, featureFlags.rentalsEnabled ? 'true' : 'false')
+  }
+  if (body.rentalCalendar) {
+    const rentalCalendar = normalizeRentalCalendar(body.rentalCalendar)
+    const errors = validateRentalCalendar(rentalCalendar)
+    if (errors.length) {
+      throw createError({ statusCode: 400, message: errors[0] })
+    }
+    await setSetting(SETTING_KEYS.RENTAL_CALENDAR, JSON.stringify(rentalCalendar))
   }
   if (typeof body.ordersOpenFrom === 'string') {
     await setSetting(SETTING_KEYS.ORDERS_OPEN_FROM, body.ordersOpenFrom.trim())

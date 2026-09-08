@@ -1,0 +1,26 @@
+{
+  "id": "0036_add_billing_document_rental_pricing",
+  "name": "add_billing_document_rental_pricing",
+  "description": "",
+  "beforeSchemaHash": "dfc5699197e7f60942121c71e23d615f3c1ad8ef79ee903487a23cdd5df74021",
+  "afterSchemaHash": "6d94623d704021754ec2e6b2188d9251a3da6a80675639f472967c0601918585",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "BillingDocumentTemplate",
+        "changes": [
+          "field added: rentalDailyPrice",
+          "field added: rentalHourlyPrice",
+          "field added: requiredForRental"
+        ]
+      }
+    ]
+  }
+}

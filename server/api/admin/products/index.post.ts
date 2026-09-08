@@ -10,6 +10,7 @@ import {
 } from '#modula/server/utils/shop'
 import { getShopDefaultVatRate, normalizeStripeTaxBehavior, normalizeStripeTaxCode, normalizeVatRate } from '#modula/server/utils/settings'
 import { normalizeRentalConfig } from '#modula/server/services/shop/rentalConfig'
+import { isStripeConfigured } from '#modula/server/services/payment/paymentService'
 import type { CmsLocalizedText } from '#modula/shared/cms'
 
 interface Body {
@@ -33,6 +34,12 @@ interface Body {
   rentalAvailableTo?: string | null
   rentalMinDays?: number | null
   rentalMaxDays?: number | null
+  rentalBookingMode?: 'SINGLE_DAY' | 'MULTI_DAY' | 'BOTH'
+  rentalApprovalMode?: 'AUTO' | 'MANUAL'
+  rentalHourlyPrice?: number | null
+  rentalDailyPrice?: number | null
+  rentalDurations?: number[]
+  rentalSlotStepMinutes?: number
   unitLabel?: string | null
   unitLabelLocalized?: CmsLocalizedText | null
   allowOfflinePayment?: boolean
@@ -58,6 +65,8 @@ export default defineEventHandler(async (event) => {
   const unitLabelPayload = buildLocalizedProductTextPayload(body.unitLabelLocalized ?? body.unitLabel, body.unitLabel ?? '')
 
   const price = Number(body.price ?? 0)
+  const rentalHourlyPrice = normalizeOptionalPrice(body.rentalHourlyPrice)
+  const rentalDailyPrice = normalizeOptionalPrice(body.rentalDailyPrice)
   const shopDefaultVatRate = await getShopDefaultVatRate()
   const vatRate = normalizeVatRate(body.vatRate ?? shopDefaultVatRate, shopDefaultVatRate)
   const stock = Number(body.stock ?? 0)
@@ -65,7 +74,10 @@ export default defineEventHandler(async (event) => {
     rentalAvailableFrom: body.rentalAvailableFrom,
     rentalAvailableTo: body.rentalAvailableTo,
     rentalMinDays: body.rentalMinDays,
-    rentalMaxDays: body.rentalMaxDays
+    rentalMaxDays: body.rentalMaxDays,
+    rentalBookingMode: body.rentalBookingMode,
+    rentalDurations: body.rentalDurations,
+    rentalSlotStepMinutes: body.rentalSlotStepMinutes
   })
   const paymentTaxCode = normalizeStripeTaxCode(body.paymentTaxCode)
   const paymentTaxBehavior = body.paymentTaxBehavior == null
@@ -78,11 +90,25 @@ export default defineEventHandler(async (event) => {
   if (!Number.isFinite(price) || price < 0) {
     throw createError({ statusCode: 400, statusMessage: 'Prix invalide' })
   }
+  if (body.saleType === 'RENTAL') {
+    if (rentalConfig.rentalBookingMode !== 'MULTI_DAY' && rentalHourlyPrice == null) {
+      throw createError({ statusCode: 400, message: 'Le tarif horaire est requis' })
+    }
+    if (rentalConfig.rentalBookingMode !== 'SINGLE_DAY' && rentalDailyPrice == null) {
+      throw createError({ statusCode: 400, message: 'Le tarif journalier est requis' })
+    }
+  }
   if (!Number.isFinite(vatRate) || vatRate < 0 || vatRate > 100) {
     throw createError({ statusCode: 400, statusMessage: 'Taux de TVA invalide' })
   }
   if (!Number.isInteger(stock) || stock < 0) {
     throw createError({ statusCode: 400, statusMessage: 'Stock invalide' })
+  }
+  if (allowOnlinePayment && !(await isStripeConfigured())) {
+    throw createError({
+      statusCode: 400,
+      message: 'Le paiement en ligne doit être configuré et activé avant de pouvoir être autorisé sur un produit',
+    })
   }
   if (!allowOfflinePayment && !allowOnlinePayment) {
     throw createError({ statusCode: 400, statusMessage: 'Au moins un mode de paiement doit être activé' })
@@ -114,6 +140,12 @@ export default defineEventHandler(async (event) => {
       rentalAvailableTo: rentalConfig.rentalAvailableTo,
       rentalMinDays: rentalConfig.rentalMinDays,
       rentalMaxDays: rentalConfig.rentalMaxDays,
+      rentalBookingMode: rentalConfig.rentalBookingMode,
+      rentalApprovalMode: body.rentalApprovalMode === 'MANUAL' ? 'MANUAL' : 'AUTO',
+      rentalHourlyPrice,
+      rentalDailyPrice,
+      rentalDurationsJson: JSON.stringify(rentalConfig.rentalDurations),
+      rentalSlotStepMinutes: rentalConfig.rentalSlotStepMinutes,
       unitLabel: unitLabelPayload.text || null,
       unitLabelJson: unitLabelPayload.json,
       allowOfflinePayment,
@@ -130,3 +162,12 @@ export default defineEventHandler(async (event) => {
 
   return serializeProduct(row)
 })
+
+function normalizeOptionalPrice(value: unknown) {
+  if (value == null || value === '') return null
+  const price = Number(value)
+  if (!Number.isFinite(price) || price < 0) {
+    throw createError({ statusCode: 400, message: 'Tarif de location invalide' })
+  }
+  return price
+}

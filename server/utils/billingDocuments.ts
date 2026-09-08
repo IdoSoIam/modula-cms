@@ -30,6 +30,9 @@ export interface BillingDocumentTemplatePayload {
   logoUrl: string | null
   accentColor: string | null
   sourcePdfUrl: string | null
+  rentalHourlyPrice: number | null
+  rentalDailyPrice: number | null
+  requiredForRental: boolean
   titleLocalized: CmsLocalizedText
   contentLocalized: CmsLocalizedText
   footerLocalized: CmsLocalizedText
@@ -341,6 +344,9 @@ export function serializeBillingDocumentTemplate(
     logoUrl: row.logoUrl?.trim() || null,
     accentColor: row.accentColor?.trim() || null,
     sourcePdfUrl: row.sourcePdfUrl?.trim() || null,
+    rentalHourlyPrice: row.rentalHourlyPrice == null ? null : Number(row.rentalHourlyPrice),
+    rentalDailyPrice: row.rentalDailyPrice == null ? null : Number(row.rentalDailyPrice),
+    requiredForRental: Boolean(row.requiredForRental),
     titleLocalized,
     contentLocalized,
     footerLocalized,
@@ -360,6 +366,12 @@ export function buildBillingDocumentLocalizedPayload(value: unknown, fallback = 
     text: pickCmsLocalizedText('fr', normalized, 'en') || fallback,
     json: JSON.stringify(normalized)
   }
+}
+
+export function normalizeOptionalBillingPrice(value: unknown) {
+  if (value === null || value === undefined || value === '') return null
+  const amount = Number(value)
+  return Number.isFinite(amount) ? Math.round(Math.max(0, amount) * 100) / 100 : null
 }
 
 export async function ensureUniqueBillingDocumentSlug(source: string, excludeId?: number) {
