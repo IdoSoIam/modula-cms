@@ -14,6 +14,8 @@ import { normalizeRentalConfig } from '#modula/server/services/shop/rentalConfig
 import { isStripeConfigured } from '#modula/server/services/payment/paymentService'
 import type { CmsLocalizedText } from '#modula/shared/cms'
 import { normalizeProductOptionGroups, normalizeProductOptionOverrides } from '#modula/shared/productOptions'
+import { isRentalLateFeeMode, type RentalLateFeeMode } from '#modula/shared/rentalLateFees'
+import { normalizeRentalRates } from '#modula/shared/rentalRates'
 
 interface Body {
   name?: string
@@ -43,11 +45,21 @@ interface Body {
   rentalApprovalMode?: 'AUTO' | 'MANUAL'
   rentalHourlyPrice?: number | null
   rentalDailyPrice?: number | null
+  rentalPricingStrategy?: 'LINEAR' | 'GRID'
+  rentalRates?: unknown
   rentalDurations?: number[]
   rentalSlotStepMinutes?: number
   rentalDepositAmount?: number | null
   rentalDepositAllowOnsitePayment?: boolean
   rentalDepositAllowOnlinePayment?: boolean
+  rentalLateFeeEnabled?: boolean
+  rentalLateFeeMode?: RentalLateFeeMode
+  rentalLateFeeAmount?: number | null
+  rentalLateFeeMultiplier?: number | null
+  rentalLateFeeGraceMinutes?: number
+  rentalLateFeeMinimum?: number | null
+  rentalLateFeeMaximum?: number | null
+  rentalLateFeeVatRate?: number | null
   unitLabel?: string | null
   unitLabelLocalized?: CmsLocalizedText | null
   allowOfflinePayment?: boolean
@@ -67,7 +79,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const existing = await db.product.findUnique({ where: { id } })
-  if (!existing) {
+  if (!existing || existing.deletedAt) {
     throw createError({ statusCode: 404, statusMessage: 'Produit introuvable' })
   }
 
@@ -102,6 +114,8 @@ export default defineEventHandler(async (event) => {
     data.descriptionJson = descriptionPayload.json
   }
   if (body.detailSections !== undefined) data.detailsJson = JSON.stringify(normalizeProductDetailSectionsInput(body.detailSections))
+  if (body.rentalPricingStrategy !== undefined) data.rentalPricingStrategy = body.rentalPricingStrategy === 'GRID' ? 'GRID' : 'LINEAR'
+  if (body.rentalRates !== undefined) data.rentalRatesJson = JSON.stringify(normalizeRentalRates(body.rentalRates))
   const optionGroups = body.optionGroups === undefined ? [] : normalizeProductOptionGroups(body.optionGroups)
   if (body.optionGroups !== undefined) data.optionGroupsJson = JSON.stringify(optionGroups)
   if (body.excludedOptionSetIds !== undefined) data.excludedOptionSetIdsJson = JSON.stringify(normalizeIdList(body.excludedOptionSetIds))
@@ -199,6 +213,40 @@ export default defineEventHandler(async (event) => {
     const dailyPrice = body.rentalDailyPrice !== undefined
       ? normalizeOptionalPrice(body.rentalDailyPrice)
       : existing.rentalDailyPrice ?? (existing.rentalBookingMode === 'MULTI_DAY' ? existing.price : null)
+    const rentalLateFeeEnabled = body.rentalLateFeeEnabled === undefined ? Boolean(existing.rentalLateFeeEnabled) : Boolean(body.rentalLateFeeEnabled)
+    const rentalLateFeeMode = body.rentalLateFeeMode === undefined
+      ? (isRentalLateFeeMode(existing.rentalLateFeeMode) ? existing.rentalLateFeeMode : 'PER_HOUR_STARTED')
+      : (isRentalLateFeeMode(body.rentalLateFeeMode) ? body.rentalLateFeeMode : 'PER_HOUR_STARTED')
+    const rentalLateFeeAmount = body.rentalLateFeeAmount === undefined ? nullableNumber(existing.rentalLateFeeAmount) : normalizeOptionalPrice(body.rentalLateFeeAmount)
+    const rentalLateFeeMultiplier = body.rentalLateFeeMultiplier === undefined ? nullableNumber(existing.rentalLateFeeMultiplier) : normalizeOptionalPrice(body.rentalLateFeeMultiplier)
+    const rentalLateFeeGraceMinutes = body.rentalLateFeeGraceMinutes === undefined
+      ? Math.max(0, Number(existing.rentalLateFeeGraceMinutes || 0))
+      : normalizeNonNegativeInteger(body.rentalLateFeeGraceMinutes)
+    const rentalLateFeeMinimum = body.rentalLateFeeMinimum === undefined ? nullableNumber(existing.rentalLateFeeMinimum) : normalizeOptionalPrice(body.rentalLateFeeMinimum)
+    const rentalLateFeeMaximum = body.rentalLateFeeMaximum === undefined ? nullableNumber(existing.rentalLateFeeMaximum) : normalizeOptionalPrice(body.rentalLateFeeMaximum)
+    const rentalLateFeeVatRate = body.rentalLateFeeVatRate === undefined
+      ? nullableNumber(existing.rentalLateFeeVatRate)
+      : body.rentalLateFeeVatRate == null
+        ? null
+        : normalizeVatRate(body.rentalLateFeeVatRate, Number(existing.vatRate || 20))
+    validateLateFeeConfig({
+      enabled: rentalLateFeeEnabled,
+      mode: rentalLateFeeMode,
+      amount: rentalLateFeeAmount,
+      multiplier: rentalLateFeeMultiplier,
+      minimum: rentalLateFeeMinimum,
+      maximum: rentalLateFeeMaximum,
+      hourlyPrice: hourlyPrice == null ? null : Number(hourlyPrice),
+      dailyPrice: dailyPrice == null ? null : Number(dailyPrice),
+    })
+    if (body.rentalLateFeeEnabled !== undefined) data.rentalLateFeeEnabled = rentalLateFeeEnabled
+    if (body.rentalLateFeeMode !== undefined) data.rentalLateFeeMode = rentalLateFeeMode
+    if (body.rentalLateFeeAmount !== undefined) data.rentalLateFeeAmount = rentalLateFeeAmount
+    if (body.rentalLateFeeMultiplier !== undefined) data.rentalLateFeeMultiplier = rentalLateFeeMultiplier
+    if (body.rentalLateFeeGraceMinutes !== undefined) data.rentalLateFeeGraceMinutes = rentalLateFeeGraceMinutes
+    if (body.rentalLateFeeMinimum !== undefined) data.rentalLateFeeMinimum = rentalLateFeeMinimum
+    if (body.rentalLateFeeMaximum !== undefined) data.rentalLateFeeMaximum = rentalLateFeeMaximum
+    if (body.rentalLateFeeVatRate !== undefined) data.rentalLateFeeVatRate = rentalLateFeeVatRate
     if (rentalConfig.rentalBookingMode !== 'MULTI_DAY' && hourlyPrice == null) {
       throw createError({ statusCode: 400, message: 'Le tarif horaire est requis' })
     }
@@ -210,6 +258,13 @@ export default defineEventHandler(async (event) => {
     data.rentalDepositAmount = null
     data.rentalDepositAllowOnsitePayment = true
     data.rentalDepositAllowOnlinePayment = false
+    data.rentalLateFeeEnabled = false
+    data.rentalLateFeeAmount = null
+    data.rentalLateFeeMultiplier = null
+    data.rentalLateFeeGraceMinutes = 0
+    data.rentalLateFeeMinimum = null
+    data.rentalLateFeeMaximum = null
+    data.rentalLateFeeVatRate = null
   }
 
   if (body.slug !== undefined || body.name !== undefined) {
@@ -243,6 +298,46 @@ function normalizeOptionalPrice(value: unknown) {
     throw createError({ statusCode: 400, message: 'Tarif de location invalide' })
   }
   return price
+}
+
+function nullableNumber(value: unknown) {
+  return value == null || value === '' ? null : Number(value)
+}
+
+function normalizeNonNegativeInteger(value: unknown) {
+  const number = Number(value ?? 0)
+  if (!Number.isInteger(number) || number < 0) {
+    throw createError({ statusCode: 400, message: 'Le délai de grâce doit être un nombre entier positif' })
+  }
+  return number
+}
+
+function validateLateFeeConfig(config: {
+  enabled: boolean
+  mode: RentalLateFeeMode
+  amount: number | null
+  multiplier: number | null
+  minimum: number | null
+  maximum: number | null
+  hourlyPrice: number | null
+  dailyPrice: number | null
+}) {
+  if (!config.enabled) return
+  if (config.minimum != null && config.maximum != null && config.minimum > config.maximum) {
+    throw createError({ statusCode: 400, message: 'Le minimum des frais de retard ne peut pas dépasser le plafond' })
+  }
+  if (['FIXED', 'PER_HOUR_STARTED', 'PER_DAY_STARTED'].includes(config.mode) && !(Number(config.amount) > 0)) {
+    throw createError({ statusCode: 400, message: 'Le montant des frais de retard est requis' })
+  }
+  if (config.mode.endsWith('_MULTIPLIER') && !(Number(config.multiplier) > 0)) {
+    throw createError({ statusCode: 400, message: 'Le coefficient des frais de retard est requis' })
+  }
+  if (config.mode === 'HOURLY_MULTIPLIER' && !(Number(config.hourlyPrice) > 0)) {
+    throw createError({ statusCode: 400, message: 'Un tarif horaire est requis pour calculer les frais de retard' })
+  }
+  if (config.mode === 'DAILY_MULTIPLIER' && !(Number(config.dailyPrice) > 0)) {
+    throw createError({ statusCode: 400, message: 'Un tarif journalier est requis pour calculer les frais de retard' })
+  }
 }
 
 function normalizeIdList(value: unknown) {

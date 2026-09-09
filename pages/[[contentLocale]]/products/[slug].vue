@@ -103,12 +103,24 @@
                   <dt class="font-medium">{{ dailyDurationLabel }}</dt>
                   <dd class="text-right opacity-75">{{ rentalMinSummary }} → {{ rentalMaxSummary }}</dd>
                 </div>
+                <div v-if="product.rentalPricingStrategy === 'GRID' && hourlyRateGridSummary" class="flex items-start justify-between gap-4 border-t border-base-300 pt-4">
+                  <dt class="font-medium">{{ hourlyRateGridLabel }}</dt>
+                  <dd class="max-w-sm text-right text-xs leading-6 opacity-75">{{ hourlyRateGridSummary }}</dd>
+                </div>
+                <div v-if="product.rentalPricingStrategy === 'GRID' && dailyRateGridSummary" class="flex items-start justify-between gap-4 border-t border-base-300 pt-4">
+                  <dt class="font-medium">{{ dailyRateGridLabel }}</dt>
+                  <dd class="max-w-sm text-right text-xs leading-6 opacity-75">{{ dailyRateGridSummary }}</dd>
+                </div>
                 <div v-if="rentalDepositAmount > 0" class="flex items-start justify-between gap-4 border-t border-base-300 pt-4">
                   <dt class="font-medium">{{ depositLabel }}</dt>
                   <dd class="text-right">
                     <span class="block font-medium">{{ $formatPrice(rentalDepositAmount) }}</span>
                     <span class="text-xs opacity-65">{{ depositPaymentModesSummary }}</span>
                   </dd>
+                </div>
+                <div v-if="product.rentalLateFeeEnabled" class="flex items-start justify-between gap-4 border-t border-base-300 pt-4">
+                  <dt class="font-medium">{{ lateReturnFeeLabel }}</dt>
+                  <dd class="max-w-xs text-right opacity-75">{{ lateReturnFeeSummary }}</dd>
                 </div>
               </dl>
             </section>
@@ -125,13 +137,17 @@
                 class="modula-card border border-base-300 bg-base-100 p-6 shadow-sm"
               >
                 <h3 class="text-xl font-semibold">{{ getLocalizedSectionTitle(section) }}</h3>
-                <div class="mt-4 grid gap-3">
-                  <article v-for="item in section.items" :key="item.id" class="rounded-box border border-base-300 bg-base-200/35 p-4">
-                    <div class="flex flex-col gap-1">
-                      <h4 class="font-medium">{{ getLocalizedDetailLabel(item) }}</h4>
-                      <p v-if="getLocalizedDetailValue(item)" class="whitespace-pre-line text-sm leading-6 opacity-75">{{ getLocalizedDetailValue(item) }}</p>
+                <dl class="mt-4 divide-y divide-base-300">
+                  <div v-for="item in section.items" :key="item.id" class="py-3 first:pt-0 last:pb-0">
+                    <div v-if="!item.mediaUrl && !item.mediaDocumentId" class="grid gap-1 text-sm sm:grid-cols-[minmax(8rem,0.8fr)_minmax(0,1.2fr)] sm:gap-4">
+                      <dt class="font-medium">{{ getLocalizedDetailLabel(item) }}</dt>
+                      <dd class="whitespace-pre-line leading-6 opacity-75 sm:text-right">{{ getLocalizedDetailValue(item) }}</dd>
                     </div>
-                    <div v-if="item.mediaUrl || item.mediaDocumentId" class="mt-4">
+                    <div v-else>
+                      <div class="mb-3">
+                        <dt class="font-medium">{{ getLocalizedDetailLabel(item) }}</dt>
+                        <dd v-if="getLocalizedDetailValue(item)" class="mt-1 whitespace-pre-line text-sm leading-6 opacity-75">{{ getLocalizedDetailValue(item) }}</dd>
+                      </div>
                       <AppImage
                         v-if="item.mediaKind === 'image'"
                         :src="item.mediaUrl || ''"
@@ -160,8 +176,8 @@
                         </a>
                       </div>
                     </div>
-                  </article>
-                </div>
+                  </div>
+                </dl>
               </article>
             </div>
           </section>
@@ -197,7 +213,7 @@
           <section class="modula-card border border-base-300 bg-base-100 p-6 shadow-sm">
             <div class="text-sm uppercase tracking-[0.16em] opacity-60">{{ actionTitle }}</div>
             <div class="mt-2 text-3xl font-semibold text-primary">{{ $formatPrice(product.saleType === 'RENTAL' && selectedRentalStartDate ? selectedRentalPayablePrice : product.price) }}</div>
-            <div v-if="product.saleType === 'RENTAL'" class="text-sm opacity-65">{{ selectedPricingMode === 'HOURLY' ? hourUnitLabel : dayUnitLabel }}</div>
+            <div v-if="product.saleType === 'RENTAL'" class="text-sm opacity-65">{{ rentalActionPriceUnit }}</div>
             <p class="mt-2 text-sm opacity-75">{{ actionIntro }}</p>
 
             <div class="mt-5 space-y-4">
@@ -395,6 +411,7 @@
 <script setup lang="ts">
 import { pickCmsLocalizedText } from '#modula/shared/cms'
 import type { ProductDetailField, ProductDetailSection, ProductPayload } from '#modula/server/utils/shop'
+import { resolveRentalRatePrice } from '#modula/shared/rentalRates'
 import type { ProductOption, ProductOptionGroup } from '#modula/shared/productOptions'
 import { getProductOptionCalculatedUnitPrice, getProductOptionChargedQuantity } from '#modula/shared/productOptions'
 import { useShopCart, type ShopCartItem } from '#modula/composables/useShopCart'
@@ -456,6 +473,7 @@ const rentalLabel = computed(() => publicText('shop.product.rental', 'Location')
 const offlineLabel = computed(() => publicText('shop.product.onsitePayment', 'Paiement sur place'))
 const onlineLabel = computed(() => publicText('shop.product.onlinePayment', 'Paiement en ligne'))
 const priceLabel = computed(() => publicText('shop.product.price', 'Prix'))
+const fromPriceLabel = computed(() => publicText('shop.product.fromPrice', 'À partir de'))
 const descriptionTitle = computed(() => publicText('shop.product.descriptionTitle', 'Description'))
 const noDescriptionLabel = computed(() => publicText('shop.product.noDescription', 'Aucune description détaillée n’est encore renseignée.'))
 const detailsTitle = computed(() => publicText('shop.product.detailsTitle', 'Détails du produit'))
@@ -467,6 +485,7 @@ const typeLabel = computed(() => publicText('shop.product.offerType', 'Type d’
 const paymentLabel = computed(() => publicText('shop.product.payment', 'Paiement'))
 const depositLabel = computed(() => publicText('shop.product.securityDeposit', 'Dépôt de garantie'))
 const depositPaymentLabel = computed(() => publicText('shop.product.securityDepositPayment', 'Versement du dépôt de garantie'))
+const lateReturnFeeLabel = computed(() => publicText('shop.product.lateReturnFee', 'Frais de retour tardif'))
 const noneLabel = computed(() => publicText('shop.product.none', 'Aucun'))
 const moreDetailsTitle = computed(() => publicText('shop.product.moreDetails', 'Informations détaillées'))
 const openPdfLabel = computed(() => publicText('shop.product.openPdf', 'Ouvrir le PDF'))
@@ -478,6 +497,16 @@ const rentalMinLabel = computed(() => publicText('shop.product.minimumDuration',
 const rentalMaxLabel = computed(() => publicText('shop.product.maximumDuration', 'Durée maximale'))
 const hourlyDurationsLabel = computed(() => publicText('shop.product.hourlyDurations', 'Durées à l’heure'))
 const dailyDurationLabel = computed(() => publicText('shop.product.dailyDurationRange', 'Durée à la journée'))
+const hourlyRateGridLabel = computed(() => publicText('shop.product.hourlyRateGrid', 'Tarifs à l’heure'))
+const dailyRateGridLabel = computed(() => publicText('shop.product.dailyRateGrid', 'Tarifs à la journée'))
+const hourlyRateGridSummary = computed(() => (product.value?.rentalRates || [])
+  .filter(rate => rate.pricingMode === 'HOURLY')
+  .map(rate => `${rate.duration / 60} h : ${$formatPrice(rate.price)}`)
+  .join(' · '))
+const dailyRateGridSummary = computed(() => (product.value?.rentalRates || [])
+  .filter(rate => rate.pricingMode === 'DAILY')
+  .map(rate => `${rate.duration} j : ${$formatPrice(rate.price)}`)
+  .join(' · '))
 const relatedTitle = computed(() => publicText('shop.product.relatedTitle', 'Autres produits liés'))
 const browseLabel = computed(() => publicText('shop.product.browseShop', 'Voir la boutique'))
 const resolvedBackLabel = computed(() => customReturnToListingLabel.value || backLabel.value)
@@ -523,6 +552,13 @@ const noOptionLabel = computed(() => publicText('shop.product.noOption', 'Aucun 
 const rentalRateLabels = computed(() => {
   if (!product.value || product.value.saleType !== 'RENTAL') return []
   const rates: Array<{ price: number, unit: string }> = []
+  if (product.value.rentalPricingStrategy === 'GRID') {
+    const hourly = product.value.rentalRates.find(rate => rate.pricingMode === 'HOURLY')
+    const daily = product.value.rentalRates.find(rate => rate.pricingMode === 'DAILY')
+    if (hourly) rates.push({ price: hourly.price, unit: `${hourly.duration / 60} ${hourUnitLabel.value}` })
+    if (daily) rates.push({ price: daily.price, unit: `${daily.duration} ${dayUnitLabel.value}(s)` })
+    return rates
+  }
   if (product.value.rentalBookingMode !== 'MULTI_DAY') rates.push({ price: Number(product.value.rentalHourlyPrice ?? product.value.price), unit: hourUnitLabel.value })
   if (product.value.rentalBookingMode !== 'SINGLE_DAY') rates.push({ price: Number(product.value.rentalDailyPrice ?? product.value.price), unit: dayUnitLabel.value })
   return rates
@@ -531,11 +567,22 @@ const selectedRentalPrice = computed(() => {
   if (!product.value || !selectedRentalStartDate.value || !selectedRentalEndDate.value) return product.value?.price || 0
   const milliseconds = new Date(selectedRentalEndDate.value).getTime() - new Date(selectedRentalStartDate.value).getTime()
   if (selectedPricingMode.value === 'HOURLY') {
+    const exactRate = product.value.rentalPricingStrategy === 'GRID'
+      ? resolveRentalRatePrice(product.value.rentalRates, 'HOURLY', Math.max(0, milliseconds / 3600000))
+      : null
+    if (exactRate != null) return exactRate
     return Number(product.value.rentalHourlyPrice ?? product.value.price) * Math.max(0, milliseconds / 3600000)
   }
   const days = Math.floor(milliseconds / 86400000) + 1
+  const exactRate = product.value.rentalPricingStrategy === 'GRID'
+    ? resolveRentalRatePrice(product.value.rentalRates, 'DAILY', Math.max(1, days))
+    : null
+  if (exactRate != null) return exactRate
   return Number(product.value.rentalDailyPrice ?? product.value.price) * Math.max(1, days)
 })
+const rentalActionPriceUnit = computed(() => selectedRentalStartDate.value
+  ? (selectedPricingMode.value === 'HOURLY' ? hourUnitLabel.value : dayUnitLabel.value)
+  : fromPriceLabel.value)
 const rentalDurationUnits = computed(() => {
   if (!selectedRentalStartDate.value || !selectedRentalEndDate.value) return 0
   const milliseconds = new Date(selectedRentalEndDate.value).getTime() - new Date(selectedRentalStartDate.value).getTime()
@@ -689,6 +736,25 @@ const depositPaymentModesSummary = computed(() => {
   }
   if (product.value.rentalDepositAllowOnlinePayment) return publicText('shop.product.depositOnline', 'En ligne')
   return publicText('shop.product.depositOnsite', 'Sur place')
+})
+const lateReturnFeeSummary = computed(() => {
+  if (!product.value?.rentalLateFeeEnabled) return ''
+  const mode = product.value.rentalLateFeeMode
+  const amount = Number(product.value.rentalLateFeeAmount || 0)
+  const multiplier = Number(product.value.rentalLateFeeMultiplier || 0)
+  const grace = Number(product.value.rentalLateFeeGraceMinutes || 0)
+  const rule = mode === 'FIXED'
+    ? publicText('shop.product.lateReturnFeeFixed', '{amount} par retard', { amount: $formatPrice(amount) })
+    : mode === 'PER_HOUR_STARTED'
+      ? publicText('shop.product.lateReturnFeePerHour', '{amount} par heure commencée', { amount: $formatPrice(amount) })
+      : mode === 'PER_DAY_STARTED'
+        ? publicText('shop.product.lateReturnFeePerDay', '{amount} par jour commencé', { amount: $formatPrice(amount) })
+        : mode === 'HOURLY_MULTIPLIER'
+          ? publicText('shop.product.lateReturnFeeHourlyMultiplier', '{multiplier} × le tarif horaire par heure commencée', { multiplier })
+          : publicText('shop.product.lateReturnFeeDailyMultiplier', '{multiplier} × le tarif journalier par jour commencé', { multiplier })
+  return grace > 0
+    ? publicText('shop.product.lateReturnFeeWithGrace', '{rule}, après {minutes} min de tolérance', { rule, minutes: grace })
+    : rule
 })
 
 const rentalAvailabilitySummary = computed(() => {

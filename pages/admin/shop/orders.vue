@@ -183,6 +183,82 @@
                 @click="markDepositPaidOnSite"
               >{{ t('admin.ordersPage.markDepositPaidOnSite') }}</button>
             </div>
+            <div v-if="details.rentalDeposit.retainedAmount > 0 || details.rentalDeposit.releasedAt" class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+              <div v-if="details.rentalDeposit.retainedAmount > 0">
+                {{ t('admin.ordersPage.depositRetainedAmount') }} : <strong>{{ $formatPrice(details.rentalDeposit.retainedAmount) }}</strong>
+              </div>
+              <div v-if="details.rentalDeposit.releasedAt">
+                {{ t('admin.ordersPage.depositSettledAt') }} : <strong>{{ $formatDate(details.rentalDeposit.releasedAt) }}</strong>
+              </div>
+            </div>
+            <div v-if="details.rentalDeposit.status === 'PAID'" class="mt-4 border-t border-info/20 pt-4">
+              <button
+                v-if="details.rentalDeposit.paymentMode === 'ONSITE' && !depositSettlementOpen"
+                class="btn btn-sm btn-outline"
+                :disabled="actionPending"
+                @click="openDepositSettlement"
+              >{{ t('admin.ordersPage.settleDeposit') }}</button>
+              <p v-else-if="details.rentalDeposit.paymentMode === 'ONLINE'" class="text-sm text-warning">
+                {{ t('admin.ordersPage.onlineDepositSettlementUnavailable') }}
+              </p>
+              <div v-if="depositSettlementOpen" class="grid gap-3 sm:grid-cols-[minmax(0,12rem)_1fr_auto] sm:items-end">
+                <label class="form-control flex flex-col">
+                  <span class="label"><span class="label-text">{{ t('admin.ordersPage.depositRetainedAmount') }}</span></span>
+                  <input
+                    v-model.number="depositRetainedAmount"
+                    type="number"
+                    min="0"
+                    :max="details.rentalDeposit.amount"
+                    step="0.01"
+                    class="input input-bordered input-sm"
+                  />
+                </label>
+                <label class="form-control flex flex-col">
+                  <span class="label"><span class="label-text">{{ t('admin.ordersPage.depositSettlementNote') }}</span></span>
+                  <input v-model="depositSettlementNote" type="text" class="input input-bordered input-sm" :placeholder="t('admin.ordersPage.depositSettlementNotePlaceholder')" />
+                </label>
+                <div class="flex gap-2">
+                  <button class="btn btn-ghost btn-sm" :disabled="actionPending" @click="depositSettlementOpen = false">{{ t('admin.common.cancel') }}</button>
+                  <button class="btn btn-info btn-sm" :disabled="actionPending" @click="settleDeposit">{{ t('admin.ordersPage.confirmDepositSettlement') }}</button>
+                </div>
+              </div>
+            </div>
+            <details v-if="details.rentalDeposit.actions.length" class="mt-4 border-t border-info/20 pt-3">
+              <summary class="cursor-pointer text-sm font-medium">{{ t('admin.ordersPage.depositHistory') }}</summary>
+              <ol class="mt-2 space-y-2 text-sm">
+                <li v-for="action in details.rentalDeposit.actions" :key="action.id" class="rounded-box bg-base-100/70 p-2">
+                  <div class="flex flex-wrap justify-between gap-2">
+                    <strong>{{ depositActionLabel(action.action) }}</strong>
+                    <span class="opacity-65">{{ $formatDate(action.createdAt) }}</span>
+                  </div>
+                  <div v-if="action.releasedAmount > 0">{{ t('admin.ordersPage.depositReleasedAmount') }} : {{ $formatPrice(action.releasedAmount) }}</div>
+                  <div v-if="action.retainedAmount > 0">{{ t('admin.ordersPage.depositRetainedAmount') }} : {{ $formatPrice(action.retainedAmount) }}</div>
+                  <div v-if="action.note" class="opacity-75">{{ action.note }}</div>
+                  <div v-if="action.actorName" class="text-xs opacity-60">{{ action.actorName }}</div>
+                </li>
+              </ol>
+            </details>
+          </div>
+
+          <div v-if="details.rentalReturns.length" class="mt-4 rounded-xl border border-base-300 p-4">
+            <div class="font-medium">{{ t('admin.ordersPage.rentalReturnsTitle') }}</div>
+            <div class="mt-3 space-y-3">
+              <div v-for="item in details.rentalReturns" :key="item.id" class="rounded-box bg-base-200/70 p-3 text-sm">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div>{{ t('admin.ordersPage.expectedReturnAt') }} : <strong>{{ formatRentalDateTime(item.scheduledReturnAt) }}</strong></div>
+                    <div>{{ t('admin.ordersPage.actualReturnAt') }} : <strong>{{ formatRentalDateTime(item.actualReturnAt) }}</strong></div>
+                  </div>
+                  <span class="badge" :class="rentalReturnBadge(item.status)">{{ rentalReturnLabel(item.status) }}</span>
+                </div>
+                <div v-if="item.lateMinutes > 0" class="mt-2 border-t border-base-300 pt-2">
+                  <div>{{ t('admin.ordersPage.lateDuration') }} : <strong>{{ item.lateMinutes }} min</strong></div>
+                  <div v-if="item.totalInclTax > 0">{{ t('admin.ordersPage.lateFeeAmount') }} : <strong>{{ $formatPrice(item.totalInclTax) }}</strong> <span class="opacity-60">({{ $formatPrice(item.subtotalExclTax) }} HT + {{ $formatPrice(item.vatAmount) }} TVA)</span></div>
+                  <div v-if="item.waiverReason">{{ t('admin.ordersPage.lateFeeWaiverReason') }} : {{ item.waiverReason }}</div>
+                  <div v-if="item.paidAt">{{ t('admin.ordersPage.lateFeePaidAt') }} : {{ formatRentalDateTime(item.paidAt) }}</div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="mt-6">
@@ -391,19 +467,52 @@ interface ShopOrder {
   cancelledAt: string | null
   createdAt: string
   lines: ShopOrderLine[]
+  rentalReturns: RentalReturn[]
   rentalDeposit: {
     id: number
     amount: number
     paymentMode: 'ONSITE' | 'ONLINE'
     status: 'PENDING' | 'PAID' | 'PARTIALLY_RETAINED' | 'RETAINED' | 'RELEASED' | 'FAILED'
     paidAt: string | null
+    releasedAt: string | null
+    retainedAmount: number
     failureReason: string | null
+    actions: Array<{
+      id: number
+      action: 'MARKED_PAID' | 'RELEASED' | 'PARTIALLY_RETAINED' | 'RETAINED'
+      releasedAmount: number
+      retainedAmount: number
+      note: string | null
+      providerReference: string | null
+      createdAt: string
+      actorName: string | null
+    }>
   } | null
+}
+
+type RentalReturnStatus = 'RETURNED_ON_TIME' | 'RETURNED_LATE_PENDING' | 'LATE_FEE_DUE' | 'LATE_FEE_WAIVED' | 'LATE_FEE_PAID'
+interface RentalReturn {
+  id: number
+  scheduledReturnAt: string
+  actualReturnAt: string
+  status: RentalReturnStatus
+  lateMinutes: number
+  subtotalExclTax: number
+  vatAmount: number
+  totalInclTax: number
+  waiverReason: string | null
+  paidAt: string | null
 }
 
 const { t } = useI18n()
 const route = useRoute()
 const { $toast, $formatPrice, $formatDate } = useNuxtApp() as any
+const formatRentalDateTime = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+const rentalReturnLabel = (status: RentalReturnStatus) => t(`admin.rentalsPage.returnStatus.${status.toLowerCase()}`)
+const rentalReturnBadge = (status: RentalReturnStatus) => ({
+  RETURNED_ON_TIME: 'badge-success', RETURNED_LATE_PENDING: 'badge-warning', LATE_FEE_DUE: 'badge-error',
+  LATE_FEE_WAIVED: 'badge-info', LATE_FEE_PAID: 'badge-success',
+} as Record<RentalReturnStatus, string>)[status]
 
 const page = ref(1)
 const selectedStatus = ref('')
@@ -413,6 +522,9 @@ const details = ref<ShopOrder | null>(null)
 const loadingDetails = ref(false)
 const actionPending = ref(false)
 const nextStatus = ref<ShopOrder['status'] | ''>('')
+const depositSettlementOpen = ref(false)
+const depositRetainedAmount = ref(0)
+const depositSettlementNote = ref('')
 
 const query = computed(() => ({
   page: page.value,
@@ -544,6 +656,7 @@ onMounted(() => {
 const closeDetails = () => {
   detailsDialog.value?.close()
   details.value = null
+  depositSettlementOpen.value = false
 }
 
 const updateStatus = async (status: ShopOrder['status']) => {
@@ -595,12 +708,47 @@ const markDepositPaidOnSite = async () => {
   }
 }
 
+const openDepositSettlement = () => {
+  depositRetainedAmount.value = 0
+  depositSettlementNote.value = ''
+  depositSettlementOpen.value = true
+}
+
+const settleDeposit = async () => {
+  if (!details.value?.rentalDeposit || actionPending.value) return
+  const retainedAmount = Number(depositRetainedAmount.value || 0)
+  if (retainedAmount > 0 && !depositSettlementNote.value.trim()) {
+    $toast.error(t('admin.ordersPage.depositSettlementNoteRequired'))
+    return
+  }
+  if (!globalThis.confirm(t('admin.ordersPage.settleDepositConfirm'))) return
+  actionPending.value = true
+  try {
+    await $fetch(`/api/admin/orders/${details.value.id}/deposit/settle`, {
+      method: 'POST',
+      body: { retainedAmount, note: depositSettlementNote.value },
+    })
+    details.value = await $fetch<ShopOrder>(`/api/admin/orders/${details.value.id}`)
+    depositSettlementOpen.value = false
+    await refresh()
+    $toast.success(t('admin.ordersPage.settleDepositSuccess'))
+  } catch (error: any) {
+    $toast.error(error?.data?.message || error?.statusMessage || t('common.error'))
+  } finally {
+    actionPending.value = false
+  }
+}
+
 function depositPaymentModeLabel(mode: 'ONSITE' | 'ONLINE') {
   return mode === 'ONLINE' ? t('admin.ordersPage.depositPaymentOnline') : t('admin.ordersPage.depositPaymentOnsite')
 }
 
 function depositStatusLabel(status: NonNullable<ShopOrder['rentalDeposit']>['status']) {
   return t(`admin.ordersPage.depositStatus.${status.toLowerCase()}`)
+}
+
+function depositActionLabel(action: NonNullable<ShopOrder['rentalDeposit']>['actions'][number]['action']) {
+  return t(`admin.ordersPage.depositAction.${action.toLowerCase()}`)
 }
 
 function rentalDurationLabel(line: ShopOrderLine) {

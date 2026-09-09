@@ -1,6 +1,7 @@
 import { db } from '#modula/server/data/client'
 import { serializeShopOrder } from '#modula/server/utils/shop'
 import { requirePermission } from '#modula/server/utils/permissions'
+import { serializeRentalReturn } from '#modula/server/services/shop/rentalReturns'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'shop_orders', 'read')
@@ -32,6 +33,19 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const rentalDepositActions = rentalDeposit
+    ? await db.rentalDepositAction.findMany({
+        where: { depositId: rentalDeposit.id },
+        include: { actor: true },
+        orderBy: { createdAt: 'desc' },
+      })
+    : []
+  const rentalReturns = await db.rentalReturn.findMany({
+    where: { orderId: id },
+    include: { actor: true },
+    orderBy: { actualReturnAt: 'desc' },
+  })
+
   return {
     ...serializeShopOrder(row),
     rentalDeposit: rentalDeposit
@@ -39,7 +53,20 @@ export default defineEventHandler(async (event) => {
           ...rentalDeposit,
           amount: Number(rentalDeposit.amount || 0),
           retainedAmount: Number(rentalDeposit.retainedAmount || 0),
+          actions: rentalDepositActions.map((action: any) => ({
+            id: action.id,
+            action: action.action,
+            releasedAmount: Number(action.releasedAmount || 0),
+            retainedAmount: Number(action.retainedAmount || 0),
+            note: action.note,
+            providerReference: action.providerReference,
+            createdAt: action.createdAt,
+            actorName: action.actor
+              ? [action.actor.firstName, action.actor.lastName].filter(Boolean).join(' ') || action.actor.email
+              : null,
+          })),
         }
       : null,
+    rentalReturns: rentalReturns.map(serializeRentalReturn),
   }
 })

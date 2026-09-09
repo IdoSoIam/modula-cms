@@ -123,7 +123,47 @@
                   <input v-model="page.applicationConfig.shopShowViewToggle" type="checkbox" class="checkbox checkbox-primary checkbox-sm">
                   <span class="label-text">{{ t('admin.pageEditorPage.shopShowViewToggle') }}</span>
                 </label>
+                <label class="form-control gap-2 flex flex-col">
+                  <span class="label-text font-semibold">{{ t('admin.pageEditorPage.shopPageSize') }}</span>
+                  <select v-model.number="page.applicationConfig.shopPageSize" class="select select-bordered">
+                    <option v-for="size in [6, 9, 12, 18, 24, 36, 48]" :key="size" :value="size">{{ size }}</option>
+                  </select>
+                  <span class="text-xs opacity-60">{{ t('admin.pageEditorPage.shopPageSizeHelp') }}</span>
+                </label>
               </div>
+
+              <fieldset class="rounded-box border border-base-300 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <legend class="text-sm font-semibold">{{ t('admin.pageEditorPage.shopCategoryLinks') }}</legend>
+                    <p class="mt-1 text-xs opacity-65">{{ t('admin.pageEditorPage.shopCategoryLinksHelp') }}</p>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline" @click="addShopCategoryLink">
+                    <Icon name="mdi:plus" size="18" /> {{ t('admin.pageEditorPage.shopCategoryLinkAdd') }}
+                  </button>
+                </div>
+                <div v-if="page.applicationConfig.shopCategoryLinks.length" class="mt-4 space-y-3">
+                  <div v-for="(link, index) in page.applicationConfig.shopCategoryLinks" :key="index" class="grid gap-3 rounded-box bg-base-200/50 p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                    <label class="form-control flex flex-col gap-1">
+                      <span class="label-text text-xs">{{ t('admin.pageEditorPage.shopCategoryLinkCategory') }}</span>
+                      <select v-model.number="link.categoryId" class="select select-bordered select-sm">
+                        <option :value="0">{{ t('admin.pageEditorPage.shopCategoryLinkChoose') }}</option>
+                        <option v-for="category in productCategories || []" :key="category.id" :value="category.id">{{ category.name }}</option>
+                      </select>
+                    </label>
+                    <label class="form-control flex flex-col gap-1">
+                      <span class="label-text text-xs">{{ t('admin.pageEditorPage.shopCategoryLinkPage') }}</span>
+                      <select v-model.number="link.pageId" class="select select-bordered select-sm">
+                        <option :value="0">{{ t('admin.pageEditorPage.shopCategoryLinkChoose') }}</option>
+                        <option v-for="targetPage in shopTargetPages" :key="targetPage.id" :value="targetPage.id">{{ targetPage.title }} ({{ targetPage.path }})</option>
+                      </select>
+                    </label>
+                    <button type="button" class="btn btn-sm btn-ghost text-error" @click="page.applicationConfig.shopCategoryLinks.splice(index, 1)">
+                      <Icon name="mdi:delete-outline" size="18" />
+                    </button>
+                  </div>
+                </div>
+              </fieldset>
             </div>
           </section>
 
@@ -253,6 +293,10 @@ interface ProductCategoryOption {
   name: string
 }
 
+interface CmsPageListOption extends CmsPagePayload {
+  id: number
+}
+
 const route = useRoute()
 const localePath = useLocalePath()
 const { $toast } = useNuxtApp() as any
@@ -274,6 +318,7 @@ const allPageRendererOptions = [
 
 const { data } = await useFetch<CmsPageEditor>(`/api/admin/cms/pages/${route.params.id}`)
 const { data: productCategories } = await useFetch<ProductCategoryOption[]>('/api/admin/product-categories')
+const { data: cmsPages } = await useFetch<CmsPageListOption[]>('/api/admin/cms/pages')
 const { data: siteShellData } = await useFetch<{ settings: CmsSiteSettings, navigation: Array<CmsNavigationItemPayload & { id?: number | null }>, featureFlags: {
   inDevelopment: boolean
   registerEnabled: boolean
@@ -301,9 +346,16 @@ if (!siteShellData.value) {
 const page = reactive<CmsPageEditor>(structuredClone(data.value))
 page.applicationConfig ??= {
   shopCategoryIds: [],
+  shopSubtitle: { fr: '', en: '' },
   shopDefaultViewMode: 'grid',
-  shopShowViewToggle: true
+  shopShowViewToggle: true,
+  shopPageSize: 12,
+  shopCategoryLinks: [],
 }
+page.applicationConfig.shopPageSize ??= 12
+page.applicationConfig.shopCategoryLinks ??= []
+page.applicationConfig.shopSubtitle ??= { fr: '', en: '' }
+const shopTargetPages = computed(() => (cmsPages.value || []).filter(entry => entry.id !== page.id && entry.status === 'PUBLISHED'))
 const siteShellModel = reactive(structuredClone(siteShellData.value))
 const featureFlags = computed(() => siteShellModel.featureFlags)
 const clonePlainData = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
@@ -313,6 +365,10 @@ const toggleShopCategory = (categoryId: number) => {
   page.applicationConfig.shopCategoryIds = selected.includes(categoryId)
     ? selected.filter(id => id !== categoryId)
     : [...selected, categoryId]
+}
+
+const addShopCategoryLink = () => {
+  page.applicationConfig.shopCategoryLinks.push({ categoryId: 0, pageId: 0 })
 }
 
 const isEmptyPageBuilderContent = (content: PageBuilderContent | null | undefined) =>
@@ -414,14 +470,14 @@ const localizedTitle = computed({
   }
 })
 const applicationLocalizedTitle = computed<null | LocalizedText>(() => {
-  if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.title
+  if (selectedPageRenderer.value === 'shop') return localizedTitle.value
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.title
   if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.title
   if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.title
   return null
 })
 const applicationLocalizedSubtitle = computed<null | LocalizedText>(() => {
-  if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.subtitle
+  if (selectedPageRenderer.value === 'shop') return page.applicationConfig.shopSubtitle
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.subtitle
   if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.subtitle
   if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.subtitle
@@ -433,7 +489,7 @@ const applicationLocalizedReturnToListingLabel = computed<null | LocalizedText>(
 })
 
 const getApplicationLocalizedTitleTarget = () => {
-  if (selectedPageRenderer.value === 'shop') return siteShellModel.settings.basketsPage.title
+  if (selectedPageRenderer.value === 'shop') return localizedTitle.value
   if (selectedPageRenderer.value === 'news') return siteShellModel.settings.newsPage.title
   if (selectedPageRenderer.value === 'events') return siteShellModel.settings.eventsPage.title
   if (selectedPageRenderer.value === 'planning') return siteShellModel.settings.planningPage.title
@@ -452,6 +508,13 @@ const syncInternalTitleFromApplicationSettings = () => {
 
 const syncApplicationSettingsFromInternalTitle = () => {
   if (selectedPageRenderer.value === 'cms') return
+  if (selectedPageRenderer.value === 'shop') {
+    localizedTitle.value = {
+      ...localizedTitle.value,
+      [adminLocale.value]: page.title.trim(),
+    }
+    return
+  }
   const target = getApplicationLocalizedTitleTarget()
   if (!target) return
   target[adminLocale.value] = page.title.trim()
@@ -506,7 +569,7 @@ const togglePanel = (id: string) => {
 
 const updateVisibleTitle = (value: LocalizedText) => {
   if (selectedPageRenderer.value === 'shop') {
-    siteShellModel.settings.basketsPage.title = clonePlainData(value)
+    localizedTitle.value = clonePlainData(value)
     return
   }
   if (selectedPageRenderer.value === 'news') {
@@ -526,7 +589,7 @@ const updateVisibleTitle = (value: LocalizedText) => {
 
 const updateVisibleSubtitle = (value: LocalizedText) => {
   if (selectedPageRenderer.value === 'shop') {
-    siteShellModel.settings.basketsPage.subtitle = clonePlainData(value)
+    page.applicationConfig.shopSubtitle = clonePlainData(value)
     return
   }
   if (selectedPageRenderer.value === 'news') {

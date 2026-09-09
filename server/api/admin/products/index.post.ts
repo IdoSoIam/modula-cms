@@ -14,6 +14,8 @@ import { normalizeRentalConfig } from '#modula/server/services/shop/rentalConfig
 import { isStripeConfigured } from '#modula/server/services/payment/paymentService'
 import type { CmsLocalizedText } from '#modula/shared/cms'
 import { normalizeProductOptionGroups, normalizeProductOptionOverrides } from '#modula/shared/productOptions'
+import { isRentalLateFeeMode, type RentalLateFeeMode } from '#modula/shared/rentalLateFees'
+import { normalizeRentalRates } from '#modula/shared/rentalRates'
 
 interface Body {
   name?: string
@@ -43,11 +45,21 @@ interface Body {
   rentalApprovalMode?: 'AUTO' | 'MANUAL'
   rentalHourlyPrice?: number | null
   rentalDailyPrice?: number | null
+  rentalPricingStrategy?: 'LINEAR' | 'GRID'
+  rentalRates?: unknown
   rentalDurations?: number[]
   rentalSlotStepMinutes?: number
   rentalDepositAmount?: number | null
   rentalDepositAllowOnsitePayment?: boolean
   rentalDepositAllowOnlinePayment?: boolean
+  rentalLateFeeEnabled?: boolean
+  rentalLateFeeMode?: RentalLateFeeMode
+  rentalLateFeeAmount?: number | null
+  rentalLateFeeMultiplier?: number | null
+  rentalLateFeeGraceMinutes?: number
+  rentalLateFeeMinimum?: number | null
+  rentalLateFeeMaximum?: number | null
+  rentalLateFeeVatRate?: number | null
   unitLabel?: string | null
   unitLabelLocalized?: CmsLocalizedText | null
   allowOfflinePayment?: boolean
@@ -99,6 +111,14 @@ export default defineEventHandler(async (event) => {
   const rentalDepositAmount = normalizeOptionalPrice(body.rentalDepositAmount)
   const rentalDepositAllowOnsitePayment = body.rentalDepositAllowOnsitePayment ?? true
   const rentalDepositAllowOnlinePayment = body.rentalDepositAllowOnlinePayment ?? false
+  const rentalLateFeeEnabled = body.saleType === 'RENTAL' && Boolean(body.rentalLateFeeEnabled)
+  const rentalLateFeeMode = isRentalLateFeeMode(body.rentalLateFeeMode) ? body.rentalLateFeeMode : 'PER_HOUR_STARTED'
+  const rentalLateFeeAmount = normalizeOptionalPrice(body.rentalLateFeeAmount)
+  const rentalLateFeeMultiplier = normalizeOptionalPrice(body.rentalLateFeeMultiplier)
+  const rentalLateFeeGraceMinutes = normalizeNonNegativeInteger(body.rentalLateFeeGraceMinutes)
+  const rentalLateFeeMinimum = normalizeOptionalPrice(body.rentalLateFeeMinimum)
+  const rentalLateFeeMaximum = normalizeOptionalPrice(body.rentalLateFeeMaximum)
+  const rentalLateFeeVatRate = body.rentalLateFeeVatRate == null ? null : normalizeVatRate(body.rentalLateFeeVatRate, vatRate)
   if (!Number.isFinite(price) || price < 0) {
     throw createError({ statusCode: 400, statusMessage: 'Prix invalide' })
   }
@@ -130,6 +150,16 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Le versement en ligne du dépôt de garantie nécessite un fournisseur de paiement configuré' })
     }
   }
+  validateLateFeeConfig({
+    enabled: rentalLateFeeEnabled,
+    mode: rentalLateFeeMode,
+    amount: rentalLateFeeAmount,
+    multiplier: rentalLateFeeMultiplier,
+    minimum: rentalLateFeeMinimum,
+    maximum: rentalLateFeeMaximum,
+    hourlyPrice: rentalHourlyPrice,
+    dailyPrice: rentalDailyPrice,
+  })
   if (!allowOfflinePayment && !allowOnlinePayment) {
     throw createError({ statusCode: 400, statusMessage: 'Au moins un mode de paiement doit être activé' })
   }
@@ -169,11 +199,21 @@ export default defineEventHandler(async (event) => {
       rentalApprovalMode: body.rentalApprovalMode === 'MANUAL' ? 'MANUAL' : 'AUTO',
       rentalHourlyPrice,
       rentalDailyPrice,
+      rentalPricingStrategy: body.rentalPricingStrategy === 'GRID' ? 'GRID' : 'LINEAR',
+      rentalRatesJson: JSON.stringify(normalizeRentalRates(body.rentalRates)),
       rentalDurationsJson: JSON.stringify(rentalConfig.rentalDurations),
       rentalSlotStepMinutes: rentalConfig.rentalSlotStepMinutes,
       rentalDepositAmount: body.saleType === 'RENTAL' ? rentalDepositAmount : null,
       rentalDepositAllowOnsitePayment: body.saleType === 'RENTAL' ? rentalDepositAllowOnsitePayment : true,
       rentalDepositAllowOnlinePayment: body.saleType === 'RENTAL' ? rentalDepositAllowOnlinePayment : false,
+      rentalLateFeeEnabled,
+      rentalLateFeeMode,
+      rentalLateFeeAmount: body.saleType === 'RENTAL' ? rentalLateFeeAmount : null,
+      rentalLateFeeMultiplier: body.saleType === 'RENTAL' ? rentalLateFeeMultiplier : null,
+      rentalLateFeeGraceMinutes: body.saleType === 'RENTAL' ? rentalLateFeeGraceMinutes : 0,
+      rentalLateFeeMinimum: body.saleType === 'RENTAL' ? rentalLateFeeMinimum : null,
+      rentalLateFeeMaximum: body.saleType === 'RENTAL' ? rentalLateFeeMaximum : null,
+      rentalLateFeeVatRate: body.saleType === 'RENTAL' ? rentalLateFeeVatRate : null,
       unitLabel: unitLabelPayload.text || null,
       unitLabelJson: unitLabelPayload.json,
       allowOfflinePayment,
@@ -205,6 +245,42 @@ function normalizeOptionalPrice(value: unknown) {
     throw createError({ statusCode: 400, message: 'Tarif de location invalide' })
   }
   return price
+}
+
+function normalizeNonNegativeInteger(value: unknown) {
+  const number = Number(value ?? 0)
+  if (!Number.isInteger(number) || number < 0) {
+    throw createError({ statusCode: 400, message: 'Le délai de grâce doit être un nombre entier positif' })
+  }
+  return number
+}
+
+function validateLateFeeConfig(config: {
+  enabled: boolean
+  mode: RentalLateFeeMode
+  amount: number | null
+  multiplier: number | null
+  minimum: number | null
+  maximum: number | null
+  hourlyPrice: number | null
+  dailyPrice: number | null
+}) {
+  if (!config.enabled) return
+  if (config.minimum != null && config.maximum != null && config.minimum > config.maximum) {
+    throw createError({ statusCode: 400, message: 'Le minimum des frais de retard ne peut pas dépasser le plafond' })
+  }
+  if (['FIXED', 'PER_HOUR_STARTED', 'PER_DAY_STARTED'].includes(config.mode) && !(Number(config.amount) > 0)) {
+    throw createError({ statusCode: 400, message: 'Le montant des frais de retard est requis' })
+  }
+  if (config.mode.endsWith('_MULTIPLIER') && !(Number(config.multiplier) > 0)) {
+    throw createError({ statusCode: 400, message: 'Le coefficient des frais de retard est requis' })
+  }
+  if (config.mode === 'HOURLY_MULTIPLIER' && !(Number(config.hourlyPrice) > 0)) {
+    throw createError({ statusCode: 400, message: 'Un tarif horaire est requis pour calculer les frais de retard' })
+  }
+  if (config.mode === 'DAILY_MULTIPLIER' && !(Number(config.dailyPrice) > 0)) {
+    throw createError({ statusCode: 400, message: 'Un tarif journalier est requis pour calculer les frais de retard' })
+  }
 }
 
 function normalizeIdList(value: unknown) {

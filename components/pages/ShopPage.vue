@@ -72,6 +72,55 @@
         <div v-else class="modula-card border border-dashed border-base-300 px-6 py-14 text-center opacity-60">
           {{ emptyLabel }}
         </div>
+
+        <nav v-if="pagination.totalPages > 1" class="mt-8 flex flex-wrap items-center justify-center gap-3" :aria-label="paginationLabel">
+          <button type="button" class="btn btn-sm btn-outline" :disabled="pagination.page <= 1" @click="goToPage(pagination.page - 1)">
+            <Icon name="mdi:chevron-left" size="18" />
+            <span class="hidden sm:inline">{{ previousPageLabel }}</span>
+          </button>
+          <div class="join">
+            <button
+              v-for="pageNumber in visiblePageNumbers"
+              :key="pageNumber"
+              type="button"
+              class="btn btn-sm join-item"
+              :class="pageNumber === pagination.page ? 'btn-primary' : 'btn-ghost'"
+              :aria-current="pageNumber === pagination.page ? 'page' : undefined"
+              @click="goToPage(pageNumber)"
+            >
+              {{ pageNumber }}
+            </button>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline" :disabled="pagination.page >= pagination.totalPages" @click="goToPage(pagination.page + 1)">
+            <span class="hidden sm:inline">{{ nextPageLabel }}</span>
+            <Icon name="mdi:chevron-right" size="18" />
+          </button>
+          <p class="w-full text-center text-xs opacity-60">{{ paginationSummary }}</p>
+        </nav>
+
+        <section v-if="categoryLinks.length" class="mt-8" :aria-labelledby="categoryLinksTitleId">
+          <h2 :id="categoryLinksTitleId" class="mb-4 text-xl font-semibold">{{ categoryLinksTitle }}</h2>
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <NuxtLink
+              v-for="link in categoryLinks"
+              :key="`${link.category.id}-${link.href}`"
+              :to="localePath(link.href)"
+              class="modula-card group flex min-h-32 overflow-hidden border border-base-300 bg-base-100 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md"
+            >
+              <div v-if="link.imageUrl" class="w-32 shrink-0 overflow-hidden bg-base-200 sm:w-36">
+                <img :src="link.imageUrl" :alt="link.category.name" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+              </div>
+              <div class="flex min-w-0 flex-1 flex-col justify-center p-4">
+                <h3 class="text-lg font-semibold">{{ link.category.name }}</h3>
+                <p v-if="link.category.description" class="mt-1 line-clamp-2 text-sm opacity-65">{{ link.category.description }}</p>
+                <span class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary">
+                  {{ categoryLinkAction }}
+                  <Icon name="mdi:arrow-right" size="17" />
+                </span>
+              </div>
+            </NuxtLink>
+          </div>
+        </section>
       </template>
     </div>
   </section>
@@ -83,6 +132,25 @@ import { pickCmsLocalizedText } from '#modula/shared/cms'
 import ProductList from '#modula/components/shop/ProductList.vue'
 import { useShopCart } from '#modula/composables/useShopCart'
 import type { ProductCategoryPayload, ProductPayload } from '#modula/server/utils/shop'
+
+interface ShopCategoryLinkPayload {
+  category: ProductCategoryPayload
+  href: string
+  imageUrl: string | null
+}
+
+interface ShopCatalogResponse {
+  categories: ProductCategoryPayload[]
+  categoryLinks: ShopCategoryLinkPayload[]
+  selectedCategorySlug: string
+  products: ProductPayload[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
 
 const props = defineProps<{
   settings?: CmsBasketsPageSettings | null
@@ -102,25 +170,51 @@ const { count, add } = useShopCart()
 
 const selectedCategorySlug = ref(typeof route.query.category === 'string' ? route.query.category : '')
 const viewMode = ref<'grid' | 'list'>(props.applicationConfig?.shopDefaultViewMode === 'list' ? 'list' : 'grid')
-const { data, pending } = await useFetch<{ categories: ProductCategoryPayload[], products: ProductPayload[] }>('/api/shop/catalog', {
+const viewPreferenceLoaded = ref(false)
+const viewPreferenceKey = computed(() => `modula:shop-view:${route.path}`)
+const requestedPage = computed(() => {
+  const value = Number(route.query.page)
+  return Number.isInteger(value) && value > 0 ? value : 1
+})
+const configuredPageSize = computed(() => Math.max(1, Math.min(48, Number(props.applicationConfig?.shopPageSize) || 12)))
+const configuredCategoryLinks = computed(() => (props.applicationConfig?.shopCategoryLinks || [])
+  .filter(link => Number(link.categoryId) > 0 && Number(link.pageId) > 0)
+  .map(link => `${link.categoryId}:${link.pageId}`)
+  .join(','))
+const { data, pending } = await useFetch<ShopCatalogResponse>('/api/shop/catalog', {
   query: computed(() => ({
     view: 'products',
     category: selectedCategorySlug.value || undefined,
-    categoryIds: props.applicationConfig?.shopCategoryIds?.join(',') || undefined
+    categoryIds: props.applicationConfig?.shopCategoryIds?.join(',') || undefined,
+    categoryLinks: configuredCategoryLinks.value || undefined,
+    page: requestedPage.value,
+    pageSize: configuredPageSize.value,
   }))
 })
 
 const categories = computed(() => data.value?.categories || [])
+const categoryLinks = computed(() => data.value?.categoryLinks || [])
 const products = computed(() => data.value?.products || [])
+const pagination = computed(() => data.value?.pagination || {
+  page: 1,
+  pageSize: configuredPageSize.value,
+  total: products.value.length,
+  totalPages: 1,
+})
+const visiblePageNumbers = computed(() => {
+  const start = Math.max(1, Math.min(pagination.value.page - 2, pagination.value.totalPages - 4))
+  const end = Math.min(pagination.value.totalPages, start + 4)
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index)
+})
 
 const pageTitle = computed(() =>
-  pickCmsLocalizedText(locale.value, props.settings?.title)
-  || String(props.pageTitleOverride || '').trim()
+  String(props.pageTitleOverride || '').trim()
+  || pickCmsLocalizedText(locale.value, props.settings?.title)
   || publicText('shop.catalog.title', 'Boutique')
 )
 const pageSubtitle = computed(() =>
-  pickCmsLocalizedText(locale.value, props.settings?.subtitle)
-  || String(props.pageSubtitleOverride || '').trim()
+  String(props.pageSubtitleOverride || '').trim()
+  || pickCmsLocalizedText(locale.value, props.settings?.subtitle)
   || publicText('shop.catalog.subtitle', 'Parcourez les produits a vendre ou a louer.')
 )
 const cartButtonLabel = computed(() => publicText('shop.catalog.cartButton', 'Panier ({count})', { count: count.value }))
@@ -137,6 +231,16 @@ const onlineLabel = computed(() => publicText('shop.catalog.onlinePayment', 'Pai
 const viewModeLabel = computed(() => publicText('shop.catalog.viewMode', 'Affichage des produits'))
 const gridViewLabel = computed(() => publicText('shop.catalog.gridView', 'Grille'))
 const listViewLabel = computed(() => publicText('shop.catalog.listView', 'Liste'))
+const categoryLinksTitle = computed(() => publicText('shop.catalog.categoryLinksTitle', 'Explorer aussi'))
+const categoryLinkAction = computed(() => publicText('shop.catalog.categoryLinkAction', 'Découvrir'))
+const paginationLabel = computed(() => publicText('shop.catalog.pagination', 'Pagination des produits'))
+const previousPageLabel = computed(() => publicText('shop.catalog.previousPage', 'Précédent'))
+const nextPageLabel = computed(() => publicText('shop.catalog.nextPage', 'Suivant'))
+const paginationSummary = computed(() => publicText('shop.catalog.paginationSummary', 'Page {page} sur {total}', {
+  page: pagination.value.page,
+  total: pagination.value.totalPages,
+}))
+const categoryLinksTitleId = useId()
 const itemBackgroundColor = computed(() => 'var(--fallback-b1,oklch(var(--b1)/1))')
 const showCategoryFilters = computed(() => categories.value.length > 1)
 const showViewToggle = computed(() => props.applicationConfig?.shopShowViewToggle !== false)
@@ -148,7 +252,17 @@ watch(() => route.query.category, (value) => {
 })
 
 watch(() => props.applicationConfig?.shopDefaultViewMode, value => {
-  viewMode.value = value === 'list' ? 'list' : 'grid'
+  if (!viewPreferenceLoaded.value) viewMode.value = value === 'list' ? 'list' : 'grid'
+})
+
+onMounted(() => {
+  const savedViewMode = localStorage.getItem(viewPreferenceKey.value)
+  if (savedViewMode === 'grid' || savedViewMode === 'list') viewMode.value = savedViewMode
+  viewPreferenceLoaded.value = true
+})
+
+watch(viewMode, (value) => {
+  if (import.meta.client && viewPreferenceLoaded.value) localStorage.setItem(viewPreferenceKey.value, value)
 })
 
 const selectCategory = async (slug: string) => {
@@ -156,8 +270,19 @@ const selectCategory = async (slug: string) => {
   await router.replace({
     query: {
       ...route.query,
-      category: slug || undefined
+      category: slug || undefined,
+      page: undefined,
     }
+  })
+}
+
+const goToPage = async (pageNumber: number) => {
+  const nextPage = Math.max(1, Math.min(pagination.value.totalPages, pageNumber))
+  await router.replace({
+    query: {
+      ...route.query,
+      page: nextPage > 1 ? String(nextPage) : undefined,
+    },
   })
 }
 

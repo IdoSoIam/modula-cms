@@ -1,13 +1,19 @@
 <template>
   <div class="card bg-base-100 p-6">
-    <div class="mb-6 flex items-center justify-between gap-4">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold">{{ t('admin.productsPage.title') }}</h1>
         <p class="mt-1 text-sm opacity-70">{{ t('admin.productsPage.description') }}</p>
       </div>
-      <button class="btn btn-primary" @click="openNew">
-        <Icon name="mdi:plus" size="20" /> {{ t('admin.productsPage.new') }}
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <button class="btn btn-ghost" :class="showArchived ? 'btn-active' : ''" @click="showArchived = !showArchived">
+          <Icon name="mdi:archive-outline" size="20" />
+          {{ showArchived ? t('admin.productsPage.showActive') : t('admin.productsPage.showArchived') }}
+        </button>
+        <button class="btn btn-primary" @click="openNew">
+          <Icon name="mdi:plus" size="20" /> {{ t('admin.productsPage.new') }}
+        </button>
+      </div>
     </div>
 
     <div v-if="pending" class="loading loading-spinner" />
@@ -51,11 +57,15 @@
               </span>
             </td>
             <td class="text-right">
-              <button class="btn btn-ghost btn-sm" @click="openEdit(product)">
+              <button v-if="!showArchived" class="btn btn-ghost btn-sm" @click="openEdit(product)">
                 <Icon name="mdi:pencil" size="16" />
               </button>
-              <button class="btn btn-ghost btn-sm text-error" @click="remove(product)">
-                <Icon name="mdi:delete" size="16" />
+              <button v-if="!showArchived" class="btn btn-ghost btn-sm text-error" @click="remove(product)">
+                <Icon name="mdi:archive-arrow-down-outline" size="16" />
+              </button>
+              <button v-else class="btn btn-ghost btn-sm text-success" @click="restore(product)">
+                <Icon name="mdi:restore" size="16" />
+                {{ t('admin.productsPage.restore') }}
               </button>
             </td>
           </tr>
@@ -75,7 +85,10 @@ import { pickCmsLocalizedText } from '#modula/shared/cms'
 import type { ProductPayload } from '#modula/server/utils/shop'
 import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
 
-const { data: products, pending, refresh } = await useFetch<ProductPayload[]>('/api/admin/products')
+const showArchived = ref(false)
+const { data: products, pending, refresh } = await useFetch<ProductPayload[]>('/api/admin/products', {
+  query: computed(() => ({ archived: showArchived.value ? 'true' : undefined })),
+})
 
 const { locale, t } = useI18n()
 const localePath = useLocalePath()
@@ -93,9 +106,20 @@ const remove = async (product: ProductPayload) => {
   if (!confirm(t('admin.productsPage.deleteConfirm', { name: getLocalizedProductName(product) }))) return
   try {
     await $fetch(`/api/admin/products/${product.id}`, { method: 'DELETE' })
+    $toast.success(t('admin.productEditorPage.archived'))
     await refresh()
   } catch (error: any) {
     $toast.error(error?.statusMessage || t('common.error'))
+  }
+}
+
+const restore = async (product: ProductPayload) => {
+  try {
+    await $fetch(`/api/admin/products/${product.id}/restore`, { method: 'POST' })
+    $toast.success(t('admin.productsPage.restored'))
+    await refresh()
+  } catch (error: any) {
+    $toast.error(error?.data?.message || error?.message || t('common.error'))
   }
 }
 </script>

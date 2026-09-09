@@ -1,0 +1,24 @@
+{
+  "id": "0046_add_product_soft_delete",
+  "name": "add_product_soft_delete",
+  "description": "Archive les produits supprimés afin de préserver l’historique des commandes et locations.",
+  "beforeSchemaHash": "089528eea083a90be64a41ed621a3d566e8e9971eb7177735139a66449b961a0",
+  "afterSchemaHash": "f8efc889a2860e0522e7da8c3778cd772bd0c95391827f0dab774797efd3426f",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: deletedAt"
+        ]
+      }
+    ]
+  }
+}

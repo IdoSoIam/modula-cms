@@ -43,3 +43,41 @@ test('rental start email reminds customers of return time and address', () => {
     assert.match(body, /{{fulfillmentLocation}}/)
   }
 })
+
+test('deposit settlement emails expose and use settlement amounts', () => {
+  const actions = [
+    'rental_deposit_released',
+    'rental_deposit_partially_retained',
+    'rental_deposit_retained',
+  ]
+  const variables = ['depositAmount', 'depositReleasedAmount', 'depositRetainedAmount', 'depositSettlementNote']
+
+  for (const action of actions) {
+    const definition = rentalEmailTemplateDefinitions.find(entry => entry.action === action)
+    assert.ok(definition, `${action} definition is missing`)
+    for (const variable of variables) {
+      assert.ok(definition.variables.includes(variable), `${action} misses ${variable}`)
+    }
+    for (const locale of ['fr', 'en']) {
+      assert.ok(rentalEmailTemplateDefaults[action][locale].subject)
+      assert.match(rentalEmailTemplateDefaults[action][locale].body, /{{depositSettlementNote}}/)
+    }
+  }
+})
+
+test('late return emails expose fee and return tracking variables', () => {
+  const actions = ['rental_late_fee_due', 'rental_late_fee_paid', 'rental_late_fee_waived']
+  const variables = ['actualReturnAt', 'lateDuration', 'lateFeeTotal', 'lateFeeSubtotal', 'lateFeeVatAmount', 'lateFeeWaiverReason']
+
+  for (const action of actions) {
+    const definition = rentalEmailTemplateDefinitions.find(entry => entry.action === action)
+    assert.ok(definition, `${action} definition is missing`)
+    for (const variable of variables) {
+      assert.ok(definition.variables.includes(variable), `${action} misses ${variable}`)
+    }
+    for (const locale of ['fr', 'en']) {
+      assert.ok(rentalEmailTemplateDefaults[action][locale].subject)
+      assert.match(rentalEmailTemplateDefaults[action][locale].body, /{{actualReturnAt}}/)
+    }
+  }
+})

@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
 
   if (kind === 'product') {
     const row = await db.product.findUnique({
-      where: { id, active: true },
+      where: { id, active: true, deletedAt: null },
       include: { category: true },
     })
     if (!row) {

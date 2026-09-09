@@ -37,6 +37,8 @@ const MODEL_NAMES = [
   'ShopOrder',
   'ShopOrderLine',
   'RentalDeposit',
+  'RentalDepositAction',
+  'RentalReturn',
   'Article',
   'Image',
   'ImageVariant',
@@ -85,6 +87,8 @@ const MANUAL_RELATIONS: Record<ModelName, Record<string, { type: 'hasMany'; targ
   },
   ShopOrderLine: {},
   RentalDeposit: {},
+  RentalDepositAction: {},
+  RentalReturn: {},
   Article: {},
   Image: {
     variants: { type: 'hasMany', target: 'ImageVariant', foreignKey: 'imageId' },

@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  if (!row || !row.active || row.catalogVisible === false || Number(row.catalogVisible) === 0) {
+  if (!row || row.deletedAt || !row.active || row.catalogVisible === false || Number(row.catalogVisible) === 0) {
     throw createError({
       statusCode: 404,
       statusMessage: 'Produit introuvable'
@@ -45,6 +45,7 @@ export default defineEventHandler(async (event) => {
     where: {
       active: true,
       catalogVisible: true,
+      deletedAt: null,
     },
     include: {
       category: true

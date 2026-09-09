@@ -5,6 +5,10 @@ const productSaleTypes = ['SALE', 'RENTAL']
 const rentalApprovalModes = ['AUTO', 'MANUAL']
 const rentalDepositPaymentModes = ['ONSITE', 'ONLINE']
 const rentalDepositStatuses = ['PENDING', 'PAID', 'PARTIALLY_RETAINED', 'RETAINED', 'RELEASED', 'FAILED']
+const rentalDepositActionTypes = ['MARKED_PAID', 'RELEASED', 'PARTIALLY_RETAINED', 'RETAINED']
+const rentalLateFeeModes = ['FIXED', 'PER_HOUR_STARTED', 'PER_DAY_STARTED', 'HOURLY_MULTIPLIER', 'DAILY_MULTIPLIER']
+const rentalReturnStatuses = ['RETURNED_ON_TIME', 'RETURNED_LATE_PENDING', 'LATE_FEE_DUE', 'LATE_FEE_WAIVED', 'LATE_FEE_PAID']
+const rentalLateFeePaymentStatuses = ['UNPAID', 'PAID', 'CANCELLED']
 const billingDocumentKinds = ['INVOICE', 'CONTRACT', 'ASSURANCE']
 const shopOrderStatuses = ['DRAFT', 'PENDING', 'CONFIRMED', 'IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED', 'CANCELLED']
 const shopPaymentProviders = ['OFFLINE', 'STRIPE']
@@ -251,11 +255,21 @@ export const cmsDataSchema = defineSchema({
         rentalApprovalMode: field.enum(rentalApprovalModes, { default: 'AUTO' }),
         rentalHourlyPrice: field.decimal({ nullable: true }),
         rentalDailyPrice: field.decimal({ nullable: true }),
+        rentalPricingStrategy: field.string({ default: 'LINEAR' }),
+        rentalRatesJson: field.string({ default: '[]' }),
         rentalDurationsJson: field.string({ default: '[60,120,240]' }),
         rentalSlotStepMinutes: field.int({ default: 30 }),
         rentalDepositAmount: field.decimal({ nullable: true }),
         rentalDepositAllowOnsitePayment: field.boolean({ default: true }),
         rentalDepositAllowOnlinePayment: field.boolean({ default: false }),
+        rentalLateFeeEnabled: field.boolean({ default: false }),
+        rentalLateFeeMode: field.enum(rentalLateFeeModes, { default: 'PER_HOUR_STARTED' }),
+        rentalLateFeeAmount: field.decimal({ nullable: true }),
+        rentalLateFeeMultiplier: field.decimal({ nullable: true }),
+        rentalLateFeeGraceMinutes: field.int({ default: 0 }),
+        rentalLateFeeMinimum: field.decimal({ nullable: true }),
+        rentalLateFeeMaximum: field.decimal({ nullable: true }),
+        rentalLateFeeVatRate: field.decimal({ nullable: true }),
         unitLabel: field.string({ nullable: true }),
         unitLabelJson: field.string({ default: '{"fr":"","en":""}' }),
         allowOfflinePayment: field.boolean({ default: true }),
@@ -265,6 +279,7 @@ export const cmsDataSchema = defineSchema({
         active: field.boolean({ default: true }),
         catalogVisible: field.boolean({ default: true }),
         position: field.int({ default: 0 }),
+        deletedAt: field.datetime({ nullable: true }),
         createdAt: field.datetime({ default: 'now' }),
         updatedAt: field.datetime()
       },
@@ -465,6 +480,74 @@ export const cmsDataSchema = defineSchema({
         unique(['providerSessionId'], 'RentalDeposit_providerSessionId_key'),
         unique(['providerPaymentIntentId'], 'RentalDeposit_providerPaymentIntentId_key'),
         index(['status', 'createdAt'], 'RentalDeposit_status_createdAt_idx')
+      ]
+    }),
+    RentalDepositAction: defineModel({
+      tableName: 'RentalDepositAction',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        depositId: field.int(),
+        actorUserId: field.int({ nullable: true }),
+        action: field.enum(rentalDepositActionTypes),
+        releasedAmount: field.decimal({ default: 0 }),
+        retainedAmount: field.decimal({ default: 0 }),
+        note: field.string({ nullable: true }),
+        providerReference: field.string({ nullable: true }),
+        createdAt: field.datetime({ default: 'now' }),
+        updatedAt: field.datetime()
+      },
+      relations: {
+        deposit: relation.belongsTo('RentalDeposit', 'depositId', 'id', { onDelete: 'cascade' }),
+        actor: relation.belongsTo('User', 'actorUserId', 'id', { onDelete: 'setNull' })
+      },
+      indexes: [
+        index(['depositId', 'createdAt'], 'RentalDepositAction_depositId_createdAt_idx'),
+        index(['actorUserId'], 'RentalDepositAction_actorUserId_idx')
+      ]
+    }),
+    RentalReturn: defineModel({
+      tableName: 'RentalReturn',
+      primaryKey: 'id',
+      fields: {
+        id: field.id(),
+        orderId: field.int(),
+        orderLineId: field.int(),
+        productId: field.int({ nullable: true }),
+        actorUserId: field.int({ nullable: true }),
+        scheduledReturnAt: field.datetime(),
+        actualReturnAt: field.datetime(),
+        status: field.enum(rentalReturnStatuses),
+        lateMinutes: field.int({ default: 0 }),
+        graceMinutes: field.int({ default: 0 }),
+        calculationMode: field.enum(rentalLateFeeModes, { nullable: true }),
+        configuredAmount: field.decimal({ nullable: true }),
+        baseRate: field.decimal({ nullable: true }),
+        multiplier: field.decimal({ nullable: true }),
+        minimumAmount: field.decimal({ nullable: true }),
+        maximumAmount: field.decimal({ nullable: true }),
+        quantity: field.int({ default: 1 }),
+        subtotalExclTax: field.decimal({ default: 0 }),
+        vatRate: field.decimal({ default: 0 }),
+        vatAmount: field.decimal({ default: 0 }),
+        totalInclTax: field.decimal({ default: 0 }),
+        waiverReason: field.string({ nullable: true }),
+        paymentStatus: field.enum(rentalLateFeePaymentStatuses, { default: 'UNPAID' }),
+        paidAt: field.datetime({ nullable: true }),
+        createdAt: field.datetime({ default: 'now' }),
+        updatedAt: field.datetime()
+      },
+      relations: {
+        order: relation.belongsTo('ShopOrder', 'orderId', 'id', { onDelete: 'cascade' }),
+        orderLine: relation.belongsTo('ShopOrderLine', 'orderLineId', 'id', { onDelete: 'cascade' }),
+        product: relation.belongsTo('Product', 'productId', 'id', { onDelete: 'setNull' }),
+        actor: relation.belongsTo('User', 'actorUserId', 'id', { onDelete: 'setNull' })
+      },
+      indexes: [
+        unique(['orderLineId'], 'RentalReturn_orderLineId_key'),
+        index(['orderId', 'status'], 'RentalReturn_orderId_status_idx'),
+        index(['status', 'actualReturnAt'], 'RentalReturn_status_actualReturnAt_idx'),
+        index(['actorUserId'], 'RentalReturn_actorUserId_idx')
       ]
     }),
     Article: defineModel({

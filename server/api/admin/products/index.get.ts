@@ -4,8 +4,10 @@ import { serializeProduct } from '#modula/server/utils/shop'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
+  const archived = getQuery(event).archived === 'true'
 
   const rows = await db.product.findMany({
+    where: archived ? { deletedAt: { not: null } } : { deletedAt: null },
     include: {
       category: true
     },

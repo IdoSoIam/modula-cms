@@ -83,6 +83,7 @@ import {
   createEmptyContentBlock,
   createFormItem,
   createImageItem,
+  createProductListItem,
   createTextItem,
   createTitleItem,
   duplicatePageBuilderCard,
@@ -112,6 +113,7 @@ const props = defineProps({
 
 defineEmits<{ close: [] }>()
 const { t } = useI18n()
+const { data: productCategories } = useFetch<Array<{ id: number, name: string }>>('/api/admin/product-categories')
 
 const panelRef = ref<HTMLElement | null>(null)
 const panelPosition = ref({ x: 32, y: 32 })
@@ -522,6 +524,78 @@ const ItemEditor = defineComponent({
         ])
       }
 
+      if (item.type === 'product-list') {
+        return h('div', { class: 'space-y-4' }, [
+          header,
+          h(TranslationFields, {
+            modelValue: item.title,
+            label: t('admin.pageBuilder.productListTitle'),
+            'onUpdate:modelValue': (value: Record<string, string>) => { item.title = value },
+          }),
+          h('fieldset', { class: 'rounded-box border border-base-300 p-4' }, [
+            h('legend', { class: 'px-1 text-sm font-semibold' }, t('admin.pageBuilder.productListCategories')),
+            h('p', { class: 'mb-3 text-xs opacity-65' }, t('admin.pageBuilder.productListCategoriesHelp')),
+            h('div', { class: 'grid gap-2 sm:grid-cols-2' }, (productCategories.value || []).map(category => h('label', {
+              class: 'label cursor-pointer justify-start gap-3 rounded-box border border-base-300 px-3 py-2',
+            }, [
+              h('input', {
+                type: 'checkbox',
+                class: 'checkbox checkbox-primary checkbox-sm',
+                checked: item.categoryIds.includes(category.id),
+                onChange: (event: Event) => {
+                  const checked = (event.target as HTMLInputElement).checked
+                  item.categoryIds = checked
+                    ? Array.from(new Set([...item.categoryIds, category.id]))
+                    : item.categoryIds.filter(id => id !== category.id)
+                },
+              }),
+              h('span', { class: 'label-text' }, category.name),
+            ]))),
+          ]),
+          h('div', { class: 'grid gap-4 md:grid-cols-2' }, [
+            h('label', { class: 'form-control flex flex-col gap-2' }, [
+              h('span', { class: 'label-text font-semibold' }, t('admin.pageBuilder.productListDisplay')),
+              h('select', {
+                class: 'select select-bordered w-full',
+                value: item.display,
+                onChange: (event: Event) => { item.display = (event.target as HTMLSelectElement).value as 'grid' | 'carousel' },
+              }, [
+                h('option', { value: 'grid' }, t('admin.pageBuilder.productListGrid')),
+                h('option', { value: 'carousel' }, t('admin.pageBuilder.productListCarousel')),
+              ]),
+            ]),
+            h('label', { class: 'form-control flex flex-col gap-2' }, [
+              h('span', { class: 'label-text font-semibold' }, t('admin.pageBuilder.productListLimit')),
+              h('select', {
+                class: 'select select-bordered w-full',
+                value: item.limit,
+                onChange: (event: Event) => { item.limit = Number((event.target as HTMLSelectElement).value) },
+              }, [3, 4, 6, 8, 9, 12].map(limit => h('option', { value: limit }, String(limit)))),
+            ]),
+            item.display === 'grid'
+              ? h('label', { class: 'form-control flex flex-col gap-2' }, [
+                  h('span', { class: 'label-text font-semibold' }, t('admin.pageBuilder.productListColumns')),
+                  h('select', {
+                    class: 'select select-bordered w-full',
+                    value: item.gridColumns,
+                    onChange: (event: Event) => { item.gridColumns = Number((event.target as HTMLSelectElement).value) as 1 | 2 | 3 | 4 },
+                  }, [1, 2, 3, 4].map(columns => h('option', { value: columns }, String(columns)))),
+                ])
+              : null,
+          ]),
+          h('div', { class: 'grid gap-2 sm:grid-cols-2' }, [
+            h('label', { class: 'label cursor-pointer justify-start gap-3 rounded-box border border-base-300 px-3 py-2' }, [
+              h('input', { type: 'checkbox', class: 'checkbox checkbox-primary checkbox-sm', checked: item.showImages, onChange: (event: Event) => { item.showImages = (event.target as HTMLInputElement).checked } }),
+              h('span', { class: 'label-text' }, t('admin.pageBuilder.productListShowImages')),
+            ]),
+            h('label', { class: 'label cursor-pointer justify-start gap-3 rounded-box border border-base-300 px-3 py-2' }, [
+              h('input', { type: 'checkbox', class: 'checkbox checkbox-primary checkbox-sm', checked: item.showDescriptions, onChange: (event: Event) => { item.showDescriptions = (event.target as HTMLInputElement).checked } }),
+              h('span', { class: 'label-text' }, t('admin.pageBuilder.productListShowDescriptions')),
+            ]),
+          ]),
+        ])
+      }
+
       if (item.type === 'form') {
         const formFields = item.rows.flatMap(row => row.fields)
         return h('div', [
@@ -737,7 +811,8 @@ const ColumnEditor = defineComponent({
           h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createFormItem(createId('form'))) }, 'Formulaire'),
           h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createCardsItem(createId('cards'))) }, 'Cartes'),
           h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createImageItem(createId('image'))) }, 'Image'),
-          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createCarouselItem(createId('carousel'))) }, 'Carousel')
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createCarouselItem(createId('carousel'))) }, 'Carousel'),
+          h('button', { type: 'button', class: 'btn btn-sm btn-outline', onClick: () => props.target.column.items.push(createProductListItem(createId('product-list'))) }, t('admin.pageBuilder.productListAdd'))
         ])
       ])
     ])

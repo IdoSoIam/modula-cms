@@ -12,8 +12,8 @@
           v-if="showImages && product.imageUrl"
           :src="product.imageUrl"
           :alt="getLocalizedName(product)"
-          class="w-full rounded-2xl object-cover"
-          :class="imageClass"
+          class="w-full rounded-2xl"
+          :class="[imageClass, isVectorImage(product.imageUrl) ? 'bg-base-200 object-contain p-4' : 'object-cover']"
           :sizes="imageSizes"
         />
         <div class="flex min-w-0 flex-1 flex-col">
@@ -87,7 +87,7 @@ const props = defineProps<{
   offlineLabel: string
   onlineLabel: string
   disableOnSoldOut?: boolean
-  layout?: 'grid' | 'list'
+  layout?: 'grid' | 'list' | 'carousel'
   gridColumns?: 1 | 2 | 3 | 4
 }>()
 
@@ -102,6 +102,7 @@ const hourUnitLabel = computed(() => publicText('shop.rentalModal.hourUnit', 'he
 const dayUnitLabel = computed(() => publicText('shop.rentalModal.dayUnit', 'jour'))
 const isSingleProduct = computed(() => props.products.length === 1)
 const isListLayout = computed(() => props.layout === 'list')
+const isCarouselLayout = computed(() => props.layout === 'carousel')
 const gridColumnsClass = computed(() => ({
   1: 'grid-cols-1',
   2: 'grid-cols-1 md:grid-cols-2',
@@ -109,24 +110,36 @@ const gridColumnsClass = computed(() => ({
   4: 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4',
 }[props.gridColumns || 3]))
 const containerClass = computed(() => {
+  if (isCarouselLayout.value) return 'flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4'
   if (isSingleProduct.value) return 'grid grid-cols-1 gap-6'
   if (isListLayout.value) return 'flex flex-col gap-4'
   return ['grid gap-4', gridColumnsClass.value]
 })
-const articleClass = computed(() => isSingleProduct.value || isListLayout.value ? 'overflow-hidden' : '')
-const contentClass = computed(() => isSingleProduct.value || isListLayout.value
+const articleClass = computed(() => {
+  if (isCarouselLayout.value) return 'w-[min(85vw,22rem)] shrink-0 snap-start overflow-hidden'
+  return isSingleProduct.value || isListLayout.value ? 'overflow-hidden' : ''
+})
+const contentClass = computed(() => !isCarouselLayout.value && (isSingleProduct.value || isListLayout.value)
   ? 'flex h-full flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)] lg:gap-8'
   : 'flex h-full flex-col')
-const imageClass = computed(() => isSingleProduct.value || isListLayout.value ? 'h-72 lg:h-full lg:min-h-[18rem]' : 'mb-4 h-44')
-const imageSizes = computed(() => isSingleProduct.value || isListLayout.value
+const imageClass = computed(() => !isCarouselLayout.value && (isSingleProduct.value || isListLayout.value) ? 'h-72 lg:h-full lg:min-h-[18rem]' : 'mb-4 h-44')
+const imageSizes = computed(() => !isCarouselLayout.value && (isSingleProduct.value || isListLayout.value)
   ? '(min-width: 1024px) 55vw, 100vw'
   : '(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw')
 
 const getLocalizedName = (product: ProductPayload) => pickCmsLocalizedText(contentLocale.value, product.nameLocalized) || product.name
 const getLocalizedExcerpt = (product: ProductPayload) => pickCmsLocalizedText(contentLocale.value, product.excerptLocalized) || product.excerpt || ''
 const getLocalizedUnitLabel = (product: ProductPayload) => pickCmsLocalizedText(contentLocale.value, product.unitLabelLocalized) || product.unitLabel || ''
+const isVectorImage = (imageUrl: string | null | undefined) => /\.svg(?:$|[?#])/i.test(imageUrl || '')
 const getRentalRates = (product: ProductPayload) => {
   const rates: Array<{ price: number, unit: string }> = []
+  if (product.rentalPricingStrategy === 'GRID') {
+    const hourly = product.rentalRates.find(rate => rate.pricingMode === 'HOURLY')
+    const daily = product.rentalRates.find(rate => rate.pricingMode === 'DAILY')
+    if (hourly) rates.push({ price: hourly.price, unit: `${hourly.duration / 60} h` })
+    if (daily) rates.push({ price: daily.price, unit: `${daily.duration} ${dayUnitLabel.value}` })
+    return rates
+  }
   if (product.rentalBookingMode !== 'MULTI_DAY') rates.push({ price: Number(product.rentalHourlyPrice ?? product.price), unit: hourUnitLabel.value })
   if (product.rentalBookingMode !== 'SINGLE_DAY') rates.push({ price: Number(product.rentalDailyPrice ?? product.price), unit: dayUnitLabel.value })
   return rates

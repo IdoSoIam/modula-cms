@@ -82,7 +82,9 @@ const shopPageProps = computed(() => ({
   settings: cmsSettings.value?.basketsPage ?? null,
   applicationConfig: props.resolvedPage.applicationConfig,
   pageTitleOverride: props.resolvedPage.title ?? '',
-  pageSubtitleOverride: pickCmsLocalizedText(props.locale, cmsSettings.value?.basketsPage?.subtitle) || ''
+  pageSubtitleOverride: pickCmsLocalizedText(props.locale, props.resolvedPage.applicationConfig.shopSubtitle)
+    || pickCmsLocalizedText(props.locale, cmsSettings.value?.basketsPage?.subtitle)
+    || ''
 }))
 
 const newsPageProps = computed(() => ({

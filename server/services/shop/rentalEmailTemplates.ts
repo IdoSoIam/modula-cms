@@ -16,6 +16,12 @@ export type RentalEmailTemplateAction =
   | 'rental_refund_requested_customer'
   | 'rental_refund_requested_admin'
   | 'rental_refund_rejected'
+  | 'rental_deposit_released'
+  | 'rental_deposit_partially_retained'
+  | 'rental_deposit_retained'
+  | 'rental_late_fee_due'
+  | 'rental_late_fee_paid'
+  | 'rental_late_fee_waived'
 
 type LocalizedText = { fr: string; en: string; [key: string]: string }
 
@@ -41,6 +47,9 @@ const customerVariables = [
   'fulfillmentDate', 'fulfillmentTime', 'fulfillmentLocation',
   'rentalLines', 'paymentProvider', 'paymentStatus', 'total', 'failureReason',
   'refundRequestReason', 'refundRequestNote',
+  'depositAmount', 'depositReleasedAmount', 'depositRetainedAmount', 'depositSettlementNote',
+  'actualReturnAt', 'scheduledReturnAt', 'lateDuration', 'lateFeeSubtotal', 'lateFeeVatRate',
+  'lateFeeVatAmount', 'lateFeeTotal', 'lateFeeWaiverReason',
 ]
 const adminVariables = [
   ...customerVariables, 'customerEmail', 'customerPhone', 'customerMessage', 'adminOrderUrl',
@@ -81,6 +90,12 @@ export const rentalEmailTemplateDefinitions: RentalEmailTemplateDefinition[] = [
   definition('rental_refund_requested_customer', localized('Demande de remboursement location reçue', 'Rental refund request received'), localized('Confirmation envoyée au client après sa demande de remboursement.', 'Confirmation sent to the customer after a refund request.')),
   definition('rental_refund_requested_admin', localized('Nouvelle demande de remboursement location', 'New rental refund request'), localized('Notification envoyée à l’administration lors d’une demande de remboursement.', 'Notification sent to administrators for a refund request.'), 'admin'),
   definition('rental_refund_rejected', localized('Remboursement de location refusé', 'Rental refund rejected'), localized('Envoyé au client lorsque sa demande de remboursement est refusée.', 'Sent to the customer when a refund request is rejected.')),
+  definition('rental_deposit_released', localized('Dépôt de garantie restitué', 'Security deposit released'), localized('Envoyé au client lorsque son dépôt de garantie est entièrement restitué.', 'Sent to the customer when the security deposit is fully released.')),
+  definition('rental_deposit_partially_retained', localized('Dépôt de garantie partiellement retenu', 'Security deposit partially retained'), localized('Envoyé au client lorsqu’une partie du dépôt de garantie est retenue.', 'Sent to the customer when part of the security deposit is retained.')),
+  definition('rental_deposit_retained', localized('Dépôt de garantie retenu', 'Security deposit retained'), localized('Envoyé au client lorsque le dépôt de garantie est entièrement retenu.', 'Sent to the customer when the security deposit is fully retained.')),
+  definition('rental_late_fee_due', localized('Frais de retour tardif appliqués', 'Late return fee applied'), localized('Envoyé au client lorsque des frais de retour tardif sont confirmés.', 'Sent to the customer when a late return fee is confirmed.')),
+  definition('rental_late_fee_paid', localized('Frais de retour tardif réglés', 'Late return fee paid'), localized('Envoyé au client lorsque les frais de retour tardif sont marqués comme réglés.', 'Sent to the customer when a late return fee is marked as paid.')),
+  definition('rental_late_fee_waived', localized('Frais de retour tardif abandonnés', 'Late return fee waived'), localized('Envoyé au client lorsque les frais de retour tardif ne sont finalement pas appliqués.', 'Sent to the customer when a late return fee is waived.')),
 ]
 
 const periodFr = `Rendez-vous de retrait :\n- Date : {{fulfillmentDate}}\n- Heure : {{fulfillmentTime}}\n- Adresse : {{fulfillmentLocation}}\n- Retour prévu : {{rentalEndDate}}\n- Total : {{total}}`
@@ -146,5 +161,29 @@ export const rentalEmailTemplateDefaults: Record<RentalEmailTemplateAction, Reco
   rental_refund_rejected: {
     fr: { subject: 'Remboursement de location refusé - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nVotre demande de remboursement pour la location {{orderNumber}} a été refusée.\n\n- Motif / note : {{refundRequestNote}}` },
     en: { subject: 'Rental refund rejected - {{orderNumber}}', body: `Hello {{customerName}},\n\nYour refund request for rental {{orderNumber}} has been rejected.\n\n- Note: {{refundRequestNote}}` },
+  },
+  rental_deposit_released: {
+    fr: { subject: 'Dépôt de garantie restitué - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nLe dépôt de garantie lié à la location {{orderNumber}} a été entièrement restitué.\n\n- Montant du dépôt : {{depositAmount}}\n- Montant restitué : {{depositReleasedAmount}}\n- Note : {{depositSettlementNote}}` },
+    en: { subject: 'Security deposit released - {{orderNumber}}', body: `Hello {{customerName}},\n\nThe security deposit for rental {{orderNumber}} has been fully released.\n\n- Deposit amount: {{depositAmount}}\n- Released amount: {{depositReleasedAmount}}\n- Note: {{depositSettlementNote}}` },
+  },
+  rental_deposit_partially_retained: {
+    fr: { subject: 'Dépôt de garantie partiellement restitué - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nLe dépôt de garantie lié à la location {{orderNumber}} a été partiellement restitué.\n\n- Montant du dépôt : {{depositAmount}}\n- Montant restitué : {{depositReleasedAmount}}\n- Montant retenu : {{depositRetainedAmount}}\n- Motif : {{depositSettlementNote}}` },
+    en: { subject: 'Security deposit partially released - {{orderNumber}}', body: `Hello {{customerName}},\n\nThe security deposit for rental {{orderNumber}} has been partially released.\n\n- Deposit amount: {{depositAmount}}\n- Released amount: {{depositReleasedAmount}}\n- Retained amount: {{depositRetainedAmount}}\n- Reason: {{depositSettlementNote}}` },
+  },
+  rental_deposit_retained: {
+    fr: { subject: 'Dépôt de garantie retenu - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nLe dépôt de garantie lié à la location {{orderNumber}} a été retenu.\n\n- Montant retenu : {{depositRetainedAmount}}\n- Motif : {{depositSettlementNote}}` },
+    en: { subject: 'Security deposit retained - {{orderNumber}}', body: `Hello {{customerName}},\n\nThe security deposit for rental {{orderNumber}} has been retained.\n\n- Retained amount: {{depositRetainedAmount}}\n- Reason: {{depositSettlementNote}}` },
+  },
+  rental_late_fee_due: {
+    fr: { subject: 'Frais de retour tardif - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nLe matériel a été restitué après l’heure prévue. Des frais de retour tardif ont été appliqués.\n\n- Retour prévu : {{scheduledReturnAt}}\n- Retour constaté : {{actualReturnAt}}\n- Retard facturé : {{lateDuration}}\n- Montant HT : {{lateFeeSubtotal}}\n- TVA ({{lateFeeVatRate}}) : {{lateFeeVatAmount}}\n- Total TTC à régler : {{lateFeeTotal}}` },
+    en: { subject: 'Late return fee - {{orderNumber}}', body: `Hello {{customerName}},\n\nThe equipment was returned after the scheduled time. A late return fee has been applied.\n\n- Scheduled return: {{scheduledReturnAt}}\n- Actual return: {{actualReturnAt}}\n- Billed delay: {{lateDuration}}\n- Subtotal: {{lateFeeSubtotal}}\n- VAT ({{lateFeeVatRate}}): {{lateFeeVatAmount}}\n- Total due: {{lateFeeTotal}}` },
+  },
+  rental_late_fee_paid: {
+    fr: { subject: 'Frais de retour tardif réglés - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nLe règlement des frais de retour tardif de {{lateFeeTotal}} a bien été enregistré.\n\n- Retour prévu : {{scheduledReturnAt}}\n- Retour constaté : {{actualReturnAt}}` },
+    en: { subject: 'Late return fee paid - {{orderNumber}}', body: `Hello {{customerName}},\n\nPayment of the {{lateFeeTotal}} late return fee has been recorded.\n\n- Scheduled return: {{scheduledReturnAt}}\n- Actual return: {{actualReturnAt}}` },
+  },
+  rental_late_fee_waived: {
+    fr: { subject: 'Frais de retour tardif non appliqués - {{orderNumber}}', body: `Bonjour {{customerName}},\n\nAucun frais ne sera appliqué pour le retour tardif de votre location.\n\n- Retour prévu : {{scheduledReturnAt}}\n- Retour constaté : {{actualReturnAt}}\n- Motif : {{lateFeeWaiverReason}}` },
+    en: { subject: 'Late return fee waived - {{orderNumber}}', body: `Hello {{customerName}},\n\nNo fee will be charged for the late return of your rental.\n\n- Scheduled return: {{scheduledReturnAt}}\n- Actual return: {{actualReturnAt}}\n- Reason: {{lateFeeWaiverReason}}` },
   },
 }

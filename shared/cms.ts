@@ -142,8 +142,14 @@ export interface CmsBasketsPageSettings {
 
 export interface CmsPageApplicationConfig {
   shopCategoryIds: number[]
+  shopSubtitle: CmsLocalizedText
   shopDefaultViewMode: CmsApplicationViewMode
   shopShowViewToggle: boolean
+  shopPageSize: number
+  shopCategoryLinks: Array<{
+    categoryId: number
+    pageId: number
+  }>
 }
 
 export interface CmsNewsPageSettings {
@@ -748,8 +754,11 @@ export function createDefaultCmsPagePayload(path: string, title = ''): CmsPagePa
     applicationPosition: 'AFTER_CONTENT',
     applicationConfig: {
       shopCategoryIds: [],
+      shopSubtitle: { fr: '', en: '' },
       shopDefaultViewMode: 'grid',
-      shopShowViewToggle: true
+      shopShowViewToggle: true,
+      shopPageSize: 12,
+      shopCategoryLinks: [],
     },
     title: title || normalizedSlug || 'page',
     translations: {

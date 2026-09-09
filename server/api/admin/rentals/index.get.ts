@@ -1,5 +1,6 @@
 import { db } from '#modula/server/data/client'
 import { requirePermission } from '#modula/server/utils/permissions'
+import { serializeRentalReturn } from '#modula/server/services/shop/rentalReturns'
 
 export default defineEventHandler(async (event) => {
   await requirePermission(event, 'shop_orders', 'read')
@@ -15,11 +16,19 @@ export default defineEventHandler(async (event) => {
     },
     orderBy: { rentalStartDate: 'asc' },
   })
+  const lineIds = lines.map((line: any) => Number(line.id))
+  const returns = lineIds.length
+    ? await db.rentalReturn.findMany({ where: { orderLineId: { in: lineIds } }, include: { actor: true } })
+    : []
+  const returnByLineId = new Map<number, ReturnType<typeof serializeRentalReturn>>(
+    returns.map((entry: any) => [Number(entry.orderLineId), serializeRentalReturn(entry)]),
+  )
 
   return lines
     .filter((line: any) => line.order && line.order.status !== 'DRAFT')
     .map((line: any) => {
       const meta = parseMeta(line.metaJson)
+      const rentalReturn = returnByLineId.get(Number(line.id)) || null
       return {
       id: Number(line.id),
       orderId: Number(line.orderId),
@@ -34,6 +43,9 @@ export default defineEventHandler(async (event) => {
       paymentStatus: String(line.order.paymentStatus || ''),
       pricingMode: meta.rentalPricingMode === 'HOURLY' ? 'HOURLY' : 'DAILY',
       durationUnits: Number(meta.rentalDurationUnits || calculateDuration(line.rentalStartDate, line.rentalEndDate, meta.rentalPricingMode)),
+      return: rentalReturn,
+      returnStatus: rentalReturn?.status || 'EXPECTED',
+      lateFeeEnabled: Boolean(meta.rentalLateFeeEnabled ?? line.product?.rentalLateFeeEnabled),
     }
     })
 })

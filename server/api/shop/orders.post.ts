@@ -40,6 +40,7 @@ import {
   type ProductOption,
   type ProductOptionSelectionInput,
 } from '#modula/shared/productOptions'
+import { resolveRentalRatePrice } from '#modula/shared/rentalRates'
 
 interface OrderLineInput {
   kind: "product";
@@ -143,7 +144,7 @@ export default defineEventHandler(async (event) => {
   );
 
   const directProducts = productIds.length
-    ? await db.product.findMany({ where: { id: { in: productIds }, active: true } })
+    ? await db.product.findMany({ where: { id: { in: productIds }, active: true, deletedAt: null } })
     : [];
 
   const productMapSource = new Map<
@@ -243,6 +244,16 @@ export default defineEventHandler(async (event) => {
         rentalDepositAmount: product.rentalDepositAmount,
         rentalDepositAllowOnsitePayment: product.rentalDepositAllowOnsitePayment,
         rentalDepositAllowOnlinePayment: product.rentalDepositAllowOnlinePayment,
+        rentalLateFeeEnabled: product.rentalLateFeeEnabled,
+        rentalLateFeeMode: product.rentalLateFeeMode,
+        rentalLateFeeAmount: product.rentalLateFeeAmount,
+        rentalLateFeeMultiplier: product.rentalLateFeeMultiplier,
+        rentalLateFeeGraceMinutes: product.rentalLateFeeGraceMinutes,
+        rentalLateFeeMinimum: product.rentalLateFeeMinimum,
+        rentalLateFeeMaximum: product.rentalLateFeeMaximum,
+        rentalLateFeeVatRate: product.rentalLateFeeVatRate ?? product.vatRate,
+        rentalHourlyPrice: product.rentalHourlyPrice,
+        rentalDailyPrice: product.rentalDailyPrice,
         linkedBillingDocuments,
         linkedFiles,
       }),
@@ -508,6 +519,7 @@ export default defineEventHandler(async (event) => {
       select: {
         id: true,
         active: true,
+        deletedAt: null,
         name: true,
         address: true,
         deliveryDay: true,
@@ -556,6 +568,7 @@ export default defineEventHandler(async (event) => {
       select: {
         id: true,
         active: true,
+        deletedAt: null,
         name: true,
         dayOfWeek: true,
         startTime: true,
@@ -1097,6 +1110,15 @@ function calculateRentalPrice(
   window: NonNullable<ReturnType<typeof resolveRentalWindow>>,
   pricingMode: 'HOURLY' | 'DAILY',
 ) {
+  const exactRate = resolveRentalRatePrice(product.rentalRates, pricingMode, pricingMode === 'HOURLY'
+    ? (window.endAt.getTime() - window.startAt.getTime()) / 3600000
+    : window.durationDays)
+  if (product.rentalPricingStrategy === 'GRID') {
+    if (exactRate == null) {
+      throw createError({ statusCode: 400, message: 'Aucun tarif n’est configuré pour cette durée de location' })
+    }
+    return exactRate
+  }
   if (pricingMode === 'HOURLY') {
     const hourlyPrice = product.rentalHourlyPrice ?? (product.rentalBookingMode === 'SINGLE_DAY' ? product.price : null)
     if (hourlyPrice == null) throw createError({ statusCode: 400, message: 'Tarif horaire indisponible' })

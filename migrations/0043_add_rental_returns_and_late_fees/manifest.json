@@ -1,0 +1,33 @@
+{
+  "id": "0043_add_rental_returns_and_late_fees",
+  "name": "add_rental_returns_and_late_fees",
+  "description": "Configure les frais de retard par produit et suit la restitution de chaque ligne de location.",
+  "beforeSchemaHash": "01fdfc15b720f8df502ffd2c9c195e22f141026c00af257a0370c41482b6ac42",
+  "afterSchemaHash": "a20133dc2c913f5bf41ed16182d841b099b94313dc3cfeed17e5ab219f806452",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [
+      "RentalReturn"
+    ],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: rentalLateFeeAmount",
+          "field added: rentalLateFeeEnabled",
+          "field added: rentalLateFeeGraceMinutes",
+          "field added: rentalLateFeeMaximum",
+          "field added: rentalLateFeeMinimum",
+          "field added: rentalLateFeeMode",
+          "field added: rentalLateFeeMultiplier",
+          "field added: rentalLateFeeVatRate"
+        ]
+      }
+    ]
+  }
+}

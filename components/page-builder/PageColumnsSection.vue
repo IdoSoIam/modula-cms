@@ -325,6 +325,16 @@
                 </PageEditable>
 
                 <PageEditable
+                  v-else-if="item.type === 'product-list'"
+                  :editable="editable"
+                  label="Produits"
+                  button-position="top-left"
+                  @edit="emit('edit', { kind: 'item', label: `Produits colonne ${columnIndex + 1}`, item, parentItems: column.items, itemIndex })"
+                >
+                  <PageProductListBlock :item="item" :locale="locale" />
+                </PageEditable>
+
+                <PageEditable
                   v-else-if="item.type === 'form' && (editable || item.rows.length)"
                   :editable="editable"
                   label="Formulaire"
@@ -389,6 +399,7 @@ import PageEditable from '#modula/components/page-builder/PageEditable.vue'
 import PageFormBlock from '#modula/components/page-builder/PageFormBlock.vue'
 import PageMediaCarousel from '#modula/components/page-builder/PageMediaCarousel.vue'
 import PageMediaLightbox from '#modula/components/page-builder/PageMediaLightbox.vue'
+import PageProductListBlock from '#modula/components/page-builder/PageProductListBlock.vue'
 import PageSectionBackground from '#modula/components/page-builder/PageSectionBackground.vue'
 import { formatWeeklyOpeningHours } from '#modula/shared/openingHours'
 import { pickLocalizedText } from '#modula/shared/pageBuilder'

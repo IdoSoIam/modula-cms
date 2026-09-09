@@ -30,6 +30,7 @@ import {
   createEmptySectionBackgroundSlide,
   createFormItem,
   createImageItem,
+  createProductListItem,
   createTextItem,
   createTitleItem,
   isValidIconifyName,
@@ -338,6 +339,21 @@ function normalizeColumnItem(value: unknown): PageBuilderColumnItem | null {
       item.lightboxEnabled = typeof value.lightboxEnabled === 'boolean' ? value.lightboxEnabled : false
       item.slides = normalizeSectionBackgroundSlides(value.slides, item.id)
       item.settings = normalizeCarouselSettings(value.settings)
+      return item
+    }
+    case 'product-list': {
+      const item = createProductListItem(typeof value.id === 'string' ? value.id : `product-list-${Math.random().toString(36).slice(2, 8)}`)
+      item.title = normalizeLocalizedText(value.title) || item.title
+      item.categoryIds = Array.isArray(value.categoryIds)
+        ? [...new Set(value.categoryIds.map(Number).filter(categoryId => Number.isInteger(categoryId) && categoryId > 0))].slice(0, 24)
+        : []
+      item.display = value.display === 'carousel' ? 'carousel' : 'grid'
+      item.limit = typeof value.limit === 'number' && Number.isFinite(value.limit)
+        ? Math.max(1, Math.min(12, Math.round(value.limit)))
+        : item.limit
+      item.gridColumns = value.gridColumns === 2 || value.gridColumns === 4 ? value.gridColumns : 3
+      item.showImages = typeof value.showImages === 'boolean' ? value.showImages : true
+      item.showDescriptions = typeof value.showDescriptions === 'boolean' ? value.showDescriptions : true
       return item
     }
     case 'form': {

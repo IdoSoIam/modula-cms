@@ -1,0 +1,19 @@
+{
+  "id": "0042_rental_deposit_actions",
+  "name": "rental_deposit_actions",
+  "description": "",
+  "beforeSchemaHash": "388808945ba4338227d05da9e4f0ed9348149085f48422937cc8b5170d0ce0a2",
+  "afterSchemaHash": "01fdfc15b720f8df502ffd2c9c195e22f141026c00af257a0370c41482b6ac42",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [
+      "RentalDepositAction"
+    ],
+    "removedModels": [],
+    "changedModels": []
+  }
+}

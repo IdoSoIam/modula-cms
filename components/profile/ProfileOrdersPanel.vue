@@ -209,6 +209,43 @@
             </div>
           </div>
 
+          <div v-if="selectedOrder.rentalDeposit" class="rounded-2xl border border-info/30 bg-info/5 p-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div class="text-xs uppercase tracking-[0.18em] opacity-60">{{ publicText('orders.deposit.title', 'Dépôt de garantie') }}</div>
+                <div class="mt-2 text-xl font-semibold">{{ formatPrice(selectedOrder.rentalDeposit.amount) }}</div>
+              </div>
+              <span class="badge badge-outline">{{ depositStatusLabel(selectedOrder.rentalDeposit.status) }}</span>
+            </div>
+            <div class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+              <div><strong>{{ publicText('orders.deposit.paymentMode', 'Mode de versement') }}:</strong> {{ depositPaymentModeLabel(selectedOrder.rentalDeposit.paymentMode) }}</div>
+              <div v-if="selectedOrder.rentalDeposit.paidAt"><strong>{{ publicText('orders.deposit.paidAt', 'Versé le') }}:</strong> {{ formatDateTime(selectedOrder.rentalDeposit.paidAt) }}</div>
+              <div v-if="selectedOrder.rentalDeposit.releasedAmount > 0"><strong>{{ publicText('orders.deposit.releasedAmount', 'Montant restitué') }}:</strong> {{ formatPrice(selectedOrder.rentalDeposit.releasedAmount) }}</div>
+              <div v-if="selectedOrder.rentalDeposit.retainedAmount > 0"><strong>{{ publicText('orders.deposit.retainedAmount', 'Montant retenu') }}:</strong> {{ formatPrice(selectedOrder.rentalDeposit.retainedAmount) }}</div>
+              <div v-if="selectedOrder.rentalDeposit.releasedAt"><strong>{{ publicText('orders.deposit.settledAt', 'Clôturé le') }}:</strong> {{ formatDateTime(selectedOrder.rentalDeposit.releasedAt) }}</div>
+            </div>
+            <p v-if="selectedOrder.rentalDeposit.settlementNote" class="mt-3 border-t border-info/20 pt-3 text-sm">
+              <strong>{{ publicText('orders.deposit.note', 'Motif ou note') }}:</strong> {{ selectedOrder.rentalDeposit.settlementNote }}
+            </p>
+          </div>
+
+          <div v-if="selectedOrder.rentalReturns.length" class="rounded-2xl border border-base-300 bg-base-100">
+            <div class="border-b border-base-300 px-4 py-3">
+              <div class="font-semibold">{{ publicText('orders.rentalReturns.title', 'Suivi des restitutions') }}</div>
+            </div>
+            <div class="divide-y divide-base-300">
+              <div v-for="item in selectedOrder.rentalReturns" :key="item.id" class="space-y-2 px-4 py-4 text-sm">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <strong>{{ publicText('orders.rentalReturns.actualReturn', 'Matériel restitué le {date}', { date: formatDateTime(item.actualReturnAt) }) }}</strong>
+                  <span class="badge badge-outline">{{ rentalReturnLabel(item.status) }}</span>
+                </div>
+                <div v-if="item.lateMinutes > 0">{{ publicText('orders.rentalReturns.lateDuration', 'Retard constaté : {minutes} minute(s)', { minutes: item.lateMinutes }) }}</div>
+                <div v-if="item.totalInclTax > 0">{{ publicText('orders.rentalReturns.feeAmount', 'Frais calculés : {amount}', { amount: formatPrice(item.totalInclTax) }) }}</div>
+                <div v-if="item.waiverReason" class="opacity-70">{{ publicText('orders.rentalReturns.waiverReason', 'Frais non appliqués : {reason}', { reason: item.waiverReason }) }}</div>
+              </div>
+            </div>
+          </div>
+
           <div class="rounded-2xl border border-base-300 bg-base-100">
             <div class="border-b border-base-300 px-4 py-3">
               <div class="font-semibold">{{ publicText('orders.orderItems', 'Articles commandés') }}</div>
@@ -377,10 +414,31 @@ interface ShopOrder {
   refundedAt: string | null
   createdAt: string
   lines: ShopOrderLine[]
+  rentalReturns: RentalReturn[]
+  rentalDeposit: {
+    amount: number
+    paymentMode: 'ONSITE' | 'ONLINE'
+    status: 'PENDING' | 'PAID' | 'PARTIALLY_RETAINED' | 'RETAINED' | 'RELEASED' | 'FAILED'
+    paidAt: string | null
+    releasedAt: string | null
+    retainedAmount: number
+    releasedAmount: number
+    settlementNote: string | null
+  } | null
   customerAction: {
     kind: 'NONE' | 'CANCEL' | 'CANCEL_AND_REFUND' | 'REQUEST_REFUND'
     reason: 'ACTION_DISABLED' | 'ALREADY_CANCELLED' | 'ALREADY_REFUNDED' | 'REFUND_REQUEST_PENDING' | 'REFUND_REQUEST_REJECTED' | 'FULFILLMENT_COMPLETED' | 'PICKUP_POINT_AVAILABLE' | 'PICKUP_WINDOW_PASSED' | 'DELIVERY_IN_PROGRESS' | 'AFTER_ENGAGEMENT_NOT_REFUNDABLE' | null
   }
+}
+
+type RentalReturnStatus = 'RETURNED_ON_TIME' | 'RETURNED_LATE_PENDING' | 'LATE_FEE_DUE' | 'LATE_FEE_WAIVED' | 'LATE_FEE_PAID'
+interface RentalReturn {
+  id: number
+  actualReturnAt: string
+  status: RentalReturnStatus
+  lateMinutes: number
+  totalInclTax: number
+  waiverReason: string | null
 }
 
 const props = defineProps<{
@@ -392,6 +450,13 @@ const { publicText } = usePublicDictionary()
 
 const refreshLabel = computed(() => publicText('orders.refresh', 'Rafraîchir'))
 const closeLabel = computed(() => publicText('orders.close', 'Fermer'))
+const rentalReturnLabel = (status: RentalReturnStatus) => publicText(`orders.rentalReturns.status.${status.toLowerCase()}`, ({
+  RETURNED_ON_TIME: 'Restitué dans les temps',
+  RETURNED_LATE_PENDING: 'Restitué en retard · décision en cours',
+  LATE_FEE_DUE: 'Frais de retard à payer',
+  LATE_FEE_WAIVED: 'Frais non appliqués',
+  LATE_FEE_PAID: 'Frais de retard payés',
+} as Record<RentalReturnStatus, string>)[status])
 
 const loading = ref(false)
 const detailLoading = ref(false)
@@ -443,6 +508,15 @@ const paymentProviderLabel = (value: ShopOrder['paymentProvider']) => {
   return value === 'STRIPE'
     ? publicText('orders.paymentProvider.stripe', 'Paiement en ligne')
     : publicText('orders.paymentProvider.offline', 'Paiement sur place')
+}
+
+const depositPaymentModeLabel = (value: NonNullable<ShopOrder['rentalDeposit']>['paymentMode']) => value === 'ONLINE'
+  ? publicText('orders.deposit.paymentOnline', 'En ligne')
+  : publicText('orders.deposit.paymentOnsite', 'Sur place')
+
+const depositStatusLabel = (value: NonNullable<ShopOrder['rentalDeposit']>['status']) => {
+  const key = value.toLowerCase()
+  return publicText(`orders.deposit.status.${key}`, key)
 }
 
 const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => {

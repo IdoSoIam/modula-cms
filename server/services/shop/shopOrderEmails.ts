@@ -170,6 +170,96 @@ export async function sendShopOrderRefundRejectedNotifications(orderId: number) 
   })
 }
 
+export async function sendRentalDepositSettlementNotification(
+  orderId: number,
+  settlement: {
+    status: 'RELEASED' | 'PARTIALLY_RETAINED' | 'RETAINED'
+    amount: number
+    releasedAmount: number
+    retainedAmount: number
+    note: string | null
+  },
+) {
+  const order = await getShopOrderForEmail(orderId)
+  if (!order) return
+
+  const action: RentalEmailTemplateAction = settlement.status === 'RELEASED'
+    ? 'rental_deposit_released'
+    : settlement.status === 'RETAINED'
+      ? 'rental_deposit_retained'
+      : 'rental_deposit_partially_retained'
+  const locale = normalizeShopOrderLocale(order.language)
+  const formatPrice = new Intl.NumberFormat(locale, { style: 'currency', currency: order.currency || 'EUR' }).format
+
+  await sendShopOrderEmail({
+    action,
+    order,
+    to: order.email,
+    locale,
+    variables: {
+      depositAmount: formatPrice(settlement.amount),
+      depositReleasedAmount: formatPrice(settlement.releasedAmount),
+      depositRetainedAmount: formatPrice(settlement.retainedAmount),
+      depositSettlementNote: settlement.note || '-',
+    },
+  })
+}
+
+export async function sendRentalLateFeeNotification(
+  orderId: number,
+  status: 'LATE_FEE_DUE' | 'LATE_FEE_PAID' | 'LATE_FEE_WAIVED',
+  rentalReturn: {
+    scheduledReturnAt: string
+    actualReturnAt: string
+    lateMinutes: number
+    subtotalExclTax: number
+    vatRate: number
+    vatAmount: number
+    totalInclTax: number
+    waiverReason: string | null
+  },
+) {
+  const order = await getShopOrderForEmail(orderId)
+  if (!order) return
+  const locale = normalizeShopOrderLocale(order.language)
+  const localeCode = resolveEmailLocaleCode(locale)
+  const formatPrice = new Intl.NumberFormat(localeCode, {
+    style: 'currency',
+    currency: (order.currency || 'eur').toUpperCase(),
+  }).format
+  const action: RentalEmailTemplateAction = status === 'LATE_FEE_DUE'
+    ? 'rental_late_fee_due'
+    : status === 'LATE_FEE_PAID'
+      ? 'rental_late_fee_paid'
+      : 'rental_late_fee_waived'
+
+  await sendShopOrderEmail({
+    action,
+    order,
+    to: order.email,
+    locale,
+    variables: {
+      scheduledReturnAt: formatDateTimeLabel(rentalReturn.scheduledReturnAt, localeCode),
+      actualReturnAt: formatDateTimeLabel(rentalReturn.actualReturnAt, localeCode),
+      lateDuration: formatLateDuration(rentalReturn.lateMinutes, locale),
+      lateFeeSubtotal: formatPrice(rentalReturn.subtotalExclTax),
+      lateFeeVatRate: `${rentalReturn.vatRate}%`,
+      lateFeeVatAmount: formatPrice(rentalReturn.vatAmount),
+      lateFeeTotal: formatPrice(rentalReturn.totalInclTax),
+      lateFeeWaiverReason: rentalReturn.waiverReason || '-',
+    },
+  })
+}
+
+function formatLateDuration(minutes: number, locale: string) {
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  const parts = []
+  if (hours) parts.push(`${hours} ${locale.startsWith('en') ? 'hour(s)' : 'heure(s)'}`)
+  if (remainingMinutes || !parts.length) parts.push(`${remainingMinutes} min`)
+  return parts.join(' ')
+}
+
 async function sendShopOrderValidatedAdminEmail(order: ShopOrderPayload, attachments: PdfAttachment[] = []) {
   const notificationEmail = await getReservationNotificationEmail()
   if (!notificationEmail) return
@@ -199,10 +289,14 @@ async function sendShopOrderEmail(options: {
   to: string
   locale: ShopOrderEmailLocale
   attachments?: PdfAttachment[]
+  variables?: Record<string, string>
 }) {
   try {
     const template = await resolveAdminEmailTemplate(options.action, options.locale)
-    const draft = applyTemplateVars(template, buildShopOrderTemplateVars(options.order, options.locale))
+    const draft = applyTemplateVars(template, {
+      ...buildShopOrderTemplateVars(options.order, options.locale),
+      ...options.variables,
+    })
 
     await sendGmail({
       to: options.to,

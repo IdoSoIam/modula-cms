@@ -8,14 +8,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID invalide' })
   }
 
-  const usedInOrders = await db.shopOrderLine.count({ where: { productId: id } })
-  if (usedInOrders > 0) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Ce produit est déjà utilisé et ne peut pas être supprimé.'
-    })
+  const product = await db.product.findUnique({ where: { id } })
+  if (!product || product.deletedAt) {
+    throw createError({ statusCode: 404, message: 'Produit introuvable' })
   }
 
-  await db.product.delete({ where: { id } })
-  return { ok: true }
+  await db.product.update({
+    where: { id },
+    data: {
+      active: false,
+      catalogVisible: false,
+      deletedAt: new Date().toISOString(),
+    },
+  })
+  return { ok: true, archived: true }
 })

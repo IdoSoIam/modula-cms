@@ -3,6 +3,7 @@ import { createEmptyCmsLocalizedText, pickCmsLocalizedText, type CmsLocalizedTex
 import { slugify } from '#modula/server/utils/slug'
 import type { BillingDocumentKind } from '#modula/server/utils/billingDocuments'
 import { normalizeProductOptionGroups, normalizeProductOptionOverrides, type ProductOptionGroup, type ProductOptionLinkedProduct, type ProductOptionOverride } from '#modula/shared/productOptions'
+import { normalizeRentalRates, type RentalRate } from '#modula/shared/rentalRates'
 
 export interface ProductPayload {
   id: number
@@ -35,11 +36,21 @@ export interface ProductPayload {
   rentalApprovalMode: 'AUTO' | 'MANUAL'
   rentalHourlyPrice: number | null
   rentalDailyPrice: number | null
+  rentalPricingStrategy: 'LINEAR' | 'GRID'
+  rentalRates: RentalRate[]
   rentalDurations: number[]
   rentalSlotStepMinutes: number
   rentalDepositAmount: number | null
   rentalDepositAllowOnsitePayment: boolean
   rentalDepositAllowOnlinePayment: boolean
+  rentalLateFeeEnabled: boolean
+  rentalLateFeeMode: import('#modula/shared/rentalLateFees').RentalLateFeeMode
+  rentalLateFeeAmount: number | null
+  rentalLateFeeMultiplier: number | null
+  rentalLateFeeGraceMinutes: number
+  rentalLateFeeMinimum: number | null
+  rentalLateFeeMaximum: number | null
+  rentalLateFeeVatRate: number | null
   unitLabel: string | null
   unitLabelLocalized: CmsLocalizedText
   allowOfflinePayment: boolean
@@ -49,6 +60,7 @@ export interface ProductPayload {
   active: boolean
   catalogVisible: boolean
   position: number
+  deletedAt: string | null
 }
 
 export interface ProductCategoryPayload {
@@ -238,11 +250,23 @@ export function serializeProduct(row: any): ProductPayload {
     rentalApprovalMode: row.rentalApprovalMode === 'MANUAL' ? 'MANUAL' : 'AUTO',
     rentalHourlyPrice: row.rentalHourlyPrice == null ? null : Number(row.rentalHourlyPrice),
     rentalDailyPrice: row.rentalDailyPrice == null ? null : Number(row.rentalDailyPrice),
+    rentalPricingStrategy: row.rentalPricingStrategy === 'GRID' ? 'GRID' : 'LINEAR',
+    rentalRates: normalizeRentalRates(row.rentalRatesJson),
     rentalDurations: parseRentalDurations(row.rentalDurationsJson),
     rentalSlotStepMinutes: Math.max(5, Number(row.rentalSlotStepMinutes || 30)),
     rentalDepositAmount: row.rentalDepositAmount == null ? null : Math.max(0, Number(row.rentalDepositAmount)),
     rentalDepositAllowOnsitePayment: toBoolean(row.rentalDepositAllowOnsitePayment ?? true),
     rentalDepositAllowOnlinePayment: toBoolean(row.rentalDepositAllowOnlinePayment ?? false),
+    rentalLateFeeEnabled: toBoolean(row.rentalLateFeeEnabled ?? false),
+    rentalLateFeeMode: ['FIXED', 'PER_HOUR_STARTED', 'PER_DAY_STARTED', 'HOURLY_MULTIPLIER', 'DAILY_MULTIPLIER'].includes(String(row.rentalLateFeeMode))
+      ? row.rentalLateFeeMode
+      : 'PER_HOUR_STARTED',
+    rentalLateFeeAmount: row.rentalLateFeeAmount == null ? null : Math.max(0, Number(row.rentalLateFeeAmount)),
+    rentalLateFeeMultiplier: row.rentalLateFeeMultiplier == null ? null : Math.max(0, Number(row.rentalLateFeeMultiplier)),
+    rentalLateFeeGraceMinutes: Math.max(0, Number(row.rentalLateFeeGraceMinutes || 0)),
+    rentalLateFeeMinimum: row.rentalLateFeeMinimum == null ? null : Math.max(0, Number(row.rentalLateFeeMinimum)),
+    rentalLateFeeMaximum: row.rentalLateFeeMaximum == null ? null : Math.max(0, Number(row.rentalLateFeeMaximum)),
+    rentalLateFeeVatRate: row.rentalLateFeeVatRate == null ? null : Math.max(0, Number(row.rentalLateFeeVatRate)),
     unitLabel: resolveNullableLocalizedProductText(unitLabelLocalized, row.unitLabel ?? null),
     unitLabelLocalized,
     allowOfflinePayment: toBoolean(row.allowOfflinePayment),
@@ -251,7 +275,8 @@ export function serializeProduct(row: any): ProductPayload {
     allowRefundRequestAfterEngagement: toBoolean(row.allowRefundRequestAfterEngagement ?? false),
     active: toBoolean(row.active),
     catalogVisible: toBoolean(row.catalogVisible ?? true),
-    position: Number(row.position || 0)
+    position: Number(row.position || 0),
+    deletedAt: row.deletedAt ? new Date(row.deletedAt).toISOString() : null,
   }
 }
 

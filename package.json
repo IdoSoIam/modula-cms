@@ -1,6 +1,6 @@
 {
   "name": "modula-cms",
-  "version": "0.1.40",
+  "version": "0.1.41",
   "private": false,
   "description": "CMS modulaire Nuxt avec pages éditoriales, admin et installation guidée.",
   "license": "GPL-3.0-only",
@@ -13,6 +13,8 @@
     "release:publish": "node ./scripts/publish-runtime-release.mjs",
     "release:publish:git": "node ./scripts/publish-runtime-release-with-git.mjs",
     "registry:seed:bundled": "node ./scripts/seed-bundled-registry-templates.mjs",
+    "catalog:import:artimon": "node ./scripts/import-artimon-catalog.mjs",
+    "content:seed:artimon": "node ./scripts/seed-artimon-accessories-and-pages.mjs",
     "db:generate:internal": "node --experimental-strip-types ./generator/generate-db-artifacts.ts",
     "db:migrate:status": "node --experimental-strip-types ./scripts/db-migrate.mjs sqlite --status",
     "db:migrate:scaffold": "node --experimental-strip-types ./scripts/db-migration-scaffold.mjs",

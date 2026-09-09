@@ -44,6 +44,7 @@ export type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
 export type SectionColumnCount = 1 | 2 | 3 | 4
 export type CardsDisplay = 'stack' | 'grid-2' | 'grid-3' | 'grid-4'
+export type ProductListDisplay = 'grid' | 'carousel'
 export type PageBuilderCardElementKind = 'title' | 'text'
 export type PageBuilderCardElementSource = 'custom' | 'opening-hours' | 'email' | 'phone' | 'address' | 'social-links'
 export type PageBuilderFormFieldType = 'text' | 'email' | 'tel' | 'textarea' | 'select' | 'radio' | 'checkbox'
@@ -166,6 +167,18 @@ export interface PageBuilderCarouselItem {
   settings: PageBuilderSectionBackgroundCarouselSettings
 }
 
+export interface PageBuilderProductListItem {
+  id: string
+  type: 'product-list'
+  title: LocalizedText
+  categoryIds: number[]
+  display: ProductListDisplay
+  limit: number
+  gridColumns: 1 | 2 | 3 | 4
+  showImages: boolean
+  showDescriptions: boolean
+}
+
 export interface PageBuilderFormFieldOption {
   id: string
   label: LocalizedText
@@ -275,6 +288,7 @@ export type PageBuilderColumnItem =
   | PageBuilderCardsItem
   | PageBuilderImageItem
   | PageBuilderCarouselItem
+  | PageBuilderProductListItem
   | PageBuilderFormItem
 
 export type PageBuilderSectionItem =
@@ -636,6 +650,20 @@ export function createCarouselItem(id: string): PageBuilderCarouselItem {
     lightboxEnabled: false,
     slides: [createEmptySectionBackgroundSlide(`${id}-slide-1`)],
     settings: createEmptySectionBackgroundCarouselSettings()
+  }
+}
+
+export function createProductListItem(id: string): PageBuilderProductListItem {
+  return {
+    id,
+    type: 'product-list',
+    title: createEmptyLocalizedText(),
+    categoryIds: [],
+    display: 'grid',
+    limit: 6,
+    gridColumns: 3,
+    showImages: true,
+    showDescriptions: true,
   }
 }
 

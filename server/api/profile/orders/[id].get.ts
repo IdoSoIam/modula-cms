@@ -1,5 +1,6 @@
 import { AuthService } from '#modula/server/services/auth/authService'
 import { db } from '#modula/server/data/client'
+import { serializeRentalReturn } from '#modula/server/services/shop/rentalReturns'
 import { serializeShopOrder } from '#modula/server/utils/shop'
 
 const authService = new AuthService()
@@ -43,5 +44,34 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return serializeShopOrder(row)
+  const [rentalDeposit, rentalReturns] = await Promise.all([
+    db.rentalDeposit.findUnique({ where: { orderId: row.id } }),
+    db.rentalReturn.findMany({ where: { orderId: row.id }, orderBy: { actualReturnAt: 'desc' } }),
+  ])
+  const latestSettlement = rentalDeposit
+    ? await db.rentalDepositAction.findFirst({
+        where: {
+          depositId: rentalDeposit.id,
+          action: { in: ['RELEASED', 'PARTIALLY_RETAINED', 'RETAINED'] },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+    : null
+
+  return {
+    ...serializeShopOrder(row),
+    rentalDeposit: rentalDeposit
+      ? {
+          amount: Number(rentalDeposit.amount || 0),
+          paymentMode: rentalDeposit.paymentMode,
+          status: rentalDeposit.status,
+          paidAt: rentalDeposit.paidAt,
+          releasedAt: rentalDeposit.releasedAt,
+          retainedAmount: Number(rentalDeposit.retainedAmount || 0),
+          releasedAmount: latestSettlement ? Number(latestSettlement.releasedAmount || 0) : 0,
+          settlementNote: latestSettlement?.note || null,
+        }
+      : null,
+    rentalReturns: rentalReturns.map(serializeRentalReturn),
+  }
 })

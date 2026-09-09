@@ -117,6 +117,45 @@
                 <span class="label-text">{{ t('admin.productsPage.rentalDailyPrice') }}</span>
                 <input v-model.number="editing.rentalDailyPrice" type="number" min="0" step="0.01" class="input input-bordered w-full" />
               </label>
+              <label class="form-control gap-2 md:col-span-2">
+                <span class="label-text">{{ t('admin.productsPage.rentalPricingStrategy') }}</span>
+                <select v-model="editing.rentalPricingStrategy" class="select select-bordered w-full">
+                  <option value="LINEAR">{{ t('admin.productsPage.rentalPricingLinear') }}</option>
+                  <option value="GRID">{{ t('admin.productsPage.rentalPricingGrid') }}</option>
+                </select>
+                <span class="text-xs opacity-60">{{ t('admin.productsPage.rentalPricingStrategyHelp') }}</span>
+              </label>
+              <div v-if="editing.rentalPricingStrategy === 'GRID'" class="md:col-span-2 rounded-box border border-base-300 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div class="font-medium">{{ t('admin.productsPage.rentalRateGrid') }}</div>
+                    <div class="text-xs opacity-65">{{ t('admin.productsPage.rentalRateGridHelp') }}</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline" @click="addRentalRate">{{ t('admin.productsPage.rentalRateAdd') }}</button>
+                </div>
+                <div v-if="editing.rentalRates.length" class="mt-4 space-y-3">
+                  <div v-for="(rate, rateIndex) in editing.rentalRates" :key="rateIndex" class="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+                    <label class="form-control gap-1">
+                      <span class="label-text text-xs">{{ t('admin.productsPage.rentalRateMode') }}</span>
+                      <select v-model="rate.pricingMode" class="select select-bordered select-sm">
+                        <option value="HOURLY">{{ t('admin.productsPage.rentalRateHourly') }}</option>
+                        <option value="DAILY">{{ t('admin.productsPage.rentalRateDaily') }}</option>
+                      </select>
+                    </label>
+                    <label class="form-control gap-1">
+                      <span class="label-text text-xs">{{ rate.pricingMode === 'HOURLY' ? t('admin.productsPage.rentalRateMinutes') : t('admin.productsPage.rentalRateDays') }}</span>
+                      <input v-model.number="rate.duration" type="number" min="1" step="1" class="input input-bordered input-sm" />
+                    </label>
+                    <label class="form-control gap-1">
+                      <span class="label-text text-xs">{{ t('admin.productsPage.rentalRatePrice') }}</span>
+                      <input v-model.number="rate.price" type="number" min="0" step="0.01" class="input input-bordered input-sm" />
+                    </label>
+                    <button type="button" class="btn btn-sm btn-ghost text-error" @click="editing.rentalRates.splice(rateIndex, 1)">
+                      <Icon name="mdi:delete-outline" size="18" />
+                    </button>
+                  </div>
+                </div>
+              </div>
               <div class="form-control flex flex-col gap-3">
                 <label class="label"><span class="label-text">{{ t('admin.productsPage.fieldRentalAvailableFrom') }}</span></label>
                 <input v-model="editing.rentalAvailableFrom" type="date" class="input input-bordered" />
@@ -144,6 +183,60 @@
               </label>
               <div class="md:col-span-2 text-sm opacity-70">
                 {{ t('admin.productsPage.rentalHelp') }}
+              </div>
+            </div>
+          </section>
+
+          <section v-if="editing.saleType === 'RENTAL'" class="card bg-base-100 p-6 shadow-sm">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 class="text-xl font-semibold">{{ t('admin.productEditorPage.lateFeeCard') }}</h2>
+                <p class="mt-1 text-sm opacity-70">{{ t('admin.productEditorPage.lateFeeHelp') }}</p>
+              </div>
+              <label class="label cursor-pointer justify-start gap-3">
+                <input v-model="editing.rentalLateFeeEnabled" type="checkbox" class="toggle toggle-primary" />
+                <span class="label-text">{{ t('admin.productEditorPage.lateFeeEnabled') }}</span>
+              </label>
+            </div>
+            <div v-if="editing.rentalLateFeeEnabled" class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label class="form-control gap-2 md:col-span-2">
+                <span class="label-text">{{ t('admin.productEditorPage.lateFeeMode') }}</span>
+                <select v-model="editing.rentalLateFeeMode" class="select select-bordered w-full">
+                  <option value="FIXED">{{ t('admin.productEditorPage.lateFeeModeFixed') }}</option>
+                  <option value="PER_HOUR_STARTED">{{ t('admin.productEditorPage.lateFeeModePerHour') }}</option>
+                  <option value="PER_DAY_STARTED">{{ t('admin.productEditorPage.lateFeeModePerDay') }}</option>
+                  <option value="HOURLY_MULTIPLIER">{{ t('admin.productEditorPage.lateFeeModeHourlyMultiplier') }}</option>
+                  <option value="DAILY_MULTIPLIER">{{ t('admin.productEditorPage.lateFeeModeDailyMultiplier') }}</option>
+                </select>
+              </label>
+              <label v-if="!editing.rentalLateFeeMode.endsWith('_MULTIPLIER')" class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productEditorPage.lateFeeAmount') }}</span>
+                <input v-model.number="editing.rentalLateFeeAmount" type="number" min="0" step="0.01" class="input input-bordered w-full" />
+              </label>
+              <label v-else class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productEditorPage.lateFeeMultiplier') }}</span>
+                <input v-model.number="editing.rentalLateFeeMultiplier" type="number" min="0.01" step="0.05" class="input input-bordered w-full" />
+              </label>
+              <label class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productEditorPage.lateFeeGraceMinutes') }}</span>
+                <input v-model.number="editing.rentalLateFeeGraceMinutes" type="number" min="0" step="1" class="input input-bordered w-full" />
+              </label>
+              <label class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productEditorPage.lateFeeMinimum') }}</span>
+                <input v-model.number="editing.rentalLateFeeMinimum" type="number" min="0" step="0.01" class="input input-bordered w-full" />
+              </label>
+              <label class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productEditorPage.lateFeeMaximum') }}</span>
+                <input v-model.number="editing.rentalLateFeeMaximum" type="number" min="0" step="0.01" class="input input-bordered w-full" />
+              </label>
+              <label class="form-control gap-2">
+                <span class="label-text">{{ t('admin.productEditorPage.lateFeeVatRate') }}</span>
+                <input v-model.number="editing.rentalLateFeeVatRate" type="number" min="0" max="100" step="0.01" class="input input-bordered w-full" />
+                <span class="text-xs opacity-60">{{ t('admin.productEditorPage.lateFeeVatRateHelp') }}</span>
+              </label>
+              <div class="alert alert-info py-3 text-sm md:col-span-2">
+                <Icon name="mdi:information-outline" size="20" class="shrink-0" />
+                {{ t('admin.productEditorPage.lateFeeDecisionHelp') }}
               </div>
             </div>
           </section>
@@ -445,7 +538,9 @@ import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adm
 import AdminPageBuilderTranslationTabs from '#modula/components/admin/page-builder/TranslationTabs.vue'
 import { createEmptyCmsLocalizedText, pickCmsLocalizedText, type CmsLocalizedText } from '#modula/shared/cms'
 import type { ProductDetailField, ProductDetailSection, ProductOptionSetPayload, ProductPayload } from '#modula/server/utils/shop'
+import type { RentalRate } from '#modula/shared/rentalRates'
 import type { ProductOption, ProductOptionGroup, ProductOptionOverride } from '#modula/shared/productOptions'
+import type { RentalLateFeeMode } from '#modula/shared/rentalLateFees'
 
 definePageMeta({
   layout: 'admin',
@@ -486,11 +581,21 @@ interface ProductEditorState {
   rentalApprovalMode: 'AUTO' | 'MANUAL'
   rentalHourlyPrice: number | null
   rentalDailyPrice: number | null
+  rentalPricingStrategy: 'LINEAR' | 'GRID'
+  rentalRates: RentalRate[]
   rentalDurations: number[]
   rentalSlotStepMinutes: number
   rentalDepositAmount: number | null
   rentalDepositAllowOnsitePayment: boolean
   rentalDepositAllowOnlinePayment: boolean
+  rentalLateFeeEnabled: boolean
+  rentalLateFeeMode: RentalLateFeeMode
+  rentalLateFeeAmount: number | null
+  rentalLateFeeMultiplier: number | null
+  rentalLateFeeGraceMinutes: number
+  rentalLateFeeMinimum: number | null
+  rentalLateFeeMaximum: number | null
+  rentalLateFeeVatRate: number | null
   unitLabelLocalized: CmsLocalizedText
   allowOfflinePayment: boolean
   allowOnlinePayment: boolean
@@ -663,11 +768,21 @@ async function save() {
       rentalApprovalMode: editing.rentalApprovalMode,
       rentalHourlyPrice: editing.rentalHourlyPrice,
       rentalDailyPrice: editing.rentalDailyPrice,
+      rentalPricingStrategy: editing.rentalPricingStrategy,
+      rentalRates: editing.rentalRates,
       rentalDurations: editing.rentalDurations,
       rentalSlotStepMinutes: editing.rentalSlotStepMinutes,
       rentalDepositAmount: editing.saleType === 'RENTAL' ? normalizeNullableNumber(editing.rentalDepositAmount) : null,
       rentalDepositAllowOnsitePayment: editing.rentalDepositAllowOnsitePayment,
       rentalDepositAllowOnlinePayment: editing.rentalDepositAllowOnlinePayment,
+      rentalLateFeeEnabled: editing.saleType === 'RENTAL' && editing.rentalLateFeeEnabled,
+      rentalLateFeeMode: editing.rentalLateFeeMode,
+      rentalLateFeeAmount: normalizeNullableNumber(editing.rentalLateFeeAmount),
+      rentalLateFeeMultiplier: normalizeNullableNumber(editing.rentalLateFeeMultiplier),
+      rentalLateFeeGraceMinutes: Math.max(0, Number(editing.rentalLateFeeGraceMinutes || 0)),
+      rentalLateFeeMinimum: normalizeNullableNumber(editing.rentalLateFeeMinimum),
+      rentalLateFeeMaximum: normalizeNullableNumber(editing.rentalLateFeeMaximum),
+      rentalLateFeeVatRate: normalizeNullableNumber(editing.rentalLateFeeVatRate),
       unitLabelLocalized: editing.unitLabelLocalized,
       allowOfflinePayment: editing.allowOfflinePayment,
       allowOnlinePayment: editing.allowOnlinePayment,
@@ -709,7 +824,7 @@ async function removeProduct() {
   deleting.value = true
   try {
     await $fetch(`/api/admin/products/${editing.id}`, { method: 'DELETE' })
-    $toast.success(t('admin.productEditorPage.deleted'))
+    $toast.success(t('admin.productEditorPage.archived'))
     await navigateTo(localePath(productsBasePath.value))
   } catch (error: any) {
     $toast.error(error?.statusMessage || t('common.error'))
@@ -739,11 +854,21 @@ function createEmptyEditorState(vatRate: number, translate: (key: string) => str
     rentalApprovalMode: 'AUTO',
     rentalHourlyPrice: null,
     rentalDailyPrice: null,
+    rentalPricingStrategy: 'LINEAR',
+    rentalRates: [],
     rentalDurations: [60, 120, 240],
     rentalSlotStepMinutes: 30,
     rentalDepositAmount: null,
     rentalDepositAllowOnsitePayment: true,
     rentalDepositAllowOnlinePayment: false,
+    rentalLateFeeEnabled: false,
+    rentalLateFeeMode: 'PER_HOUR_STARTED',
+    rentalLateFeeAmount: null,
+    rentalLateFeeMultiplier: 1.5,
+    rentalLateFeeGraceMinutes: 15,
+    rentalLateFeeMinimum: null,
+    rentalLateFeeMaximum: null,
+    rentalLateFeeVatRate: vatRate,
     unitLabelLocalized: createEmptyCmsLocalizedText(locales),
     allowOfflinePayment: true,
     allowOnlinePayment: false,
@@ -784,11 +909,21 @@ function mapProductToEditor(product: ProductPayload): ProductEditorState {
     rentalApprovalMode: product.rentalApprovalMode,
     rentalHourlyPrice: product.rentalHourlyPrice ?? (product.rentalBookingMode === 'SINGLE_DAY' ? product.price : null),
     rentalDailyPrice: product.rentalDailyPrice ?? (product.rentalBookingMode === 'MULTI_DAY' ? product.price : null),
+    rentalPricingStrategy: product.rentalPricingStrategy,
+    rentalRates: structuredClone(product.rentalRates || []),
     rentalDurations: [...product.rentalDurations],
     rentalSlotStepMinutes: product.rentalSlotStepMinutes,
     rentalDepositAmount: product.rentalDepositAmount,
     rentalDepositAllowOnsitePayment: product.rentalDepositAllowOnsitePayment,
     rentalDepositAllowOnlinePayment: product.rentalDepositAllowOnlinePayment,
+    rentalLateFeeEnabled: product.rentalLateFeeEnabled,
+    rentalLateFeeMode: product.rentalLateFeeMode,
+    rentalLateFeeAmount: product.rentalLateFeeAmount,
+    rentalLateFeeMultiplier: product.rentalLateFeeMultiplier,
+    rentalLateFeeGraceMinutes: product.rentalLateFeeGraceMinutes,
+    rentalLateFeeMinimum: product.rentalLateFeeMinimum,
+    rentalLateFeeMaximum: product.rentalLateFeeMaximum,
+    rentalLateFeeVatRate: product.rentalLateFeeVatRate ?? product.vatRate,
     unitLabelLocalized: structuredClone(product.unitLabelLocalized),
     allowOfflinePayment: product.allowOfflinePayment,
     allowOnlinePayment: product.allowOnlinePayment,
@@ -823,6 +958,14 @@ function mapProductToEditor(product: ProductPayload): ProductEditorState {
     excludedOptionSetIds: [...(product.excludedOptionSetIds || [])],
     optionOverrides: structuredClone(product.optionOverrides || []),
   }
+}
+
+function addRentalRate() {
+  editing.rentalRates.push({
+    pricingMode: editing.rentalBookingMode === 'MULTI_DAY' ? 'DAILY' : 'HOURLY',
+    duration: editing.rentalBookingMode === 'MULTI_DAY' ? 1 : 60,
+    price: 0,
+  })
 }
 
 function toggleOptionSet(optionSetId: number, enabled: boolean) {

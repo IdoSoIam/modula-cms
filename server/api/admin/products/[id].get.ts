@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  if (!row) {
+  if (!row || row.deletedAt) {
     throw createError({ statusCode: 404, statusMessage: 'Produit introuvable' })
   }
 

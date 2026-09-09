@@ -1,0 +1,24 @@
+{
+  "id": "0044_add_product_rental_rate_grid",
+  "name": "add_product_rental_rate_grid",
+  "description": "Ajoute une grille de tarifs exacts par durée aux produits de location.",
+  "beforeSchemaHash": "a20133dc2c913f5bf41ed16182d841b099b94313dc3cfeed17e5ab219f806452",
+  "afterSchemaHash": "e4a488cc088862f9cef030058c07928741e0b65a282cc9f6319dd8e479e69de4",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: rentalRatesJson"
+        ]
+      }
+    ]
+  }
+}

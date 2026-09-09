@@ -2195,10 +2195,25 @@ function normalizeCmsPageApplicationConfig(value: unknown): CmsPageApplicationCo
   const categoryIds = Array.isArray(source.shopCategoryIds)
     ? [...new Set(source.shopCategoryIds.map(Number).filter(id => Number.isInteger(id) && id > 0))]
     : []
+  const categoryLinks = Array.isArray(source.shopCategoryLinks)
+    ? source.shopCategoryLinks
+        .map((entry) => {
+          if (!isObject(entry)) return null
+          const categoryId = Number(entry.categoryId)
+          const pageId = Number(entry.pageId)
+          return Number.isInteger(categoryId) && categoryId > 0 && Number.isInteger(pageId) && pageId > 0
+            ? { categoryId, pageId }
+            : null
+        })
+        .filter((entry): entry is { categoryId: number, pageId: number } => Boolean(entry))
+    : []
   return {
     shopCategoryIds: categoryIds,
+    shopSubtitle: normalizeLocalizedText(source.shopSubtitle),
     shopDefaultViewMode: source.shopDefaultViewMode === 'list' ? 'list' : 'grid',
     shopShowViewToggle: source.shopShowViewToggle !== false,
+    shopPageSize: Math.max(1, Math.min(48, Math.round(Number(source.shopPageSize) || 12))),
+    shopCategoryLinks: Array.from(new Map(categoryLinks.map(entry => [`${entry.categoryId}:${entry.pageId}`, entry])).values()),
   }
 }
 
