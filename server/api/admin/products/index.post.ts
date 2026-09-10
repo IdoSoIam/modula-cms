@@ -4,6 +4,7 @@ import {
   buildLocalizedProductTextPayload,
   ensureUniqueSlug,
   normalizeProductDetailSectionsInput,
+  normalizeProductGalleryInput,
   normalizeProductLocalizedText,
   resolveLocalizedProductText,
   promoteProductOptionGroups,
@@ -32,6 +33,7 @@ interface Body {
   excludedOptionSetIds?: number[]
   optionOverrides?: unknown
   imageUrl?: string | null
+  gallery?: unknown
   price?: number
   vatRate?: number
   paymentTaxCode?: string | null
@@ -186,6 +188,7 @@ export default defineEventHandler(async (event) => {
       excludedOptionSetIdsJson: JSON.stringify(normalizeIdList(body.excludedOptionSetIds)),
       optionOverridesJson: JSON.stringify(normalizeProductOptionOverrides(body.optionOverrides)),
       imageUrl: body.imageUrl || null,
+      galleryJson: JSON.stringify(normalizeProductGalleryInput(body.gallery)),
       price,
       vatRate,
       paymentTaxCode: paymentTaxCode || null,

@@ -8,6 +8,12 @@ interface PricedProductOption {
     price: number
     rentalHourlyPrice?: number | null
     rentalDailyPrice?: number | null
+    rentalPricingStrategy?: 'LINEAR' | 'GRID'
+    rentalRates?: Array<{
+      pricingMode: 'HOURLY' | 'DAILY'
+      duration: number
+      price: number
+    }>
   } | null
 }
 
@@ -31,11 +37,18 @@ export function getProductOptionCalculatedUnitPrice(
   option: PricedProductOption,
   rentalDurationUnits: number,
   rentalPricingMode: 'HOURLY' | 'DAILY' | null,
+  accessoryDurationMinutes?: number | null,
 ) {
+  if (option.priceSource === 'LINKED_PRODUCT' && option.linkedProduct && accessoryDurationMinutes) {
+    const exactRate = option.linkedProduct.rentalRates?.find((rate) => rate.pricingMode === 'HOURLY' && rate.duration === accessoryDurationMinutes)
+    if (exactRate) return Math.max(0, finiteNumber(exactRate.price))
+    const hours = accessoryDurationMinutes / 60
+    if (option.linkedProduct.rentalHourlyPrice != null) {
+      return Math.max(0, finiteNumber(option.linkedProduct.rentalHourlyPrice)) * hours
+    }
+  }
   if (rentalPricingMode && option.priceSource === 'LINKED_PRODUCT' && option.linkedProduct) {
-    const linkedRate = rentalPricingMode === 'HOURLY'
-      ? option.linkedProduct.rentalHourlyPrice
-      : option.linkedProduct.rentalDailyPrice
+    const linkedRate = rentalPricingMode === 'HOURLY' ? option.linkedProduct.rentalHourlyPrice : option.linkedProduct.rentalDailyPrice
     if (linkedRate != null) return Math.max(0, finiteNumber(linkedRate)) * Math.max(0, rentalDurationUnits)
   }
   if (rentalPricingMode && (option.hourlyPrice != null || option.dailyPrice != null)) {

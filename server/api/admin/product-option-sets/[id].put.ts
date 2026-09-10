@@ -2,6 +2,7 @@ import { db } from '#modula/server/data/client'
 import { serializeProductOptionSet } from '#modula/server/utils/shop'
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { normalizeProductOptionGroups } from '#modula/shared/productOptions'
+import { validateProductOptionSetLinks } from '#modula/server/utils/productOptionSets'
 
 interface Body {
   name?: string
@@ -22,15 +23,21 @@ export default defineEventHandler(async (event) => {
   if (!existing) throw createError({ statusCode: 404, message: 'Ensemble d’options introuvable' })
 
   const data: Record<string, unknown> = {}
+  const categoryIds = body.categoryIds === undefined ? normalizeIds(JSON.parse(existing.categoryIdsJson || '[]')) : normalizeIds(body.categoryIds)
+  const productIds = body.productIds === undefined ? normalizeIds(JSON.parse(existing.productIdsJson || '[]')) : normalizeIds(body.productIds)
+  const optionGroups = body.optionGroups === undefined
+    ? normalizeProductOptionGroups(existing.optionGroupsJson)
+    : normalizeProductOptionGroups(body.optionGroups)
+  await validateProductOptionSetLinks({ categoryIds, productIds, optionGroups })
   if (body.name !== undefined) {
     const name = String(body.name || '').trim()
     if (!name) throw createError({ statusCode: 400, message: 'Nom requis' })
     data.name = name
   }
-  if (body.categoryIds !== undefined) data.categoryIdsJson = JSON.stringify(normalizeIds(body.categoryIds))
-  if (body.productIds !== undefined) data.productIdsJson = JSON.stringify(normalizeIds(body.productIds))
+  if (body.categoryIds !== undefined) data.categoryIdsJson = JSON.stringify(categoryIds)
+  if (body.productIds !== undefined) data.productIdsJson = JSON.stringify(productIds)
   if (body.saleTypes !== undefined) data.saleTypesJson = JSON.stringify(normalizeSaleTypes(body.saleTypes))
-  if (body.optionGroups !== undefined) data.optionGroupsJson = JSON.stringify(normalizeProductOptionGroups(body.optionGroups))
+  if (body.optionGroups !== undefined) data.optionGroupsJson = JSON.stringify(optionGroups)
   if (body.active !== undefined) data.active = Boolean(body.active)
   if (body.position !== undefined) data.position = normalizePosition(body.position)
 

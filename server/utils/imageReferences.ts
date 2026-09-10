@@ -335,7 +335,7 @@ export async function syncImageUsageTable() {
       select: { id: true, url: true }
     }),
     db.product.findMany({
-      select: { id: true, name: true, imageUrl: true }
+      select: { id: true, name: true, imageUrl: true, galleryJson: true }
     }).catch(() => []),
     db.article.findMany({
       select: { id: true, title: true, slug: true, coverUrl: true, content: true }
@@ -358,16 +358,30 @@ export async function syncImageUsageTable() {
 
   for (const product of products) {
     const imageId = product.imageUrl ? imageIdByUrl.get(product.imageUrl) as number | undefined : undefined
-    if (!imageId) continue
-    usages.push({
-      imageId,
-      scopeType: 'product',
-      scopeId: String(product.id),
-      fieldKey: 'imageUrl',
-      label: `Produit "${product.name}"`,
-      createdAt: now,
-      updatedAt: now
-    })
+    if (imageId) {
+      usages.push({
+        imageId,
+        scopeType: 'product',
+        scopeId: String(product.id),
+        fieldKey: 'imageUrl',
+        label: `Produit "${product.name}"`,
+        createdAt: now,
+        updatedAt: now
+      })
+    }
+    for (const [index, url] of parseProductGallery(product.galleryJson).entries()) {
+      const galleryImageId = imageIdByUrl.get(url)
+      if (!galleryImageId) continue
+      usages.push({
+        imageId: galleryImageId,
+        scopeType: 'product',
+        scopeId: String(product.id),
+        fieldKey: `gallery:${index}`,
+        label: `Produit "${product.name}" - galerie ${index + 1}`,
+        createdAt: now,
+        updatedAt: now
+      })
+    }
   }
 
   for (const article of articles) {
@@ -562,11 +576,31 @@ export async function listImageUsageAssociations(imageId: number) {
   })
 }
 
+function parseProductGallery(value: unknown): string[] {
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    return Array.isArray(parsed) ? parsed.map((entry) => String(entry || '').trim()).filter(Boolean) : []
+  } catch {
+    return []
+  }
+}
+
+async function updateProductGalleryReferences(oldUrl: string, newUrl: string | null) {
+  const products = await db.product.findMany({ select: { id: true, galleryJson: true } }).catch(() => [])
+  for (const product of products) {
+    const gallery = parseProductGallery(product.galleryJson)
+    if (!gallery.includes(oldUrl)) continue
+    const updated = newUrl ? gallery.map((url) => (url === oldUrl ? newUrl : url)) : gallery.filter((url) => url !== oldUrl)
+    await db.product.update({ where: { id: product.id }, data: { galleryJson: JSON.stringify(Array.from(new Set(updated))) } })
+  }
+}
+
 export async function updateImageReferences(oldUrl: string, newUrl: string) {
   await db.product.updateMany({
     where: { imageUrl: oldUrl },
     data: { imageUrl: newUrl }
   })
+  await updateProductGalleryReferences(oldUrl, newUrl)
   await db.article.updateMany({
     where: { coverUrl: oldUrl },
     data: { coverUrl: newUrl }
@@ -589,6 +623,7 @@ export async function removeImageReferences(url: string) {
     where: { imageUrl: url },
     data: { imageUrl: null }
   })
+  await updateProductGalleryReferences(url, null)
 
   await db.article.updateMany({
     where: { coverUrl: url },

@@ -106,6 +106,13 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
   })
 
   const byIso = new Map(availability.map((entry) => [entry.iso, entry]))
+  const today = toIsoDate(new Date())
+  const currentTime = new Intl.DateTimeFormat('en-GB', {
+    timeZone: calendar.timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date())
   return {
     month: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
     monthInput: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`,
@@ -117,6 +124,7 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
       const state = byIso.get(iso)
       const openingRanges = getRentalOpeningRanges(calendar, iso)
       const calendarClosed = openingRanges.length === 0
+      const isPast = iso < today
       const inCurrentMonth = day.getMonth() === monthDate.getMonth()
       const item = state
         ? {
@@ -124,7 +132,7 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
             title: '',
             subtitle: '',
             meta: '',
-            status: calendarClosed ? 'outside' : state.status,
+            status: calendarClosed || isPast ? 'outside' : state.status,
             remaining: state.remaining,
           }
         : {
@@ -144,10 +152,11 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
         total: 1,
         totalPages: 1,
         items: [item],
-        availabilityStatus: calendarClosed ? 'outside' : state?.status || 'outside',
+        availabilityStatus: calendarClosed || isPast ? 'outside' : state?.status || 'outside',
         remaining: state?.remaining || 0,
-        selectable: Boolean(state?.selectable && !calendarClosed),
+        selectable: Boolean(state?.selectable && !calendarClosed && !isPast),
         openingRanges,
+        minimumStartTime: iso === today ? currentTime : null,
       }
     }),
   }

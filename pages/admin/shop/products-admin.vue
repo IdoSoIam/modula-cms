@@ -3,17 +3,34 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold">{{ t('admin.productsPage.title') }}</h1>
-        <p class="mt-1 text-sm opacity-70">{{ t('admin.productsPage.description') }}</p>
+        <p class="mt-1 text-sm opacity-70">
+          {{ t('admin.productsPage.description') }}
+        </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <button class="btn btn-ghost" :class="showArchived ? 'btn-active' : ''" @click="showArchived = !showArchived">
           <Icon name="mdi:archive-outline" size="20" />
           {{ showArchived ? t('admin.productsPage.showActive') : t('admin.productsPage.showArchived') }}
         </button>
-        <button class="btn btn-primary" @click="openNew">
-          <Icon name="mdi:plus" size="20" /> {{ t('admin.productsPage.new') }}
-        </button>
+        <button class="btn btn-primary" @click="openNew"><Icon name="mdi:plus" size="20" /> {{ t('admin.productsPage.new') }}</button>
       </div>
+    </div>
+
+    <div class="mb-5 flex flex-wrap items-end gap-3">
+      <label class="form-control flex min-w-64 flex-col gap-2">
+        <span class="label-text">{{ t('admin.productsPage.filterCategory') }}</span>
+        <select v-model.number="selectedCategoryId" class="select select-bordered">
+          <option :value="0">
+            {{ t('admin.productsPage.allCategories') }}
+          </option>
+          <option v-for="category in categories || []" :key="category.id" :value="category.id">
+            {{ category.name }}
+          </option>
+        </select>
+      </label>
+      <button v-if="selectedCategoryId" type="button" class="btn btn-ghost" @click="selectedCategoryId = 0">
+        {{ t('admin.productsPage.clearFilters') }}
+      </button>
     </div>
 
     <div v-if="pending" class="loading loading-spinner" />
@@ -26,9 +43,15 @@
             <th>{{ t('admin.productsPage.headers.name') }}</th>
             <th>{{ t('admin.productsPage.headers.slug') }}</th>
             <th>{{ t('admin.productsPage.headers.category') }}</th>
-            <th class="text-right">{{ t('admin.productsPage.headers.price') }}</th>
-            <th class="text-right">{{ t('admin.productsPage.headers.vatRate') }}</th>
-            <th class="text-right">{{ t('admin.productsPage.fieldAvailable') }}</th>
+            <th class="text-right">
+              {{ t('admin.productsPage.headers.price') }}
+            </th>
+            <th class="text-right">
+              {{ t('admin.productsPage.headers.vatRate') }}
+            </th>
+            <th class="text-right">
+              {{ t('admin.productsPage.fieldAvailable') }}
+            </th>
             <th>{{ t('admin.productsPage.headers.saleType') }}</th>
             <th>{{ t('admin.productsPage.headers.unit') }}</th>
             <th>{{ t('admin.productsPage.headers.status') }}</th>
@@ -38,18 +61,28 @@
         <tbody>
           <tr v-for="product in products" :key="product.id">
             <td>
-              <AppImage v-if="product.imageUrl" :src="product.imageUrl" :alt="getLocalizedProductName(product)" class="h-12 w-12 rounded object-cover" sizes="48px" />
+              <AppImage
+                v-if="product.imageUrl"
+                :src="product.imageUrl"
+                :alt="getLocalizedProductName(product)"
+                class="h-12 w-12 rounded object-cover"
+                sizes="48px"
+              />
               <div v-else class="flex h-12 w-12 items-center justify-center rounded bg-base-300">
                 <Icon name="mdi:image-off-outline" size="18" class="opacity-40" />
               </div>
             </td>
             <td class="font-medium">{{ getLocalizedProductName(product) }}</td>
-            <td><code>{{ product.slug }}</code></td>
+            <td>
+              <code>{{ product.slug }}</code>
+            </td>
             <td>{{ product.category?.name || '-' }}</td>
             <td class="text-right">{{ $formatPrice(product.price) }}</td>
             <td class="text-right">{{ formatVatRate(product.vatRate) }}</td>
             <td class="text-right">{{ product.stock }}</td>
-            <td>{{ product.saleType === 'RENTAL' ? t('admin.productsPage.saleTypeRental') : t('admin.productsPage.saleTypeSale') }}</td>
+            <td>
+              {{ product.saleType === 'RENTAL' ? t('admin.productsPage.saleTypeRental') : t('admin.productsPage.saleTypeSale') }}
+            </td>
             <td>{{ getLocalizedUnitLabel(product) || '-' }}</td>
             <td>
               <span class="badge" :class="product.active ? 'badge-success' : 'badge-ghost'">
@@ -86,8 +119,17 @@ import type { ProductPayload } from '#modula/server/utils/shop'
 import { getAdminRoutePath, normalizeAdminRouteLocale } from '#modula/shared/adminRoutes'
 
 const showArchived = ref(false)
-const { data: products, pending, refresh } = await useFetch<ProductPayload[]>('/api/admin/products', {
-  query: computed(() => ({ archived: showArchived.value ? 'true' : undefined })),
+const selectedCategoryId = ref(0)
+const { data: categories } = await useFetch<Array<{ id: number; name: string }>>('/api/admin/product-categories')
+const {
+  data: products,
+  pending,
+  refresh,
+} = await useFetch<ProductPayload[]>('/api/admin/products', {
+  query: computed(() => ({
+    archived: showArchived.value ? 'true' : undefined,
+    categoryId: selectedCategoryId.value || undefined,
+  })),
 })
 
 const { locale, t } = useI18n()
@@ -103,7 +145,14 @@ const openNew = () => navigateTo(localePath(`${productsBasePath.value}/new`))
 const openEdit = (product: ProductPayload) => navigateTo(localePath(`${productsBasePath.value}/${product.id}`))
 
 const remove = async (product: ProductPayload) => {
-  if (!confirm(t('admin.productsPage.deleteConfirm', { name: getLocalizedProductName(product) }))) return
+  if (
+    !confirm(
+      t('admin.productsPage.deleteConfirm', {
+        name: getLocalizedProductName(product),
+      }),
+    )
+  )
+    return
   try {
     await $fetch(`/api/admin/products/${product.id}`, { method: 'DELETE' })
     $toast.success(t('admin.productEditorPage.archived'))
@@ -115,7 +164,9 @@ const remove = async (product: ProductPayload) => {
 
 const restore = async (product: ProductPayload) => {
   try {
-    await $fetch(`/api/admin/products/${product.id}/restore`, { method: 'POST' })
+    await $fetch(`/api/admin/products/${product.id}/restore`, {
+      method: 'POST',
+    })
     $toast.success(t('admin.productsPage.restored'))
     await refresh()
   } catch (error: any) {

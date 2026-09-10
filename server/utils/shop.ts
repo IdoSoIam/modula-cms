@@ -2,7 +2,13 @@ import { db } from '#modula/server/data/client'
 import { createEmptyCmsLocalizedText, pickCmsLocalizedText, type CmsLocalizedText } from '#modula/shared/cms'
 import { slugify } from '#modula/server/utils/slug'
 import type { BillingDocumentKind } from '#modula/server/utils/billingDocuments'
-import { normalizeProductOptionGroups, normalizeProductOptionOverrides, type ProductOptionGroup, type ProductOptionLinkedProduct, type ProductOptionOverride } from '#modula/shared/productOptions'
+import {
+  normalizeProductOptionGroups,
+  normalizeProductOptionOverrides,
+  type ProductOptionGroup,
+  type ProductOptionLinkedProduct,
+  type ProductOptionOverride,
+} from '#modula/shared/productOptions'
 import { normalizeRentalRates, type RentalRate } from '#modula/shared/rentalRates'
 
 export interface ProductPayload {
@@ -21,8 +27,9 @@ export interface ProductPayload {
   optionGroups: ProductOptionGroup[]
   excludedOptionSetIds: number[]
   optionOverrides: ProductOptionOverride[]
-  inheritedOptionSets: Array<{ id: number, name: string }>
+  inheritedOptionSets: Array<{ id: number; name: string }>
   imageUrl: string | null
+  gallery: string[]
   price: number
   vatRate: number
   paymentTaxCode: string | null
@@ -197,19 +204,17 @@ function toBoolean(value: unknown) {
   return value === true || value === 1 || value === '1'
 }
 
-export function computePaymentModeCapabilities(
-  sources: PaymentModeCapabilities[]
-): PaymentModeCapabilities {
+export function computePaymentModeCapabilities(sources: PaymentModeCapabilities[]): PaymentModeCapabilities {
   if (!sources.length) {
     return {
       allowOfflinePayment: true,
-      allowOnlinePayment: true
+      allowOnlinePayment: true,
     }
   }
 
   return {
     allowOfflinePayment: sources.every((source) => Boolean(source.allowOfflinePayment)),
-    allowOnlinePayment: sources.every((source) => Boolean(source.allowOnlinePayment))
+    allowOnlinePayment: sources.every((source) => Boolean(source.allowOnlinePayment)),
   }
 }
 
@@ -237,6 +242,7 @@ export function serializeProduct(row: any): ProductPayload {
     optionOverrides: normalizeProductOptionOverrides(row.optionOverridesJson),
     inheritedOptionSets: [],
     imageUrl: row.imageUrl ?? null,
+    gallery: normalizeProductGalleryInput(row.galleryJson),
     price: toNumber(row.price),
     vatRate: toNumber(row.vatRate),
     paymentTaxCode: row.paymentTaxCode?.trim() || null,
@@ -280,6 +286,19 @@ export function serializeProduct(row: any): ProductPayload {
   }
 }
 
+export function normalizeProductGalleryInput(value: unknown): string[] {
+  let entries = value
+  if (typeof value === 'string') {
+    try {
+      entries = JSON.parse(value)
+    } catch {
+      entries = []
+    }
+  }
+  if (!Array.isArray(entries)) return []
+  return Array.from(new Set(entries.map((entry) => String(entry || '').trim()).filter(Boolean)))
+}
+
 export interface ProductOptionSetPayload {
   id: number
   name: string
@@ -313,36 +332,36 @@ export async function resolveProductOptionGroups(product: ProductPayload): Promi
   const matchingSets: ProductOptionSetPayload[] = rows
     .map((row: unknown) => serializeProductOptionSet(row))
     .filter((set: ProductOptionSetPayload) => !excluded.has(set.id) && optionSetMatchesProduct(set, product))
-  const overrideMap = new Map(product.optionOverrides.map(override => [`${override.optionSetId}:${override.optionId}`, override]))
-  const inheritedGroups = matchingSets.flatMap((set: ProductOptionSetPayload) => set.optionGroups.map((group: ProductOptionGroup) => ({
-    ...group,
-    id: `set-${set.id}-${group.id}`,
-    options: group.options
-      .filter((option: ProductOptionGroup['options'][number]) => overrideMap.get(`${set.id}:${option.id}`)?.enabled !== false)
-      .map((option: ProductOptionGroup['options'][number]) => {
-        const override = overrideMap.get(`${set.id}:${option.id}`)
-        return {
-          ...option,
-          id: `set-${set.id}-${option.id}`,
-          price: override?.price == null ? option.price : override.price,
-          priceSource: override?.price == null ? option.priceSource : 'CUSTOM' as const,
-        }
-      }),
-  })))
+  const overrideMap = new Map(product.optionOverrides.map((override) => [`${override.optionSetId}:${override.optionId}`, override]))
+  const inheritedGroups = matchingSets.flatMap((set: ProductOptionSetPayload) =>
+    set.optionGroups.map((group: ProductOptionGroup) => ({
+      ...group,
+      id: `set-${set.id}-${group.id}`,
+      options: group.options
+        .filter((option: ProductOptionGroup['options'][number]) => overrideMap.get(`${set.id}:${option.id}`)?.enabled !== false)
+        .map((option: ProductOptionGroup['options'][number]) => {
+          const override = overrideMap.get(`${set.id}:${option.id}`)
+          return {
+            ...option,
+            id: `set-${set.id}-${option.id}`,
+            price: override?.price == null ? option.price : override.price,
+            priceSource: override?.price == null ? option.priceSource : ('CUSTOM' as const),
+          }
+        }),
+    })),
+  )
 
   return {
     ...product,
-    optionGroups: [...inheritedGroups, ...product.optionGroups]
-      .sort((a, b) => a.position - b.position),
-    inheritedOptionSets: matchingSets.map((set: ProductOptionSetPayload) => ({ id: set.id, name: set.name })),
+    optionGroups: [...inheritedGroups, ...product.optionGroups].sort((a, b) => a.position - b.position),
+    inheritedOptionSets: matchingSets.map((set: ProductOptionSetPayload) => ({
+      id: set.id,
+      name: set.name,
+    })),
   }
 }
 
-export async function promoteProductOptionGroups(
-  productId: number,
-  saleType: 'SALE' | 'RENTAL',
-  groups: ProductOptionGroup[],
-) {
+export async function promoteProductOptionGroups(productId: number, saleType: 'SALE' | 'RENTAL', groups: ProductOptionGroup[]) {
   if (!groups.length) return
 
   const existingSets = await db.productOptionSet.findMany({})
@@ -355,9 +374,7 @@ export async function promoteProductOptionGroups(
 
   for (const group of groups) {
     if (existingGroupIds.has(group.id)) continue
-    const name = group.title.trim()
-      || Object.values(group.titleLocalized).find(value => String(value || '').trim())
-      || `Options produit ${productId}`
+    const name = group.title.trim() || Object.values(group.titleLocalized).find((value) => String(value || '').trim()) || `Options produit ${productId}`
     await db.productOptionSet.create({
       data: {
         name: String(name),
@@ -371,21 +388,23 @@ export async function promoteProductOptionGroups(
     })
   }
 
-  await db.product.update({ where: { id: productId }, data: { optionGroupsJson: '[]' } })
+  await db.product.update({
+    where: { id: productId },
+    data: { optionGroupsJson: '[]' },
+  })
 }
 
 function optionSetMatchesProduct(set: ProductOptionSetPayload, product: ProductPayload) {
   if (!set.saleTypes.includes(product.saleType)) return false
   const hasTargets = set.categoryIds.length > 0 || set.productIds.length > 0
   if (!hasTargets) return true
-  return set.productIds.includes(product.id)
-    || (product.categoryId != null && set.categoryIds.includes(product.categoryId))
+  return set.productIds.includes(product.id) || (product.categoryId != null && set.categoryIds.includes(product.categoryId))
 }
 
 function parseRentalDurations(value: unknown): number[] {
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value) : value
-    return Array.isArray(parsed) ? parsed.map(Number).filter(entry => Number.isInteger(entry) && entry > 0) : [60, 120, 240]
+    return Array.isArray(parsed) ? parsed.map(Number).filter((entry) => Number.isInteger(entry) && entry > 0) : [60, 120, 240]
   } catch {
     return [60, 120, 240]
   }
@@ -394,9 +413,7 @@ function parseRentalDurations(value: unknown): number[] {
 function parsePositiveIntegerList(value: unknown): number[] {
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value) : value
-    return Array.isArray(parsed)
-      ? Array.from(new Set(parsed.map(Number).filter(entry => Number.isInteger(entry) && entry > 0)))
-      : []
+    return Array.isArray(parsed) ? Array.from(new Set(parsed.map(Number).filter((entry) => Number.isInteger(entry) && entry > 0))) : []
   } catch {
     return []
   }
@@ -406,7 +423,7 @@ function parseSaleTypes(value: unknown): Array<'SALE' | 'RENTAL'> {
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value) : value
     if (!Array.isArray(parsed)) return ['SALE', 'RENTAL']
-    const values = Array.from(new Set(parsed.filter(entry => entry === 'SALE' || entry === 'RENTAL'))) as Array<'SALE' | 'RENTAL'>
+    const values = Array.from(new Set(parsed.filter((entry) => entry === 'SALE' || entry === 'RENTAL'))) as Array<'SALE' | 'RENTAL'>
     return values.length ? values : ['SALE', 'RENTAL']
   } catch {
     return ['SALE', 'RENTAL']
@@ -414,22 +431,26 @@ function parseSaleTypes(value: unknown): Array<'SALE' | 'RENTAL'> {
 }
 
 export async function hydrateProductBillingDocumentMetadata(product: ProductPayload) {
-  const ids = Array.from(new Set(
-    product.detailSections
-      .flatMap(section => section.items)
-      .map(item => Number(item.mediaDocumentId || 0))
-      .filter(id => Number.isInteger(id) && id > 0),
-  ))
-  const linkedProductIds = Array.from(new Set(
-    product.optionGroups
-      .flatMap(group => group.options)
-      .map(option => Number(option.linkedProductId || 0))
-      .filter(id => Number.isInteger(id) && id > 0 && id !== product.id),
-  ))
+  const ids = Array.from(
+    new Set(
+      product.detailSections
+        .flatMap((section) => section.items)
+        .map((item) => Number(item.mediaDocumentId || 0))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    ),
+  )
+  const linkedProductIds = Array.from(
+    new Set(
+      product.optionGroups
+        .flatMap((group) => group.options)
+        .map((option) => Number(option.linkedProductId || 0))
+        .filter((id) => Number.isInteger(id) && id > 0 && id !== product.id),
+    ),
+  )
   const optionDocumentIds = product.optionGroups
-    .flatMap(group => group.options)
-    .map(option => Number(option.billingDocumentId || 0))
-    .filter(id => Number.isInteger(id) && id > 0)
+    .flatMap((group) => group.options)
+    .map((option) => Number(option.billingDocumentId || 0))
+    .filter((id) => Number.isInteger(id) && id > 0)
   for (const id of optionDocumentIds) ids.push(id)
   const uniqueDocumentIds = Array.from(new Set(ids))
 
@@ -437,10 +458,14 @@ export async function hydrateProductBillingDocumentMetadata(product: ProductPayl
 
   const [documents, linkedRows] = await Promise.all([
     uniqueDocumentIds.length
-      ? db.billingDocumentTemplate.findMany({ where: { id: { in: uniqueDocumentIds }, active: true } })
+      ? db.billingDocumentTemplate.findMany({
+          where: { id: { in: uniqueDocumentIds }, active: true },
+        })
       : [],
     linkedProductIds.length
-      ? db.product.findMany({ where: { id: { in: linkedProductIds }, active: true } })
+      ? db.product.findMany({
+          where: { id: { in: linkedProductIds }, active: true },
+        })
       : [],
   ])
   type RentalDocumentMetadata = {
@@ -456,33 +481,41 @@ export async function hydrateProductBillingDocumentMetadata(product: ProductPayl
   const linkedProductMap = new Map<number, ProductOptionLinkedProduct>(
     linkedRows.map((row: any) => {
       const linked = serializeProduct(row)
-      return [linked.id, {
-        id: linked.id,
-        name: linked.name,
-        nameLocalized: linked.nameLocalized,
-        saleType: linked.saleType,
-        active: linked.active,
-        stock: linked.stock,
-        price: linked.price,
-        vatRate: linked.vatRate,
-        paymentTaxCode: linked.paymentTaxCode,
-        paymentTaxBehavior: linked.paymentTaxBehavior,
-        allowOfflinePayment: linked.allowOfflinePayment,
-        allowOnlinePayment: linked.allowOnlinePayment,
-        rentalBookingMode: linked.rentalBookingMode,
-        rentalHourlyPrice: linked.rentalHourlyPrice,
-        rentalDailyPrice: linked.rentalDailyPrice,
-        rentalAvailableFrom: linked.rentalAvailableFrom,
-        rentalAvailableTo: linked.rentalAvailableTo,
-        rentalMinDays: linked.rentalMinDays,
-        rentalMaxDays: linked.rentalMaxDays,
-        rentalDurations: linked.rentalDurations,
-        rentalSlotStepMinutes: linked.rentalSlotStepMinutes,
-        rentalApprovalMode: linked.rentalApprovalMode,
-        rentalDepositAmount: linked.rentalDepositAmount,
-        rentalDepositAllowOnsitePayment: linked.rentalDepositAllowOnsitePayment,
-        rentalDepositAllowOnlinePayment: linked.rentalDepositAllowOnlinePayment,
-      }]
+      return [
+        linked.id,
+        {
+          id: linked.id,
+          name: linked.name,
+          nameLocalized: linked.nameLocalized,
+          saleType: linked.saleType,
+          active: linked.active,
+          stock: linked.stock,
+          price: linked.price,
+          vatRate: linked.vatRate,
+          paymentTaxCode: linked.paymentTaxCode,
+          paymentTaxBehavior: linked.paymentTaxBehavior,
+          allowOfflinePayment: linked.allowOfflinePayment,
+          allowOnlinePayment: linked.allowOnlinePayment,
+          rentalBookingMode: linked.rentalBookingMode,
+          rentalHourlyPrice: linked.rentalHourlyPrice,
+          rentalDailyPrice: linked.rentalDailyPrice,
+          rentalPricingStrategy: linked.rentalPricingStrategy,
+          rentalRates: linked.rentalRates,
+          rentalAvailableFrom: linked.rentalAvailableFrom,
+          rentalAvailableTo: linked.rentalAvailableTo,
+          rentalMinDays: linked.rentalMinDays,
+          rentalMaxDays: linked.rentalMaxDays,
+        rentalDurations: Array.from(new Set([
+          ...linked.rentalDurations,
+          ...linked.rentalRates.filter(rate => rate.pricingMode === 'HOURLY').map(rate => rate.duration),
+        ])).sort((left, right) => left - right),
+          rentalSlotStepMinutes: linked.rentalSlotStepMinutes,
+          rentalApprovalMode: linked.rentalApprovalMode,
+          rentalDepositAmount: linked.rentalDepositAmount,
+          rentalDepositAllowOnsitePayment: linked.rentalDepositAllowOnsitePayment,
+          rentalDepositAllowOnlinePayment: linked.rentalDepositAllowOnlinePayment,
+        },
+      ]
     }),
   )
 
@@ -524,7 +557,7 @@ export function serializeProductCategory(row: any): ProductCategoryPayload {
     slug: String(row.slug),
     description: row.description ?? null,
     position: Number(row.position || 0),
-    active: Boolean(row.active)
+    active: Boolean(row.active),
   }
 }
 
@@ -536,9 +569,7 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
     status: row.status,
     paymentProvider: row.paymentProvider,
     paymentStatus: row.paymentStatus,
-    afterSalesStatus: row.afterSalesStatus === 'REFUND_REQUESTED' || row.afterSalesStatus === 'REFUND_REJECTED'
-      ? row.afterSalesStatus
-      : 'NONE',
+    afterSalesStatus: row.afterSalesStatus === 'REFUND_REQUESTED' || row.afterSalesStatus === 'REFUND_REJECTED' ? row.afterSalesStatus : 'NONE',
     providerSessionId: row.providerSessionId ?? null,
     providerPaymentIntentId: row.providerPaymentIntentId ?? null,
     providerPaymentStatus: row.providerPaymentStatus ?? null,
@@ -552,9 +583,7 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
     email: String(row.email),
     phone: row.phone ?? null,
     message: row.message ?? null,
-    deliveryType: row.deliveryType === 'PICKUP' || row.deliveryType === 'TOUR' || row.deliveryType === 'ONSITE'
-      ? row.deliveryType
-      : null,
+    deliveryType: row.deliveryType === 'PICKUP' || row.deliveryType === 'TOUR' || row.deliveryType === 'ONSITE' ? row.deliveryType : null,
     pickupPointId: row.pickupPointId == null ? null : Number(row.pickupPointId),
     deliveryTourId: row.deliveryTourId == null ? null : Number(row.deliveryTourId),
     deliveryAddress: row.deliveryAddress ?? null,
@@ -569,7 +598,7 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
       ? {
           id: Number(row.pickupPoint.id),
           name: String(row.pickupPoint.name),
-          address: row.pickupPoint.address ?? null
+          address: row.pickupPoint.address ?? null,
         }
       : null,
     deliveryTour: row.deliveryTour
@@ -578,7 +607,7 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
           name: String(row.deliveryTour.name),
           dayOfWeek: Number(row.deliveryTour.dayOfWeek || 0),
           startTime: String(row.deliveryTour.startTime || ''),
-          endTime: String(row.deliveryTour.endTime || '')
+          endTime: String(row.deliveryTour.endTime || ''),
         }
       : null,
     currency: String(row.currency || 'eur'),
@@ -597,9 +626,7 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
       deliveryType: row.deliveryType,
       fulfillmentDate: row.fulfillmentDate ? new Date(row.fulfillmentDate).toISOString() : null,
       fulfillmentTime: row.fulfillmentTime ?? null,
-      lines: Array.isArray(row.lines)
-        ? row.lines.map((line: any) => ({ meta: safeParseJson(line.metaJson) }))
-        : []
+      lines: Array.isArray(row.lines) ? row.lines.map((line: any) => ({ meta: safeParseJson(line.metaJson) })) : [],
     }),
     lines: Array.isArray(row.lines)
       ? row.lines.map((line: any) => ({
@@ -612,9 +639,9 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
           totalPrice: toNumber(line.totalPrice),
           rentalStartDate: line.rentalStartDate ? new Date(line.rentalStartDate).toISOString() : null,
           rentalEndDate: line.rentalEndDate ? new Date(line.rentalEndDate).toISOString() : null,
-          meta: safeParseJson(line.metaJson)
+          meta: safeParseJson(line.metaJson),
         }))
-      : []
+      : [],
   }
 }
 
@@ -632,9 +659,7 @@ export function normalizeProductDetailSections(value: unknown): ProductDetailSec
   try {
     const parsed = JSON.parse(value)
     if (!Array.isArray(parsed)) return []
-    return parsed
-      .map((section) => normalizeProductDetailSection(section))
-      .filter((section): section is ProductDetailSection => Boolean(section))
+    return parsed.map((section) => normalizeProductDetailSection(section)).filter((section): section is ProductDetailSection => Boolean(section))
   } catch {
     return []
   }
@@ -642,9 +667,7 @@ export function normalizeProductDetailSections(value: unknown): ProductDetailSec
 
 export function normalizeProductDetailSectionsInput(value: unknown): ProductDetailSection[] {
   if (!Array.isArray(value)) return []
-  return value
-    .map((section) => normalizeProductDetailSection(section))
-    .filter((section): section is ProductDetailSection => Boolean(section))
+  return value.map((section) => normalizeProductDetailSection(section)).filter((section): section is ProductDetailSection => Boolean(section))
 }
 
 function normalizeProductDetailSection(value: unknown): ProductDetailSection | null {
@@ -652,9 +675,7 @@ function normalizeProductDetailSection(value: unknown): ProductDetailSection | n
   const entry = value as Record<string, unknown>
   const titleLocalized = normalizeProductLocalizedText(entry.titleLocalized ?? entry.title, typeof entry.title === 'string' ? entry.title : '')
   const items = Array.isArray(entry.items)
-    ? entry.items
-        .map((item) => normalizeProductDetailField(item))
-        .filter((item): item is ProductDetailField => Boolean(item))
+    ? entry.items.map((item) => normalizeProductDetailField(item)).filter((item): item is ProductDetailField => Boolean(item))
     : []
 
   if (!hasLocalizedText(titleLocalized) && !items.length) return null
@@ -663,7 +684,7 @@ function normalizeProductDetailSection(value: unknown): ProductDetailSection | n
     id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : crypto.randomUUID(),
     title: resolveLocalizedProductText(titleLocalized, 'Section'),
     titleLocalized,
-    items
+    items,
   }
 }
 
@@ -672,19 +693,12 @@ function normalizeProductDetailField(value: unknown): ProductDetailField | null 
   const entry = value as Record<string, unknown>
   const labelLocalized = normalizeProductLocalizedText(entry.labelLocalized ?? entry.label, typeof entry.label === 'string' ? entry.label : '')
   const valueLocalized = normalizeProductLocalizedText(entry.valueLocalized ?? entry.value, typeof entry.value === 'string' ? entry.value : '')
-  const mediaKind = entry.mediaKind === 'image' || entry.mediaKind === 'pdf' || entry.mediaKind === 'billingDocument'
-    ? entry.mediaKind
-    : null
+  const mediaKind = entry.mediaKind === 'image' || entry.mediaKind === 'pdf' || entry.mediaKind === 'billingDocument' ? entry.mediaKind : null
   const mediaUrl = typeof entry.mediaUrl === 'string' && entry.mediaUrl.trim() ? entry.mediaUrl.trim() : null
-  const mediaDocumentId = Number.isInteger(Number(entry.mediaDocumentId)) && Number(entry.mediaDocumentId) > 0
-    ? Number(entry.mediaDocumentId)
-    : null
-  const mediaDocumentName = typeof entry.mediaDocumentName === 'string' && entry.mediaDocumentName.trim()
-    ? entry.mediaDocumentName.trim()
-    : null
-  const mediaDocumentKind = entry.mediaDocumentKind === 'INVOICE' || entry.mediaDocumentKind === 'CONTRACT' || entry.mediaDocumentKind === 'ASSURANCE'
-    ? entry.mediaDocumentKind
-    : null
+  const mediaDocumentId = Number.isInteger(Number(entry.mediaDocumentId)) && Number(entry.mediaDocumentId) > 0 ? Number(entry.mediaDocumentId) : null
+  const mediaDocumentName = typeof entry.mediaDocumentName === 'string' && entry.mediaDocumentName.trim() ? entry.mediaDocumentName.trim() : null
+  const mediaDocumentKind =
+    entry.mediaDocumentKind === 'INVOICE' || entry.mediaDocumentKind === 'CONTRACT' || entry.mediaDocumentKind === 'ASSURANCE' ? entry.mediaDocumentKind : null
   if (!hasLocalizedText(labelLocalized) && !hasLocalizedText(valueLocalized) && !mediaUrl && !mediaDocumentId) return null
   return {
     id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : crypto.randomUUID(),
@@ -699,7 +713,7 @@ function normalizeProductDetailField(value: unknown): ProductDetailField | null 
     mediaDocumentKind,
     mediaDocumentRentalHourlyPrice: null,
     mediaDocumentRentalDailyPrice: null,
-    mediaDocumentRequiredForRental: false
+    mediaDocumentRequiredForRental: false,
   }
 }
 
@@ -716,9 +730,9 @@ export function computeShopOrderCustomerActionState(order: {
   const paymentStatus = String(order.paymentStatus || '').toUpperCase()
   const afterSalesStatus = String(order.afterSalesStatus || 'NONE').toUpperCase()
   const deliveryType = String(order.deliveryType || '').toUpperCase()
-  const lineMetas = Array.isArray(order.lines) ? order.lines.map(line => line?.meta || {}) : []
-  const cancellationEnabled = lineMetas.every(meta => meta.allowCustomerCancellation !== false)
-  const allowRefundAfterEngagement = lineMetas.length > 0 && lineMetas.every(meta => meta.allowRefundRequestAfterEngagement === true)
+  const lineMetas = Array.isArray(order.lines) ? order.lines.map((line) => line?.meta || {}) : []
+  const cancellationEnabled = lineMetas.every((meta) => meta.allowCustomerCancellation !== false)
+  const allowRefundAfterEngagement = lineMetas.length > 0 && lineMetas.every((meta) => meta.allowRefundRequestAfterEngagement === true)
   const fulfillmentEndAt = resolveOrderFulfillmentEnd(order.fulfillmentDate, order.fulfillmentTime)
 
   if (!cancellationEnabled) {
@@ -748,7 +762,7 @@ export function computeShopOrderCustomerActionState(order: {
     return {
       kind: paid ? 'CANCEL_AND_REFUND' : 'CANCEL',
       reason: null,
-      engaged: false
+      engaged: false,
     }
   }
 
@@ -756,14 +770,14 @@ export function computeShopOrderCustomerActionState(order: {
     return {
       kind: 'REQUEST_REFUND',
       reason: null,
-      engaged: true
+      engaged: true,
     }
   }
 
   return {
     kind: 'NONE',
     reason: resolveBlockedReason(status, deliveryType, fulfillmentEndAt, allowRefundAfterEngagement),
-    engaged: true
+    engaged: true,
   }
 }
 
@@ -785,7 +799,12 @@ function isOrderEngaged(status: string, deliveryType: string, fulfillmentEndAt: 
   return ['IN_PREPARATION', 'READY', 'IN_DELIVERY', 'COMPLETED'].includes(status)
 }
 
-function resolveBlockedReason(status: string, deliveryType: string, fulfillmentEndAt: Date | null, allowRefundAfterEngagement: boolean): ShopOrderCustomerActionReason {
+function resolveBlockedReason(
+  status: string,
+  deliveryType: string,
+  fulfillmentEndAt: Date | null,
+  allowRefundAfterEngagement: boolean,
+): ShopOrderCustomerActionReason {
   if (status === 'COMPLETED') return 'FULFILLMENT_COMPLETED'
   if (deliveryType === 'PICKUP' && status === 'READY') return 'PICKUP_POINT_AVAILABLE'
   if (deliveryType === 'ONSITE' && fulfillmentEndAt && fulfillmentEndAt.getTime() <= Date.now()) return 'PICKUP_WINDOW_PASSED'
@@ -797,8 +816,13 @@ function resolveOrderFulfillmentEnd(fulfillmentDate: string | null | undefined, 
   if (!fulfillmentDate) return null
   const date = new Date(fulfillmentDate)
   if (Number.isNaN(date.getTime())) return null
-  const endTime = String(fulfillmentTime || '').split('-').map(part => part.trim()).filter(Boolean).at(-1) || ''
-  const [hours, minutes] = endTime.split(':').map(value => Number(value))
+  const endTime =
+    String(fulfillmentTime || '')
+      .split('-')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .at(-1) || ''
+  const [hours, minutes] = endTime.split(':').map((value) => Number(value))
   if (Number.isFinite(hours) && Number.isFinite(minutes)) {
     date.setHours(Number(hours), Number(minutes), 0, 0)
     return date
@@ -821,14 +845,16 @@ export function normalizeProductLocalizedText(value: unknown, fallback = ''): Cm
     }
     return {
       fr: text || fallback,
-      en: text || fallback
+      en: text || fallback,
     }
   }
 
   if (value && typeof value === 'object') {
     const entry = value as Record<string, unknown>
     for (const [locale, localeValue] of Object.entries(entry)) {
-      const normalizedLocale = String(locale || '').trim().toLowerCase()
+      const normalizedLocale = String(locale || '')
+        .trim()
+        .toLowerCase()
       if (!normalizedLocale) continue
       normalized[normalizedLocale] = typeof localeValue === 'string' ? localeValue.trim() : ''
     }
@@ -841,10 +867,7 @@ export function normalizeProductLocalizedText(value: unknown, fallback = ''): Cm
 }
 
 export function hasLocalizedText(value: CmsLocalizedText | null | undefined) {
-  return Boolean(
-    value
-    && Object.values(value).some((entry) => typeof entry === 'string' && entry.trim())
-  )
+  return Boolean(value && Object.values(value).some((entry) => typeof entry === 'string' && entry.trim()))
 }
 
 export function resolveLocalizedProductText(value: CmsLocalizedText | null | undefined, fallback = '') {
@@ -861,7 +884,7 @@ export function buildLocalizedProductTextPayload(value: unknown, fallback = '') 
   const normalized = normalizeProductLocalizedText(value, fallback)
   return {
     text: resolveLocalizedProductText(normalized, fallback),
-    json: JSON.stringify(normalized)
+    json: JSON.stringify(normalized),
   }
 }
 
@@ -870,21 +893,15 @@ export function pickProductLocalizedText(locale: string, value: CmsLocalizedText
   return selected?.trim() || resolveLocalizedProductText(value, fallback)
 }
 
-export async function ensureUniqueSlug(
-  modelKey: 'product' | 'productCategory',
-  source: string,
-  excludeId?: number
-) {
-  const accessor = modelKey === 'product'
-    ? db.product
-    : db.productCategory
+export async function ensureUniqueSlug(modelKey: 'product' | 'productCategory', source: string, excludeId?: number) {
+  const accessor = modelKey === 'product' ? db.product : db.productCategory
   const base = slugify(source || 'item')
   let slug = base
   let suffix = 2
 
   while (true) {
     const existing = await accessor.findFirst({
-      where: excludeId ? { slug, id: { not: excludeId } } : { slug }
+      where: excludeId ? { slug, id: { not: excludeId } } : { slug },
     })
     if (!existing) return slug
     slug = `${base}-${suffix}`

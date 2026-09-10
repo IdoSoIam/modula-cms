@@ -156,7 +156,7 @@ interface RentalAvailabilityResponse {
     rentalDurations: number[]
     rentalSlotStepMinutes: number
   }
-  days: Array<any & { openingRanges: Array<{ start: string, end: string }> }>
+  days: Array<any & { openingRanges: Array<{ start: string, end: string }>; minimumStartTime: string | null }>
   slots: Array<{ start: string, end: string, remaining: number }>
 }
 
@@ -573,7 +573,9 @@ function getTimesForDate(iso: string, edge: 'start' | 'end') {
     for (let cursor = first; cursor <= last; cursor += step) values.add(minutesToTime(cursor))
     if (edge === 'end') values.add(minutesToTime(end))
   }
-  return Array.from(values).sort()
+  return Array.from(values)
+    .filter(time => edge !== 'start' || !day.minimumStartTime || time > day.minimumStartTime)
+    .sort()
 }
 
 function timeToMinutes(value: string) {

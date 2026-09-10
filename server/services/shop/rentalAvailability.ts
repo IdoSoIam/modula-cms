@@ -1,6 +1,6 @@
 import { db } from '#modula/server/data/client'
 import { getRentalCalendarConfig } from '#modula/server/utils/settings'
-import { getRentalOpeningRanges } from '#modula/shared/rentalCalendar'
+import { getRentalOpeningRanges, resolveOpeningDurationEndTime } from '#modula/shared/rentalCalendar'
 
 export type RentalSourceKind = 'product'
 
@@ -18,6 +18,7 @@ export type RentalSource = {
   rentalDurations: number[]
   rentalSlotStepMinutes: number
   rentalPricingMode?: 'HOURLY' | 'DAILY' | null
+  rentalBillableDurationMinutes?: number | null
 }
 
 export type RentalWindow = {
@@ -185,10 +186,12 @@ export async function computeRentalSlots(
     rentalStartDate: dayStart.toISOString(), rentalEndDate: dayEnd.toISOString(),
     startAt: dayStart, endAt: dayEnd, durationDays: 1, timezone: calendar.timezone,
   })
+  const now = Date.now()
   for (const range of ranges) {
     const rangeStart = dateTimeFromParts(isoDate, range.start, calendar.timezone)
     const rangeEnd = dateTimeFromParts(isoDate, range.end, calendar.timezone)
     for (let cursor = rangeStart.getTime(); cursor + durationMinutes * 60000 <= rangeEnd.getTime(); cursor += source.rentalSlotStepMinutes * 60000) {
+      if (cursor <= now) continue
       const window = resolveRentalWindow(new Date(cursor).toISOString(), new Date(cursor + durationMinutes * 60000).toISOString(), calendar.timezone)!
       const reserved = reservations
         .filter((line: RentalReservationLine) => new Date(line.rentalStartDate).getTime() < window.endAt.getTime() && new Date(line.rentalEndDate).getTime() > window.startAt.getTime())
@@ -198,6 +201,57 @@ export async function computeRentalSlots(
     }
   }
   return slots
+}
+
+export async function computeRentalOpeningDurationSlots(
+  source: RentalSource,
+  isoDate: string,
+  durationMinutes: number,
+): Promise<Array<{ start: string, end: string, remaining: number }>> {
+  if (!source.rentalDurations.includes(durationMinutes)) return []
+  const calendar = await getRentalCalendarConfig()
+  const ranges = getRentalOpeningRanges(calendar, isoDate)
+  if (!ranges.length) return []
+
+  const dayStart = dateTimeFromParts(isoDate, ranges[0]!.start, calendar.timezone)
+  const dayEnd = dateTimeFromParts(isoDate, ranges[ranges.length - 1]!.end, calendar.timezone)
+  const reservations = await getReservationLinesForWindow(source.id, {
+    rentalStartDate: dayStart.toISOString(), rentalEndDate: dayEnd.toISOString(),
+    startAt: dayStart, endAt: dayEnd, durationDays: 1, timezone: calendar.timezone,
+  })
+  const slots: Array<{ start: string, end: string, remaining: number }> = []
+  const now = Date.now()
+
+  for (const range of ranges) {
+    const rangeStart = dateTimeFromParts(isoDate, range.start, calendar.timezone)
+    const rangeEnd = dateTimeFromParts(isoDate, range.end, calendar.timezone)
+    for (let cursor = rangeStart.getTime(); cursor < rangeEnd.getTime(); cursor += source.rentalSlotStepMinutes * 60000) {
+      if (cursor <= now) continue
+      const start = new Date(cursor)
+      const startParts = getZonedParts(start, calendar.timezone)
+      const endTime = resolveOpeningDurationEndTime(ranges, `${startParts.hour}:${startParts.minute}`, durationMinutes)
+      if (!endTime) continue
+      const end = dateTimeFromParts(isoDate, endTime, calendar.timezone)
+      const window = resolveRentalWindow(start.toISOString(), end.toISOString(), calendar.timezone)!
+      const reserved = reservations
+        .filter((line: RentalReservationLine) => new Date(line.rentalStartDate).getTime() < end.getTime() && new Date(line.rentalEndDate).getTime() > start.getTime())
+        .reduce((sum: number, line: RentalReservationLine) => sum + Number(line.quantity || 0), 0)
+      const remaining = Math.max(0, source.stock - reserved)
+      if (remaining > 0) slots.push({ start: window.rentalStartDate, end: window.rentalEndDate, remaining })
+    }
+  }
+
+  return slots
+}
+
+export async function resolveRentalOpeningDurationWindow(startAt: Date, durationMinutes: number) {
+  const calendar = await getRentalCalendarConfig()
+  const isoDate = zonedIsoDate(startAt, calendar.timezone)
+  const ranges = getRentalOpeningRanges(calendar, isoDate)
+  const parts = getZonedParts(startAt, calendar.timezone)
+  const endTime = resolveOpeningDurationEndTime(ranges, `${parts.hour}:${parts.minute}`, durationMinutes)
+  if (!endTime) return null
+  return resolveRentalWindow(startAt.toISOString(), dateTimeFromParts(isoDate, endTime, calendar.timezone).toISOString(), calendar.timezone)
 }
 
 async function getReservedQuantityForWindow(productId: number, window: RentalWindow, excludedIds: number[] = []) {
@@ -363,6 +417,13 @@ function validateRentalWindowAgainstSource(source: RentalSource, rentalWindow: R
     })
   }
 
+  if (rentalWindow.startAt.getTime() <= Date.now()) {
+    throw createError({
+      statusCode: 400,
+      message: rentalMessage(message, 'shop.rentalErrors.pastStart', '{name} ne peut pas être réservé dans le passé', { name: source.title }),
+    })
+  }
+
   const availableFrom = source.rentalAvailableFrom?.slice(0, 10) || null
   const availableTo = source.rentalAvailableTo?.slice(0, 10) || null
   const startDate = zonedIsoDate(rentalWindow.startAt, rentalWindow.timezone)
@@ -381,7 +442,8 @@ function validateRentalWindowAgainstSource(source: RentalSource, rentalWindow: R
   }
 
   if (isHourlyRentalWindow(source.rentalBookingMode, rentalWindow, source.rentalPricingMode)) {
-    const durationMinutes = Math.round((rentalWindow.endAt.getTime() - rentalWindow.startAt.getTime()) / 60000)
+    const durationMinutes = source.rentalBillableDurationMinutes
+      ?? Math.round((rentalWindow.endAt.getTime() - rentalWindow.startAt.getTime()) / 60000)
     if (zonedIsoDate(rentalWindow.startAt, rentalWindow.timezone) !== zonedIsoDate(rentalWindow.endAt, rentalWindow.timezone) || !source.rentalDurations.includes(durationMinutes)) {
       throw createError({ statusCode: 400, message: `${source.title} ne propose pas cette durée de location` })
     }

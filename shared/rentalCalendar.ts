@@ -16,12 +16,19 @@ export interface RentalClosure {
   label: string
 }
 
+export interface RentalMonthlySchedule {
+  month: number
+  useDefault: boolean
+  weekly: RentalWeeklyDay[]
+}
+
 export interface RentalCalendarConfig {
-  version: 1
+  version: 2
   timezone: string
   holidayCountry: string
   excludePublicHolidays: boolean
   weekly: RentalWeeklyDay[]
+  monthly: RentalMonthlySchedule[]
   closures: RentalClosure[]
 }
 
@@ -30,7 +37,7 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 export function createDefaultRentalCalendar(dayOfWeek = 5, start = '09:00', end = '18:00'): RentalCalendarConfig {
   return {
-    version: 1,
+    version: 2,
     timezone: 'Europe/Paris',
     holidayCountry: 'FR',
     excludePublicHolidays: true,
@@ -39,6 +46,7 @@ export function createDefaultRentalCalendar(dayOfWeek = 5, start = '09:00', end 
       enabled: day === dayOfWeek,
       ranges: day === dayOfWeek ? [{ start, end }] : [],
     })),
+    monthly: [],
     closures: [],
   }
 }
@@ -61,6 +69,21 @@ export function normalizeRentalCalendar(value: unknown, fallback?: RentalCalenda
       ranges,
     }
   })
+  const incomingMonths = Array.isArray(source.monthly) ? source.monthly : []
+  const baseMonths = Array.isArray(base.monthly) ? base.monthly : []
+  const monthly = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1
+    const incoming = incomingMonths.find(entry => isRecord(entry) && Number(entry.month) === month)
+    const previous = baseMonths.find(entry => entry.month === month)
+    return {
+      month,
+      useDefault: incoming ? incoming.useDefault !== false : previous?.useDefault !== false,
+      weekly: normalizeWeeklySchedule(
+        incoming?.weekly,
+        incoming ? previous?.weekly ?? createEmptyWeeklySchedule() : previous?.weekly ?? weekly,
+      ),
+    }
+  })
 
   const closures = (Array.isArray(source.closures) ? source.closures : base.closures)
     .map((entry, index) => normalizeClosure(entry, index))
@@ -68,7 +91,7 @@ export function normalizeRentalCalendar(value: unknown, fallback?: RentalCalenda
     .sort((a, b) => a.startDate.localeCompare(b.startDate))
 
   return {
-    version: 1,
+    version: 2,
     timezone: typeof source.timezone === 'string' && source.timezone.trim() ? source.timezone.trim() : base.timezone,
     holidayCountry: typeof source.holidayCountry === 'string' && source.holidayCountry.trim()
       ? source.holidayCountry.trim().toUpperCase()
@@ -77,6 +100,7 @@ export function normalizeRentalCalendar(value: unknown, fallback?: RentalCalenda
       ? source.excludePublicHolidays
       : base.excludePublicHolidays,
     weekly,
+    monthly,
     closures,
   }
 }
@@ -94,6 +118,10 @@ export function validateRentalCalendar(config: RentalCalendarConfig): string[] {
       if (previous && previous.end > range.start) errors.push(`Deux plages du jour ${day.dayOfWeek} se chevauchent.`)
     })
   }
+  for (const schedule of config.monthly) {
+    if (schedule.useDefault) continue
+    validateWeeklySchedule(schedule.weekly, errors, ` du mois ${schedule.month}`)
+  }
   for (const closure of config.closures) {
     if (!DATE_PATTERN.test(closure.startDate) || !DATE_PATTERN.test(closure.endDate) || closure.endDate < closure.startDate) {
       errors.push(`La période de fermeture « ${closure.label || closure.id} » est invalide.`)
@@ -105,8 +133,44 @@ export function validateRentalCalendar(config: RentalCalendarConfig): string[] {
 export function getRentalOpeningRanges(config: RentalCalendarConfig, isoDate: string): RentalTimeRange[] {
   if (!DATE_PATTERN.test(isoDate) || isRentalClosed(config, isoDate)) return []
   const date = parseIsoDate(isoDate)
-  const day = config.weekly.find(entry => entry.dayOfWeek === date.getDay())
+  const day = getRentalWeeklySchedule(config, date.getMonth() + 1).find(entry => entry.dayOfWeek === date.getDay())
   return day?.enabled ? day.ranges : []
+}
+
+export function getRentalWeeklySchedule(config: RentalCalendarConfig, month: number): RentalWeeklyDay[] {
+  const monthly = config.monthly?.find(entry => entry.month === month)
+  return monthly && !monthly.useDefault ? monthly.weekly : config.weekly
+}
+
+export function resolveOpeningDurationEndTime(
+  ranges: RentalTimeRange[],
+  startTime: string,
+  durationMinutes: number,
+): string | null {
+  if (!TIME_PATTERN.test(startTime) || !Number.isInteger(durationMinutes) || durationMinutes <= 0) return null
+
+  const startMinute = timeToMinutes(startTime)
+  let remaining = durationMinutes
+  let started = false
+
+  for (const range of ranges) {
+    const rangeStart = timeToMinutes(range.start)
+    const rangeEnd = timeToMinutes(range.end)
+    if (!started) {
+      if (startMinute < rangeStart || startMinute >= rangeEnd) continue
+      started = true
+      const available = rangeEnd - startMinute
+      if (remaining <= available) return minutesToTime(startMinute + remaining)
+      remaining -= available
+      continue
+    }
+
+    const available = rangeEnd - rangeStart
+    if (remaining <= available) return minutesToTime(rangeStart + remaining)
+    remaining -= available
+  }
+
+  return null
 }
 
 export function isRentalClosed(config: RentalCalendarConfig, isoDate: string): boolean {
@@ -128,6 +192,53 @@ function normalizeTimeRange(value: unknown): RentalTimeRange | null {
   const start = typeof value.start === 'string' ? value.start.trim() : ''
   const end = typeof value.end === 'string' ? value.end.trim() : ''
   return TIME_PATTERN.test(start) && TIME_PATTERN.test(end) ? { start, end } : null
+}
+
+function timeToMinutes(value: string) {
+  const [hour, minute] = value.split(':').map(Number)
+  return Number(hour) * 60 + Number(minute)
+}
+
+function minutesToTime(value: number) {
+  const hour = Math.floor(value / 60)
+  const minute = value % 60
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+function normalizeWeeklySchedule(value: unknown, fallback: RentalWeeklyDay[]): RentalWeeklyDay[] {
+  const incomingDays = Array.isArray(value) ? value : []
+  return Array.from({ length: 7 }, (_, dayOfWeek) => {
+    const incoming = incomingDays.find(day => isRecord(day) && Number(day.dayOfWeek) === dayOfWeek)
+    const previous = fallback.find(day => day.dayOfWeek === dayOfWeek)
+    const rawRanges: unknown[] = Array.isArray(incoming?.ranges) ? incoming.ranges : previous?.ranges ?? []
+    const ranges = rawRanges
+      .map(normalizeTimeRange)
+      .filter((range): range is RentalTimeRange => Boolean(range))
+      .sort((left, right) => left.start.localeCompare(right.start))
+    return {
+      dayOfWeek,
+      enabled: incoming ? incoming.enabled !== false && ranges.length > 0 : Boolean(previous?.enabled && ranges.length),
+      ranges,
+    }
+  })
+}
+
+function createEmptyWeeklySchedule(): RentalWeeklyDay[] {
+  return Array.from({ length: 7 }, (_, dayOfWeek) => ({ dayOfWeek, enabled: false, ranges: [] }))
+}
+
+function validateWeeklySchedule(days: RentalWeeklyDay[], errors: string[], suffix = '') {
+  for (const day of days) {
+    if (!day.enabled) continue
+    if (!day.ranges.length) errors.push(`Le jour ${day.dayOfWeek}${suffix} ne contient aucun horaire.`)
+    day.ranges.forEach((range, index) => {
+      if (!TIME_PATTERN.test(range.start) || !TIME_PATTERN.test(range.end) || range.start >= range.end) {
+        errors.push(`La plage ${index + 1} du jour ${day.dayOfWeek}${suffix} est invalide.`)
+      }
+      const previous = day.ranges[index - 1]
+      if (previous && previous.end > range.start) errors.push(`Deux plages du jour ${day.dayOfWeek}${suffix} se chevauchent.`)
+    })
+  }
 }
 
 function normalizeClosure(value: unknown, index: number): RentalClosure | null {

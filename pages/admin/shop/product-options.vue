@@ -2,8 +2,12 @@
   <div class="space-y-6">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <h1 class="text-3xl font-bold">{{ t('admin.productOptions.pageTitle') }}</h1>
-        <p class="mt-1 max-w-3xl text-sm opacity-70">{{ t('admin.productOptions.pageDescription') }}</p>
+        <h1 class="text-3xl font-bold">
+          {{ t('admin.productOptions.pageTitle') }}
+        </h1>
+        <p class="mt-1 max-w-3xl text-sm opacity-70">
+          {{ t('admin.productOptions.pageDescription') }}
+        </p>
       </div>
       <button class="btn btn-primary" @click="createSet">
         <Icon name="mdi:plus" size="18" />
@@ -13,7 +17,9 @@
 
     <div class="grid gap-6 xl:grid-cols-[20rem_minmax(0,1fr)]">
       <aside class="card bg-base-100 p-4 shadow-sm">
-        <div v-if="pending" class="grid place-items-center py-12"><span class="loading loading-spinner" /></div>
+        <div v-if="pending" class="grid place-items-center py-12">
+          <span class="loading loading-spinner" />
+        </div>
         <div v-else class="space-y-2">
           <button
             v-for="set in optionSets || []"
@@ -25,11 +31,17 @@
           >
             <span class="min-w-0">
               <span class="block truncate font-medium">{{ set.name }}</span>
-              <span class="block text-xs opacity-65">{{ t('admin.productOptions.groupCount', { count: set.optionGroups.length }) }}</span>
+              <span class="block text-xs opacity-65">{{
+                t('admin.productOptions.groupCount', {
+                  count: set.optionGroups.length,
+                })
+              }}</span>
             </span>
             <span class="badge badge-sm" :class="set.active ? 'badge-success' : 'badge-ghost'" />
           </button>
-          <div v-if="!optionSets?.length" class="py-10 text-center text-sm opacity-60">{{ t('admin.productOptions.noSets') }}</div>
+          <div v-if="!optionSets?.length" class="py-10 text-center text-sm opacity-60">
+            {{ t('admin.productOptions.noSets') }}
+          </div>
         </div>
       </aside>
 
@@ -50,7 +62,9 @@
 
           <div class="mt-6 grid gap-6 lg:grid-cols-2">
             <fieldset class="rounded-box border border-base-300 p-4">
-              <legend class="px-2 font-medium">{{ t('admin.productOptions.saleTypes') }}</legend>
+              <legend class="px-2 font-medium">
+                {{ t('admin.productOptions.saleTypes') }}
+              </legend>
               <div class="flex flex-wrap gap-4">
                 <label class="label cursor-pointer justify-start gap-3">
                   <input v-model="editing.saleTypes" type="checkbox" value="SALE" class="checkbox" />
@@ -68,8 +82,12 @@
 
           <div class="mt-6 grid gap-6 lg:grid-cols-2">
             <fieldset class="rounded-box border border-base-300 p-4">
-              <legend class="px-2 font-medium">{{ t('admin.productOptions.categories') }}</legend>
-              <p class="mb-3 text-xs opacity-65">{{ t('admin.productOptions.targetsHelp') }}</p>
+              <legend class="px-2 font-medium">
+                {{ t('admin.productOptions.categories') }}
+              </legend>
+              <p class="mb-3 text-xs opacity-65">
+                {{ t('admin.productOptions.targetsHelp') }}
+              </p>
               <div class="max-h-56 space-y-1 overflow-auto gap-4 flex flex-wrap">
                 <label v-for="category in categories || []" :key="category.id" class="label cursor-pointer justify-start gap-3">
                   <input v-model="editing.categoryIds" type="checkbox" :value="category.id" class="checkbox checkbox-sm" />
@@ -79,8 +97,12 @@
             </fieldset>
 
             <fieldset class="rounded-box border border-base-300 p-4">
-              <legend class="px-2 font-medium">{{ t('admin.productOptions.specificProducts') }}</legend>
-              <p class="mb-3 text-xs opacity-65">{{ t('admin.productOptions.targetsHelp') }}</p>
+              <legend class="px-2 font-medium">
+                {{ t('admin.productOptions.specificProducts') }}
+              </legend>
+              <p class="mb-3 text-xs opacity-65">
+                {{ t('admin.productOptions.targetsHelp') }}
+              </p>
               <div class="max-h-56 space-y-1 overflow-auto gap-4 flex flex-wrap">
                 <label v-for="product in products || []" :key="product.id" class="label cursor-pointer justify-start gap-3">
                   <input v-model="editing.productIds" type="checkbox" :value="product.id" class="checkbox checkbox-sm" />
@@ -97,6 +119,7 @@
             :locales="editorLocales"
             :products="products || []"
             :billing-documents="billingDocuments || []"
+            :excluded-category-ids="excludedAccessoryCategoryIds"
           />
         </section>
 
@@ -106,7 +129,9 @@
             {{ t('admin.common.delete') }}
           </button>
           <div class="flex gap-3 sm:ml-auto">
-            <button class="btn btn-ghost" :disabled="saving" @click="resetEditing">{{ t('admin.common.cancel') }}</button>
+            <button class="btn btn-ghost" :disabled="saving" @click="resetEditing">
+              {{ t('admin.common.cancel') }}
+            </button>
             <button class="btn btn-primary" :disabled="saving || !editing.name.trim() || !editing.saleTypes.length" @click="save">
               <span v-if="saving" class="loading loading-spinner loading-sm" />
               <Icon v-else name="mdi:content-save-outline" size="18" />
@@ -126,8 +151,15 @@ import type { ProductOptionSetPayload, ProductPayload } from '#modula/server/uti
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-interface Category { id: number, name: string }
-interface BillingDocument { id: number, name: string, kind: 'INVOICE' | 'CONTRACT' | 'ASSURANCE' }
+interface Category {
+  id: number
+  name: string
+}
+interface BillingDocument {
+  id: number
+  name: string
+  kind: 'INVOICE' | 'CONTRACT' | 'ASSURANCE'
+}
 interface EditorState {
   id?: number
   name: string
@@ -142,19 +174,36 @@ interface EditorState {
 const { t } = useI18n()
 const { locales } = useSiteLocales()
 const { $toast } = useNuxtApp() as any
-const editorLocales = computed(() => locales.value.length ? [...locales.value] : ['fr', 'en'])
+const editorLocales = computed(() => (locales.value.length ? [...locales.value] : ['fr', 'en']))
 const { data: optionSets, pending, refresh } = await useFetch<ProductOptionSetPayload[]>('/api/admin/product-option-sets')
 const { data: categories } = await useFetch<Category[]>('/api/admin/product-categories')
 const { data: products } = await useFetch<ProductPayload[]>('/api/admin/products')
 const { data: billingDocuments } = await useFetch<BillingDocument[]>('/api/admin/billing-documents')
 const editing = reactive<EditorState>(emptyState())
 const saving = ref(false)
+const excludedAccessoryCategoryIds = computed(() =>
+  Array.from(
+    new Set([
+      ...editing.categoryIds,
+      ...editing.productIds.map((productId) => products.value?.find((product) => product.id === productId)?.categoryId || 0).filter(Boolean),
+    ]),
+  ),
+)
 
 function emptyState(): EditorState {
-  return { name: '', categoryIds: [], productIds: [], saleTypes: ['SALE', 'RENTAL'], optionGroups: [], active: true, position: 0 }
+  return {
+    name: '',
+    categoryIds: [],
+    productIds: [],
+    saleTypes: ['SALE', 'RENTAL'],
+    optionGroups: [],
+    active: true,
+    position: 0,
+  }
 }
 
 function createSet() {
+  delete editing.id
   Object.assign(editing, emptyState())
 }
 
@@ -172,7 +221,7 @@ function selectSet(set: ProductOptionSetPayload) {
 }
 
 function resetEditing() {
-  const current = optionSets.value?.find(set => set.id === editing.id)
+  const current = optionSets.value?.find((set) => set.id === editing.id)
   if (current) selectSet(current)
   else createSet()
 }
@@ -207,7 +256,9 @@ async function removeSet() {
   if (!editing.id || !confirm(t('admin.productOptions.deleteConfirm', { name: editing.name }))) return
   saving.value = true
   try {
-    await $fetch(`/api/admin/product-option-sets/${editing.id}`, { method: 'DELETE' })
+    await $fetch(`/api/admin/product-option-sets/${editing.id}`, {
+      method: 'DELETE',
+    })
     await refresh()
     createSet()
     $toast.success(t('admin.productOptions.deleted'))

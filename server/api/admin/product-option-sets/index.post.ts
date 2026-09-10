@@ -2,6 +2,7 @@ import { db } from '#modula/server/data/client'
 import { serializeProductOptionSet } from '#modula/server/utils/shop'
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { normalizeProductOptionGroups } from '#modula/shared/productOptions'
+import { validateProductOptionSetLinks } from '#modula/server/utils/productOptionSets'
 
 interface Body {
   name?: string
@@ -19,13 +20,18 @@ export default defineEventHandler(async (event) => {
   const name = String(body.name || '').trim()
   if (!name) throw createError({ statusCode: 400, message: 'Nom requis' })
 
+  const categoryIds = normalizeIds(body.categoryIds)
+  const productIds = normalizeIds(body.productIds)
+  const optionGroups = normalizeProductOptionGroups(body.optionGroups)
+  await validateProductOptionSetLinks({ categoryIds, productIds, optionGroups })
+
   const row = await db.productOptionSet.create({
     data: {
       name,
-      categoryIdsJson: JSON.stringify(normalizeIds(body.categoryIds)),
-      productIdsJson: JSON.stringify(normalizeIds(body.productIds)),
+      categoryIdsJson: JSON.stringify(categoryIds),
+      productIdsJson: JSON.stringify(productIds),
       saleTypesJson: JSON.stringify(normalizeSaleTypes(body.saleTypes)),
-      optionGroupsJson: JSON.stringify(normalizeProductOptionGroups(body.optionGroups)),
+      optionGroupsJson: JSON.stringify(optionGroups),
       active: body.active !== false,
       position: normalizePosition(body.position),
     },

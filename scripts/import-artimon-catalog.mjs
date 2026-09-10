@@ -7,6 +7,7 @@ const databasePath = resolve(process.cwd(), process.env.CMS_SQLITE_PATH || '.dat
 const uploadsDir = resolve(process.cwd(), process.env.CMS_FILESYSTEM_STORAGE_DIR || 'public/uploads')
 const db = new Database(databasePath)
 const now = new Date().toISOString()
+const detailsOnly = process.argv.includes('--details-only')
 
 const boats = [
   boat('jeanneau-cap-camarat-47-cc', 'Jeanneau Cap Camarat 4.7 CC', 3731, 'ARTIMON 2', 'Jeanneau', 'Cap Camarat 4.7 CC', 'Open sans cabine', 4.65, 5, 6, false, 20, 3, 600, [62, 102, 135, 171, 192, 204, 200, 205], [389, 570, 740, 910, 1080, 1250], ['Échelle de bain'], 'https://cdn.nauticmanager.com/announcements_pictures/6801ffa1e1102-o.jpeg', 'Formule matin 7 h–11 h : 151 € TTC, carburant inclus.'),
@@ -21,21 +22,29 @@ const boats = [
   boat('jeanneau-cap-camarat-75-cc', 'Jeanneau Cap Camarat 7.5 CC', 3722, 'ARTIMON 20', 'Jeanneau', 'Cap Camarat 7.5 CC', 'Open sans cabine', 7.42, 8, 250, true, 280, 25, 3000, [215, 228, 263, 350, 370, 395, 460, 490], [933, 1366, 1775, 2184, 2594, 3003], ['Taud de soleil', 'Échelle de bain', 'Mât de ski', 'Compas'], 'https://cdn.nauticmanager.com/announcements_pictures/69da56eb8ce63-o.jpeg', 'Bouée tractée et skis nautiques proposés en supplément.'),
 ]
 
-await mkdir(uploadsDir, { recursive: true })
-const categoryId = ensureCategory()
 const report = []
 
-for (const [position, product] of boats.entries()) {
-  const filename = `artimon-${product.slug}.jpg`
-  const imageUrl = `/uploads/${filename}`
-  const image = await downloadImage(product.sourceImageUrl, filename)
-  upsertImage(filename, imageUrl, image)
-  const id = upsertProduct(product, categoryId, position + 1, imageUrl)
-  upsertImageUsage(imageUrl, id, product.name)
-  report.push({ id, slug: product.slug, name: product.name, image: imageUrl })
+if (detailsOnly) {
+  for (const product of boats) {
+    const result = db.prepare('UPDATE Product SET detailsJson = ?, updatedAt = ? WHERE slug = ? AND deletedAt IS NULL')
+      .run(JSON.stringify(buildDetails(product)), now, product.slug)
+    report.push({ slug: product.slug, name: product.name, updated: result.changes > 0 })
+  }
+} else {
+  await mkdir(uploadsDir, { recursive: true })
+  const categoryId = ensureCategory()
+  for (const [position, product] of boats.entries()) {
+    const filename = `artimon-${product.slug}.jpg`
+    const imageUrl = `/uploads/${filename}`
+    const image = await downloadImage(product.sourceImageUrl, filename)
+    upsertImage(filename, imageUrl, image)
+    const id = upsertProduct(product, categoryId, position + 1, imageUrl)
+    upsertImageUsage(imageUrl, id, product.name)
+    report.push({ id, slug: product.slug, name: product.name, image: imageUrl })
+  }
 }
 
-console.log(JSON.stringify({ databasePath, imported: report.length, products: report }, null, 2))
+console.log(JSON.stringify({ databasePath, mode: detailsOnly ? 'details-only' : 'full-import', processed: report.length, products: report }, null, 2))
 db.close()
 
 function boat(slug, name, nauticalManagerId, fleetName, manufacturer, model, type, length, capacity, enginePower, permitRequired, tankCapacity, consumption, deposit, hourlyPrices, dailyPrices, equipment, sourceImageUrl, notes = '') {
@@ -62,19 +71,32 @@ function buildDetails(product) {
     field('tank', 'Réservoir', `${product.tankCapacity} L`),
     field('consumption', 'Consommation indicative', `${product.consumption} L/h`),
   ]
-  const conditions = [
-    field('fleet-name', 'Référence de flotte', product.fleetName),
-    field('pickup', 'Lieu de retrait', '2 Quai Arthur Rimbaud, Ponton F, 66750 Saint-Cyprien'),
-    field('contact', 'Contact', '+33 6 86 38 46 65 · artimon.saintcyprien@free.fr'),
-    field('pricing-note', 'Tarification', 'Prix TTC. Carburant, nettoyage, retard et options éventuelles facturés selon les conditions du loueur.'),
-    field('source', 'Fiche de réservation', `https://shop.nauticmanager.com/artimon/announcements/${product.nauticalManagerId}`),
+  const equipment = product.equipment.map((name, index) => field(
+    `equipment-${index + 1}`,
+    name,
+    equipmentDescription(name),
+  ))
+  const practical = [
+    field('fleet-name', 'Référence du bateau', product.fleetName),
+    field('pickup', 'Départ et retour', 'Ponton F, 2 quai Arthur Rimbaud, 66750 Saint-Cyprien'),
   ]
-  if (product.notes) conditions.push(field('notes', 'Informations complémentaires', product.notes))
   return [
     { id: 'technical-characteristics', title: 'Caractéristiques', titleLocalized: localized('Caractéristiques'), items: technical },
-    { id: 'equipment', title: 'Équipements inclus', titleLocalized: localized('Équipements inclus'), items: [field('equipment-list', 'Équipements', product.equipment.join(' · '))] },
-    { id: 'rental-conditions', title: 'Informations pratiques', titleLocalized: localized('Informations pratiques'), items: conditions },
+    { id: 'equipment', title: 'Équipements inclus', titleLocalized: localized('Équipements inclus'), items: equipment },
+    { id: 'rental-conditions', title: 'Informations pratiques', titleLocalized: localized('Informations pratiques'), items: practical },
   ]
+}
+
+function equipmentDescription(name) {
+  const descriptions = {
+    'Plateforme de bain': 'Facilite l’accès à l’eau et la remontée à bord.',
+    'Taud de soleil': 'Crée une zone ombragée à bord pendant la navigation ou au mouillage.',
+    'Échelle de bain': 'Permet de remonter facilement à bord après la baignade.',
+    'Mât de ski': 'Point de traction prévu pour le ski nautique et les équipements compatibles.',
+    'Compas': 'Aide à l’orientation et au suivi du cap pendant la navigation.',
+    'Mouillage': 'Matériel d’ancrage fourni pour immobiliser le bateau dans une zone autorisée.',
+  }
+  return descriptions[name] || 'Équipement fourni avec le bateau.'
 }
 
 function buildRates(product) {

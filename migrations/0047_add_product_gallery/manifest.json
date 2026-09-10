@@ -1,0 +1,24 @@
+{
+  "id": "0047_add_product_gallery",
+  "name": "add_product_gallery",
+  "description": "",
+  "beforeSchemaHash": "f8efc889a2860e0522e7da8c3778cd772bd0c95391827f0dab774797efd3426f",
+  "afterSchemaHash": "cb080471728e7cbc5186e55f77ad41a1ed07b27f4cd902f1b8a975b95166e14c",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "Product",
+        "changes": [
+          "field added: galleryJson"
+        ]
+      }
+    ]
+  }
+}

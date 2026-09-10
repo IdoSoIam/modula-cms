@@ -46,6 +46,9 @@ export interface ShopCartOptionSelection {
   totalPrice: number
   billingDocumentId?: number | null
   linkedProductId?: number | null
+  rentalDurationMinutes?: number | null
+  rentalStartDate?: string | null
+  rentalEndDate?: string | null
 }
 
 export interface ShopCartAssociatedDocument {
@@ -80,7 +83,7 @@ export function getShopCartPaymentCapabilities(items: ShopCartItem[], stripeEnab
     allowOffline,
     allowOnline,
     requiresChoice: allowOffline && allowOnline,
-    resolvedDefaultMode: allowOnline && !allowOffline ? 'stripe' : 'offline'
+    resolvedDefaultMode: allowOnline && !allowOffline ? 'stripe' : 'offline',
   }
 }
 
@@ -95,56 +98,57 @@ export function useShopCart() {
       if (raw) {
         const parsed = JSON.parse(raw)
         items.value = Array.isArray(parsed)
-          ? parsed.map<ShopCartItem>((item) => ({
-              key: String(item?.key || ''),
-              kind: 'product',
-              saleType: item?.saleType === 'RENTAL' ? 'RENTAL' : 'SALE',
-              productId: item?.productId == null ? null : Number(item.productId),
-              slug: item?.slug?.trim() || null,
-              title: String(item?.title || ''),
-              imageUrl: item?.imageUrl ?? null,
-              description: item?.description ?? null,
-              quantity: Math.max(1, Number(item?.quantity || 1)),
-              rentalStartDate: item?.rentalStartDate?.trim() || null,
-              rentalEndDate: item?.rentalEndDate?.trim() || null,
-              rentalPricingMode: item?.rentalPricingMode === 'HOURLY' ? 'HOURLY' : item?.rentalPricingMode === 'DAILY' ? 'DAILY' : null,
-              rentalBaseUnitPrice: item?.rentalBaseUnitPrice == null ? null : Number(item.rentalBaseUnitPrice),
-              insuranceSelections: Array.isArray(item?.insuranceSelections)
-                ? item.insuranceSelections
-                    .map((insurance: any) => ({
-                      documentId: Number(insurance?.documentId || 0),
-                      name: String(insurance?.name || ''),
-                      required: Boolean(insurance?.required),
-                      unitPrice: Number(insurance?.unitPrice || 0),
-                    }))
-                    .filter((insurance: ShopCartInsuranceSelection) => insurance.documentId > 0)
-                : [],
-              optionSelections: normalizeCartOptionSelections(item?.optionSelections),
-              associatedDocuments: Array.isArray(item?.associatedDocuments)
-                ? item.associatedDocuments
-                    .map((document: any) => ({
-                      key: String(document?.key || ''),
-                      name: String(document?.name || ''),
-                      kind: document?.kind === 'billingDocument' ? 'billingDocument' as const : 'pdf' as const,
-                      url: String(document?.url || ''),
-                      documentId: document?.documentId == null ? null : Number(document.documentId),
-                    }))
-                    .filter((document: ShopCartAssociatedDocument) => document.key && document.url)
-                : [],
-              availableQuantity: item?.availableQuantity == null ? null : Number(item.availableQuantity),
-              vatRate: Number(item?.vatRate || 0),
-              paymentTaxCode: item?.paymentTaxCode ?? null,
-              paymentTaxBehavior: item?.paymentTaxBehavior === 'exclusive' ? 'exclusive' : item?.paymentTaxBehavior === 'inclusive' ? 'inclusive' : null,
-              allowOfflinePayment: item?.allowOfflinePayment !== false,
-              allowOnlinePayment: item?.allowOnlinePayment === true,
-              rentalDepositAmount: item?.saleType === 'RENTAL' && Number(item?.rentalDepositAmount || 0) > 0 ? Number(item.rentalDepositAmount) : null,
-              rentalDepositAllowOnsitePayment: item?.rentalDepositAllowOnsitePayment !== false,
-              rentalDepositAllowOnlinePayment: item?.rentalDepositAllowOnlinePayment === true,
-              unitPrice: Number(item?.unitPrice || 0),
-              totalPrice: Number(item?.totalPrice || 0)
-            }))
-            .filter((item) => item.productId != null && item.key)
-            .map(refreshCartItemTotals)
+          ? parsed
+              .map<ShopCartItem>((item) => ({
+                key: String(item?.key || ''),
+                kind: 'product',
+                saleType: item?.saleType === 'RENTAL' ? 'RENTAL' : 'SALE',
+                productId: item?.productId == null ? null : Number(item.productId),
+                slug: item?.slug?.trim() || null,
+                title: String(item?.title || ''),
+                imageUrl: item?.imageUrl ?? null,
+                description: item?.description ?? null,
+                quantity: Math.max(1, Number(item?.quantity || 1)),
+                rentalStartDate: item?.rentalStartDate?.trim() || null,
+                rentalEndDate: item?.rentalEndDate?.trim() || null,
+                rentalPricingMode: item?.rentalPricingMode === 'HOURLY' ? 'HOURLY' : item?.rentalPricingMode === 'DAILY' ? 'DAILY' : null,
+                rentalBaseUnitPrice: item?.rentalBaseUnitPrice == null ? null : Number(item.rentalBaseUnitPrice),
+                insuranceSelections: Array.isArray(item?.insuranceSelections)
+                  ? item.insuranceSelections
+                      .map((insurance: any) => ({
+                        documentId: Number(insurance?.documentId || 0),
+                        name: String(insurance?.name || ''),
+                        required: Boolean(insurance?.required),
+                        unitPrice: Number(insurance?.unitPrice || 0),
+                      }))
+                      .filter((insurance: ShopCartInsuranceSelection) => insurance.documentId > 0)
+                  : [],
+                optionSelections: normalizeCartOptionSelections(item?.optionSelections),
+                associatedDocuments: Array.isArray(item?.associatedDocuments)
+                  ? item.associatedDocuments
+                      .map((document: any) => ({
+                        key: String(document?.key || ''),
+                        name: String(document?.name || ''),
+                        kind: document?.kind === 'billingDocument' ? ('billingDocument' as const) : ('pdf' as const),
+                        url: String(document?.url || ''),
+                        documentId: document?.documentId == null ? null : Number(document.documentId),
+                      }))
+                      .filter((document: ShopCartAssociatedDocument) => document.key && document.url)
+                  : [],
+                availableQuantity: item?.availableQuantity == null ? null : Number(item.availableQuantity),
+                vatRate: Number(item?.vatRate || 0),
+                paymentTaxCode: item?.paymentTaxCode ?? null,
+                paymentTaxBehavior: item?.paymentTaxBehavior === 'exclusive' ? 'exclusive' : item?.paymentTaxBehavior === 'inclusive' ? 'inclusive' : null,
+                allowOfflinePayment: item?.allowOfflinePayment !== false,
+                allowOnlinePayment: item?.allowOnlinePayment === true,
+                rentalDepositAmount: item?.saleType === 'RENTAL' && Number(item?.rentalDepositAmount || 0) > 0 ? Number(item.rentalDepositAmount) : null,
+                rentalDepositAllowOnsitePayment: item?.rentalDepositAllowOnsitePayment !== false,
+                rentalDepositAllowOnlinePayment: item?.rentalDepositAllowOnlinePayment === true,
+                unitPrice: Number(item?.unitPrice || 0),
+                totalPrice: Number(item?.totalPrice || 0),
+              }))
+              .filter((item) => item.productId != null && item.key)
+              .map(refreshCartItemTotals)
           : []
       }
     } catch {
@@ -156,10 +160,14 @@ export function useShopCart() {
 
   onMounted(hydrate)
 
-  watch(items, (value) => {
-    if (!import.meta.client || !hydrated.value) return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
-  }, { deep: true })
+  watch(
+    items,
+    (value) => {
+      if (!import.meta.client || !hydrated.value) return
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
+    },
+    { deep: true },
+  )
 
   const count = computed(() => items.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0))
   const total = computed(() => items.value.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0))
@@ -177,9 +185,9 @@ export function useShopCart() {
       existing.rentalEndDate = item.rentalEndDate?.trim() || null
       existing.rentalPricingMode = item.rentalPricingMode ?? null
       existing.rentalBaseUnitPrice = item.rentalBaseUnitPrice ?? null
-      existing.insuranceSelections = item.insuranceSelections ? item.insuranceSelections.map(entry => ({ ...entry })) : []
-      existing.optionSelections = item.optionSelections ? item.optionSelections.map(entry => ({ ...entry })) : []
-      existing.associatedDocuments = item.associatedDocuments ? item.associatedDocuments.map(entry => ({ ...entry })) : []
+      existing.insuranceSelections = item.insuranceSelections ? item.insuranceSelections.map((entry) => ({ ...entry })) : []
+      existing.optionSelections = item.optionSelections ? item.optionSelections.map((entry) => ({ ...entry })) : []
+      existing.associatedDocuments = item.associatedDocuments ? item.associatedDocuments.map((entry) => ({ ...entry })) : []
       existing.availableQuantity = item.availableQuantity
       existing.vatRate = item.vatRate
       existing.paymentTaxCode = item.paymentTaxCode ?? null
@@ -193,10 +201,12 @@ export function useShopCart() {
       refreshCartItemTotals(existing)
       return
     }
-    items.value.push(refreshCartItemTotals({
-      ...item,
-      quantity: requestedQuantity,
-    }))
+    items.value.push(
+      refreshCartItemTotals({
+        ...item,
+        quantity: requestedQuantity,
+      }),
+    )
   }
 
   const replace = (key: string, item: ShopCartItem) => {
@@ -210,9 +220,9 @@ export function useShopCart() {
       key,
       slug: item.slug?.trim() || null,
       quantity: clampQuantity(item.quantity, item.availableQuantity),
-      insuranceSelections: item.insuranceSelections?.map(entry => ({ ...entry })) || [],
-      optionSelections: item.optionSelections?.map(entry => ({ ...entry })) || [],
-      associatedDocuments: item.associatedDocuments?.map(entry => ({ ...entry })) || [],
+      insuranceSelections: item.insuranceSelections?.map((entry) => ({ ...entry })) || [],
+      optionSelections: item.optionSelections?.map((entry) => ({ ...entry })) || [],
+      associatedDocuments: item.associatedDocuments?.map((entry) => ({ ...entry })) || [],
     })
   }
 
@@ -244,7 +254,7 @@ export function useShopCart() {
     replace,
     updateQuantity,
     remove,
-    clear
+    clear,
   }
 }
 
@@ -254,25 +264,30 @@ function normalizeCartOptionSelections(value: unknown): ShopCartOptionSelection[
     .map((entry: any) => ({
       optionId: String(entry?.optionId || ''),
       label: String(entry?.label || ''),
-      kind: entry?.kind === 'ACCESSORY' ? 'ACCESSORY' as const : entry?.kind === 'INSURANCE' ? 'INSURANCE' as const : 'SUPPLEMENT' as const,
-      quantityMode: entry?.quantityMode === 'PER_PRODUCT_UNIT'
-        ? 'PER_PRODUCT_UNIT' as const
-        : entry?.quantityMode === 'CUSTOM' ? 'CUSTOM' as const : 'PER_RESERVATION' as const,
+      kind: entry?.kind === 'ACCESSORY' ? ('ACCESSORY' as const) : entry?.kind === 'INSURANCE' ? ('INSURANCE' as const) : ('SUPPLEMENT' as const),
+      quantityMode:
+        entry?.quantityMode === 'PER_PRODUCT_UNIT'
+          ? ('PER_PRODUCT_UNIT' as const)
+          : entry?.quantityMode === 'CUSTOM'
+            ? ('CUSTOM' as const)
+            : ('PER_RESERVATION' as const),
       selectedQuantity: Math.max(1, Math.round(Number(entry?.selectedQuantity ?? entry?.quantity ?? 1))),
       quantity: Math.max(1, Math.round(Number(entry?.quantity || 1))),
       unitPrice: Math.max(0, Number(entry?.unitPrice || 0)),
       totalPrice: Math.max(0, Number(entry?.totalPrice || 0)),
       billingDocumentId: entry?.billingDocumentId == null ? null : Number(entry.billingDocumentId),
       linkedProductId: entry?.linkedProductId == null ? null : Number(entry.linkedProductId),
+      rentalDurationMinutes: entry?.rentalDurationMinutes == null ? null : Math.max(0, Number(entry.rentalDurationMinutes)),
+      rentalStartDate: typeof entry?.rentalStartDate === 'string' ? entry.rentalStartDate : null,
+      rentalEndDate: typeof entry?.rentalEndDate === 'string' ? entry.rentalEndDate : null,
     }))
-    .filter(entry => entry.optionId)
+    .filter((entry) => entry.optionId)
 }
 
 function refreshCartItemTotals<T extends ShopCartItem>(item: T): T {
   for (const option of item.optionSelections || []) {
-    option.quantity = option.quantityMode === 'PER_PRODUCT_UNIT'
-      ? Math.max(1, item.quantity)
-      : option.quantityMode === 'CUSTOM' ? Math.max(1, option.selectedQuantity) : 1
+    option.quantity =
+      option.quantityMode === 'PER_PRODUCT_UNIT' ? Math.max(1, item.quantity) : option.quantityMode === 'CUSTOM' ? Math.max(1, option.selectedQuantity) : 1
     option.totalPrice = Number(option.unitPrice || 0) * option.quantity
   }
 

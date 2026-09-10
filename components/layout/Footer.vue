@@ -44,7 +44,12 @@
           </p>
 
           <div v-else-if="block.type === 'opening-hours'" class="space-y-2 text-sm opacity-85" @click="handleFooterBlockClick($event, column.id, block.id)">
-            <div v-for="line in openingHoursLines" :key="line">{{ line }}</div>
+            <PublicOpeningHoursDisplay
+              v-if="siteConfig?.rentalCalendar"
+              :calendar="siteConfig.rentalCalendar"
+              :locale="effectiveLocale"
+            />
+            <div v-else-if="farmScheduleText">{{ farmScheduleText }}</div>
           </div>
 
           <div v-else-if="block.type === 'contact'" class="space-y-2 text-sm opacity-85" @click="handleFooterBlockClick($event, column.id, block.id)">
@@ -107,7 +112,7 @@
 <script setup lang="ts">
 import { pickCmsLocalizedText, type CmsFooterColumn, type CmsLocalizedText, type CmsLocale, type CmsSocialLink, type PublicSiteShell } from '#modula/shared/cms'
 import { formatLocalizedTimeValue, formatLocalizedWeekday } from '#modula/shared/date'
-import { formatWeeklyOpeningHours } from '#modula/shared/openingHours'
+import PublicOpeningHoursDisplay from '#modula/components/public/OpeningHoursDisplay.vue'
 import type { RentalCalendarConfig } from '#modula/shared/rentalCalendar'
 import type { ThemeColorSelection } from '#modula/shared/pageBuilder'
 import { useAuthStore } from '#modula/stores/auth'
@@ -196,10 +201,6 @@ const formatFooterSchedule = (schedule?: SiteConfig['farmPickup'] | null) => {
   return publicText('navigation.footer.recurringSchedule', 'Tous les {day} de {start} à {end}', { day, start, end })
 }
 const farmScheduleText = computed(() => formatFooterSchedule(siteConfig.value?.farmPickup || null))
-const openingHoursLines = computed(() => {
-  const weekly = formatWeeklyOpeningHours(siteConfig.value?.rentalCalendar, effectiveLocale.value)
-  return weekly.length ? weekly : [farmScheduleText.value].filter(Boolean)
-})
 const siteName = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteName) || 'Site')
 const siteTagline = computed(() => pickCmsLocalizedText(effectiveLocale.value, cms.value?.settings.siteTagline))
 const logoSrc = computed(() => {

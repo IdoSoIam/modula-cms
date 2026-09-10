@@ -242,6 +242,7 @@ export const cmsDataSchema = defineSchema({
         excludedOptionSetIdsJson: field.string({ default: '[]' }),
         optionOverridesJson: field.string({ default: '[]' }),
         imageUrl: field.string({ nullable: true }),
+        galleryJson: field.string({ default: '[]' }),
         price: field.decimal({ default: 0 }),
         vatRate: field.decimal({ default: 20 }),
         paymentTaxCode: field.string({ nullable: true }),

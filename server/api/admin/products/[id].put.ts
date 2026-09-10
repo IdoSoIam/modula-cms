@@ -4,6 +4,7 @@ import {
   buildLocalizedProductTextPayload,
   ensureUniqueSlug,
   normalizeProductDetailSectionsInput,
+  normalizeProductGalleryInput,
   normalizeProductLocalizedText,
   resolveLocalizedProductText,
   promoteProductOptionGroups,
@@ -32,6 +33,7 @@ interface Body {
   excludedOptionSetIds?: number[]
   optionOverrides?: unknown
   imageUrl?: string | null
+  gallery?: unknown
   price?: number
   vatRate?: number
   paymentTaxCode?: string | null
@@ -89,8 +91,8 @@ export default defineEventHandler(async (event) => {
     ? (existing.saleType === 'RENTAL' ? 'RENTAL' : 'SALE')
     : (body.saleType === 'RENTAL' ? 'RENTAL' : 'SALE')
   const rentalConfig = normalizeRentalConfig({
-    rentalAvailableFrom: nextSaleType === 'RENTAL' ? (body.rentalAvailableFrom ?? existing.rentalAvailableFrom) : null,
-    rentalAvailableTo: nextSaleType === 'RENTAL' ? (body.rentalAvailableTo ?? existing.rentalAvailableTo) : null,
+    rentalAvailableFrom: nextSaleType === 'RENTAL' ? (body.rentalAvailableFrom !== undefined ? body.rentalAvailableFrom : existing.rentalAvailableFrom) : null,
+    rentalAvailableTo: nextSaleType === 'RENTAL' ? (body.rentalAvailableTo !== undefined ? body.rentalAvailableTo : existing.rentalAvailableTo) : null,
     rentalMinDays: nextSaleType === 'RENTAL' ? (body.rentalMinDays ?? existing.rentalMinDays) : 1,
     rentalMaxDays: nextSaleType === 'RENTAL' ? (body.rentalMaxDays ?? existing.rentalMaxDays) : null,
     rentalBookingMode: nextSaleType === 'RENTAL' ? (body.rentalBookingMode ?? existing.rentalBookingMode) : 'MULTI_DAY',
@@ -122,6 +124,7 @@ export default defineEventHandler(async (event) => {
   if (body.optionOverrides !== undefined) data.optionOverridesJson = JSON.stringify(normalizeProductOptionOverrides(body.optionOverrides))
   if (body.catalogVisible !== undefined) data.catalogVisible = Boolean(body.catalogVisible)
   if (body.imageUrl !== undefined) data.imageUrl = body.imageUrl || null
+  if (body.gallery !== undefined) data.galleryJson = JSON.stringify(normalizeProductGalleryInput(body.gallery))
   if (body.unitLabel !== undefined || body.unitLabelLocalized !== undefined) {
     const unitLabelPayload = buildLocalizedProductTextPayload(body.unitLabelLocalized ?? body.unitLabel, body.unitLabel ?? existing.unitLabel ?? '')
     data.unitLabel = unitLabelPayload.text || null

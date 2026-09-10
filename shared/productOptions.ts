@@ -1,4 +1,5 @@
 import type { CmsLocalizedText } from './cms'
+import type { RentalRate } from './rentalRates'
 export {
   getProductOptionBasePrice,
   getProductOptionCalculatedUnitPrice,
@@ -11,6 +12,7 @@ export type ProductOptionPricingMode = 'FIXED' | 'RENTAL_DURATION'
 export type ProductOptionQuantityMode = 'PER_RESERVATION' | 'PER_PRODUCT_UNIT' | 'CUSTOM'
 export type ProductOptionSelectionMode = 'SINGLE' | 'MULTIPLE'
 export type ProductOptionPriceSource = 'CUSTOM' | 'LINKED_PRODUCT'
+export type ProductOptionRentalPeriodMode = 'PARENT_PERIOD' | 'FIXED_DURATION'
 
 export interface ProductOptionLinkedProduct {
   id: number
@@ -28,6 +30,8 @@ export interface ProductOptionLinkedProduct {
   rentalBookingMode: 'SINGLE_DAY' | 'MULTI_DAY' | 'BOTH'
   rentalHourlyPrice: number | null
   rentalDailyPrice: number | null
+  rentalPricingStrategy: 'LINEAR' | 'GRID'
+  rentalRates: RentalRate[]
   rentalAvailableFrom: string | null
   rentalAvailableTo: string | null
   rentalMinDays: number
@@ -59,6 +63,8 @@ export interface ProductOption {
   price: number
   hourlyPrice: number | null
   dailyPrice: number | null
+  rentalPeriodMode: ProductOptionRentalPeriodMode
+  rentalDurationMinutes: number[]
   vatRate: number | null
   defaultQuantity: number
   minQuantity: number
@@ -89,6 +95,8 @@ export interface ProductOptionGroup {
 export interface ProductOptionSelectionInput {
   optionId: string
   quantity?: number
+  rentalDurationMinutes?: number
+  rentalStartDate?: string | null
 }
 
 export interface ProductOptionOverride {
@@ -128,9 +136,7 @@ function normalizeProductOptionGroup(value: unknown, locales: string[], index: n
   const required = Boolean(source.required)
   const minSelections = required ? Math.max(1, integer(source.minSelections, 1)) : Math.max(0, integer(source.minSelections, 0))
   const requestedMaximum = nullableInteger(source.maxSelections)
-  const maxSelections = selectionMode === 'SINGLE'
-    ? 1
-    : requestedMaximum == null ? null : Math.max(minSelections, requestedMaximum)
+  const maxSelections = selectionMode === 'SINGLE' ? 1 : requestedMaximum == null ? null : Math.max(minSelections, requestedMaximum)
   const titleLocalized = normalizeLocalizedText(source.titleLocalized, locales, source.title)
   const descriptionLocalized = normalizeLocalizedText(source.descriptionLocalized, locales, source.description)
   return {
@@ -151,25 +157,17 @@ function normalizeProductOptionGroup(value: unknown, locales: string[], index: n
 function normalizeProductOption(value: unknown, locales: string[], index: number): ProductOption | null {
   if (!value || typeof value !== 'object') return null
   const source = value as Record<string, unknown>
-  const kind: ProductOptionKind = source.kind === 'INSURANCE'
-    ? 'INSURANCE'
-    : source.kind === 'ACCESSORY' ? 'ACCESSORY' : 'SUPPLEMENT'
+  const kind: ProductOptionKind = source.kind === 'INSURANCE' ? 'INSURANCE' : source.kind === 'ACCESSORY' ? 'ACCESSORY' : 'SUPPLEMENT'
   const legacyPricingMode = source.pricingMode === 'PER_HOUR' || source.pricingMode === 'PER_DAY'
-  const pricingMode: ProductOptionPricingMode = source.pricingMode === 'RENTAL_DURATION' || legacyPricingMode
-    ? 'RENTAL_DURATION'
-    : 'FIXED'
-  const quantityMode: ProductOptionQuantityMode = kind === 'ACCESSORY'
-    ? 'CUSTOM'
-    : source.quantityMode === 'PER_PRODUCT_UNIT' ? 'PER_PRODUCT_UNIT' : 'PER_RESERVATION'
+  const pricingMode: ProductOptionPricingMode = source.pricingMode === 'RENTAL_DURATION' || legacyPricingMode ? 'RENTAL_DURATION' : 'FIXED'
+  const quantityMode: ProductOptionQuantityMode =
+    kind === 'ACCESSORY' ? 'CUSTOM' : source.quantityMode === 'PER_PRODUCT_UNIT' ? 'PER_PRODUCT_UNIT' : 'PER_RESERVATION'
   const labelLocalized = normalizeLocalizedText(source.labelLocalized, locales, source.label)
   const descriptionLocalized = normalizeLocalizedText(source.descriptionLocalized, locales, source.description)
   const minQuantity = Math.max(0, integer(source.minQuantity, kind === 'ACCESSORY' ? 0 : 1))
   const requestedMaximumQuantity = nullableInteger(source.maxQuantity)
   const maxQuantity = requestedMaximumQuantity == null ? null : Math.max(minQuantity, requestedMaximumQuantity)
-  const defaultQuantity = Math.min(
-    maxQuantity ?? Number.MAX_SAFE_INTEGER,
-    Math.max(minQuantity, integer(source.defaultQuantity, Math.max(1, minQuantity))),
-  )
+  const defaultQuantity = Math.min(maxQuantity ?? Number.MAX_SAFE_INTEGER, Math.max(minQuantity, integer(source.defaultQuantity, Math.max(1, minQuantity))))
 
   return {
     id: identifier(source.id, `option-${index + 1}`),
@@ -184,6 +182,8 @@ function normalizeProductOption(value: unknown, locales: string[], index: number
     price: Math.max(0, number(source.price)),
     hourlyPrice: nullablePrice(source.hourlyPrice ?? (source.pricingMode === 'PER_HOUR' ? source.price : null)),
     dailyPrice: nullablePrice(source.dailyPrice ?? (source.pricingMode === 'PER_DAY' ? source.price : null)),
+    rentalPeriodMode: source.rentalPeriodMode === 'FIXED_DURATION' ? 'FIXED_DURATION' : 'PARENT_PERIOD',
+    rentalDurationMinutes: normalizeDurationMinutes(source.rentalDurationMinutes),
     vatRate: source.vatRate == null || source.vatRate === '' ? null : Math.max(0, number(source.vatRate)),
     defaultQuantity,
     minQuantity,
@@ -196,6 +196,11 @@ function normalizeProductOption(value: unknown, locales: string[], index: number
     linkedProduct: null,
     billingDocument: null,
   }
+}
+
+function normalizeDurationMinutes(value: unknown): number[] {
+  if (!Array.isArray(value)) return []
+  return Array.from(new Set(value.map(Number).filter((entry) => Number.isInteger(entry) && entry > 0))).sort((left, right) => left - right)
 }
 
 export function normalizeProductOptionOverrides(value: unknown): ProductOptionOverride[] {
@@ -226,7 +231,7 @@ export function normalizeProductOptionOverrides(value: unknown): ProductOptionOv
 }
 
 function normalizeLocalizedText(value: unknown, locales: string[], fallback: unknown): CmsLocalizedText {
-  const normalized = Object.fromEntries(locales.map(locale => [locale, ''])) as CmsLocalizedText
+  const normalized = Object.fromEntries(locales.map((locale) => [locale, ''])) as CmsLocalizedText
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     for (const [locale, text] of Object.entries(value as Record<string, unknown>)) {
       normalized[locale] = String(text || '').trim()
@@ -245,7 +250,9 @@ function fallbackLocalizedText(value: CmsLocalizedText, fallback: unknown) {
 }
 
 function identifier(value: unknown, fallback: string) {
-  const normalized = String(value || '').trim().replace(/[^a-zA-Z0-9_-]/g, '-')
+  const normalized = String(value || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, '-')
   return normalized || fallback
 }
 

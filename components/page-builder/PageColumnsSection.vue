@@ -225,8 +225,13 @@
                                   >
                                     {{ pickLocalizedText(locale, element.title) }}
                                   </div>
+                                  <PublicOpeningHoursDisplay
+                                    v-if="element?.source === 'opening-hours' && siteConfigState?.rentalCalendar"
+                                    :calendar="siteConfigState.rentalCalendar"
+                                    :locale="locale"
+                                  />
                                   <div
-                                    v-if="element?.source === 'social-links' && publicSocialLinks.length"
+                                    v-else-if="element?.source === 'social-links' && publicSocialLinks.length"
                                     class="flex flex-wrap gap-3 pt-1"
                                   >
                                     <a
@@ -401,7 +406,7 @@ import PageMediaCarousel from '#modula/components/page-builder/PageMediaCarousel
 import PageMediaLightbox from '#modula/components/page-builder/PageMediaLightbox.vue'
 import PageProductListBlock from '#modula/components/page-builder/PageProductListBlock.vue'
 import PageSectionBackground from '#modula/components/page-builder/PageSectionBackground.vue'
-import { formatWeeklyOpeningHours } from '#modula/shared/openingHours'
+import PublicOpeningHoursDisplay from '#modula/components/public/OpeningHoursDisplay.vue'
 import { pickLocalizedText } from '#modula/shared/pageBuilder'
 
 const props = defineProps<{
@@ -777,8 +782,6 @@ const toLightboxSlide = (
   verticalAlign
 })
 const openingHoursText = computed(() => {
-  const weekly = formatWeeklyOpeningHours(siteConfigState.value?.rentalCalendar, props.locale)
-  if (weekly.length) return weekly.join('\n')
   const farmPickup = siteConfigState.value?.farmPickup
   if (!farmPickup) return ''
   const dayLabel = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'][farmPickup.dayOfWeek] || ''

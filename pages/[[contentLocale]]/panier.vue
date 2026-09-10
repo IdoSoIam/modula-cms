@@ -3,7 +3,9 @@
     <div class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div class="text-sm uppercase tracking-[0.22em] opacity-60">{{ eyebrowLabel }}</div>
+          <div class="text-sm uppercase tracking-[0.22em] opacity-60">
+            {{ eyebrowLabel }}
+          </div>
           <h1 class="mt-3 text-4xl font-semibold">{{ titleLabel }}</h1>
           <p class="mt-3 max-w-3xl text-base opacity-80">{{ introLabel }}</p>
         </div>
@@ -14,26 +16,18 @@
 
       <div v-if="items.length" class="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.9fr)]">
         <div class="space-y-4">
-          <article
-            v-for="item in items"
-            :key="item.key"
-            class="modula-card border border-base-300 bg-base-100 p-5 shadow-sm"
-          >
+          <article v-for="item in items" :key="item.key" class="modula-card border border-base-300 bg-base-100 p-5 shadow-sm">
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div class="flex gap-4">
-                <AppImage
-                  v-if="item.imageUrl"
-                  :src="item.imageUrl"
-                  :alt="item.title"
-                  class="h-24 w-24 rounded-2xl object-cover"
-                  sizes="96px"
-                />
+                <AppImage v-if="item.imageUrl" :src="item.imageUrl" :alt="item.title" class="h-24 w-24 rounded-2xl object-cover" sizes="96px" />
                 <div class="space-y-2">
                   <div class="flex flex-wrap items-center gap-2">
                     <h2 class="text-xl font-semibold">{{ item.title }}</h2>
                     <span class="badge badge-outline">{{ productBadgeLabel }}</span>
                   </div>
-                  <p v-if="item.description" class="text-sm opacity-75 break-all">{{ item.description }}</p>
+                  <p v-if="item.description" class="text-sm opacity-75 break-all">
+                    {{ item.description }}
+                  </p>
                   <div class="flex flex-wrap gap-2">
                     <span class="badge badge-soft">{{ stockLabel }}: {{ item.availableQuantity ?? '-' }}</span>
                     <span v-if="item.allowOfflinePayment" class="badge badge-soft">{{ offlineLabel }}</span>
@@ -43,30 +37,49 @@
                       {{ taxCodeLabel }}: {{ resolveCartTaxCode(item) }}
                     </span>
                   </div>
-                  <div
+                  <ShopRentalPeriodSummary
                     v-if="item.saleType === 'RENTAL'"
-                    class="rounded-box bg-base-200 px-3 py-2 text-sm"
-                  >
-                    <span class="font-medium">{{ rentalPeriodLabel }}:</span>
-                    {{ formatRentalRange(item.rentalStartDate, item.rentalEndDate) }}
-                    <span class="mt-1 block font-medium">{{ formatRentalDuration(item) }}</span>
-                  </div>
+                    compact
+                    :start="item.rentalStartDate"
+                    :end="item.rentalEndDate"
+                    :locale="contentLocale"
+                    :title="rentalPeriodLabel"
+                    :duration="formatRentalDuration(item)"
+                  />
                   <dl v-if="item.saleType === 'RENTAL'" class="space-y-1 text-sm">
                     <div class="flex justify-between gap-4">
                       <dt>{{ rentalBasePriceLabel }}</dt>
-                      <dd>{{ $formatPrice((item.rentalBaseUnitPrice ?? item.unitPrice) * item.quantity) }}</dd>
+                      <dd>
+                        {{ $formatPrice((item.rentalBaseUnitPrice ?? item.unitPrice) * item.quantity) }}
+                      </dd>
                     </div>
                     <div v-for="insurance in item.insuranceSelections || []" :key="insurance.documentId" class="flex justify-between gap-4">
                       <dt>{{ insurance.name }}</dt>
-                      <dd>{{ $formatPrice(insurance.unitPrice * item.quantity) }}</dd>
+                      <dd>
+                        {{ $formatPrice(insurance.unitPrice * item.quantity) }}
+                      </dd>
                     </div>
-                    <div v-for="option in item.optionSelections || []" :key="option.optionId" class="flex justify-between gap-4">
-                      <dt>{{ option.label }} × {{ option.quantity }}</dt>
+                    <div v-for="option in item.optionSelections || []" :key="option.optionId" class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2">
+                      <dt>
+                        {{ option.label }} × {{ option.quantity }}
+                      </dt>
                       <dd>{{ $formatPrice(option.totalPrice) }}</dd>
+                      <ShopRentalPeriodSummary
+                        v-if="option.rentalStartDate && option.rentalDurationMinutes"
+                        class="col-span-2 mb-2"
+                        compact
+                        :start="option.rentalStartDate"
+                        :end="resolveAccessoryEndDate(option.rentalStartDate, option.rentalEndDate, option.rentalDurationMinutes)"
+                        :locale="contentLocale"
+                        :title="accessorySlotLabel"
+                        :duration="formatAccessoryDuration(option.rentalDurationMinutes)"
+                      />
                     </div>
                     <div v-if="Number(item.rentalDepositAmount || 0) > 0" class="mt-2 flex justify-between gap-4 border-t border-base-300 pt-2">
                       <dt>{{ depositLabel }}</dt>
-                      <dd>{{ $formatPrice(Number(item.rentalDepositAmount) * item.quantity) }}</dd>
+                      <dd>
+                        {{ $formatPrice(Number(item.rentalDepositAmount) * item.quantity) }}
+                      </dd>
                     </div>
                   </dl>
                   <div v-if="item.associatedDocuments?.length" class="flex flex-wrap gap-2">
@@ -87,8 +100,12 @@
 
               <div class="flex flex-col items-end gap-3">
                 <div class="text-right">
-                  <div class="text-sm opacity-60">{{ displayedUnitPriceLabel }}</div>
-                  <div class="font-medium">{{ $formatPrice(item.unitPrice) }}</div>
+                  <div class="text-sm opacity-60">
+                    {{ displayedUnitPriceLabel }}
+                  </div>
+                  <div class="font-medium">
+                    {{ $formatPrice(item.unitPrice) }}
+                  </div>
                 </div>
                 <div class="flex items-center gap-3">
                   <button class="btn btn-sm btn-ghost" @click="updateItemQuantity(item.key, item.quantity - 1)">
@@ -100,8 +117,12 @@
                   </button>
                 </div>
                 <div class="text-right">
-                  <div class="text-sm opacity-60">{{ displayedLineTotalLabel }}</div>
-                  <div class="text-lg font-semibold text-primary">{{ $formatPrice(item.totalPrice) }}</div>
+                  <div class="text-sm opacity-60">
+                    {{ displayedLineTotalLabel }}
+                  </div>
+                  <div class="text-lg font-semibold text-primary">
+                    {{ $formatPrice(item.totalPrice) }}
+                  </div>
                 </div>
                 <NuxtLink class="btn btn-sm btn-outline" :to="editItemTarget(item)">
                   <Icon name="mdi:pencil-outline" size="18" />
@@ -127,15 +148,21 @@
 
           <div class="mt-6 space-y-4">
             <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ requiredLabel(fullNameLabel) }}</span></label>
+              <label class="label"
+                ><span class="label-text">{{ requiredLabel(fullNameLabel) }}</span></label
+              >
               <input v-model="checkoutForm.customerName" class="input input-bordered" />
             </div>
             <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ requiredLabel(emailLabel) }}</span></label>
+              <label class="label"
+                ><span class="label-text">{{ requiredLabel(emailLabel) }}</span></label
+              >
               <input v-model="checkoutForm.email" type="email" class="input input-bordered" />
             </div>
             <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ phoneLabel }}</span></label>
+              <label class="label"
+                ><span class="label-text">{{ phoneLabel }}</span></label
+              >
               <input v-model="checkoutForm.phone" class="input input-bordered" />
             </div>
 
@@ -148,45 +175,67 @@
             </div>
 
             <div v-if="deliveryChoices.length > 1" class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ deliveryLabel }}</span></label>
+              <label class="label"
+                ><span class="label-text">{{ deliveryLabel }}</span></label
+              >
               <select v-model="checkoutForm.deliveryType" class="select select-bordered" :disabled="deliveryOptionsPending">
-                <option v-if="!deliveryChoices.length" value="">{{ deliveryPlaceholderLabel }}</option>
-                <option v-if="deliveryChoices.includes('ONSITE')" value="ONSITE">{{ onSiteDeliveryLabel }}</option>
-                <option v-if="deliveryChoices.includes('PICKUP')" value="PICKUP">{{ pickupDeliveryLabel }}</option>
-                <option v-if="deliveryChoices.includes('TOUR')" value="TOUR">{{ tourDeliveryLabel }}</option>
+                <option v-if="!deliveryChoices.length" value="">
+                  {{ deliveryPlaceholderLabel }}
+                </option>
+                <option v-if="deliveryChoices.includes('ONSITE')" value="ONSITE">
+                  {{ onSiteDeliveryLabel }}
+                </option>
+                <option v-if="deliveryChoices.includes('PICKUP')" value="PICKUP">
+                  {{ pickupDeliveryLabel }}
+                </option>
+                <option v-if="deliveryChoices.includes('TOUR')" value="TOUR">
+                  {{ tourDeliveryLabel }}
+                </option>
               </select>
             </div>
 
             <div v-if="checkoutForm.deliveryType === 'ONSITE'" class="rounded-box bg-base-200 p-4 text-sm">
               <div class="font-medium">{{ onSiteDeliveryLabel }}</div>
               <template v-if="hasRentalItems">
-                <div class="mt-1 opacity-75">{{ deliveryOptions?.onSitePickup?.address || noAddressLabel }}</div>
-                <div v-for="rental in rentalPickupSummaries" :key="rental.key" class="mt-2">
-                  <span class="font-medium">{{ rental.title }}</span>
-                  <span class="opacity-75"> : {{ rental.period }}</span>
+                <div class="mt-1 opacity-75">
+                  {{ deliveryOptions?.onSitePickup?.address || noAddressLabel }}
                 </div>
-                <div v-if="hasMixedSaleTypes" class="mt-2 opacity-75">{{ mixedCartPickupLabel }}</div>
+                <div v-for="rental in rentalPickupSummaries" :key="rental.key" class="mt-3">
+                  <ShopRentalPeriodSummary
+                    compact
+                    :start="rental.start"
+                    :end="rental.end"
+                    :locale="contentLocale"
+                    :title="rental.title"
+                    :duration="rental.duration"
+                  />
+                </div>
+                <div v-if="hasMixedSaleTypes" class="mt-2 opacity-75">
+                  {{ mixedCartPickupLabel }}
+                </div>
               </template>
-              <div v-else class="mt-1 opacity-75">{{ onSitePickupSummary }}</div>
+              <div v-else class="mt-1 opacity-75">
+                {{ onSitePickupSummary }}
+              </div>
             </div>
 
             <div v-if="checkoutForm.deliveryType === 'PICKUP'" class="space-y-3">
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ pickupPointLabel }}</span></label>
+                <label class="label"
+                  ><span class="label-text">{{ pickupPointLabel }}</span></label
+                >
                 <select v-model.number="checkoutForm.pickupPointId" class="select select-bordered">
                   <option :value="0">{{ pickupPlaceholderLabel }}</option>
-                  <option
-                    v-for="point in pickupPoints"
-                    :key="point.id"
-                    :value="point.id"
-                  >
+                  <option v-for="point in pickupPoints" :key="point.id" :value="point.id">
                     {{ point.name }}
                   </option>
                 </select>
               </div>
               <div v-if="selectedPickupPoint" class="rounded-box bg-base-200 p-4 text-sm">
                 <div class="font-medium">{{ selectedPickupPoint.name }}</div>
-                <div class="mt-1 opacity-75">{{ selectedPickupPoint.address || noAddressLabel }}</div>
+                <div class="mt-1 opacity-75">
+                  {{ selectedPickupPoint.address || noAddressLabel }}
+                </div>
               </div>
             </div>
 
@@ -196,76 +245,70 @@
                 <div class="mt-1 opacity-75">{{ tourCityHelperLabel }}</div>
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ requiredLabel(cityLabel) }}</span></label>
-                <input
-                  v-model="checkoutForm.deliveryCity"
-                  class="input input-bordered"
-                  :list="deliveryCitiesListId"
-                  autocomplete="address-level2"
-                />
+                <label class="label"
+                  ><span class="label-text">{{ requiredLabel(cityLabel) }}</span></label
+                >
+                <input v-model="checkoutForm.deliveryCity" class="input input-bordered" :list="deliveryCitiesListId" autocomplete="address-level2" />
                 <datalist :id="deliveryCitiesListId">
                   <option v-for="city in availableDeliveryCities" :key="city" :value="city" />
                 </datalist>
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ requiredLabel(addressLabel) }}</span></label>
+                <label class="label"
+                  ><span class="label-text">{{ requiredLabel(addressLabel) }}</span></label
+                >
                 <input v-model="checkoutForm.deliveryAddress" class="input input-bordered" />
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ requiredLabel(postalCodeLabel) }}</span></label>
-                <input
-                  v-model="checkoutForm.deliveryPostalCode"
-                  class="input input-bordered"
-                  :list="deliveryPostalCodesListId"
-                  autocomplete="postal-code"
-                />
+                <label class="label"
+                  ><span class="label-text">{{ requiredLabel(postalCodeLabel) }}</span></label
+                >
+                <input v-model="checkoutForm.deliveryPostalCode" class="input input-bordered" :list="deliveryPostalCodesListId" autocomplete="postal-code" />
                 <datalist :id="deliveryPostalCodesListId">
                   <option v-for="code in availableDeliveryPostalCodes" :key="code" :value="code" />
                 </datalist>
               </div>
               <div class="form-control flex flex-col gap-3">
-                <label class="label"><span class="label-text">{{ requiredLabel(deliveryTourLabel) }}</span></label>
-                <select
-                  v-model.number="checkoutForm.deliveryTourId"
-                  class="select select-bordered"
-                  :disabled="!filteredTours.length"
+                <label class="label"
+                  ><span class="label-text">{{ requiredLabel(deliveryTourLabel) }}</span></label
                 >
+                <select v-model.number="checkoutForm.deliveryTourId" class="select select-bordered" :disabled="!filteredTours.length">
                   <option :value="0">{{ tourPlaceholderLabel }}</option>
-                  <option
-                    v-for="tour in filteredTours"
-                    :key="tour.id"
-                    :value="tour.id"
-                  >
+                  <option v-for="tour in filteredTours" :key="tour.id" :value="tour.id">
                     {{ tour.name }}
                   </option>
                 </select>
               </div>
-              <p
-                v-if="checkoutForm.deliveryCity.trim() && !deliveryCityValid"
-                class="text-sm text-warning"
-              >
+              <p v-if="checkoutForm.deliveryCity.trim() && !deliveryCityValid" class="text-sm text-warning">
                 {{ unavailableCityLabel }}
               </p>
-              <p
-                v-if="deliveryCityValid && checkoutForm.deliveryPostalCode.trim() && !deliveryPostalCodeValid"
-                class="text-sm text-warning"
-              >
+              <p v-if="deliveryCityValid && checkoutForm.deliveryPostalCode.trim() && !deliveryPostalCodeValid" class="text-sm text-warning">
                 {{ postalCodeMismatchLabel }}
               </p>
               <div v-if="selectedDeliveryTour" class="rounded-box bg-base-200 p-4 text-sm">
                 <div class="font-medium">{{ selectedDeliveryTour.name }}</div>
-                <div class="mt-1 opacity-75">{{ deliveryTourSummary(selectedDeliveryTour) }}</div>
+                <div class="mt-1 opacity-75">
+                  {{ deliveryTourSummary(selectedDeliveryTour) }}
+                </div>
               </div>
             </div>
 
             <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ paymentLabel }}</span></label>
+              <label class="label"
+                ><span class="label-text">{{ paymentLabel }}</span></label
+              >
               <select v-if="paymentCapabilities.requiresChoice" v-model="checkoutForm.paymentMode" class="select select-bordered">
-                <option v-if="paymentCapabilities.allowOffline" value="offline">{{ offlineLabel }}</option>
-                <option v-if="paymentCapabilities.allowOnline" value="stripe">{{ onlineLabel }}</option>
+                <option v-if="paymentCapabilities.allowOffline" value="offline">
+                  {{ offlineLabel }}
+                </option>
+                <option v-if="paymentCapabilities.allowOnline" value="stripe">
+                  {{ onlineLabel }}
+                </option>
               </select>
               <input v-else class="input input-bordered" :value="resolvedPaymentLabel" disabled />
-              <p v-if="paymentConstraintNotice" class="text-sm opacity-70">{{ paymentConstraintNotice }}</p>
+              <p v-if="paymentConstraintNotice" class="text-sm opacity-70">
+                {{ paymentConstraintNotice }}
+              </p>
             </div>
 
             <div v-if="depositTotal > 0" class="form-control flex flex-col gap-3 rounded-box border border-base-300 bg-base-200/35 p-4">
@@ -273,7 +316,9 @@
                 <span class="font-medium">{{ depositLabel }}</span>
                 <span class="font-semibold">{{ $formatPrice(depositTotal) }}</span>
               </div>
-              <label class="label p-0"><span class="label-text">{{ depositPaymentLabel }}</span></label>
+              <label class="label p-0"
+                ><span class="label-text">{{ depositPaymentLabel }}</span></label
+              >
               <select v-if="depositPaymentCapabilities.requiresChoice" v-model="checkoutForm.depositPaymentMode" class="select select-bordered">
                 <option value="onsite">{{ depositOnsiteLabel }}</option>
                 <option value="online">{{ depositOnlineLabel }}</option>
@@ -283,17 +328,23 @@
               <dl class="space-y-2 border-t border-base-300 pt-3 text-sm">
                 <div v-if="amountDueOnsite > 0" class="flex items-center justify-between gap-4">
                   <dt class="font-medium">{{ amountDueOnsiteLabel }}</dt>
-                  <dd class="font-semibold">{{ $formatPrice(amountDueOnsite) }}</dd>
+                  <dd class="font-semibold">
+                    {{ $formatPrice(amountDueOnsite) }}
+                  </dd>
                 </div>
                 <div v-if="amountDueOnline > 0" class="flex items-center justify-between gap-4">
                   <dt class="font-medium">{{ amountDueOnlineLabel }}</dt>
-                  <dd class="font-semibold">{{ $formatPrice(amountDueOnline) }}</dd>
+                  <dd class="font-semibold">
+                    {{ $formatPrice(amountDueOnline) }}
+                  </dd>
                 </div>
               </dl>
             </div>
 
             <div class="form-control flex flex-col gap-3">
-              <label class="label"><span class="label-text">{{ messageLabel }}</span></label>
+              <label class="label"
+                ><span class="label-text">{{ messageLabel }}</span></label
+              >
               <textarea v-model="checkoutForm.message" class="textarea textarea-bordered min-h-28" />
             </div>
           </div>
@@ -302,17 +353,32 @@
             <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div class="min-w-0 flex-1">
                 <dl v-if="!automaticTaxCheckout" class="space-y-2 text-sm">
-                  <div class="flex justify-between gap-4"><dt>{{ totalExclTaxLabel }}</dt><dd>{{ $formatPrice(cartTotalExclTax) }}</dd></div>
-                  <div v-if="cartVatAmount > 0" class="flex justify-between gap-4"><dt>{{ vatAmountLabel }}</dt><dd>{{ $formatPrice(cartVatAmount) }}</dd></div>
-                  <div v-else class="flex justify-between gap-4 opacity-70"><dt>{{ vatNotApplicableLabel }}</dt><dd>{{ $formatPrice(0) }}</dd></div>
+                  <div class="flex justify-between gap-4">
+                    <dt>{{ totalExclTaxLabel }}</dt>
+                    <dd>{{ $formatPrice(cartTotalExclTax) }}</dd>
+                  </div>
+                  <div v-if="cartVatAmount > 0" class="flex justify-between gap-4">
+                    <dt>{{ vatAmountLabel }}</dt>
+                    <dd>{{ $formatPrice(cartVatAmount) }}</dd>
+                  </div>
+                  <div v-else class="flex justify-between gap-4 opacity-70">
+                    <dt>{{ vatNotApplicableLabel }}</dt>
+                    <dd>{{ $formatPrice(0) }}</dd>
+                  </div>
                   <div class="flex items-end justify-between gap-4 border-t border-base-300 pt-3">
                     <dt class="font-semibold">{{ totalInclTaxLabel }}</dt>
-                    <dd class="text-3xl font-semibold">{{ $formatPrice(total) }}</dd>
+                    <dd class="text-3xl font-semibold">
+                      {{ $formatPrice(total) }}
+                    </dd>
                   </div>
                 </dl>
                 <div v-else>
-                  <div class="text-sm opacity-60">{{ subtotalBeforeStripeTaxLabel }}</div>
-                  <div class="text-3xl font-semibold">{{ $formatPrice(total) }}</div>
+                  <div class="text-sm opacity-60">
+                    {{ subtotalBeforeStripeTaxLabel }}
+                  </div>
+                  <div class="text-3xl font-semibold">
+                    {{ $formatPrice(total) }}
+                  </div>
                 </div>
               </div>
               <button class="btn btn-primary shrink-0" :disabled="savingOrder || !canSubmit" @click="submitOrder">
@@ -419,10 +485,9 @@ const paymentCapabilities = computed(() => getShopCartPaymentCapabilities(items.
 const hasRentalItems = computed(() => items.value.some((item) => item.saleType === 'RENTAL'))
 const hasSaleItems = computed(() => items.value.some((item) => item.saleType === 'SALE'))
 const hasMixedSaleTypes = computed(() => hasRentalItems.value && hasSaleItems.value)
-const rentalLinesValid = computed(() => items.value.every((item) =>
-  item.saleType !== 'RENTAL'
-  || (item.rentalStartDate?.trim().length && item.rentalEndDate?.trim().length)
-))
+const rentalLinesValid = computed(() =>
+  items.value.every((item) => item.saleType !== 'RENTAL' || (item.rentalStartDate?.trim().length && item.rentalEndDate?.trim().length)),
+)
 const pickupPoints = computed(() => deliveryOptions.value?.pickupPoints || [])
 const deliveryTours = computed(() => deliveryOptions.value?.tours || [])
 const deliveryChoices = computed<DeliveryType[]>(() => {
@@ -446,7 +511,7 @@ const checkoutForm = ref({
   deliveryTourId: 0,
   deliveryAddress: '',
   deliveryCity: '',
-  deliveryPostalCode: ''
+  deliveryPostalCode: '',
 })
 
 const savingOrder = ref(false)
@@ -454,7 +519,9 @@ const retryOrderId = ref<number | null>(null)
 
 const eyebrowLabel = computed(() => publicText('checkout.cart.eyebrow', 'Commande'))
 const titleLabel = computed(() => publicText('checkout.cart.title', 'Panier d’achat'))
-const introLabel = computed(() => publicText('checkout.cart.intro', 'Vérifiez les produits sélectionnés, puis confirmez la commande avec les informations de livraison et de règlement.'))
+const introLabel = computed(() =>
+  publicText('checkout.cart.intro', 'Vérifiez les produits sélectionnés, puis confirmez la commande avec les informations de livraison et de règlement.'),
+)
 const productsLinkLabel = computed(() => publicText('checkout.cart.productsLink', 'Voir les produits'))
 const productBadgeLabel = computed(() => publicText('checkout.cart.productBadge', 'Produit'))
 const stockLabel = computed(() => publicText('checkout.cart.stockLabel', 'Disponible'))
@@ -469,19 +536,37 @@ const totalInclTaxLabel = computed(() => publicText('checkout.cart.totalInclTax'
 const subtotalBeforeStripeTaxLabel = computed(() => publicText('checkout.cart.subtotalBeforeStripeTax', 'Sous-total avant calcul de la TVA'))
 const removeLabel = computed(() => publicText('checkout.cart.remove', 'Supprimer'))
 const checkoutTitleLabel = computed(() => publicText('checkout.cart.detailsTitle', 'Validation de commande'))
-const checkoutIntroLabel = computed(() => publicText('checkout.cart.detailsIntro', 'Les options de livraison et de règlement s’adaptent aux offres sélectionnées.'))
-const countLabel = computed(() => publicText('checkout.cart.count', '{count} article(s)', { count: count.value }))
+const checkoutIntroLabel = computed(() =>
+  publicText('checkout.cart.detailsIntro', 'Les options de livraison et de règlement s’adaptent aux offres sélectionnées.'),
+)
+const countLabel = computed(() =>
+  publicText('checkout.cart.count', '{count} article(s)', {
+    count: count.value,
+  }),
+)
 const fullNameLabel = computed(() => publicText('checkout.cart.fullName', 'Nom complet'))
 const emailLabel = computed(() => publicText('checkout.cart.email', 'Email'))
 const phoneLabel = computed(() => publicText('checkout.cart.phone', 'Téléphone'))
-const accountProvisioningNotice = computed(() => authStore.user
-  ? publicText('checkout.cart.accountLinkedNotice', 'Cette commande sera rattachée à votre compte utilisateur.')
-  : publicText('checkout.cart.accountProvisioningNotice', 'Si aucun compte n’existe avec cet email, un compte utilisateur sera créé automatiquement et un email d’activation vous sera envoyé.')
+const accountProvisioningNotice = computed(() =>
+  authStore.user
+    ? publicText('checkout.cart.accountLinkedNotice', 'Cette commande sera rattachée à votre compte utilisateur.')
+    : publicText(
+        'checkout.cart.accountProvisioningNotice',
+        'Si aucun compte n’existe avec cet email, un compte utilisateur sera créé automatiquement et un email d’activation vous sera envoyé.',
+      ),
 )
-const rentalHelpLabel = computed(() => publicText('checkout.cart.rentalHelp', 'Les dates de location sont choisies avant l’ajout de chaque location au panier. La disponibilité est revérifiée lors de la création de la commande.'))
-const mixedCartPickupLabel = computed(() => publicText('checkout.cart.mixedRentalPickup', 'Les produits achetés seront retirés sur place avec le matériel loué.'))
+const rentalHelpLabel = computed(() =>
+  publicText(
+    'checkout.cart.rentalHelp',
+    'Les dates de location sont choisies avant l’ajout de chaque location au panier. La disponibilité est revérifiée lors de la création de la commande.',
+  ),
+)
+const mixedCartPickupLabel = computed(() =>
+  publicText('checkout.cart.mixedRentalPickup', 'Les produits achetés seront retirés sur place avec le matériel loué.'),
+)
 const rentalPeriodLabel = computed(() => publicText('checkout.cart.rentalPeriod', 'Période de location'))
 const rentalBasePriceLabel = computed(() => publicText('checkout.cart.rentalBasePrice', 'Location'))
+const accessorySlotLabel = computed(() => publicText('shop.product.accessoryStart', 'Heure de retrait de l’accessoire'))
 const deliveryLabel = computed(() => publicText('checkout.cart.deliveryMethod', 'Mode de livraison'))
 const deliveryPlaceholderLabel = computed(() => publicText('checkout.cart.deliveryPlaceholder', 'Choisir un mode de livraison'))
 const onSiteDeliveryLabel = computed(() => publicText('checkout.cart.onSiteDelivery', 'Retrait sur place'))
@@ -495,49 +580,62 @@ const addressLabel = computed(() => publicText('checkout.cart.address', 'Adresse
 const cityLabel = computed(() => publicText('checkout.cart.city', 'Ville'))
 const postalCodeLabel = computed(() => publicText('checkout.cart.postalCode', 'Code postal'))
 const tourCityHelperTitle = computed(() => publicText('checkout.cart.deliveryEligibilityTitle', 'Éligibilité livraison'))
-const tourCityHelperLabel = computed(() => publicText('checkout.cart.deliveryEligibilityHelp', 'Pour vérifier l’éligibilité de la livraison à domicile, rentrez votre ville. Les suggestions ne proposent que les villes desservies par les créneaux configurés.'))
+const tourCityHelperLabel = computed(() =>
+  publicText(
+    'checkout.cart.deliveryEligibilityHelp',
+    'Pour vérifier l’éligibilité de la livraison à domicile, rentrez votre ville. Les suggestions ne proposent que les villes desservies par les créneaux configurés.',
+  ),
+)
 const paymentLabel = computed(() => publicText('checkout.cart.paymentMethod', 'Mode de règlement'))
 const editItemLabel = computed(() => publicText('checkout.cart.editItem', 'Modifier'))
 const depositLabel = computed(() => publicText('shop.product.securityDeposit', 'Dépôt de garantie'))
 const depositPaymentLabel = computed(() => publicText('shop.product.securityDepositPayment', 'Versement du dépôt de garantie'))
 const depositOnsiteLabel = computed(() => publicText('shop.product.depositOnsite', 'Sur place'))
 const depositOnlineLabel = computed(() => publicText('shop.product.depositOnline', 'En ligne'))
-const depositSeparateNotice = computed(() => publicText('checkout.cart.securityDepositSeparateNotice', 'Le dépôt de garantie est remboursable et reste distinct du total facturé de la location.'))
+const depositSeparateNotice = computed(() =>
+  publicText('checkout.cart.securityDepositSeparateNotice', 'Le dépôt de garantie est remboursable et reste distinct du total facturé de la location.'),
+)
 const amountDueOnsiteLabel = computed(() => publicText('checkout.cart.amountDueOnsite', 'Montant total à régler sur place'))
 const amountDueOnlineLabel = computed(() => publicText('checkout.cart.amountDueOnline', 'Montant total à payer en ligne'))
 const messageLabel = computed(() => publicText('checkout.cart.message', 'Message'))
-const submitLabel = computed(() => (checkoutForm.value.paymentMode === 'stripe' && paymentCapabilities.value.allowOnline)
-  || (depositTotal.value > 0 && checkoutForm.value.depositPaymentMode === 'online' && depositPaymentCapabilities.value.allowOnline)
-  ? publicText('checkout.cart.continueStripe', 'Continuer vers Stripe')
-  : publicText('checkout.cart.confirmOrder', 'Confirmer la commande'))
-const unavailablePaymentLabel = computed(() => publicText('checkout.cart.unavailablePayment', 'Aucun mode de règlement valide n’est actuellement disponible pour ce panier.'))
+const submitLabel = computed(() =>
+  (checkoutForm.value.paymentMode === 'stripe' && paymentCapabilities.value.allowOnline) ||
+  (depositTotal.value > 0 && checkoutForm.value.depositPaymentMode === 'online' && depositPaymentCapabilities.value.allowOnline)
+    ? publicText('checkout.cart.continueStripe', 'Continuer vers Stripe')
+    : publicText('checkout.cart.confirmOrder', 'Confirmer la commande'),
+)
+const unavailablePaymentLabel = computed(() =>
+  publicText('checkout.cart.unavailablePayment', 'Aucun mode de règlement valide n’est actuellement disponible pour ce panier.'),
+)
 const emptyLabel = computed(() => publicText('checkout.cart.emptyTitle', 'Votre panier est vide.'))
 const emptyHelpLabel = computed(() => publicText('checkout.cart.emptyHelp', 'Ajoutez un produit pour continuer.'))
 const noAddressLabel = computed(() => publicText('checkout.cart.noAddress', 'Adresse à confirmer'))
-const unavailableCityLabel = computed(() => publicText('checkout.cart.cityUnavailable', 'La livraison à domicile n’est pas actuellement disponible dans cette ville.'))
+const unavailableCityLabel = computed(() =>
+  publicText('checkout.cart.cityUnavailable', 'La livraison à domicile n’est pas actuellement disponible dans cette ville.'),
+)
 const postalCodeMismatchLabel = computed(() => publicText('checkout.cart.postalCodeMismatch', 'Le code postal ne correspond pas à la ville sélectionnée.'))
 const vatNotApplicableLabel = computed(() => publicText('checkout.cart.vatNotApplicable', 'TVA non applicable'))
 const taxCodeLabel = computed(() => publicText('checkout.cart.taxCode', 'Code taxe'))
 
 const resolvedPaymentLabel = computed(() =>
-  paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline
-    ? onlineLabel.value
-    : offlineLabel.value
+  paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline ? onlineLabel.value : offlineLabel.value,
 )
-const depositItems = computed(() => items.value.filter(item => item.saleType === 'RENTAL' && Number(item.rentalDepositAmount || 0) > 0))
+const depositItems = computed(() => items.value.filter((item) => item.saleType === 'RENTAL' && Number(item.rentalDepositAmount || 0) > 0))
 const depositTotal = computed(() => roundCurrency(depositItems.value.reduce((sum, item) => sum + Number(item.rentalDepositAmount || 0) * item.quantity, 0)))
 const depositPaymentCapabilities = computed(() => getRentalDepositPaymentCapabilities(depositItems.value, stripeEnabled.value))
-const resolvedDepositPaymentLabel = computed(() => depositPaymentCapabilities.value.allowOnline && !depositPaymentCapabilities.value.allowOnsite
-  ? depositOnlineLabel.value
-  : depositOnsiteLabel.value)
-const amountDueOnsite = computed(() => roundCurrency(
-  (checkoutForm.value.paymentMode === 'offline' ? total.value : 0)
-  + (checkoutForm.value.depositPaymentMode === 'onsite' ? depositTotal.value : 0),
-))
-const amountDueOnline = computed(() => roundCurrency(
-  (checkoutForm.value.paymentMode === 'stripe' ? total.value : 0)
-  + (checkoutForm.value.depositPaymentMode === 'online' ? depositTotal.value : 0),
-))
+const resolvedDepositPaymentLabel = computed(() =>
+  depositPaymentCapabilities.value.allowOnline && !depositPaymentCapabilities.value.allowOnsite ? depositOnlineLabel.value : depositOnsiteLabel.value,
+)
+const amountDueOnsite = computed(() =>
+  roundCurrency(
+    (checkoutForm.value.paymentMode === 'offline' ? total.value : 0) + (checkoutForm.value.depositPaymentMode === 'onsite' ? depositTotal.value : 0),
+  ),
+)
+const amountDueOnline = computed(() =>
+  roundCurrency(
+    (checkoutForm.value.paymentMode === 'stripe' ? total.value : 0) + (checkoutForm.value.depositPaymentMode === 'online' ? depositTotal.value : 0),
+  ),
+)
 
 function editItemTarget(item: ShopCartItem) {
   return localePath({
@@ -546,9 +644,7 @@ function editItemTarget(item: ShopCartItem) {
   })
 }
 
-const selectedPickupPoint = computed(() =>
-  pickupPoints.value.find((point) => point.id === Number(checkoutForm.value.pickupPointId)) || null
-)
+const selectedPickupPoint = computed(() => pickupPoints.value.find((point) => point.id === Number(checkoutForm.value.pickupPointId)) || null)
 
 const deliveryCitiesListId = 'delivery-city-suggestions'
 const deliveryPostalCodesListId = 'delivery-postalcode-suggestions'
@@ -576,7 +672,10 @@ const cityPostalCodesMap = computed(() => {
         map.set(cityKey, [])
         continue
       }
-      const codes = entry.postalCodes.split(',').map((c) => c.trim()).filter(Boolean)
+      const codes = entry.postalCodes
+        .split(',')
+        .map((c) => c.trim())
+        .filter(Boolean)
       if (!codes.length) {
         map.set(cityKey, [])
         continue
@@ -604,9 +703,7 @@ const availableDeliveryPostalCodes = computed(() => {
 const deliveryCityValid = computed(() => {
   const city = checkoutForm.value.deliveryCity.trim()
   if (!city) return false
-  return availableDeliveryCities.value.some(
-    (c) => c.toLowerCase() === city.toLowerCase()
-  )
+  return availableDeliveryCities.value.some((c) => c.toLowerCase() === city.toLowerCase())
 })
 
 const deliveryPostalCodeValid = computed(() => {
@@ -614,9 +711,7 @@ const deliveryPostalCodeValid = computed(() => {
   if (!postalCode) return false
   const city = checkoutForm.value.deliveryCity.trim().toLowerCase()
   if (!city) return false
-  const matchingEntries = deliveryTours.value.flatMap((tour) =>
-    tour.cities.filter((entry) => entry.city.trim().toLowerCase() === city)
-  )
+  const matchingEntries = deliveryTours.value.flatMap((tour) => tour.cities.filter((entry) => entry.city.trim().toLowerCase() === city))
   if (!matchingEntries.length) return false
   if (matchingEntries.some((entry) => !entry.postalCodes)) return true
   return matchingEntries.some((entry) => {
@@ -628,28 +723,32 @@ const deliveryPostalCodeValid = computed(() => {
 const filteredTours = computed(() => {
   const city = checkoutForm.value.deliveryCity.trim().toLowerCase()
   if (!city || !deliveryCityValid.value || !deliveryPostalCodeValid.value) return []
-  return deliveryTours.value.filter((tour) =>
-    tour.cities.some((entry) => entry.city.trim().toLowerCase() === city)
-  )
+  return deliveryTours.value.filter((tour) => tour.cities.some((entry) => entry.city.trim().toLowerCase() === city))
 })
 
-const selectedDeliveryTour = computed(() =>
-  filteredTours.value.find((tour) => tour.id === Number(checkoutForm.value.deliveryTourId))
-  || deliveryTours.value.find((tour) => tour.id === Number(checkoutForm.value.deliveryTourId))
-  || null
+const selectedDeliveryTour = computed(
+  () =>
+    filteredTours.value.find((tour) => tour.id === Number(checkoutForm.value.deliveryTourId)) ||
+    deliveryTours.value.find((tour) => tour.id === Number(checkoutForm.value.deliveryTourId)) ||
+    null,
 )
 
 const automaticTaxCheckout = computed(() => stripeTaxEnabled.value && checkoutForm.value.paymentMode === 'stripe')
-const displayedUnitPriceLabel = computed(() => automaticTaxCheckout.value ? unitPriceLabel.value : unitPriceInclTaxLabel.value)
-const displayedLineTotalLabel = computed(() => automaticTaxCheckout.value ? totalLabel.value : totalInclTaxLabel.value)
-const cartTaxTotals = computed(() => items.value.reduce((summary, item) => {
-  const totalTtc = Number(item.totalPrice || 0)
-  const rate = Math.max(0, Number(item.vatRate || 0))
-  const totalHt = rate > 0 ? totalTtc / (1 + rate / 100) : totalTtc
-  summary.totalExclTax += totalHt
-  summary.vat += totalTtc - totalHt
-  return summary
-}, { totalExclTax: 0, vat: 0 }))
+const displayedUnitPriceLabel = computed(() => (automaticTaxCheckout.value ? unitPriceLabel.value : unitPriceInclTaxLabel.value))
+const displayedLineTotalLabel = computed(() => (automaticTaxCheckout.value ? totalLabel.value : totalInclTaxLabel.value))
+const cartTaxTotals = computed(() =>
+  items.value.reduce(
+    (summary, item) => {
+      const totalTtc = Number(item.totalPrice || 0)
+      const rate = Math.max(0, Number(item.vatRate || 0))
+      const totalHt = rate > 0 ? totalTtc / (1 + rate / 100) : totalTtc
+      summary.totalExclTax += totalHt
+      summary.vat += totalTtc - totalHt
+      return summary
+    },
+    { totalExclTax: 0, vat: 0 },
+  ),
+)
 const cartTotalExclTax = computed(() => roundCurrency(cartTaxTotals.value.totalExclTax))
 const cartVatAmount = computed(() => roundCurrency(cartTaxTotals.value.vat))
 
@@ -659,28 +758,44 @@ const onSitePickupSummary = computed(() => {
   const timeRange = [$formatTime(onSitePickup.startTime), $formatTime(onSitePickup.endTime)].filter(Boolean).join(' - ')
   return [onSitePickup.address, `${$formatDate(onSitePickup.nextDate)} - ${timeRange}`].filter(Boolean).join(' - ')
 })
-const rentalPickupSummaries = computed(() => items.value
-  .filter(item => item.saleType === 'RENTAL')
-  .map(item => ({
-    key: item.key,
-    title: item.title,
-    period: formatRentalRange(item.rentalStartDate, item.rentalEndDate),
-  })))
+const rentalPickupSummaries = computed(() =>
+  items.value
+    .filter((item) => item.saleType === 'RENTAL')
+    .map((item) => ({
+      key: item.key,
+      title: item.title,
+      start: item.rentalStartDate,
+      end: item.rentalEndDate,
+      duration: formatRentalDuration(item),
+    })),
+)
 
 const paymentConstraintNotice = computed(() => {
   if (paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline) {
-    return publicText('checkout.cart.onlineRequiredNotice', 'Au moins une ligne du panier est uniquement payable en ligne. Le panier entier doit donc être payé en ligne.')
+    return publicText(
+      'checkout.cart.onlineRequiredNotice',
+      'Au moins une ligne du panier est uniquement payable en ligne. Le panier entier doit donc être payé en ligne.',
+    )
   }
   if (paymentCapabilities.value.allowOffline && !paymentCapabilities.value.allowOnline) {
-    return publicText('checkout.cart.offlineRequiredNotice', 'Au moins une ligne du panier ne prend pas en charge le paiement en ligne. Le panier entier doit donc être réglé sur place.')
+    return publicText(
+      'checkout.cart.offlineRequiredNotice',
+      'Au moins une ligne du panier ne prend pas en charge le paiement en ligne. Le panier entier doit donc être réglé sur place.',
+    )
   }
   return ''
 })
 
 const checkoutTaxNotice = computed(() => {
-  if (automaticTaxCheckout.value) return publicText('checkout.cart.taxNoticeAutomatic', 'Stripe Tax calculera la TVA applicable lors du paiement en fonction des informations de facturation.')
+  if (automaticTaxCheckout.value)
+    return publicText(
+      'checkout.cart.taxNoticeAutomatic',
+      'Stripe Tax calculera la TVA applicable lors du paiement en fonction des informations de facturation.',
+    )
   if (cartVatAmount.value <= 0) return vatNotApplicableLabel.value
-  return publicText('checkout.cart.taxNoticeIncludedAmount', 'Les prix sont TTC. Le total comprend {amount} de TVA.', { amount: $formatPrice(cartVatAmount.value) })
+  return publicText('checkout.cart.taxNoticeIncludedAmount', 'Les prix sont TTC. Le total comprend {amount} de TVA.', {
+    amount: $formatPrice(cartVatAmount.value),
+  })
 })
 
 function roundCurrency(value: number) {
@@ -693,48 +808,66 @@ const deliveryValid = computed(() => {
     return Number(checkoutForm.value.pickupPointId) > 0
   }
   if (checkoutForm.value.deliveryType === 'TOUR') {
-    return Number(checkoutForm.value.deliveryTourId) > 0
-      && checkoutForm.value.deliveryAddress.trim().length > 0
-      && checkoutForm.value.deliveryCity.trim().length > 0
-      && deliveryCityValid.value
-      && deliveryPostalCodeValid.value
+    return (
+      Number(checkoutForm.value.deliveryTourId) > 0 &&
+      checkoutForm.value.deliveryAddress.trim().length > 0 &&
+      checkoutForm.value.deliveryCity.trim().length > 0 &&
+      deliveryCityValid.value &&
+      deliveryPostalCodeValid.value
+    )
   }
   return false
 })
 
-const canSubmit = computed(() =>
-  items.value.length > 0
-  && deliveryValid.value
-  && rentalLinesValid.value
-  && (paymentCapabilities.value.allowOffline || paymentCapabilities.value.allowOnline)
-  && (depositTotal.value <= 0 || depositPaymentCapabilities.value.allowOnsite || depositPaymentCapabilities.value.allowOnline)
+const canSubmit = computed(
+  () =>
+    items.value.length > 0 &&
+    deliveryValid.value &&
+    rentalLinesValid.value &&
+    (paymentCapabilities.value.allowOffline || paymentCapabilities.value.allowOnline) &&
+    (depositTotal.value <= 0 || depositPaymentCapabilities.value.allowOnsite || depositPaymentCapabilities.value.allowOnline),
 )
 
-watch(paymentCapabilities, (value) => {
-  checkoutForm.value.paymentMode = value.resolvedDefaultMode
-}, { immediate: true, deep: true })
-watch(depositPaymentCapabilities, (value) => {
-  checkoutForm.value.depositPaymentMode = value.allowOnline && !value.allowOnsite ? 'online' : 'onsite'
-}, { immediate: true, deep: true })
+watch(
+  paymentCapabilities,
+  (value) => {
+    checkoutForm.value.paymentMode = value.resolvedDefaultMode
+  },
+  { immediate: true, deep: true },
+)
+watch(
+  depositPaymentCapabilities,
+  (value) => {
+    checkoutForm.value.depositPaymentMode = value.allowOnline && !value.allowOnsite ? 'online' : 'onsite'
+  },
+  { immediate: true, deep: true },
+)
 
-watch(deliveryChoices, (choices) => {
-  if (!choices.length) {
-    checkoutForm.value.deliveryType = ''
-    return
-  }
-  if (!choices.includes(checkoutForm.value.deliveryType)) {
-    checkoutForm.value.deliveryType = choices[0] as DeliveryType
-  }
-}, { immediate: true })
+watch(
+  deliveryChoices,
+  (choices) => {
+    if (!choices.length) {
+      checkoutForm.value.deliveryType = ''
+      return
+    }
+    if (!choices.includes(checkoutForm.value.deliveryType)) {
+      checkoutForm.value.deliveryType = choices[0] as DeliveryType
+    }
+  },
+  { immediate: true },
+)
 
-watch(() => checkoutForm.value.deliveryType, (value) => {
-  if (value !== 'PICKUP') {
-    checkoutForm.value.pickupPointId = 0
-  }
-  if (value !== 'TOUR') {
-    checkoutForm.value.deliveryTourId = 0
-  }
-})
+watch(
+  () => checkoutForm.value.deliveryType,
+  (value) => {
+    if (value !== 'PICKUP') {
+      checkoutForm.value.pickupPointId = 0
+    }
+    if (value !== 'TOUR') {
+      checkoutForm.value.deliveryTourId = 0
+    }
+  },
+)
 
 watch(filteredTours, (tours) => {
   if (!tours.some((tour) => tour.id === Number(checkoutForm.value.deliveryTourId))) {
@@ -742,39 +875,46 @@ watch(filteredTours, (tours) => {
   }
 })
 
-watch(() => checkoutForm.value.deliveryCity, (newCity, oldCity) => {
-  if (newCity.trim().toLowerCase() === oldCity?.trim().toLowerCase()) return
-  const codes = availableDeliveryPostalCodes.value
-  if (codes.length === 1 && codes[0]) {
-    checkoutForm.value.deliveryPostalCode = codes[0]
-  } else if (codes.length > 0 && !codes.includes(checkoutForm.value.deliveryPostalCode.trim())) {
-    checkoutForm.value.deliveryPostalCode = ''
-  } else if (codes.length === 0 && newCity.trim()) {
-    checkoutForm.value.deliveryPostalCode = ''
-  }
-})
+watch(
+  () => checkoutForm.value.deliveryCity,
+  (newCity, oldCity) => {
+    if (newCity.trim().toLowerCase() === oldCity?.trim().toLowerCase()) return
+    const codes = availableDeliveryPostalCodes.value
+    if (codes.length === 1 && codes[0]) {
+      checkoutForm.value.deliveryPostalCode = codes[0]
+    } else if (codes.length > 0 && !codes.includes(checkoutForm.value.deliveryPostalCode.trim())) {
+      checkoutForm.value.deliveryPostalCode = ''
+    } else if (codes.length === 0 && newCity.trim()) {
+      checkoutForm.value.deliveryPostalCode = ''
+    }
+  },
+)
 
-watch(() => authStore.user, (user) => {
-  if (!user) return
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
-  if (!checkoutForm.value.customerName.trim() && fullName) {
-    checkoutForm.value.customerName = fullName
-  }
-  if (!checkoutForm.value.email.trim() && user.email) {
-    checkoutForm.value.email = user.email
-  }
-  if (user.shippingAddress) {
-    if (!checkoutForm.value.deliveryAddress.trim()) {
-      checkoutForm.value.deliveryAddress = user.shippingAddress.street || ''
+watch(
+  () => authStore.user,
+  (user) => {
+    if (!user) return
+    const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
+    if (!checkoutForm.value.customerName.trim() && fullName) {
+      checkoutForm.value.customerName = fullName
     }
-    if (!checkoutForm.value.deliveryCity.trim()) {
-      checkoutForm.value.deliveryCity = user.shippingAddress.city || ''
+    if (!checkoutForm.value.email.trim() && user.email) {
+      checkoutForm.value.email = user.email
     }
-    if (!checkoutForm.value.deliveryPostalCode.trim()) {
-      checkoutForm.value.deliveryPostalCode = user.shippingAddress.postalCode || ''
+    if (user.shippingAddress) {
+      if (!checkoutForm.value.deliveryAddress.trim()) {
+        checkoutForm.value.deliveryAddress = user.shippingAddress.street || ''
+      }
+      if (!checkoutForm.value.deliveryCity.trim()) {
+        checkoutForm.value.deliveryCity = user.shippingAddress.city || ''
+      }
+      if (!checkoutForm.value.deliveryPostalCode.trim()) {
+        checkoutForm.value.deliveryPostalCode = user.shippingAddress.postalCode || ''
+      }
     }
-  }
-}, { immediate: true })
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   if (route.query.checkout === 'cancel') {
@@ -805,12 +945,16 @@ function formatVatBadge(value: number) {
   return `TVA ${formatVatRate(normalized)}`
 }
 
-function formatRentalRange(startDate: string | null | undefined, endDate: string | null | undefined) {
-  if (!startDate || !endDate) {
-    return publicText('checkout.cart.rentalToSelect', 'À sélectionner')
-  }
-  const formatter = startDate.includes('T') || endDate.includes('T') ? $formatDateTime : $formatDate
-  return `${formatter(startDate)} -> ${formatter(endDate)}`
+function formatAccessoryDuration(durationMinutes: number) {
+  const hours = Number(durationMinutes || 0) / 60
+  return Number.isInteger(hours) ? `${hours} h` : `${durationMinutes} min`
+}
+
+function resolveAccessoryEndDate(startDate: string, endDate: string | null | undefined, durationMinutes: number) {
+  if (endDate) return endDate
+  const start = new Date(startDate)
+  const end = new Date(start.getTime() + Number(durationMinutes || 0) * 60000)
+  return end.toISOString()
 }
 
 function requiredLabel(label: string) {
@@ -884,15 +1028,15 @@ async function submitOrder() {
           rentalStartDate: item.saleType === 'RENTAL' ? item.rentalStartDate : undefined,
           rentalEndDate: item.saleType === 'RENTAL' ? item.rentalEndDate : undefined,
           rentalPricingMode: item.saleType === 'RENTAL' ? item.rentalPricingMode : undefined,
-          insuranceDocumentIds: item.saleType === 'RENTAL'
-            ? (item.insuranceSelections || []).map(insurance => insurance.documentId)
-            : undefined,
-          optionSelections: (item.optionSelections || []).map(option => ({
+          insuranceDocumentIds: item.saleType === 'RENTAL' ? (item.insuranceSelections || []).map((insurance) => insurance.documentId) : undefined,
+          optionSelections: (item.optionSelections || []).map((option) => ({
             optionId: option.optionId,
             quantity: option.selectedQuantity,
+            rentalDurationMinutes: option.rentalDurationMinutes,
+            rentalStartDate: option.rentalStartDate,
           })),
-        }))
-      }
+        })),
+      },
     })
 
     if (response.redirectUrl && import.meta.client) {
@@ -904,7 +1048,9 @@ async function submitOrder() {
     resetCheckoutForm()
     retryOrderId.value = null
     if (response.accountProvisioning?.invitationSent) {
-      $toast.info(publicText('checkout.cart.accountProvisioningInfo', 'Un email vous a été envoyé pour activer votre compte et retrouver cette commande plus tard.'))
+      $toast.info(
+        publicText('checkout.cart.accountProvisioningInfo', 'Un email vous a été envoyé pour activer votre compte et retrouver cette commande plus tard.'),
+      )
     }
     $toast.success(publicText('checkout.cart.orderSuccess', 'Commande envoyée avec succès.'))
   } catch (error: any) {
@@ -919,17 +1065,13 @@ function resolveOrderErrorMessage(error: any) {
   const statusCode = Number(error?.statusCode || error?.status || error?.data?.statusCode || 0)
   if (statusCode >= 500) return fallback
   const candidates = [error?.data?.message, error?.data?.statusMessage, error?.statusMessage]
-  return candidates.find(value => typeof value === 'string'
-    && value.trim().length > 0
-    && !/^(?:internal )?server error$/i.test(value.trim())) || fallback
+  return candidates.find((value) => typeof value === 'string' && value.trim().length > 0 && !/^(?:internal )?server error$/i.test(value.trim())) || fallback
 }
 
 function formatRentalDuration(item: (typeof items.value)[number]) {
   if (!item.rentalStartDate || !item.rentalEndDate) return ''
   const milliseconds = new Date(item.rentalEndDate).getTime() - new Date(item.rentalStartDate).getTime()
-  const count = item.rentalPricingMode === 'HOURLY'
-    ? Math.max(0, milliseconds / 3600000)
-    : Math.max(1, Math.floor(milliseconds / 86400000) + 1)
+  const count = item.rentalPricingMode === 'HOURLY' ? Math.max(0, milliseconds / 3600000) : Math.max(1, Math.floor(milliseconds / 86400000) + 1)
   return publicText(
     item.rentalPricingMode === 'HOURLY' ? 'checkout.cart.rentalHourCount' : 'checkout.cart.rentalDayCount',
     item.rentalPricingMode === 'HOURLY' ? '{count} heure(s)' : '{count} jour(s)',
