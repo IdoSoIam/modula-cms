@@ -82,6 +82,7 @@ export const SETTING_KEYS = {
   REGISTER_ENABLED: 'register_enabled',
   SUBSCRIPTIONS_ENABLED: 'subscriptions_enabled',
   SHOP_ENABLED: 'shop_enabled',
+  DELIVERY_ENABLED: 'delivery_enabled',
   RENTALS_ENABLED: 'rentals_enabled',
   ASSOCIATION_ROLES_ENABLED: 'association_roles_enabled',
   EVENTS_ENABLED: 'events_enabled',
@@ -161,6 +162,7 @@ export interface FeatureFlags {
   shop: {
     enabled: boolean
   }
+  deliveryEnabled: boolean
   rentalsEnabled: boolean
   associationRolesEnabled: boolean
   eventsEnabled: boolean
@@ -184,6 +186,7 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   shop: {
     enabled: cmsProjectConfig.modules.shop
   },
+  deliveryEnabled: cmsProjectConfig.modules.shop,
   rentalsEnabled: cmsProjectConfig.modules.shop,
   associationRolesEnabled: cmsProjectConfig.modules.associationRoles,
   eventsEnabled: cmsProjectConfig.modules.events || cmsProjectConfig.modules.planning,
@@ -362,6 +365,7 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     SETTING_KEYS.SUBSCRIPTIONS_ENABLED,
     SETTING_KEYS.PAYMENTS_ENABLED,
     SETTING_KEYS.SHOP_ENABLED,
+    SETTING_KEYS.DELIVERY_ENABLED,
     SETTING_KEYS.RENTALS_ENABLED,
     SETTING_KEYS.ASSOCIATION_ROLES_ENABLED,
     SETTING_KEYS.EVENTS_ENABLED,
@@ -378,6 +382,7 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     shop: {
       enabled: shopEnabled
     },
+    deliveryEnabled: parseBooleanSetting(settings[SETTING_KEYS.DELIVERY_ENABLED], shopEnabled),
     rentalsEnabled: parseBooleanSetting(settings[SETTING_KEYS.RENTALS_ENABLED], shopEnabled),
     associationRolesEnabled: parseBooleanSetting(settings[SETTING_KEYS.ASSOCIATION_ROLES_ENABLED], DEFAULT_FEATURE_FLAGS.associationRolesEnabled),
     eventsEnabled: parseBooleanSetting(settings[SETTING_KEYS.EVENTS_ENABLED], DEFAULT_FEATURE_FLAGS.eventsEnabled),
@@ -391,6 +396,7 @@ export function normalizeFeatureFlags(flags: FeatureFlags): FeatureFlags {
     shop: {
       enabled: flags.shop.enabled
     },
+    deliveryEnabled: flags.shop.enabled && (flags.deliveryEnabled ?? true),
     rentalsEnabled: flags.rentalsEnabled ?? flags.shop.enabled
   }
 }

@@ -1,0 +1,24 @@
+{
+  "id": "0050_add_product_category_fields",
+  "name": "add_product_category_fields",
+  "description": "Define reusable category fields; the boat category starts with a rental passenger-capacity field.",
+  "beforeSchemaHash": "fb63bf11f38a409e2b657a910843e70b3409ebf679709712dbcee4b00ed06b71",
+  "afterSchemaHash": "9147647bdd65ffcc3b3231b79e3ac6d493f614deaa16b4e8efdf742031ec434b",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "ProductCategory",
+        "changes": [
+          "field added: fieldsJson"
+        ]
+      }
+    ]
+  }
+}

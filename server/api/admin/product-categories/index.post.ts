@@ -1,6 +1,7 @@
 import { requireAdmin } from '#modula/server/utils/requireAdmin'
 import { db } from '#modula/server/data/client'
 import { ensureUniqueSlug, serializeProductCategory } from '#modula/server/utils/shop'
+import { normalizeProductCategoryFields } from '#modula/shared/productCategoryFields'
 
 interface Body {
   name: string
@@ -8,6 +9,7 @@ interface Body {
   description?: string | null
   position?: number
   active?: boolean
+  fields?: unknown
 }
 
 export default defineEventHandler(async (event) => {
@@ -24,6 +26,7 @@ export default defineEventHandler(async (event) => {
       name: body.name.trim(),
       slug,
       description: body.description?.trim() || null,
+      fieldsJson: JSON.stringify(normalizeProductCategoryFields(body.fields)),
       position: Number(body.position || 0),
       active: body.active ?? true
     }

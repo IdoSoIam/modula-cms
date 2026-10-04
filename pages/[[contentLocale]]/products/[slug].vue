@@ -177,12 +177,12 @@
             </section>
           </div>
 
-          <section v-if="product.detailSections.length" class="space-y-4">
+          <section v-if="visibleDetailSections.length" class="space-y-4">
             <div class="flex items-center justify-between gap-4">
               <h2 class="text-2xl font-semibold">{{ moreDetailsTitle }}</h2>
             </div>
             <div class="grid gap-4 lg:grid-cols-2">
-              <article v-for="section in product.detailSections" :key="section.id" class="modula-card border border-base-300 bg-base-100 p-6 shadow-sm">
+              <article v-for="section in visibleDetailSections" :key="section.id" class="modula-card border border-base-300 bg-base-100 p-6 shadow-sm">
                 <h3 class="text-xl font-semibold">
                   {{ getLocalizedSectionTitle(section) }}
                 </h3>
@@ -331,6 +331,13 @@
                   :title="selectedPeriodTitle"
                   :duration="rentalDurationSummary"
                 />
+                <div v-if="rentalPartyCapacity" class="form-control flex flex-col gap-2 rounded-box border border-base-300 p-4">
+                  <label class="label-text font-medium" for="rental-party-size">{{ rentalPartySizeLabel }}</label>
+                  <select id="rental-party-size" v-model.number="selectedRentalPartySize" class="select select-bordered w-full">
+                    <option v-for="size in maxRentalPartySize" :key="size" :value="size">{{ size }}</option>
+                  </select>
+                  <p class="text-xs opacity-70">{{ rentalPartyCapacityHelp }}</p>
+                </div>
                 <template v-if="selectedRentalStartDate && selectedRentalEndDate">
                 <div v-if="rentalInsuranceOptions.length" class="space-y-3 rounded-box border border-base-300 p-4">
                   <div>
@@ -621,6 +628,7 @@
 </template>
 
 <script setup lang="ts">
+import { getRentalPartyCapacity } from '#modula/shared/productCategoryFields'
 import { pickCmsLocalizedText } from '#modula/shared/cms'
 import type { ProductDetailField, ProductDetailSection, ProductPayload } from '#modula/server/utils/shop'
 import { resolveRentalRatePrice } from '#modula/shared/rentalRates'
@@ -650,7 +658,6 @@ const { items: cartItems, hydrate: hydrateCart, add, replace } = useShopCart()
 const slug = computed(() => String(route.params.slug || ''))
 const editingCartItemKey = computed(() => (typeof route.query.editCartItem === 'string' ? route.query.editCartItem : ''))
 const editingCartItem = computed(() => cartItems.value.find((item) => item.key === editingCartItemKey.value) || null)
-const isEditingCartItem = computed(() => Boolean(editingCartItem.value && editingCartItem.value.productId === product.value?.id))
 const productGalleryOpen = ref(false)
 const productGalleryIndex = ref(0)
 
@@ -682,6 +689,13 @@ const product = computed(() => data.value?.product || null)
 const shopPagePath = computed(() => siteConfig.value?.shopPagePath || initialSiteConfig?.shopPagePath || '/boutique')
 const relatedProducts = computed(() => data.value?.relatedProducts || [])
 const quantity = ref(1)
+const isEditingCartItem = computed(() => Boolean(editingCartItem.value && editingCartItem.value.productId === product.value?.id))
+const rentalPartyCapacity = computed(() => product.value ? getRentalPartyCapacity(product.value) : null)
+const maxRentalPartySize = computed(() => Math.max(1, Number(rentalPartyCapacity.value || 1) * quantity.value))
+const selectedRentalPartySize = ref(1)
+const rentalPartySizeLabel = computed(() => publicText('shop.product.rentalPartySize', 'Nombre de personnes'))
+const rentalPartyCapacityHelp = computed(() => publicText('shop.product.rentalPartyCapacityHelp', 'Capacité maximale : {count} personne(s) par unité louée.', { count: rentalPartyCapacity.value || 0 }))
+watch(maxRentalPartySize, (maximum) => { selectedRentalPartySize.value = Math.min(Math.max(1, selectedRentalPartySize.value), maximum) })
 const rentalModalOpen = ref(false)
 const selectedRentalStartDate = ref('')
 const selectedRentalEndDate = ref('')
@@ -929,6 +943,9 @@ const selectedRentalTotalExclTax = computed(() => {
   return rate > 0 ? roundCurrency(selectedRentalTotalInclTax.value / (1 + rate / 100)) : selectedRentalTotalInclTax.value
 })
 const selectedRentalVatAmount = computed(() => roundCurrency(selectedRentalTotalInclTax.value - selectedRentalTotalExclTax.value))
+const visibleDetailSections = computed(() => (product.value?.detailSections || [])
+  .map((section) => ({ ...section, items: section.items.filter((item) => item.mediaDocumentKind !== 'CONTRACT') }))
+  .filter((section) => section.items.length > 0))
 const associatedDocuments = computed(() => {
   if (!product.value) return []
   const unique = new Map<
@@ -939,6 +956,7 @@ const associatedDocuments = computed(() => {
       kind: 'pdf' | 'billingDocument'
       url: string
       documentId?: number | null
+      billingDocumentKind?: 'CONTRACT' | 'ASSURANCE' | 'INVOICE' | null
     }
   >()
   for (const item of product.value.detailSections.flatMap((section) => section.items)) {
@@ -958,8 +976,21 @@ const associatedDocuments = computed(() => {
         kind: 'billingDocument',
         url: buildBillingDocumentPreviewUrl(item.mediaDocumentId),
         documentId: item.mediaDocumentId,
+        billingDocumentKind: item.mediaDocumentKind,
       })
     }
+  }
+  for (const option of selectedProductOptions.value) {
+    if (option.kind !== 'INSURANCE' || !option.billingDocumentId) continue
+    const key = `document:${option.billingDocumentId}`
+    unique.set(key, {
+      key,
+      name: option.label,
+      kind: 'billingDocument',
+      url: buildBillingDocumentPreviewUrl(option.billingDocumentId),
+      documentId: option.billingDocumentId,
+      billingDocumentKind: 'ASSURANCE',
+    })
   }
   return Array.from(unique.values())
 })
@@ -1086,6 +1117,7 @@ const canAddRentalToCart = computed(() => {
     selectedRentalStartDate.value.trim().length > 0 &&
     selectedRentalEndDate.value.trim().length > 0 &&
     publicOptionGroups.value.every(isProductOptionGroupValid)
+    && (!rentalPartyCapacity.value || (selectedRentalPartySize.value >= 1 && selectedRentalPartySize.value <= maxRentalPartySize.value))
   )
 })
 
@@ -1105,6 +1137,7 @@ watch(
   product,
   (value) => {
     quantity.value = 1
+    selectedRentalPartySize.value = 1
     selectedRentalStartDate.value = ''
     selectedRentalEndDate.value = ''
     selectedRentalAvailableQuantity.value = 0
@@ -1385,6 +1418,8 @@ async function addRentalToCart() {
     rentalStartDate: selectedRentalStartDate.value,
     rentalEndDate: selectedRentalEndDate.value,
     rentalPricingMode: selectedPricingMode.value,
+    rentalPartySize: rentalPartyCapacity.value ? selectedRentalPartySize.value : null,
+    rentalPartyCapacity: rentalPartyCapacity.value,
     rentalBaseUnitPrice: selectedRentalPrice.value,
     insuranceSelections: selectedRentalInsurances.value.map((entry) => ({
       ...entry,
@@ -1425,6 +1460,7 @@ function restoreCartItemSelection() {
   const item = editingCartItem.value
   if (!item || !product.value || item.productId !== product.value.id) return
   quantity.value = Math.max(1, Math.min(item.quantity, item.availableQuantity ?? product.value.stock))
+  selectedRentalPartySize.value = item.rentalPartySize || 1
   selectedRentalStartDate.value = item.rentalStartDate || ''
   selectedRentalEndDate.value = item.rentalEndDate || ''
   selectedPricingMode.value = item.rentalPricingMode === 'HOURLY' ? 'HOURLY' : 'DAILY'

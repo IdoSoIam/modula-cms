@@ -10,6 +10,7 @@ import {
   type ProductOptionOverride,
 } from '#modula/shared/productOptions'
 import { normalizeRentalRates, type RentalRate } from '#modula/shared/rentalRates'
+import { normalizeProductCategoryFields, type ProductCategoryFieldDefinition } from '#modula/shared/productCategoryFields'
 
 export interface ProductPayload {
   id: number
@@ -75,6 +76,7 @@ export interface ProductCategoryPayload {
   name: string
   slug: string
   description: string | null
+  fields: ProductCategoryFieldDefinition[]
   position: number
   active: boolean
 }
@@ -111,6 +113,11 @@ export interface ShopOrderPayload {
   deliveryAddress: string | null
   deliveryCity: string | null
   deliveryPostalCode: string | null
+  deliveryCountry: string | null
+  billingAddress: string | null
+  billingCity: string | null
+  billingPostalCode: string | null
+  billingCountry: string | null
   rentalStartDate: string | null
   rentalEndDate: string | null
   fulfillmentDate: string | null
@@ -556,6 +563,7 @@ export function serializeProductCategory(row: any): ProductCategoryPayload {
     name: String(row.name),
     slug: String(row.slug),
     description: row.description ?? null,
+    fields: normalizeProductCategoryFields(row.fieldsJson),
     position: Number(row.position || 0),
     active: Boolean(row.active),
   }
@@ -589,6 +597,11 @@ export function serializeShopOrder(row: any): ShopOrderPayload {
     deliveryAddress: row.deliveryAddress ?? null,
     deliveryCity: row.deliveryCity ?? null,
     deliveryPostalCode: row.deliveryPostalCode ?? null,
+    deliveryCountry: row.deliveryCountry ?? null,
+    billingAddress: row.billingAddress ?? null,
+    billingCity: row.billingCity ?? null,
+    billingPostalCode: row.billingPostalCode ?? null,
+    billingCountry: row.billingCountry ?? null,
     rentalStartDate: row.rentalStartDate ? new Date(row.rentalStartDate).toISOString() : null,
     rentalEndDate: row.rentalEndDate ? new Date(row.rentalEndDate).toISOString() : null,
     fulfillmentDate: row.fulfillmentDate ? new Date(row.fulfillmentDate).toISOString() : null,

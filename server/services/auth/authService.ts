@@ -25,6 +25,12 @@ export interface AuthenticatedUser {
     postalCode: string
     country: string
   }
+  billingAddress?: {
+    street: string
+    city: string
+    postalCode: string
+    country: string
+  }
 }
 
 export interface PasswordSetupTokenValidation {
@@ -47,6 +53,10 @@ const userSelect = {
   city: true,
   postalCode: true,
   country: true,
+  billingStreet: true,
+  billingCity: true,
+  billingPostalCode: true,
+  billingCountry: true,
   managedRole: {
     include: {
       permissions: true
@@ -71,6 +81,10 @@ function mapUser(user: {
   city: string | null
   postalCode: string | null
   country: string | null
+  billingStreet: string | null
+  billingCity: string | null
+  billingPostalCode: string | null
+  billingCountry: string | null
   managedRole: {
     slug: string
     specialPermissionsJson: string
@@ -114,6 +128,12 @@ function mapUser(user: {
       city: user.city,
       postalCode: user.postalCode,
       country: user.country
+    } : undefined,
+    billingAddress: user.billingStreet && user.billingCity && user.billingPostalCode && user.billingCountry ? {
+      street: user.billingStreet,
+      city: user.billingCity,
+      postalCode: user.billingPostalCode,
+      country: user.billingCountry
     } : undefined
   }
 }
@@ -412,6 +432,31 @@ export class AuthService {
       console.error('Error updating shipping address:', error)
       throw error
     }
+  }
+
+  async updateBillingAddress(userId: number, data: {
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  }): Promise<AuthenticatedUser> {
+    const billingStreet = data.addressLine2
+      ? `${data.addressLine1}, ${data.addressLine2}`
+      : data.addressLine1
+
+    const user = await db.user.update({
+      where: { id: userId },
+      data: {
+        billingStreet,
+        billingCity: data.city,
+        billingPostalCode: data.postalCode,
+        billingCountry: data.country
+      },
+      select: userSelect
+    })
+
+    return mapUser(user)
   }
 
   async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {

@@ -11,6 +11,8 @@ export interface ShopCartItem {
   rentalStartDate?: string | null
   rentalEndDate?: string | null
   rentalPricingMode?: 'HOURLY' | 'DAILY' | null
+  rentalPartySize?: number | null
+  rentalPartyCapacity?: number | null
   rentalBaseUnitPrice?: number | null
   insuranceSelections?: ShopCartInsuranceSelection[]
   optionSelections?: ShopCartOptionSelection[]
@@ -57,6 +59,7 @@ export interface ShopCartAssociatedDocument {
   kind: 'pdf' | 'billingDocument'
   url: string
   documentId?: number | null
+  billingDocumentKind?: 'CONTRACT' | 'ASSURANCE' | 'INVOICE' | null
 }
 
 const STORAGE_KEY = 'modula-shop-cart-v1'
@@ -112,6 +115,8 @@ export function useShopCart() {
                 rentalStartDate: item?.rentalStartDate?.trim() || null,
                 rentalEndDate: item?.rentalEndDate?.trim() || null,
                 rentalPricingMode: item?.rentalPricingMode === 'HOURLY' ? 'HOURLY' : item?.rentalPricingMode === 'DAILY' ? 'DAILY' : null,
+                rentalPartySize: Number(item?.rentalPartySize || 0) > 0 ? Math.round(Number(item.rentalPartySize)) : null,
+                rentalPartyCapacity: Number(item?.rentalPartyCapacity || 0) > 0 ? Math.round(Number(item.rentalPartyCapacity)) : null,
                 rentalBaseUnitPrice: item?.rentalBaseUnitPrice == null ? null : Number(item.rentalBaseUnitPrice),
                 insuranceSelections: Array.isArray(item?.insuranceSelections)
                   ? item.insuranceSelections
@@ -132,6 +137,8 @@ export function useShopCart() {
                         kind: document?.kind === 'billingDocument' ? ('billingDocument' as const) : ('pdf' as const),
                         url: String(document?.url || ''),
                         documentId: document?.documentId == null ? null : Number(document.documentId),
+                        billingDocumentKind: document?.billingDocumentKind === 'CONTRACT' || document?.billingDocumentKind === 'ASSURANCE' || document?.billingDocumentKind === 'INVOICE'
+                          ? document.billingDocumentKind : null,
                       }))
                       .filter((document: ShopCartAssociatedDocument) => document.key && document.url)
                   : [],
@@ -184,6 +191,8 @@ export function useShopCart() {
       existing.rentalStartDate = item.rentalStartDate?.trim() || null
       existing.rentalEndDate = item.rentalEndDate?.trim() || null
       existing.rentalPricingMode = item.rentalPricingMode ?? null
+      existing.rentalPartySize = item.rentalPartySize ?? null
+      existing.rentalPartyCapacity = item.rentalPartyCapacity ?? null
       existing.rentalBaseUnitPrice = item.rentalBaseUnitPrice ?? null
       existing.insuranceSelections = item.insuranceSelections ? item.insuranceSelections.map((entry) => ({ ...entry })) : []
       existing.optionSelections = item.optionSelections ? item.optionSelections.map((entry) => ({ ...entry })) : []
@@ -234,6 +243,9 @@ export function useShopCart() {
     const entry = items.value.find((item) => item.key === key)
     if (!entry) return
     entry.quantity = clampQuantity(quantity, entry.availableQuantity)
+    if (entry.rentalPartySize && entry.rentalPartyCapacity) {
+      entry.rentalPartySize = Math.min(entry.rentalPartySize, entry.rentalPartyCapacity * entry.quantity)
+    }
     refreshCartItemTotals(entry)
   }
 

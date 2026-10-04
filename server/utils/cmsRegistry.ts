@@ -868,6 +868,7 @@ export async function importTemplateSnapshot(
     setSetting(SETTING_KEYS.REGISTER_ENABLED, prepared.featureFlags.registerEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SUBSCRIPTIONS_ENABLED, prepared.featureFlags.subscriptionsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.SHOP_ENABLED, prepared.featureFlags.shop.enabled ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.DELIVERY_ENABLED, (prepared.featureFlags.deliveryEnabled ?? prepared.featureFlags.shop.enabled) ? 'true' : 'false'),
     setSetting(SETTING_KEYS.RENTALS_ENABLED, (prepared.featureFlags.rentalsEnabled ?? prepared.featureFlags.shop.enabled) ? 'true' : 'false'),
     setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, prepared.featureFlags.associationRolesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.EVENTS_ENABLED, prepared.featureFlags.eventsEnabled ? 'true' : 'false'),

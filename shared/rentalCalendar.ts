@@ -173,6 +173,11 @@ export function resolveOpeningDurationEndTime(
   return null
 }
 
+export function hasRemainingOpeningTime(ranges: RentalTimeRange[], currentTime: string): boolean {
+  if (!TIME_PATTERN.test(currentTime)) return false
+  return ranges.some(range => range.end > currentTime)
+}
+
 export function isRentalClosed(config: RentalCalendarConfig, isoDate: string): boolean {
   if (config.closures.some(entry => isoDate >= entry.startDate && isoDate <= entry.endDate)) return true
   return config.excludePublicHolidays && config.holidayCountry === 'FR' && getFrenchPublicHolidays(Number(isoDate.slice(0, 4))).has(isoDate)

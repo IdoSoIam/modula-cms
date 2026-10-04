@@ -336,7 +336,7 @@
                   </label>
                   <textarea
                     v-model="refundRequestReason"
-                    class="textarea textarea-bordered min-h-28"
+                    class="textarea textarea-bordered min-h-28 w-full"
                     :placeholder="publicText('orders.refundRequestReasonPlaceholder', 'Expliquez pourquoi vous souhaitez être remboursé.')"
                   />
                 </div>
@@ -591,7 +591,9 @@ const lineDocuments = (line: ShopOrderLine) => {
     ...documents.filter((document: any) => Number(document?.id) > 0).map((document: any) => ({
       key: `document:${document.id}`,
       name: String(document.name || publicText('orders.document', 'Document')),
-      url: `/api/shop/billing-documents/${document.id}/preview?productId=${productId}`,
+      url: document.kind === 'CONTRACT'
+        ? `/api/profile/orders/${line.orderId}/billing-documents/${document.id}`
+        : `/api/shop/billing-documents/${document.id}/preview?productId=${productId}`,
     })),
     ...files.filter((file: any) => file?.url).map((file: any, index: number) => ({
       key: `file:${index}:${file.url}`,

@@ -1,0 +1,37 @@
+{
+  "id": "0049_add_billing_and_delivery_addresses",
+  "name": "add_billing_and_delivery_addresses",
+  "description": "Separate persistent billing and shipping addresses and snapshot both on shop orders.",
+  "beforeSchemaHash": "cb080471728e7cbc5186e55f77ad41a1ed07b27f4cd902f1b8a975b95166e14c",
+  "afterSchemaHash": "fb63bf11f38a409e2b657a910843e70b3409ebf679709712dbcee4b00ed06b71",
+  "up": {
+    "sqlite": "sqlite.sql",
+    "d1": "d1.sql"
+  },
+  "down": {},
+  "summary": {
+    "addedModels": [],
+    "removedModels": [],
+    "changedModels": [
+      {
+        "model": "ShopOrder",
+        "changes": [
+          "field added: billingAddress",
+          "field added: billingCity",
+          "field added: billingCountry",
+          "field added: billingPostalCode",
+          "field added: deliveryCountry"
+        ]
+      },
+      {
+        "model": "User",
+        "changes": [
+          "field added: billingCity",
+          "field added: billingCountry",
+          "field added: billingPostalCode",
+          "field added: billingStreet"
+        ]
+      }
+    ]
+  }
+}

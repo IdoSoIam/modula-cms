@@ -253,7 +253,8 @@ function upsertAccessory(product, categoryId, position, imageUrl) {
     allowCustomerCancellation: 1,
     allowRefundRequestAfterEngagement: 0,
     active: product.available ? 1 : 0,
-    catalogVisible: product.available ? 1 : 0,
+    // These products keep their own stock and rates but are only booked from a boat option group.
+    catalogVisible: 0,
     deletedAt: null,
     position,
   }

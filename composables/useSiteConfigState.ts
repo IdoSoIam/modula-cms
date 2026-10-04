@@ -22,6 +22,7 @@ interface PublicSiteConfigState {
     shop: {
       enabled: boolean
     }
+    deliveryEnabled?: boolean
     associationRolesEnabled: boolean
     eventsEnabled: boolean
     newsEnabled: boolean

@@ -7,10 +7,10 @@ import {
   startOfDay,
   toIsoDate,
 } from '#modula/server/services/shop/rentalAvailability'
-import { formatLocalizedDateValue } from '#modula/shared/date'
+import { formatIsoDateInTimeZone, formatLocalizedDateValue } from '#modula/shared/date'
 import { serializeProduct } from '#modula/server/utils/shop'
 import { getFeatureFlags, getRentalCalendarConfig } from '#modula/server/utils/settings'
-import { getRentalOpeningRanges } from '#modula/shared/rentalCalendar'
+import { getRentalOpeningRanges, hasRemainingOpeningTime } from '#modula/shared/rentalCalendar'
 
 function parseMonth(value: string | undefined) {
   const source = value && /^\d{4}-\d{2}$/.test(value) ? value : toIsoDate(new Date()).slice(0, 7)
@@ -106,7 +106,7 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
   })
 
   const byIso = new Map(availability.map((entry) => [entry.iso, entry]))
-  const today = toIsoDate(new Date())
+  const today = formatIsoDateInTimeZone(new Date(), calendar.timezone)
   const currentTime = new Intl.DateTimeFormat('en-GB', {
     timeZone: calendar.timezone,
     hour: '2-digit',
@@ -125,6 +125,8 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
       const openingRanges = getRentalOpeningRanges(calendar, iso)
       const calendarClosed = openingRanges.length === 0
       const isPast = iso < today
+      const hasFutureOpeningToday = iso !== today || hasRemainingOpeningTime(openingRanges, currentTime)
+      const unavailableByTime = iso === today && !hasFutureOpeningToday
       const inCurrentMonth = day.getMonth() === monthDate.getMonth()
       const item = state
         ? {
@@ -132,7 +134,7 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
             title: '',
             subtitle: '',
             meta: '',
-            status: calendarClosed || isPast ? 'outside' : state.status,
+            status: calendarClosed || isPast || unavailableByTime ? 'outside' : state.status,
             remaining: state.remaining,
           }
         : {
@@ -147,14 +149,14 @@ function buildResponse(monthDate: Date, gridDays: Date[], availability: Awaited<
         iso,
         dayNumber: day.getDate(),
         inCurrentMonth,
-        isToday: iso === toIsoDate(new Date()),
+        isToday: iso === today,
         page: 1,
         total: 1,
         totalPages: 1,
         items: [item],
-        availabilityStatus: calendarClosed || isPast ? 'outside' : state?.status || 'outside',
+        availabilityStatus: calendarClosed || isPast || unavailableByTime ? 'outside' : state?.status || 'outside',
         remaining: state?.remaining || 0,
-        selectable: Boolean(state?.selectable && !calendarClosed && !isPast),
+        selectable: Boolean(state?.selectable && !calendarClosed && !isPast && !unavailableByTime),
         openingRanges,
         minimumStartTime: iso === today ? currentTime : null,
       }

@@ -1,6 +1,7 @@
 import { db } from '#modula/server/data/client'
 import { getRentalCalendarConfig } from '#modula/server/utils/settings'
 import { getRentalOpeningRanges, resolveOpeningDurationEndTime } from '#modula/shared/rentalCalendar'
+import { formatLocalIsoDate } from '#modula/shared/date'
 
 export type RentalSourceKind = 'product'
 
@@ -550,7 +551,7 @@ export function endOfDay(value: Date) {
 }
 
 export function toIsoDate(value: Date) {
-  return value.toISOString().slice(0, 10)
+  return formatLocalIsoDate(value)
 }
 
 export function eachDayBetween(startAt: Date, endAt: Date) {

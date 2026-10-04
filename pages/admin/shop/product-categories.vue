@@ -48,7 +48,7 @@
     </div>
 
     <dialog ref="dlg" class="modal">
-      <div class="modal-box max-w-2xl">
+      <div class="modal-box max-h-[90vh] max-w-3xl overflow-y-auto">
         <h3 class="mb-4 text-lg font-bold">
           {{ editing.id ? t('admin.productCategoriesPage.editTitle') : t('admin.productCategoriesPage.createTitle') }}
         </h3>
@@ -78,6 +78,50 @@
             </label>
           </div>
         </div>
+        <details class="mt-5 rounded-box border border-base-300 bg-base-200/40">
+          <summary class="cursor-pointer p-4 font-semibold">{{ t('admin.productCategoriesPage.fieldsTitle') }} ({{ editing.fields?.length || 0 }})</summary>
+          <div class="space-y-4 border-t border-base-300 p-4">
+            <p class="text-sm opacity-70">{{ t('admin.productCategoriesPage.fieldsHelp') }}</p>
+            <div v-for="(field, index) in editing.fields || []" :key="index" class="rounded-box border border-base-300 bg-base-100 p-4">
+              <div class="mb-3 flex items-center justify-between gap-3">
+                <strong>{{ field.label || t('admin.productCategoriesPage.newField') }}</strong>
+                <button type="button" class="btn btn-square btn-sm btn-ghost text-error" @click="editing.fields?.splice(index, 1)">
+                  <Icon name="mdi:delete-outline" size="18" />
+                </button>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div class="form-control flex flex-col gap-2 sm:col-span-2">
+                  <AdminPageBuilderTranslationTabs v-model="field.labelLocalized" :label="t('admin.productCategoriesPage.fieldLabel')" />
+                </div>
+                <div class="form-control flex flex-col gap-2">
+                  <label class="label-text">{{ t('admin.productCategoriesPage.fieldKey') }}</label>
+                  <input v-model="field.key" class="input input-bordered" :disabled="Boolean(editing.id && originalFieldKeys.includes(field.key))" placeholder="capacity" />
+                </div>
+                <div class="form-control flex flex-col gap-2">
+                  <label class="label-text">{{ t('admin.productCategoriesPage.fieldType') }}</label>
+                  <select v-model="field.type" class="select select-bordered">
+                    <option value="TEXT">{{ t('admin.productCategoriesPage.fieldTypeText') }}</option>
+                    <option value="NUMBER">{{ t('admin.productCategoriesPage.fieldTypeNumber') }}</option>
+                  </select>
+                </div>
+                <div v-if="field.type === 'NUMBER'" class="form-control flex flex-col gap-2 sm:col-span-2">
+                  <label class="label-text">{{ t('admin.productCategoriesPage.fieldPurpose') }}</label>
+                  <select v-model="field.purpose" class="select select-bordered">
+                    <option value="NONE">{{ t('admin.productCategoriesPage.fieldPurposeNone') }}</option>
+                    <option value="RENTAL_PARTY_CAPACITY">{{ t('admin.productCategoriesPage.fieldPurposeCapacity') }}</option>
+                  </select>
+                </div>
+                <label class="flex items-center gap-2 sm:col-span-2">
+                  <input v-model="field.required" type="checkbox" class="checkbox checkbox-sm" />
+                  {{ t('admin.productCategoriesPage.fieldRequired') }}
+                </label>
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline" @click="addField">
+              <Icon name="mdi:plus" size="17" /> {{ t('admin.productCategoriesPage.addField') }}
+            </button>
+          </div>
+        </details>
         <div class="modal-action">
           <button class="btn" @click="close">{{ t('admin.common.cancel') }}</button>
           <button class="btn btn-primary" :disabled="saving" @click="save">
@@ -93,6 +137,7 @@
 
 <script setup lang="ts">
 import type { ProductCategoryPayload } from '#modula/server/utils/shop'
+import type { ProductCategoryFieldDefinition } from '#modula/shared/productCategoryFields'
 
 definePageMeta({
   layout: 'admin',
@@ -104,13 +149,15 @@ const { data: categories, pending, refresh } = await useFetch<ProductCategoryPay
 
 const dlg = ref<HTMLDialogElement>()
 const saving = ref(false)
+const originalFieldKeys = ref<string[]>([])
 const editing = reactive<Partial<ProductCategoryPayload>>({
   id: undefined,
   name: '',
   slug: '',
   description: '',
   position: 0,
-  active: true
+  active: true,
+  fields: [],
 })
 const editingPosition = computed({
   get: () => Number(editing.position || 0),
@@ -118,18 +165,35 @@ const editingPosition = computed({
 })
 
 const openNew = () => {
-  Object.assign(editing, { id: undefined, name: '', slug: '', description: '', position: 0, active: true })
+  Object.assign(editing, { id: undefined, name: '', slug: '', description: '', position: 0, active: true, fields: [] })
+  originalFieldKeys.value = []
   dlg.value?.showModal()
 }
 
 const openEdit = (category: ProductCategoryPayload) => {
-  Object.assign(editing, category)
+  Object.assign(editing, { ...category, fields: structuredClone(category.fields || []) })
+  originalFieldKeys.value = (category.fields || []).map((field) => field.key)
   dlg.value?.showModal()
 }
 
 const close = () => dlg.value?.close()
 
+const addField = () => {
+  const fields = editing.fields || (editing.fields = [])
+  fields.push({ key: '', label: '', labelLocalized: { fr: '', en: '' }, type: 'TEXT', required: false, purpose: 'NONE' } satisfies ProductCategoryFieldDefinition)
+}
+
 const save = async () => {
+  const fields = editing.fields || []
+  const keys = fields.map((field) => field.key.trim().toLowerCase())
+  if (keys.some((key) => !/^[a-z][a-z0-9_-]*$/.test(key)) || new Set(keys).size !== keys.length || fields.some((field) => !Object.values(field.labelLocalized || {}).some((value) => value.trim()))) {
+    $toast.error(t('admin.productCategoriesPage.fieldsInvalid'))
+    return
+  }
+  if (fields.filter((field) => field.type === 'NUMBER' && field.purpose === 'RENTAL_PARTY_CAPACITY').length > 1) {
+    $toast.error(t('admin.productCategoriesPage.capacityUnique'))
+    return
+  }
   saving.value = true
   try {
     const payload = {
@@ -137,7 +201,8 @@ const save = async () => {
       slug: editing.slug,
       description: editing.description,
       position: editing.position,
-      active: editing.active
+      active: editing.active,
+      fields,
     }
     if (editing.id) {
       await $fetch(`/api/admin/product-categories/${editing.id}`, { method: 'PUT', body: payload })

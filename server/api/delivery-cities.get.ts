@@ -1,7 +1,11 @@
 import { db } from '#modula/server/data/client'
+import { getFeatureFlags } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800')
+
+  const featureFlags = await getFeatureFlags()
+  if (!featureFlags.deliveryEnabled) return []
 
   const cities = await db.tourCity.findMany({
     select: { city: true, postalCodes: true },

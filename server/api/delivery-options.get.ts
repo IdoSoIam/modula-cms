@@ -1,11 +1,30 @@
 import { db } from '#modula/server/data/client'
 import { getNextDateForDayOfWeek } from '#modula/server/utils/orderFulfillment'
-import { getOnSitePickupConfig } from '#modula/server/utils/settings'
+import { getFeatureFlags, getOnSitePickupConfig } from '#modula/server/utils/settings'
 
 export default defineEventHandler(async (event) => {
   setResponseHeader(event, 'Cache-Control', 'public, max-age=300, s-maxage=900, stale-while-revalidate=1800')
 
   const now = new Date()
+  const featureFlags = await getFeatureFlags()
+  if (!featureFlags.deliveryEnabled) {
+    const onSitePickup = await getOnSitePickupConfig()
+    return {
+      deliveryEnabled: false,
+      onSitePickup: {
+        label: onSitePickup.label,
+        address: onSitePickup.address,
+        dayOfWeek: onSitePickup.dayOfWeek,
+        startTime: onSitePickup.startTime,
+        endTime: onSitePickup.endTime,
+        nextDate: getNextDateForDayOfWeek(onSitePickup.dayOfWeek, now).toISOString(),
+        slotLabel: onSitePickup.slotLabel,
+      },
+      pickupPoints: [],
+      tours: [],
+      servedCities: [],
+    }
+  }
   const [pickupPoints, tours, onSitePickup] = await Promise.all([
     db.pickupPoint.findMany({
       where: { active: true },
@@ -60,6 +79,7 @@ export default defineEventHandler(async (event) => {
   allServedCities.sort((left, right) => left.localeCompare(right, 'fr'))
 
   return {
+    deliveryEnabled: true,
     onSitePickup: {
       label: onSitePickup.label,
       address: onSitePickup.address,

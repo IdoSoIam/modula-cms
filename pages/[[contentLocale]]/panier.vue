@@ -10,12 +10,18 @@
           <p class="mt-3 max-w-3xl text-base opacity-80">{{ introLabel }}</p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <NuxtLink class="btn btn-ghost" :to="localePath('/boutique')">{{ productsLinkLabel }}</NuxtLink>
+          <NuxtLink class="btn btn-ghost" :to="localePath(shopPagePath)">{{ productsLinkLabel }}</NuxtLink>
         </div>
       </div>
 
-      <div v-if="items.length" class="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.9fr)]">
-        <div class="space-y-4">
+      <ShopCheckoutProgress :current="checkoutStep" :ariaLabelText="progressLabel" :steps="checkoutSteps" />
+
+      <div
+        v-if="items.length"
+        class="grid w-full gap-8"
+        :class="checkoutStep === 'information' ? 'mx-auto' : 'lg:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.9fr)]'"
+      >
+        <div v-if="checkoutStep !== 'information'" class="space-y-4">
           <article v-for="item in items" :key="item.key" class="modula-card border border-base-300 bg-base-100 p-5 shadow-sm">
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div class="flex gap-4">
@@ -46,6 +52,9 @@
                     :title="rentalPeriodLabel"
                     :duration="formatRentalDuration(item)"
                   />
+                  <p v-if="item.saleType === 'RENTAL' && item.rentalPartySize" class="text-sm font-medium">
+                    {{ rentalPartySizeLabel }} : {{ item.rentalPartySize }}
+                  </p>
                   <dl v-if="item.saleType === 'RENTAL'" class="space-y-1 text-sm">
                     <div class="flex justify-between gap-4">
                       <dt>{{ rentalBasePriceLabel }}</dt>
@@ -82,10 +91,11 @@
                       </dd>
                     </div>
                   </dl>
-                  <div v-if="item.associatedDocuments?.length" class="flex flex-wrap gap-2">
+                  <div v-if="item.associatedDocuments?.some((document) => document.billingDocumentKind !== 'CONTRACT')" class="flex flex-wrap gap-2">
                     <a
                       v-for="document in item.associatedDocuments"
                       :key="document.key"
+                      v-show="document.billingDocumentKind !== 'CONTRACT'"
                       :href="document.url"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -97,7 +107,6 @@
                   </div>
                 </div>
               </div>
-
               <div class="flex flex-col items-end gap-3">
                 <div class="text-right">
                   <div class="text-sm opacity-60">
@@ -107,7 +116,7 @@
                     {{ $formatPrice(item.unitPrice) }}
                   </div>
                 </div>
-                <div class="flex items-center gap-3">
+                <div v-if="checkoutStep === 'cart'" class="flex items-center gap-3">
                   <button class="btn btn-sm btn-ghost" @click="updateItemQuantity(item.key, item.quantity - 1)">
                     <Icon name="mdi:minus" size="16" />
                   </button>
@@ -124,11 +133,11 @@
                     {{ $formatPrice(item.totalPrice) }}
                   </div>
                 </div>
-                <NuxtLink class="btn btn-sm btn-outline" :to="editItemTarget(item)">
+                <NuxtLink v-if="checkoutStep === 'cart'" class="btn btn-sm btn-outline" :to="editItemTarget(item)">
                   <Icon name="mdi:pencil-outline" size="18" />
                   {{ editItemLabel }}
                 </NuxtLink>
-                <button class="btn btn-sm btn-ghost text-error" @click="removeItem(item.key)">
+                <button v-if="checkoutStep === 'cart'" class="btn btn-sm btn-ghost text-error" @click="removeItem(item.key)">
                   <Icon name="mdi:delete-outline" size="18" />
                   {{ removeLabel }}
                 </button>
@@ -146,7 +155,7 @@
             <span class="badge badge-primary text-nowrap">{{ countLabel }}</span>
           </div>
 
-          <div class="mt-6 space-y-4">
+          <div v-if="checkoutStep === 'information'" class="mt-6 grid gap-4 md:grid-cols-2">
             <div class="form-control flex flex-col gap-3">
               <label class="label"
                 ><span class="label-text">{{ requiredLabel(fullNameLabel) }}</span></label
@@ -166,11 +175,36 @@
               <input v-model="checkoutForm.phone" class="input input-bordered" />
             </div>
 
-            <div class="rounded-box bg-base-200 p-4 text-sm opacity-80">
+            <div class="md:col-span-2 border-t border-base-300 pt-4">
+              <h3 class="font-semibold">{{ billingAddressTitle }}</h3>
+              <p class="mt-1 text-sm opacity-65">{{ billingAddressHelp }}</p>
+            </div>
+            <div class="form-control flex flex-col gap-3 md:col-span-2">
+              <label class="label"><span class="label-text">{{ requiredLabel(addressLine1Label) }}</span></label>
+              <input v-model="checkoutForm.billingAddress" class="input input-bordered" autocomplete="billing street-address" />
+            </div>
+            <div class="form-control flex flex-col gap-3">
+              <label class="label"><span class="label-text">{{ requiredLabel(postalCodeLabel) }}</span></label>
+              <input v-model="checkoutForm.billingPostalCode" class="input input-bordered" autocomplete="billing postal-code" />
+            </div>
+            <div class="form-control flex flex-col gap-3">
+              <label class="label"><span class="label-text">{{ requiredLabel(cityLabel) }}</span></label>
+              <input v-model="checkoutForm.billingCity" class="input input-bordered" autocomplete="billing address-level2" />
+            </div>
+            <div class="form-control flex flex-col gap-3">
+              <label class="label"><span class="label-text">{{ requiredLabel(countryLabel) }}</span></label>
+              <input v-model="checkoutForm.billingCountry" class="input input-bordered" autocomplete="billing country-name" />
+            </div>
+            <label v-if="authStore.user" class="flex cursor-pointer items-center gap-3 self-end pb-3">
+              <input v-model="checkoutForm.saveBillingAddress" type="checkbox" class="checkbox checkbox-sm" />
+              <span class="text-sm">{{ saveBillingAddressLabel }}</span>
+            </label>
+
+            <div class="rounded-box bg-base-200 p-4 text-sm opacity-80 md:col-span-2">
               {{ accountProvisioningNotice }}
             </div>
 
-            <div v-if="hasRentalItems" class="rounded-box bg-base-200 p-4 text-sm opacity-80">
+            <div v-if="hasRentalItems" class="rounded-box bg-base-200 p-4 text-sm opacity-80 md:col-span-2">
               {{ rentalHelpLabel }}
             </div>
 
@@ -194,7 +228,7 @@
               </select>
             </div>
 
-            <div v-if="checkoutForm.deliveryType === 'ONSITE'" class="rounded-box bg-base-200 p-4 text-sm">
+            <div v-if="checkoutForm.deliveryType === 'ONSITE'" class="rounded-box bg-base-200 p-4 text-sm md:col-span-2">
               <div class="font-medium">{{ onSiteDeliveryLabel }}</div>
               <template v-if="hasRentalItems">
                 <div class="mt-1 opacity-75">
@@ -219,7 +253,7 @@
               </div>
             </div>
 
-            <div v-if="checkoutForm.deliveryType === 'PICKUP'" class="space-y-3">
+            <div v-if="checkoutForm.deliveryType === 'PICKUP'" class="space-y-3 md:col-span-2">
               <div class="form-control flex flex-col gap-3">
                 <label class="label"
                   ><span class="label-text">{{ pickupPointLabel }}</span></label
@@ -239,11 +273,15 @@
               </div>
             </div>
 
-            <div v-if="checkoutForm.deliveryType === 'TOUR'" class="space-y-3">
-              <div class="rounded-box bg-base-200 p-4 text-sm">
+            <div v-if="checkoutForm.deliveryType === 'TOUR'" class="grid gap-3 md:col-span-2 md:grid-cols-2">
+              <div class="rounded-box bg-base-200 p-4 text-sm md:col-span-2">
                 <div class="font-medium">{{ tourCityHelperTitle }}</div>
                 <div class="mt-1 opacity-75">{{ tourCityHelperLabel }}</div>
               </div>
+              <label class="flex cursor-pointer items-center gap-3 md:col-span-2">
+                <input v-model="checkoutForm.deliverySameAsBilling" type="checkbox" class="checkbox checkbox-sm" />
+                <span class="text-sm">{{ deliverySameAsBillingLabel }}</span>
+              </label>
               <div class="form-control flex flex-col gap-3">
                 <label class="label"
                   ><span class="label-text">{{ requiredLabel(cityLabel) }}</span></label
@@ -279,13 +317,21 @@
                   </option>
                 </select>
               </div>
+              <div class="form-control flex flex-col gap-3">
+                <label class="label"><span class="label-text">{{ requiredLabel(countryLabel) }}</span></label>
+                <input v-model="checkoutForm.deliveryCountry" class="input input-bordered" autocomplete="shipping country-name" />
+              </div>
+              <label v-if="authStore.user" class="flex cursor-pointer items-center gap-3 self-end pb-3">
+                <input v-model="checkoutForm.saveShippingAddress" type="checkbox" class="checkbox checkbox-sm" />
+                <span class="text-sm">{{ saveShippingAddressLabel }}</span>
+              </label>
               <p v-if="checkoutForm.deliveryCity.trim() && !deliveryCityValid" class="text-sm text-warning">
                 {{ unavailableCityLabel }}
               </p>
               <p v-if="deliveryCityValid && checkoutForm.deliveryPostalCode.trim() && !deliveryPostalCodeValid" class="text-sm text-warning">
                 {{ postalCodeMismatchLabel }}
               </p>
-              <div v-if="selectedDeliveryTour" class="rounded-box bg-base-200 p-4 text-sm">
+              <div v-if="selectedDeliveryTour" class="rounded-box bg-base-200 p-4 text-sm md:col-span-2">
                 <div class="font-medium">{{ selectedDeliveryTour.name }}</div>
                 <div class="mt-1 opacity-75">
                   {{ deliveryTourSummary(selectedDeliveryTour) }}
@@ -341,11 +387,76 @@
               </dl>
             </div>
 
-            <div class="form-control flex flex-col gap-3">
+            <div class="form-control flex flex-col gap-3 md:col-span-2 w-full">
               <label class="label"
                 ><span class="label-text">{{ messageLabel }}</span></label
               >
-              <textarea v-model="checkoutForm.message" class="textarea textarea-bordered min-h-28" />
+              <textarea v-model="checkoutForm.message" class="textarea textarea-bordered min-h-28 w-full" />
+            </div>
+          </div>
+
+          <div v-else-if="checkoutStep === 'review'" class="mt-6 space-y-4 text-sm">
+            <div class="rounded-box border border-base-300 p-4">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <div class="font-semibold">{{ contactReviewTitle }}</div>
+                  <div class="mt-2">{{ checkoutForm.customerName }}</div>
+                  <div class="opacity-75">{{ checkoutForm.email }}</div>
+                  <div v-if="checkoutForm.phone" class="opacity-75">{{ checkoutForm.phone }}</div>
+                  <div class="mt-3 font-medium">{{ billingAddressTitle }}</div>
+                  <div class="opacity-75">{{ billingReviewSummary }}</div>
+                </div>
+                <NuxtLink class="btn btn-xs btn-ghost" :to="informationPath">{{ editItemLabel }}</NuxtLink>
+              </div>
+            </div>
+            <div class="rounded-box border border-base-300 p-4">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <div class="font-semibold">{{ deliveryReviewTitle }}</div>
+                  <div class="mt-2">{{ deliveryReviewSummary }}</div>
+                  <div class="mt-1 opacity-75">{{ paymentReviewSummary }}</div>
+                  <div v-if="depositTotal > 0" class="mt-1 opacity-75">{{ depositLabel }} : {{ resolvedDepositPaymentLabel }}</div>
+                </div>
+                <NuxtLink class="btn btn-xs btn-ghost" :to="informationPath">{{ editItemLabel }}</NuxtLink>
+              </div>
+            </div>
+            <div v-if="checkoutForm.message" class="rounded-box border border-base-300 p-4">
+              <div class="font-semibold">{{ messageLabel }}</div>
+              <p class="mt-2 whitespace-pre-line opacity-75">{{ checkoutForm.message }}</p>
+            </div>
+            <div class="rounded-box border border-base-300 p-4">
+              <div class="font-semibold">{{ documentsReviewTitle }}</div>
+              <div v-if="checkoutDocuments.length" class="mt-3 flex flex-wrap gap-2">
+                <template v-for="document in checkoutDocuments" :key="document.key">
+                <button
+                  v-if="document.billingDocumentKind === 'CONTRACT'"
+                  type="button"
+                  class="btn btn-xs btn-outline"
+                  :disabled="contractPreviewPending"
+                  @click="previewCheckoutContract(document.documentId)"
+                >
+                  <Icon name="mdi:file-document-outline" size="14" />
+                  {{ document.name }}
+                </button>
+                <a
+                  v-else
+                  :href="document.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-xs btn-outline"
+                >
+                  <Icon name="mdi:file-document-outline" size="14" />
+                  {{ document.name }}
+                </a>
+                </template>
+              </div>
+              <label class="mt-4 flex cursor-pointer items-start gap-3 border-t border-base-300 pt-4">
+                <input v-model="checkoutForm.acceptedTerms" type="checkbox" class="checkbox checkbox-sm mt-0.5" />
+                <span>
+                  {{ termsAcceptancePrefix }}
+                  <NuxtLink :to="localePath('/terms')" target="_blank" class="link">{{ termsLinkLabel }}</NuxtLink>.
+                </span>
+              </label>
             </div>
           </div>
 
@@ -381,10 +492,6 @@
                   </div>
                 </div>
               </div>
-              <button class="btn btn-primary shrink-0" :disabled="savingOrder || !canSubmit" @click="submitOrder">
-                <span v-if="savingOrder" class="loading loading-spinner loading-sm" />
-                {{ submitLabel }}
-              </button>
             </div>
             <p v-if="!paymentCapabilities.allowOffline && !paymentCapabilities.allowOnline" class="mt-3 text-sm text-error">
               {{ unavailablePaymentLabel }}
@@ -393,6 +500,31 @@
               {{ checkoutTaxNotice }}
             </p>
           </div>
+
+          <button
+            v-if="checkoutStep === 'cart'"
+            class="btn btn-primary shrink-0 w-full mt-4"
+            :disabled="stepNavigationPending"
+            @click="goToCheckoutInformation"
+          >
+            <span v-if="stepNavigationPending" class="loading loading-spinner loading-sm" />
+            {{ continueToInformationLabel }}
+            <Icon name="mdi:arrow-right" size="18" />
+          </button>
+          <button
+            v-else-if="checkoutStep === 'information'"
+            class="btn btn-primary shrink-0 w-full mt-4"
+            :disabled="stepNavigationPending"
+            @click="goToCheckoutReview"
+          >
+            <span v-if="stepNavigationPending" class="loading loading-spinner loading-sm" />
+            {{ continueToReviewLabel }}
+            <Icon name="mdi:arrow-right" size="18" />
+          </button>
+          <button v-else class="btn btn-primary mt-4 w-full shrink-0" :disabled="savingOrder || !canSubmit" @click="submitOrder">
+            <span v-if="savingOrder" class="loading loading-spinner loading-sm" />
+            {{ submitLabel }}
+          </button>
         </aside>
       </div>
 
@@ -401,7 +533,7 @@
           <h2 class="text-2xl font-semibold">{{ emptyLabel }}</h2>
           <p class="mt-3 opacity-75">{{ emptyHelpLabel }}</p>
           <div class="mt-6 flex flex-wrap justify-center gap-3">
-            <NuxtLink class="btn btn-primary" :to="localePath('/boutique')">{{ productsLinkLabel }}</NuxtLink>
+            <NuxtLink class="btn btn-primary" :to="localePath(shopPagePath)">{{ productsLinkLabel }}</NuxtLink>
           </div>
         </div>
       </div>
@@ -410,10 +542,6 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({
-  i18n: false,
-})
-
 import { getShopCartPaymentCapabilities, useShopCart, type ShopCartItem } from '#modula/composables/useShopCart'
 import { getRentalDepositPaymentCapabilities } from '#modula/shared/rentalDeposit'
 import { useAuthStore } from '#modula/stores/auth'
@@ -439,6 +567,7 @@ interface DeliveryOptionTour {
 }
 
 interface DeliveryOptionsPayload {
+  deliveryEnabled?: boolean
   onSitePickup?: {
     label: string
     address: string
@@ -460,9 +589,20 @@ const { publicText } = usePublicDictionary()
 const locale = computed(() => contentLocale.value)
 const localePath = usePublicLocalePath()
 const route = useRoute()
+const initialSiteConfig = await ensureSiteConfigState({ path: route.path, locale: contentLocale.value })
+const siteConfig = useSiteConfigState()
 const authStore = useAuthStore()
 const { $toast, $formatPrice, $formatDate, $formatDateTime, $formatTime } = useNuxtApp() as any
 const { items, count, total, updateQuantity, remove, clear } = useShopCart()
+const checkoutStep = computed<'cart' | 'information' | 'review'>(() => {
+  if (route.path.endsWith('/commande/validation')) return 'review'
+  if (route.path.endsWith('/commande/informations')) return 'information'
+  return 'cart'
+})
+const cartPath = computed(() => localePath('/panier'))
+const informationPath = computed(() => localePath('/commande/informations'))
+const reviewPath = computed(() => localePath('/commande/validation'))
+const shopPagePath = computed(() => siteConfig.value?.shopPagePath || initialSiteConfig?.shopPagePath || '/boutique')
 
 await authStore.ensureInitialized()
 
@@ -499,7 +639,7 @@ const deliveryChoices = computed<DeliveryType[]>(() => {
   return values
 })
 
-const checkoutForm = ref({
+const checkoutForm = useState('modula-shop-checkout-form', () => ({
   customerName: '',
   email: '',
   phone: '',
@@ -512,16 +652,39 @@ const checkoutForm = ref({
   deliveryAddress: '',
   deliveryCity: '',
   deliveryPostalCode: '',
-})
+  deliveryCountry: 'France',
+  deliverySameAsBilling: false,
+  billingAddress: '',
+  billingCity: '',
+  billingPostalCode: '',
+  billingCountry: 'France',
+  saveBillingAddress: true,
+  saveShippingAddress: true,
+  acceptedTerms: false,
+}))
+const checkoutFormHydrated = ref(false)
+const checkoutFormStorageKey = 'modula-shop-checkout-form-v1'
 
 const savingOrder = ref(false)
+const contractPreviewPending = ref(false)
+const stepNavigationPending = ref(false)
 const retryOrderId = ref<number | null>(null)
 
 const eyebrowLabel = computed(() => publicText('checkout.cart.eyebrow', 'Commande'))
-const titleLabel = computed(() => publicText('checkout.cart.title', 'Panier d’achat'))
-const introLabel = computed(() =>
-  publicText('checkout.cart.intro', 'Vérifiez les produits sélectionnés, puis confirmez la commande avec les informations de livraison et de règlement.'),
-)
+const titleLabel = computed(() => {
+  if (checkoutStep.value === 'information') return publicText('checkout.steps.informationTitle', 'Coordonnées')
+  if (checkoutStep.value === 'review') return publicText('checkout.steps.reviewTitle', 'Vérification de la commande')
+  return publicText('checkout.cart.title', 'Panier d’achat')
+})
+const introLabel = computed(() => {
+  if (checkoutStep.value === 'information') {
+    return publicText('checkout.steps.informationIntro', 'Renseignez vos coordonnées, le retrait ou la livraison et le mode de règlement.')
+  }
+  if (checkoutStep.value === 'review') {
+    return publicText('checkout.steps.reviewIntro', 'Vérifiez une dernière fois les articles, les montants et les informations de commande.')
+  }
+  return publicText('checkout.steps.cartIntro', 'Vérifiez les produits sélectionnés, puis continuez vers les informations de commande.')
+})
 const productsLinkLabel = computed(() => publicText('checkout.cart.productsLink', 'Voir les produits'))
 const productBadgeLabel = computed(() => publicText('checkout.cart.productBadge', 'Produit'))
 const stockLabel = computed(() => publicText('checkout.cart.stockLabel', 'Disponible'))
@@ -535,10 +698,18 @@ const vatAmountLabel = computed(() => publicText('checkout.cart.vatAmount', 'TVA
 const totalInclTaxLabel = computed(() => publicText('checkout.cart.totalInclTax', 'Total TTC'))
 const subtotalBeforeStripeTaxLabel = computed(() => publicText('checkout.cart.subtotalBeforeStripeTax', 'Sous-total avant calcul de la TVA'))
 const removeLabel = computed(() => publicText('checkout.cart.remove', 'Supprimer'))
-const checkoutTitleLabel = computed(() => publicText('checkout.cart.detailsTitle', 'Validation de commande'))
-const checkoutIntroLabel = computed(() =>
-  publicText('checkout.cart.detailsIntro', 'Les options de livraison et de règlement s’adaptent aux offres sélectionnées.'),
-)
+const checkoutTitleLabel = computed(() => {
+  if (checkoutStep.value === 'information') return publicText('checkout.steps.informationPanelTitle', 'Coordonnées')
+  if (checkoutStep.value === 'review') return publicText('checkout.steps.reviewPanelTitle', 'Récapitulatif final')
+  return publicText('checkout.steps.cartPanelTitle', 'Résumé du panier')
+})
+const checkoutIntroLabel = computed(() => {
+  if (checkoutStep.value === 'information') {
+    return publicText('checkout.cart.detailsIntro', 'Les options de livraison et de règlement s’adaptent aux offres sélectionnées.')
+  }
+  if (checkoutStep.value === 'review') return publicText('checkout.steps.reviewPanelIntro', 'Aucun nouveau choix ne sera ajouté après cette étape.')
+  return publicText('checkout.steps.cartPanelIntro', 'Contrôlez les périodes, les options et les quantités avant de continuer.')
+})
 const countLabel = computed(() =>
   publicText('checkout.cart.count', '{count} article(s)', {
     count: count.value,
@@ -579,6 +750,13 @@ const tourPlaceholderLabel = computed(() => publicText('checkout.cart.deliverySl
 const addressLabel = computed(() => publicText('checkout.cart.address', 'Adresse'))
 const cityLabel = computed(() => publicText('checkout.cart.city', 'Ville'))
 const postalCodeLabel = computed(() => publicText('checkout.cart.postalCode', 'Code postal'))
+const addressLine1Label = computed(() => publicText('checkout.cart.addressLine1', 'Adresse'))
+const countryLabel = computed(() => publicText('checkout.cart.country', 'Pays'))
+const billingAddressTitle = computed(() => publicText('checkout.cart.billingAddressTitle', 'Adresse de facturation'))
+const billingAddressHelp = computed(() => publicText('checkout.cart.billingAddressHelp', 'Cette adresse apparaîtra sur les documents de facturation.'))
+const saveBillingAddressLabel = computed(() => publicText('checkout.cart.saveBillingAddress', 'Enregistrer cette adresse dans mon profil'))
+const saveShippingAddressLabel = computed(() => publicText('checkout.cart.saveShippingAddress', 'Enregistrer cette adresse de livraison dans mon profil'))
+const deliverySameAsBillingLabel = computed(() => publicText('checkout.cart.deliverySameAsBilling', 'Utiliser l’adresse de facturation pour la livraison'))
 const tourCityHelperTitle = computed(() => publicText('checkout.cart.deliveryEligibilityTitle', 'Éligibilité livraison'))
 const tourCityHelperLabel = computed(() =>
   publicText(
@@ -601,8 +779,10 @@ const messageLabel = computed(() => publicText('checkout.cart.message', 'Message
 const submitLabel = computed(() =>
   (checkoutForm.value.paymentMode === 'stripe' && paymentCapabilities.value.allowOnline) ||
   (depositTotal.value > 0 && checkoutForm.value.depositPaymentMode === 'online' && depositPaymentCapabilities.value.allowOnline)
-    ? publicText('checkout.cart.continueStripe', 'Continuer vers Stripe')
-    : publicText('checkout.cart.confirmOrder', 'Confirmer la commande'),
+    ? publicText('checkout.steps.payAmount', 'Payer {amount}', { amount: $formatPrice(amountDueOnline.value) })
+    : hasRentalItems.value
+      ? publicText('checkout.steps.confirmReservation', 'Confirmer la réservation')
+      : publicText('checkout.cart.confirmOrder', 'Confirmer la commande'),
 )
 const unavailablePaymentLabel = computed(() =>
   publicText('checkout.cart.unavailablePayment', 'Aucun mode de règlement valide n’est actuellement disponible pour ce panier.'),
@@ -616,9 +796,20 @@ const unavailableCityLabel = computed(() =>
 const postalCodeMismatchLabel = computed(() => publicText('checkout.cart.postalCodeMismatch', 'Le code postal ne correspond pas à la ville sélectionnée.'))
 const vatNotApplicableLabel = computed(() => publicText('checkout.cart.vatNotApplicable', 'TVA non applicable'))
 const taxCodeLabel = computed(() => publicText('checkout.cart.taxCode', 'Code taxe'))
+const progressLabel = computed(() => publicText('checkout.steps.progressLabel', 'Progression de la commande'))
+const cartStepLabel = computed(() => publicText('checkout.steps.cart', 'Panier'))
+const informationStepLabel = computed(() => publicText('checkout.steps.information', 'Coordonnées'))
+const reviewStepLabel = computed(() => publicText('checkout.steps.review', 'Vérification'))
+const continueToInformationLabel = computed(() => publicText('checkout.steps.continueInformation', 'Continuer vers les informations'))
+const continueToReviewLabel = computed(() => publicText('checkout.steps.continueReview', 'Vérifier la commande'))
+const contactReviewTitle = computed(() => publicText('checkout.steps.contactReviewTitle', 'Coordonnées'))
+const deliveryReviewTitle = computed(() => publicText('checkout.steps.deliveryReviewTitle', 'Retrait, livraison et règlement'))
+const documentsReviewTitle = computed(() => publicText('checkout.steps.documentsReviewTitle', 'Documents et conditions'))
+const termsAcceptancePrefix = computed(() => publicText('checkout.steps.termsAcceptancePrefix', 'Je reconnais avoir consulté les documents associés et j’accepte les'))
+const termsLinkLabel = computed(() => publicText('checkout.steps.termsLink', 'conditions applicables'))
 
 const resolvedPaymentLabel = computed(() =>
-  paymentCapabilities.value.allowOnline && !paymentCapabilities.value.allowOffline ? onlineLabel.value : offlineLabel.value,
+  checkoutForm.value.paymentMode === 'stripe' && paymentCapabilities.value.allowOnline ? onlineLabel.value : offlineLabel.value,
 )
 const depositItems = computed(() => items.value.filter((item) => item.saleType === 'RENTAL' && Number(item.rentalDepositAmount || 0) > 0))
 const depositTotal = computed(() => roundCurrency(depositItems.value.reduce((sum, item) => sum + Number(item.rentalDepositAmount || 0) * item.quantity, 0)))
@@ -812,6 +1003,7 @@ const deliveryValid = computed(() => {
       Number(checkoutForm.value.deliveryTourId) > 0 &&
       checkoutForm.value.deliveryAddress.trim().length > 0 &&
       checkoutForm.value.deliveryCity.trim().length > 0 &&
+      checkoutForm.value.deliveryCountry.trim().length > 0 &&
       deliveryCityValid.value &&
       deliveryPostalCodeValid.value
     )
@@ -819,26 +1011,118 @@ const deliveryValid = computed(() => {
   return false
 })
 
-const canSubmit = computed(
+const cartCanContinue = computed(
   () =>
     items.value.length > 0 &&
-    deliveryValid.value &&
     rentalLinesValid.value &&
     (paymentCapabilities.value.allowOffline || paymentCapabilities.value.allowOnline) &&
     (depositTotal.value <= 0 || depositPaymentCapabilities.value.allowOnsite || depositPaymentCapabilities.value.allowOnline),
 )
+const checkoutInformationValid = computed(
+  () =>
+    cartCanContinue.value &&
+    checkoutForm.value.customerName.trim().length > 0 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(checkoutForm.value.email.trim()) &&
+    checkoutForm.value.billingAddress.trim().length > 0 &&
+    checkoutForm.value.billingCity.trim().length > 0 &&
+    checkoutForm.value.billingPostalCode.trim().length > 0 &&
+    checkoutForm.value.billingCountry.trim().length > 0 &&
+    deliveryValid.value,
+)
+const canSubmit = computed(
+  () => checkoutInformationValid.value && checkoutForm.value.acceptedTerms,
+)
+const checkoutSteps = computed(() => [
+  { id: 'cart' as const, number: 1, label: cartStepLabel.value, to: cartPath.value, enabled: true },
+  { id: 'information' as const, number: 2, label: informationStepLabel.value, to: informationPath.value, enabled: cartCanContinue.value },
+  { id: 'review' as const, number: 3, label: reviewStepLabel.value, to: reviewPath.value, enabled: checkoutInformationValid.value },
+])
+const deliveryReviewSummary = computed(() => {
+  if (checkoutForm.value.deliveryType === 'ONSITE') {
+    return [onSiteDeliveryLabel.value, deliveryOptions.value?.onSitePickup?.address || noAddressLabel.value].filter(Boolean).join(' · ')
+  }
+  if (checkoutForm.value.deliveryType === 'PICKUP') {
+    return [pickupDeliveryLabel.value, selectedPickupPoint.value?.name, selectedPickupPoint.value?.address].filter(Boolean).join(' · ')
+  }
+  if (checkoutForm.value.deliveryType === 'TOUR') {
+    return [tourDeliveryLabel.value, checkoutForm.value.deliveryAddress, `${checkoutForm.value.deliveryPostalCode} ${checkoutForm.value.deliveryCity}`.trim(), selectedDeliveryTour.value?.name]
+      .filter(Boolean)
+      .join(' · ')
+  }
+  return deliveryPlaceholderLabel.value
+})
+const billingReviewSummary = computed(() => [
+  checkoutForm.value.billingAddress,
+  `${checkoutForm.value.billingPostalCode} ${checkoutForm.value.billingCity}`.trim(),
+  checkoutForm.value.billingCountry,
+].filter(Boolean).join(' · '))
+const paymentReviewSummary = computed(() => `${paymentLabel.value} : ${resolvedPaymentLabel.value}`)
+const checkoutDocuments = computed(() => {
+  const documents = items.value.flatMap((item) => [
+    ...(item.associatedDocuments || []),
+    ...(item.optionSelections || [])
+      .filter((option) => option.kind === 'INSURANCE' && Number(option.billingDocumentId || 0) > 0)
+      .map((option) => ({
+        key: `document:${option.billingDocumentId}`,
+        name: option.label,
+        kind: 'billingDocument' as const,
+        url: `/api/shop/billing-documents/${option.billingDocumentId}/preview?productId=${encodeURIComponent(String(item.productId || ''))}&locale=${encodeURIComponent(contentLocale.value || 'fr')}`,
+        documentId: option.billingDocumentId,
+        billingDocumentKind: 'ASSURANCE' as const,
+      })),
+  ])
+  return Array.from(new Map(documents.map((document) => [document.key, document])).values())
+})
+const rentalPartySizeLabel = computed(() => publicText('checkout.cart.rentalPartySize', 'Nombre de personnes'))
+
+async function previewCheckoutContract(documentId: number | null | undefined) {
+  if (!documentId || contractPreviewPending.value || checkoutStep.value !== 'review') return
+  const previewWindow = window.open('', '_blank')
+  if (!previewWindow) {
+    $toast.error(publicText('checkout.steps.contractPopupBlocked', 'Autorisez les fenêtres de ce site pour consulter l’aperçu du contrat.'))
+    return
+  }
+  contractPreviewPending.value = true
+  try {
+    const pdf = await $fetch<Blob>(`/api/shop/billing-documents/${documentId}/checkout-preview`, {
+      method: 'POST',
+      responseType: 'blob',
+      body: {
+        customerName: checkoutForm.value.customerName,
+        email: checkoutForm.value.email,
+        phone: checkoutForm.value.phone,
+        billingAddress: checkoutForm.value.billingAddress,
+        billingPostalCode: checkoutForm.value.billingPostalCode,
+        billingCity: checkoutForm.value.billingCity,
+        billingCountry: checkoutForm.value.billingCountry,
+        locale: contentLocale.value,
+        items: items.value,
+      },
+    })
+    const url = URL.createObjectURL(pdf)
+    previewWindow.location.href = url
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (error: any) {
+    previewWindow.close()
+    $toast.error(error?.data?.message || publicText('checkout.steps.contractPreviewError', 'Impossible de générer l’aperçu du contrat.'))
+  } finally {
+    contractPreviewPending.value = false
+  }
+}
 
 watch(
   paymentCapabilities,
   (value) => {
-    checkoutForm.value.paymentMode = value.resolvedDefaultMode
+    const currentAllowed = checkoutForm.value.paymentMode === 'stripe' ? value.allowOnline : value.allowOffline
+    if (!currentAllowed) checkoutForm.value.paymentMode = value.resolvedDefaultMode
   },
   { immediate: true, deep: true },
 )
 watch(
   depositPaymentCapabilities,
   (value) => {
-    checkoutForm.value.depositPaymentMode = value.allowOnline && !value.allowOnsite ? 'online' : 'onsite'
+    const currentAllowed = checkoutForm.value.depositPaymentMode === 'online' ? value.allowOnline : value.allowOnsite
+    if (!currentAllowed) checkoutForm.value.depositPaymentMode = value.allowOnline && !value.allowOnsite ? 'online' : 'onsite'
   },
   { immediate: true, deep: true },
 )
@@ -901,6 +1185,12 @@ watch(
     if (!checkoutForm.value.email.trim() && user.email) {
       checkoutForm.value.email = user.email
     }
+    if (user.billingAddress) {
+      if (!checkoutForm.value.billingAddress.trim()) checkoutForm.value.billingAddress = user.billingAddress.street || ''
+      if (!checkoutForm.value.billingCity.trim()) checkoutForm.value.billingCity = user.billingAddress.city || ''
+      if (!checkoutForm.value.billingPostalCode.trim()) checkoutForm.value.billingPostalCode = user.billingAddress.postalCode || ''
+      if (!checkoutForm.value.billingCountry.trim()) checkoutForm.value.billingCountry = user.billingAddress.country || ''
+    }
     if (user.shippingAddress) {
       if (!checkoutForm.value.deliveryAddress.trim()) {
         checkoutForm.value.deliveryAddress = user.shippingAddress.street || ''
@@ -916,7 +1206,47 @@ watch(
   { immediate: true },
 )
 
-onMounted(() => {
+watch(
+  () => [
+    checkoutForm.value.deliverySameAsBilling,
+    checkoutForm.value.billingAddress,
+    checkoutForm.value.billingCity,
+    checkoutForm.value.billingPostalCode,
+    checkoutForm.value.billingCountry,
+  ] as const,
+  ([sameAsBilling, address, city, postalCode, country]) => {
+    if (!sameAsBilling) return
+    checkoutForm.value.deliveryAddress = address
+    checkoutForm.value.deliveryCity = city
+    checkoutForm.value.deliveryPostalCode = postalCode
+    checkoutForm.value.deliveryCountry = country
+  },
+  { immediate: true },
+)
+
+watch(
+  checkoutForm,
+  (value) => {
+    if (!import.meta.client || !checkoutFormHydrated.value) return
+    sessionStorage.setItem(checkoutFormStorageKey, JSON.stringify(value))
+  },
+  { deep: true },
+)
+
+watch(
+  () => route.path,
+  async () => {
+    if (!import.meta.client) return
+    await nextTick()
+    await guardCheckoutStep()
+  },
+)
+
+onMounted(async () => {
+  hydrateCheckoutForm()
+  if (checkoutStep.value === 'cart') checkoutForm.value.acceptedTerms = false
+  await nextTick()
+  if (!(await guardCheckoutStep())) return
   if (route.query.checkout === 'cancel') {
     const orderId = typeof route.query.order === 'string' ? route.query.order : ''
     if (orderId) {
@@ -961,18 +1291,129 @@ function requiredLabel(label: string) {
   return `${label} *`
 }
 
+async function goToCheckoutInformation() {
+  if (!cartCanContinue.value) {
+    $toast.error(publicText('checkout.steps.invalidCart', 'Vérifiez les périodes, les quantités et les modes de règlement du panier avant de continuer.'))
+    return
+  }
+  await navigateCheckoutStep(informationPath.value)
+}
+
+async function goToCheckoutReview() {
+  if (!checkoutInformationValid.value) {
+    $toast.error(publicText('checkout.steps.incompleteInformation', 'Complétez les informations requises avant de continuer.'))
+    return
+  }
+  if (!(await saveCheckoutAddressesToProfile())) return
+  await navigateCheckoutStep(reviewPath.value)
+}
+
+async function saveCheckoutAddressesToProfile() {
+  if (!authStore.user) return true
+  try {
+    if (checkoutForm.value.saveBillingAddress) {
+      const response = await $fetch<{ user: any }>('/api/profile/billing', {
+        method: 'PATCH',
+        body: {
+          addressLine1: checkoutForm.value.billingAddress,
+          city: checkoutForm.value.billingCity,
+          postalCode: checkoutForm.value.billingPostalCode,
+          country: checkoutForm.value.billingCountry,
+        },
+      })
+      if (response.user) authStore.user = response.user
+    }
+    if (checkoutForm.value.deliveryType === 'TOUR' && checkoutForm.value.saveShippingAddress) {
+      const response = await $fetch<{ user: any }>('/api/profile/shipping', {
+        method: 'PATCH',
+        body: {
+          addressLine1: checkoutForm.value.deliveryAddress,
+          city: checkoutForm.value.deliveryCity,
+          postalCode: checkoutForm.value.deliveryPostalCode,
+          country: checkoutForm.value.deliveryCountry,
+        },
+      })
+      if (response.user) authStore.user = response.user
+    }
+    return true
+  } catch (error: any) {
+    $toast.error(error?.data?.message || error?.message || publicText('checkout.cart.addressSaveError', 'Impossible d’enregistrer les adresses dans votre profil.'))
+    return false
+  }
+}
+
+async function navigateCheckoutStep(path: string) {
+  if (stepNavigationPending.value || route.path === path) return
+  stepNavigationPending.value = true
+  try {
+    await navigateTo(path)
+  } catch {
+    $toast.error(publicText('checkout.steps.navigationError', 'Impossible de changer d’étape. Veuillez réessayer.'))
+  } finally {
+    stepNavigationPending.value = false
+  }
+}
+
+async function guardCheckoutStep() {
+  if (checkoutStep.value !== 'cart' && !items.value.length) {
+    await navigateTo(cartPath.value, { replace: true })
+    return false
+  }
+  if (checkoutStep.value === 'review' && !checkoutInformationValid.value) {
+    await navigateTo(informationPath.value, { replace: true })
+    return false
+  }
+  if (checkoutStep.value === 'cart') checkoutForm.value.acceptedTerms = false
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  return true
+}
+
+function hydrateCheckoutForm() {
+  if (!import.meta.client || checkoutFormHydrated.value) return
+  try {
+    const raw = sessionStorage.getItem(checkoutFormStorageKey)
+    const parsed = raw ? JSON.parse(raw) : null
+    if (parsed && typeof parsed === 'object') {
+      for (const key of ['customerName', 'email', 'phone', 'message', 'deliveryAddress', 'deliveryCity', 'deliveryPostalCode', 'deliveryCountry', 'billingAddress', 'billingCity', 'billingPostalCode', 'billingCountry'] as const) {
+        if (typeof parsed[key] === 'string') checkoutForm.value[key] = parsed[key]
+      }
+      if (['ONSITE', 'PICKUP', 'TOUR'].includes(parsed.deliveryType)) checkoutForm.value.deliveryType = parsed.deliveryType
+      if (parsed.paymentMode === 'offline' || parsed.paymentMode === 'stripe') checkoutForm.value.paymentMode = parsed.paymentMode
+      if (parsed.depositPaymentMode === 'onsite' || parsed.depositPaymentMode === 'online') checkoutForm.value.depositPaymentMode = parsed.depositPaymentMode
+      checkoutForm.value.pickupPointId = Math.max(0, Number(parsed.pickupPointId || 0))
+      checkoutForm.value.deliveryTourId = Math.max(0, Number(parsed.deliveryTourId || 0))
+      checkoutForm.value.acceptedTerms = parsed.acceptedTerms === true
+      checkoutForm.value.deliverySameAsBilling = parsed.deliverySameAsBilling === true
+      checkoutForm.value.saveBillingAddress = parsed.saveBillingAddress !== false
+      checkoutForm.value.saveShippingAddress = parsed.saveShippingAddress !== false
+    }
+    if (checkoutForm.value.paymentMode === 'stripe' && !paymentCapabilities.value.allowOnline) checkoutForm.value.paymentMode = paymentCapabilities.value.resolvedDefaultMode
+    if (checkoutForm.value.paymentMode === 'offline' && !paymentCapabilities.value.allowOffline) checkoutForm.value.paymentMode = paymentCapabilities.value.resolvedDefaultMode
+    if (checkoutForm.value.depositPaymentMode === 'online' && !depositPaymentCapabilities.value.allowOnline) checkoutForm.value.depositPaymentMode = 'onsite'
+    if (checkoutForm.value.depositPaymentMode === 'onsite' && !depositPaymentCapabilities.value.allowOnsite) checkoutForm.value.depositPaymentMode = 'online'
+    if (!deliveryChoices.value.includes(checkoutForm.value.deliveryType)) checkoutForm.value.deliveryType = deliveryChoices.value[0] || ''
+  } catch {
+    sessionStorage.removeItem(checkoutFormStorageKey)
+  } finally {
+    checkoutFormHydrated.value = true
+  }
+}
+
 function resolveCartTaxCode(item: { paymentTaxCode?: string | null }) {
   return item.paymentTaxCode?.trim() || registryDefaultTaxCode.value || ''
 }
 
 function resetCheckoutForm() {
+  checkoutFormHydrated.value = false
   checkoutForm.value.message = ''
   checkoutForm.value.paymentMode = paymentCapabilities.value.resolvedDefaultMode
   checkoutForm.value.depositPaymentMode = depositPaymentCapabilities.value.allowOnline && !depositPaymentCapabilities.value.allowOnsite ? 'online' : 'onsite'
   checkoutForm.value.pickupPointId = 0
   checkoutForm.value.deliveryTourId = 0
+  checkoutForm.value.acceptedTerms = false
   const firstChoice = deliveryChoices.value[0] || ''
   checkoutForm.value.deliveryType = firstChoice
+  if (import.meta.client) sessionStorage.removeItem(checkoutFormStorageKey)
 }
 
 async function submitOrder() {
@@ -1000,6 +1441,7 @@ async function submitOrder() {
   try {
     const response = await $fetch<{
       redirectUrl?: string | null
+      order?: { id?: number; orderNumber?: string }
       accountProvisioning?: {
         invitationSent?: boolean
       }
@@ -1020,6 +1462,13 @@ async function submitOrder() {
         deliveryAddress: checkoutForm.value.deliveryType === 'TOUR' ? checkoutForm.value.deliveryAddress : undefined,
         deliveryCity: checkoutForm.value.deliveryType === 'TOUR' ? checkoutForm.value.deliveryCity : undefined,
         deliveryPostalCode: checkoutForm.value.deliveryType === 'TOUR' ? checkoutForm.value.deliveryPostalCode : undefined,
+        deliveryCountry: checkoutForm.value.deliveryType === 'TOUR' ? checkoutForm.value.deliveryCountry : undefined,
+        billingAddress: checkoutForm.value.billingAddress,
+        billingCity: checkoutForm.value.billingCity,
+        billingPostalCode: checkoutForm.value.billingPostalCode,
+        billingCountry: checkoutForm.value.billingCountry,
+        saveBillingAddress: checkoutForm.value.saveBillingAddress,
+        saveShippingAddress: checkoutForm.value.saveShippingAddress,
         lines: items.value.map((item) => ({
           kind: item.kind,
           productId: item.productId || undefined,
@@ -1028,6 +1477,7 @@ async function submitOrder() {
           rentalStartDate: item.saleType === 'RENTAL' ? item.rentalStartDate : undefined,
           rentalEndDate: item.saleType === 'RENTAL' ? item.rentalEndDate : undefined,
           rentalPricingMode: item.saleType === 'RENTAL' ? item.rentalPricingMode : undefined,
+          rentalPartySize: item.saleType === 'RENTAL' ? item.rentalPartySize : undefined,
           insuranceDocumentIds: item.saleType === 'RENTAL' ? (item.insuranceSelections || []).map((insurance) => insurance.documentId) : undefined,
           optionSelections: (item.optionSelections || []).map((option) => ({
             optionId: option.optionId,
@@ -1053,6 +1503,13 @@ async function submitOrder() {
       )
     }
     $toast.success(publicText('checkout.cart.orderSuccess', 'Commande envoyée avec succès.'))
+    await navigateTo(localePath({
+      path: '/commande/confirmation',
+      query: {
+        order: String(response.order?.id || ''),
+        number: response.order?.orderNumber || '',
+      },
+    }))
   } catch (error: any) {
     $toast.error(resolveOrderErrorMessage(error))
   } finally {

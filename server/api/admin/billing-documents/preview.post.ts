@@ -40,6 +40,8 @@ export default defineEventHandler(async (event) => {
       ? 'ASSURANCE'
       : 'CONTRACT'
   const name = String(body.name || '').trim() || (kind === 'INVOICE' ? 'Facture' : kind === 'ASSURANCE' ? 'Assurance' : 'Contrat')
+  const previewRentalStartDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  const previewRentalEndDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
 
   const template: BillingDocumentTemplatePayload = {
     id: 0,
@@ -75,7 +77,7 @@ export default defineEventHandler(async (event) => {
     kind,
     locale: 'fr',
     filenameBase: template.slug || 'preview',
-    order: kind === 'INVOICE'
+    order: kind !== 'ASSURANCE'
       ? {
           id: 0,
           orderNumber: 'CMD-PREVIEW',
@@ -105,8 +107,13 @@ export default defineEventHandler(async (event) => {
           deliveryAddress: '12 rue des Alouettes',
           deliveryCity: 'Toulouse',
           deliveryPostalCode: '31000',
-          rentalStartDate: null,
-          rentalEndDate: null,
+          deliveryCountry: 'France',
+          billingAddress: '12 rue des Alouettes',
+          billingCity: 'Toulouse',
+          billingPostalCode: '31000',
+          billingCountry: 'France',
+          rentalStartDate: kind === 'CONTRACT' ? previewRentalStartDate : null,
+          rentalEndDate: kind === 'CONTRACT' ? previewRentalEndDate : null,
           fulfillmentDate: new Date().toISOString(),
           fulfillmentTime: '17:30-19:00',
           fulfillmentLocation: 'Point relais centre-ville',
@@ -129,13 +136,15 @@ export default defineEventHandler(async (event) => {
               id: 0,
               orderId: 0,
               productId: null,
-              title: 'Produit exemple premium',
+              title: kind === 'CONTRACT' ? 'Bateau exemple' : 'Produit exemple premium',
               quantity: 1,
               unitPrice: 120,
               totalPrice: 120,
-              rentalStartDate: null,
-              rentalEndDate: null,
-              meta: { slug: 'produit-exemple-premium', vatRate: 20, saleType: 'SALE' },
+              rentalStartDate: kind === 'CONTRACT' ? previewRentalStartDate : null,
+              rentalEndDate: kind === 'CONTRACT' ? previewRentalEndDate : null,
+              meta: kind === 'CONTRACT'
+                ? { slug: 'bateau-exemple', vatRate: 20, saleType: 'RENTAL', rentalDepositAmount: 600 }
+                : { slug: 'produit-exemple-premium', vatRate: 20, saleType: 'SALE' },
             },
             {
               id: 1,

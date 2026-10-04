@@ -44,7 +44,7 @@
           :class="activeTab === 'shipping' ? 'btn-primary' : 'btn-ghost border border-base-300'"
           @click="activeTab = 'shipping'"
         >
-          {{ publicText('profile.shippingAddress', 'Adresse de livraison') }}
+          {{ publicText('profile.addresses', 'Adresses') }}
         </button>
         <button
           v-if="showOrdersTab"
@@ -154,7 +154,49 @@
         </div>
       </div>
 
-      <div v-if="showShippingTab && activeTab === 'shipping'" class="card border border-base-300 bg-base-100 shadow-xl">
+      <div v-if="showShippingTab && activeTab === 'shipping'" class="space-y-6">
+        <div class="card border border-base-300 bg-base-100 shadow-xl">
+          <div class="card-body">
+            <div class="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h2 class="card-title text-2xl">{{ publicText('profile.billingAddress', 'Adresse de facturation') }}</h2>
+                <p class="text-sm opacity-65">{{ publicText('profile.billingHelp', 'Adresse utilisée sur les factures et autres documents comptables.') }}</p>
+              </div>
+              <Icon name="mdi:receipt-text-outline" size="28" class="text-primary" />
+            </div>
+            <div v-if="!isEditingBilling" class="space-y-4">
+              <div v-if="billingInfo.addressLine1" class="rounded-box border border-base-300 bg-base-200/60 p-5 text-lg">
+                <p class="font-semibold">{{ billingInfo.addressLine1 }}</p>
+                <p v-if="billingInfo.addressLine2" class="mt-1">{{ billingInfo.addressLine2 }}</p>
+                <p class="mt-3">{{ billingInfo.postalCode }} {{ billingInfo.city }}</p>
+                <p class="opacity-75">{{ billingInfo.country }}</p>
+              </div>
+              <div v-else class="rounded-box border border-dashed border-base-300 bg-base-200/40 p-5 text-sm opacity-70">
+                {{ publicText('profile.noBillingAddress', 'Aucune adresse de facturation enregistrée pour le moment.') }}
+              </div>
+              <div class="card-actions justify-end">
+                <button class="btn btn-primary" @click="isEditingBilling = true">
+                  {{ billingInfo.addressLine1 ? publicText('profile.edit', 'Modifier') : publicText('profile.add', 'Ajouter') }}
+                </button>
+              </div>
+            </div>
+            <form v-else class="space-y-4" @submit.prevent="updateBillingInfo">
+              <div class="form-control gap-3"><label class="label"><span class="label-text">{{ publicText('profile.addressLine1', 'Adresse ligne 1') }}</span></label><input v-model="billingInfo.addressLine1" class="input input-bordered w-full" required /></div>
+              <div class="form-control gap-3"><label class="label"><span class="label-text">{{ publicText('profile.addressLine2', 'Adresse ligne 2') }}</span></label><input v-model="billingInfo.addressLine2" class="input input-bordered w-full" /></div>
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="form-control gap-3"><label class="label"><span class="label-text">{{ publicText('profile.postalCode', 'Code postal') }}</span></label><input v-model="billingInfo.postalCode" class="input input-bordered w-full" required /></div>
+                <div class="form-control gap-3"><label class="label"><span class="label-text">{{ publicText('profile.city', 'Ville') }}</span></label><input v-model="billingInfo.city" class="input input-bordered w-full" required /></div>
+              </div>
+              <div class="form-control gap-3"><label class="label"><span class="label-text">{{ publicText('profile.country', 'Pays') }}</span></label><input v-model="billingInfo.country" class="input input-bordered w-full" required /></div>
+              <div class="card-actions justify-end gap-2">
+                <button type="button" class="btn btn-ghost" @click="cancelBillingEdit">{{ publicText('profile.cancel', 'Annuler') }}</button>
+                <button type="submit" class="btn btn-primary" :disabled="isUpdatingBilling"><span v-if="isUpdatingBilling" class="loading loading-spinner loading-sm" />{{ publicText('profile.save', 'Enregistrer') }}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div v-if="deliveryEnabled" class="card border border-base-300 bg-base-100 shadow-xl">
         <div class="card-body">
           <div class="mb-4 flex items-start justify-between gap-4">
             <div>
@@ -260,6 +302,7 @@
               </button>
             </div>
           </form>
+        </div>
         </div>
       </div>
 
@@ -431,8 +474,10 @@ const normalizeTab = (value: unknown): ProfileTab => {
 const activeTab = ref<ProfileTab>(normalizeTab(route.query.tab))
 const isEditingPersonal = ref(false)
 const isEditingShipping = ref(false)
+const isEditingBilling = ref(false)
 const isUpdatingPersonal = ref(false)
 const isUpdatingShipping = ref(false)
+const isUpdatingBilling = ref(false)
 const isUpdatingPassword = ref(false)
 const isDeletingAccount = ref(false)
 const showDeleteModal = ref(false)
@@ -453,6 +498,14 @@ const shippingInfo = reactive({
   country: ''
 })
 
+const billingInfo = reactive({
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  postalCode: '',
+  country: ''
+})
+
 const passwordForm = reactive({
   currentPassword: '',
   newPassword: '',
@@ -464,8 +517,9 @@ const deleteForm = reactive({
   confirmText: ''
 })
 
-const showShippingTab = computed(() => !authStore.isAdmin)
 const siteConfig = useSiteConfigState()
+const showShippingTab = computed(() => !authStore.isAdmin && siteConfig.value?.featureFlags?.shop?.enabled === true)
+const deliveryEnabled = computed(() => siteConfig.value?.featureFlags?.deliveryEnabled !== false)
 const showOrdersTab = computed(() => !authStore.isAdmin && siteConfig.value?.featureFlags?.shop?.enabled === true)
 const initialOrderId = computed(() => {
   const raw = route.query.order
@@ -485,11 +539,30 @@ const resetShippingFields = () => {
   shippingInfo.country = ''
 }
 
+const resetBillingFields = () => {
+  billingInfo.addressLine1 = ''
+  billingInfo.addressLine2 = ''
+  billingInfo.city = ''
+  billingInfo.postalCode = ''
+  billingInfo.country = ''
+}
+
 const hydrateFormsFromUser = (user: typeof authStore.user) => {
   if (user) {
     personalInfo.firstName = user.firstName || ''
     personalInfo.lastName = user.lastName || ''
     personalInfo.email = user.email || ''
+
+    if (user.billingAddress) {
+      const address = user.billingAddress.street?.split(', ') || ['']
+      billingInfo.addressLine1 = address[0] || ''
+      billingInfo.addressLine2 = address.slice(1).join(', ')
+      billingInfo.city = user.billingAddress.city || ''
+      billingInfo.postalCode = user.billingAddress.postalCode || ''
+      billingInfo.country = user.billingAddress.country || ''
+    } else {
+      resetBillingFields()
+    }
     
     if (user.shippingAddress) {
       const address = user.shippingAddress.street?.split(', ') || ['']
@@ -503,6 +576,7 @@ const hydrateFormsFromUser = (user: typeof authStore.user) => {
     }
   } else {
     resetShippingFields()
+    resetBillingFields()
   }
 }
 
@@ -582,6 +656,27 @@ const updateShippingInfo = async () => {
   }
 }
 
+const updateBillingInfo = async () => {
+  resetError()
+  isUpdatingBilling.value = true
+  try {
+    const response = await $fetch<{ user: any }>('/api/profile/billing', {
+      method: 'PATCH',
+      body: { ...billingInfo }
+    })
+    if (response?.user) {
+      authStore.user = response.user
+      $toast.success(publicText('profile.billingUpdateSuccess', 'Adresse de facturation mise à jour.'))
+      isEditingBilling.value = false
+    }
+  } catch (e: any) {
+    error.value = e?.data?.message || publicText('profile.billingUpdateError', 'Erreur lors de la mise à jour de l’adresse de facturation.')
+    $toast.error(error.value)
+  } finally {
+    isUpdatingBilling.value = false
+  }
+}
+
 const changePassword = async () => {
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
     error.value = publicText('profile.passwordMismatch', 'Les mots de passe ne correspondent pas.')
@@ -646,6 +741,11 @@ const cancelPersonalEdit = () => {
 
 const cancelShippingEdit = () => {
   isEditingShipping.value = false
+  hydrateFormsFromUser(authStore.user)
+}
+
+const cancelBillingEdit = () => {
+  isEditingBilling.value = false
   hydrateFormsFromUser(authStore.user)
 }
 

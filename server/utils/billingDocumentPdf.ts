@@ -8,6 +8,7 @@ import { getUploadObject } from '#modula/server/utils/uploadStorage'
 import { getAdminPhone, getContactEmail, getDefaultFarmPickupConfig, getFarmPickupConfig, getSiteDefaultLocale, getSiteLocales } from '#modula/server/utils/settings'
 import { getResolvedPublicDictionary } from '#modula/server/utils/publicDictionary'
 import { pickCmsLocalizedText } from '#modula/shared/cms'
+import { BILLING_DOCUMENT_INVOICE_COLUMN_LABELS } from '#modula/shared/billingDocuments'
 import {
   createDefaultBillingDocumentInvoiceOptions,
   createDefaultBillingDocumentInvoiceColumns,
@@ -81,7 +82,16 @@ async function readPdfFromSourceUrl(sourcePdfUrl: string) {
   }
 
   if (/^https?:\/\//i.test(input)) {
-    const response = await fetch(input)
+    let response: Response
+    try {
+      response = await fetch(input)
+    } catch (error) {
+      throw createError({
+        statusCode: 503,
+        message: 'Le PDF source est temporairement inaccessible. Vérifiez son URL et sa connexion HTTPS.',
+        cause: error,
+      })
+    }
     if (!response.ok) {
       throw createError({ statusCode: 404, statusMessage: 'PDF source introuvable' })
     }
@@ -134,10 +144,14 @@ async function readImageFromSourceUrl(sourceUrl: string | null | undefined) {
   }
 
   if (/^https?:\/\//i.test(input)) {
-    const response = await fetch(input)
-    if (!response.ok) return null
-    const arrayBuffer = await response.arrayBuffer()
-    return normalize(Buffer.from(arrayBuffer), response.headers.get('content-type'))
+    try {
+      const response = await fetch(input)
+      if (!response.ok) return null
+      const arrayBuffer = await response.arrayBuffer()
+      return normalize(Buffer.from(arrayBuffer), response.headers.get('content-type'))
+    } catch {
+      return null
+    }
   }
 
   return null
@@ -151,12 +165,23 @@ function buildOrderVars(order: ShopOrderPayload, locale: string) {
     currency,
   })
   const lineSummary = order.lines.map((line) => `- ${line.quantity} x ${line.title} · ${formatter.format(line.totalPrice)}`)
+  const depositTotal = order.lines.reduce((total, line) => {
+    const amount = Number(line.meta?.rentalDepositAmount || 0)
+    return total + (Number.isFinite(amount) && amount > 0 ? amount * line.quantity : 0)
+  }, 0)
   return {
     orderNumber: order.orderNumber,
     orderDate: formatDateLabel(order.createdAt, localeCode),
     customerName: order.customerName,
     customerEmail: order.email,
     customerPhone: order.phone || '-',
+    customerAddress: order.billingAddress || '',
+    customerPostalCode: order.billingPostalCode || '',
+    customerCity: order.billingCity || '',
+    customerCountry: order.billingCountry || '',
+    rentalStartDate: order.rentalStartDate ? formatRentalDateLabel(order.rentalStartDate, localeCode) : '',
+    rentalEndDate: order.rentalEndDate ? formatRentalDateLabel(order.rentalEndDate, localeCode) : '',
+    depositAmount: depositTotal > 0 ? formatter.format(depositTotal) : '',
     deliveryType: order.deliveryType || '-',
     subtotal: formatter.format(order.subtotal),
     total: formatter.format(order.total),
@@ -172,6 +197,13 @@ function getEmptyOrderVars() {
     customerName: '',
     customerEmail: '',
     customerPhone: '',
+    customerAddress: '',
+    customerPostalCode: '',
+    customerCity: '',
+    customerCountry: '',
+    rentalStartDate: '',
+    rentalEndDate: '',
+    depositAmount: '',
     deliveryType: '',
     subtotal: '',
     total: '',
@@ -254,6 +286,11 @@ function buildDocumentMetaLines(options: {
 
   if (options.order?.orderNumber) {
     lines.push(`${orderLabel} : ${options.order.orderNumber}`)
+  }
+
+  if (options.kind === 'CONTRACT' && options.order?.rentalStartDate && options.order?.rentalEndDate) {
+    const localeCode = getLocaleCode(options.order.language)
+    lines.push(`${options.dictionary['billing.pdf.rental'] || 'Location'} : ${formatRentalDateLabel(options.order.rentalStartDate, localeCode)} → ${formatRentalDateLabel(options.order.rentalEndDate, localeCode)}`)
   }
 
   if (options.product?.slug) {
@@ -520,11 +557,14 @@ export async function createBillingDocumentPdfAttachment(options: {
   filenameBase: string
   order?: ShopOrderPayload | null
   product?: ProductPayload | null
+  preview?: boolean
 }) {
   const template = options.template || buildFallbackTemplate(options.kind)
   const locale = normalizeLocale(options.locale)
   const dictionary = await getBillingPdfDictionary(locale)
-  const staticPdfSource = template.kind !== 'INVOICE' ? await readPdfFromSourceUrl(template.sourcePdfUrl || '') : null
+  const staticPdfSource = template.kind !== 'INVOICE' && !(template.kind === 'CONTRACT' && options.order)
+    ? await readPdfFromSourceUrl(template.sourcePdfUrl || '')
+    : null
   if (staticPdfSource) {
     return {
       filename: `${options.filenameBase}.pdf`,
@@ -546,6 +586,81 @@ export async function createBillingDocumentPdfAttachment(options: {
     documentTitle: title,
   }
   const bodyText = renderTemplate(content, vars).trim()
+  if (template.kind === 'CONTRACT' && options.order) {
+    const order = options.order
+    const localeCode = getLocaleCode(locale)
+    const formatter = new Intl.NumberFormat(localeCode, { style: 'currency', currency: (order.currency || 'EUR').toUpperCase() })
+    const totals = buildInvoiceTotals(order)
+    const hideVat = shouldHideInvoiceVat(order)
+    const taxGroups = hideVat ? [] : buildInvoiceTaxGroups(order, localeCode, dictionary)
+    const columns = (['designation', 'quantity', 'totalHt', 'vatAmount', 'totalTtc'] as const)
+      .filter((key) => !hideVat || key !== 'vatAmount')
+      .map((key) => ({ key, label: BILLING_DOCUMENT_INVOICE_COLUMN_LABELS[key][locale.startsWith('en') ? 'en' : 'fr'] }))
+    const rentalLines = order.lines.filter((line) => line.meta?.saleType === 'RENTAL' || (line.rentalStartDate && line.rentalEndDate))
+    const product = options.product
+    const boatLines = rentalLines.length > 1
+      ? rentalLines.map((line) => line.title)
+      : [
+          product?.name || rentalLines[0]?.title || '',
+          product?.category?.name || '',
+          ...((product?.detailSections || []).flatMap((section) => section.items)
+            .filter((item) => !item.mediaKind && item.label && item.value)
+            .slice(0, 6)
+            .map((item) => `${item.label}: ${item.value}`)),
+        ].filter(Boolean)
+    const periodLines = [
+      dictionary['billing.pdf.rentalPeriod'] || 'Période de location',
+      ...rentalLines.flatMap((line) => [
+        `${dictionary['billing.pdf.pickup'] || 'Retrait'} : ${formatRentalDateLabel(line.rentalStartDate!, localeCode)}`,
+        `${dictionary['billing.pdf.return'] || 'Retour'} : ${formatRentalDateLabel(line.rentalEndDate!, localeCode)}`,
+        ...(Number(line.meta?.rentalPartySize) > 0
+          ? [`${dictionary['billing.pdf.partySize'] || 'Nombre de personnes'} : ${line.meta.rentalPartySize}`]
+          : []),
+      ]),
+    ]
+    const depositTotal = rentalLines.reduce((sum, line) => sum + Number(line.meta?.rentalDepositAmount || 0) * line.quantity, 0)
+    const notes = [
+      depositTotal > 0 ? `${dictionary['billing.pdf.securityDeposit'] || 'Dépôt de garantie remboursable, hors total de la commande'} : ${formatter.format(depositTotal)}` : '',
+    ].filter(Boolean).join('\n\n')
+    const logoImage = await readImageFromSourceUrl(branding.logoUrl)
+    const contractPdf = await buildInvoicePdf({
+      title,
+      brandName: branding.brandName,
+      accentColor: branding.accentColor,
+      invoiceNumber: options.preview ? (dictionary['billing.pdf.previewNumber'] || 'APERÇU') : order.orderNumber,
+      invoiceDateLabel: formatDateLabel(order.createdAt, localeCode),
+      paymentStatusLabel: options.preview ? (dictionary['billing.pdf.previewOnly'] || 'Aperçu avant commande') : getPaymentStatusLabel(order, dictionary),
+      sellerTitle: dictionary['billing.pdf.customerInformation'] || 'Informations client',
+      sellerLines: [order.customerName, order.email, order.phone || '', order.billingAddress || '', [order.billingPostalCode, order.billingCity].filter(Boolean).join(' '), order.billingCountry || ''].filter(Boolean),
+      customerTitle: dictionary['billing.pdf.boatInformation'] || 'Informations bateau',
+      customerLines: boatLines,
+      metaLines: periodLines,
+      columns,
+      lines: order.lines.map((line, index) => {
+        const amounts = getInvoiceLineAmounts(line)
+        return {
+          lineNumberLabel: String(index + 1), title: line.title, referenceLabel: buildInvoiceReferenceLabel(line),
+          description: line.meta?.saleType === 'RENTAL' ? '' : buildInvoiceLineDescription(line, locale, dictionary),
+          quantity: Number(formatInvoiceQuantity(line)), unitPriceExclTaxLabel: formatter.format(amounts.unitHt),
+          totalPriceExclTaxLabel: formatter.format(amounts.totalHt), vatAmountLabel: formatter.format(amounts.vatAmount),
+          vatRateLabel: formatInvoiceLineVatRate(line, dictionary), totalPriceInclTaxLabel: formatter.format(amounts.totalTtc),
+          values: Object.fromEntries(columns.map((column) => [column.key, buildInvoiceColumnValue(column.key, line, index, dictionary, formatter)])),
+        }
+      }),
+      subtotalExclTaxLabel: formatter.format(totals.totalHt), totalVatLabel: formatter.format(totals.totalVat),
+      totalInclTaxLabel: formatter.format(totals.totalTtc),
+      taxRows: taxGroups.length > 1 ? taxGroups : [],
+      vatNote: hideVat ? (dictionary['billing.pdf.vatNotApplicable'] || 'TVA non applicable') : null,
+      notes, footer: renderTemplate(footer, vars), logoBytes: logoImage?.bytes || null, logoMimeType: logoImage?.contentType || null,
+      labels: {
+        notesTitle: dictionary['billing.pdf.contractConditions'] || 'Conditions et dépôt de garantie',
+        totalsTitle: dictionary['billing.pdf.totals'] || 'Totaux', totalHt: dictionary['billing.pdf.totalHt'] || 'Total HT',
+        totalVat: dictionary['billing.pdf.totalVat'] || 'Total TVA', totalTtc: dictionary['billing.pdf.totalTtc'] || 'Total TTC',
+        emptyLines: dictionary['billing.pdf.emptyLines'] || 'Aucune ligne', page: dictionary['billing.pdf.page'] || 'Page',
+      },
+    })
+    return { filename: `${options.filenameBase}.pdf`, mimeType: 'application/pdf', content: '', contentBase64: contractPdf.toString('base64') } satisfies PdfAttachment
+  }
   const lines = bodyText
     ? bodyText.split('\n')
     : [
@@ -590,7 +705,9 @@ export async function createBillingDocumentPdfAttachment(options: {
         order.customerName,
         order.email,
         order.phone || '',
-        [order.deliveryAddress, order.deliveryPostalCode, order.deliveryCity].filter(Boolean).join(' '),
+        order.billingAddress || '',
+        [order.billingPostalCode, order.billingCity].filter(Boolean).join(' '),
+        order.billingCountry || '',
       ].filter(Boolean),
       metaLines: template.invoiceOptions.showDeliveryMethod ? [
         template.invoiceOptions.showDeliveryMethod ? `${dictionary['billing.pdf.delivery'] || 'Livraison'} : ${getDeliveryTypeLabel(order, dictionary)}` : '',
@@ -673,6 +790,9 @@ export async function createBillingDocumentPdfAttachment(options: {
           options.order.customerName,
           options.order.email,
           options.order.phone || '',
+          options.order.billingAddress || '',
+          [options.order.billingPostalCode, options.order.billingCity].filter(Boolean).join(' '),
+          options.order.billingCountry || '',
         ].filter(Boolean)
       : [
           options.product?.name || '',
@@ -776,6 +896,9 @@ export async function renderPublicBillingDocumentPdf(options: {
   const template = await findBillingDocumentTemplateById(options.documentId)
   if (!template?.active) {
     throw createError({ statusCode: 404, statusMessage: 'Document introuvable' })
+  }
+  if (template.kind === 'CONTRACT') {
+    throw createError({ statusCode: 404, statusMessage: 'Le contrat est disponible au récapitulatif de commande.' })
   }
 
   let product: ProductPayload | null = null

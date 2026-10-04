@@ -5,11 +5,20 @@ import {
   createDefaultRentalCalendar,
   getFrenchPublicHolidays,
   getRentalOpeningRanges,
+  hasRemainingOpeningTime,
   normalizeRentalCalendar,
   resolveOpeningDurationEndTime,
   validateRentalCalendar,
 } from '../shared/rentalCalendar.ts'
 import { formatOpeningHoursSchedule } from '../shared/openingHours.ts'
+import { formatIsoDateInTimeZone, formatLocalIsoDate } from '../shared/date.ts'
+
+test('keeps a clicked calendar day independent from its UTC representation', () => {
+  const day = new Date(2026, 8, 11, 0, 0, 0)
+
+  assert.equal(formatLocalIsoDate(day), '2026-09-11')
+  assert.equal(formatIsoDateInTimeZone(new Date('2026-09-10T22:30:00.000Z'), 'Europe/Paris'), '2026-09-11')
+})
 
 test('normalizes a complete week with several ranges', () => {
   const calendar = normalizeRentalCalendar({
@@ -70,6 +79,14 @@ test('counts a fixed duration across an intra-day closure', () => {
   assert.equal(resolveOpeningDurationEndTime(ranges, '09:00', 480), '18:00')
   assert.equal(resolveOpeningDurationEndTime(ranges, '09:30', 480), null)
   assert.equal(resolveOpeningDurationEndTime(ranges, '13:00', 240), '17:00')
+})
+
+test('keeps today selectable only while an opening range remains', () => {
+  const ranges = [{ start: '09:00', end: '12:00' }, { start: '13:00', end: '18:00' }]
+
+  assert.equal(hasRemainingOpeningTime(ranges, '12:30'), true)
+  assert.equal(hasRemainingOpeningTime(ranges, '17:59'), true)
+  assert.equal(hasRemainingOpeningTime(ranges, '18:00'), false)
 })
 
 test('groups consecutive weekdays with identical opening hours', () => {

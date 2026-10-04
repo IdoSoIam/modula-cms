@@ -8,6 +8,7 @@ export interface CmsRegistryFeatureFlags {
   shop: {
     enabled: boolean
   }
+  deliveryEnabled?: boolean
   rentalsEnabled?: boolean
   associationRolesEnabled: boolean
   eventsEnabled: boolean

@@ -19,6 +19,12 @@ interface User {
     postalCode: string
     country: string
   }
+  billingAddress?: {
+    street: string
+    city: string
+    postalCode: string
+    country: string
+  }
 }
 
 interface LoginCredentials {

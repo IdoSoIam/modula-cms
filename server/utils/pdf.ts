@@ -114,6 +114,7 @@ interface ExternalPdfSectionPayload {
 interface ExternalInvoicePdfPayload {
   kind: 'invoice'
   title: string
+  brandName?: string
   filename?: string
   documentTitle: string
   documentNumber: string
@@ -241,14 +242,23 @@ async function renderExternalPdf(payload: ExternalInvoicePdfPayload | ExternalBr
   if (!baseUrl) return null
   const apiKey = getExternalPdfServiceApiKey()
 
-  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/render`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      ...(apiKey ? { 'x-modula-pdf-key': apiKey } : {}),
-    },
-    body: JSON.stringify(payload),
-  })
+  let response: Response
+  try {
+    response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/render`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(apiKey ? { 'x-modula-pdf-key': apiKey } : {}),
+      },
+      body: JSON.stringify(payload),
+    })
+  } catch (error) {
+    throw createError({
+      statusCode: 503,
+      message: 'Le service PDF externe est inaccessible. Vérifiez CMS_PDF_SERVICE_URL et la connexion HTTPS du service.',
+      cause: error,
+    })
+  }
 
   if (!response.ok) {
     throw createError({
@@ -1176,6 +1186,7 @@ export async function buildInvoicePdf(options: InvoicePdfOptions) {
   const payload: ExternalInvoicePdfPayload = {
     kind: 'invoice',
     title: options.title,
+    brandName: options.brandName,
     filename: `${options.invoiceNumber || 'invoice'}.pdf`,
     documentTitle: options.title,
     documentNumber: options.invoiceNumber,

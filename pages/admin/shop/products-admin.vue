@@ -72,7 +72,13 @@
                 <Icon name="mdi:image-off-outline" size="18" class="opacity-40" />
               </div>
             </td>
-            <td class="font-medium">{{ getLocalizedProductName(product) }}</td>
+            <td>
+              <div class="font-medium">{{ getLocalizedProductName(product) }}</div>
+              <span v-if="!product.catalogVisible && !product.deletedAt" class="badge badge-outline badge-sm mt-1">
+                <Icon name="mdi:puzzle-outline" size="13" />
+                {{ t('admin.productOptions.optionOnlyBadge') }}
+              </span>
+            </td>
             <td>
               <code>{{ product.slug }}</code>
             </td>

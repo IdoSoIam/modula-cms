@@ -1128,6 +1128,7 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
       subscriptionsEnabled: false,
       onlinePaymentsEnabled: true,
       shop: { enabled: true },
+      deliveryEnabled: true,
       rentalsEnabled: templateKey === 'boat-rental',
       associationRolesEnabled: false,
       eventsEnabled: true,
@@ -1140,6 +1141,7 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
         subscriptionsEnabled: false,
         onlinePaymentsEnabled: false,
         shop: { enabled: false },
+        deliveryEnabled: false,
         rentalsEnabled: false,
         associationRolesEnabled: true,
         eventsEnabled: true,
@@ -1151,6 +1153,7 @@ function buildTemplateFeatureFlags(templateKey: CmsSiteTemplateKey) {
         subscriptionsEnabled: false,
         onlinePaymentsEnabled: false,
         shop: { enabled: false },
+        deliveryEnabled: false,
         rentalsEnabled: false,
         associationRolesEnabled: false,
         eventsEnabled: false,
@@ -1250,6 +1253,7 @@ export async function applyBundledSiteTemplate(
   await Promise.all([
     setSetting(SETTING_KEYS.CMS_SITE_TEMPLATE_KEY, templateKey),
     setSetting(SETTING_KEYS.SHOP_ENABLED, templateFeatureFlags.shop.enabled ? 'true' : 'false'),
+    setSetting(SETTING_KEYS.DELIVERY_ENABLED, templateFeatureFlags.deliveryEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, templateFeatureFlags.associationRolesEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.EVENTS_ENABLED, templateFeatureFlags.eventsEnabled ? 'true' : 'false'),
     setSetting(SETTING_KEYS.NEWS_ENABLED, templateFeatureFlags.newsEnabled ? 'true' : 'false')

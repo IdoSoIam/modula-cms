@@ -150,6 +150,13 @@
             </div>
           </div>
 
+          <div class="mt-4 rounded-xl border border-base-300 p-4">
+            <div class="font-medium">{{ t('admin.ordersPage.billingAddressTitle') }}</div>
+            <div class="mt-2 text-sm">
+              <strong>{{ billingAddressLine(details) || t('admin.ordersPage.billingAddressMissing') }}</strong>
+            </div>
+          </div>
+
           <div class="mt-4 rounded-xl bg-base-200 p-4">
             <div class="font-medium">{{ t('admin.ordersPage.deliveryTitle') }}</div>
             <div class="mt-2 space-y-1 text-sm">
@@ -456,6 +463,11 @@ interface ShopOrder {
   deliveryAddress: string | null
   deliveryCity: string | null
   deliveryPostalCode: string | null
+  deliveryCountry: string | null
+  billingAddress: string | null
+  billingCity: string | null
+  billingPostalCode: string | null
+  billingCountry: string | null
   fulfillmentDate: string | null
   fulfillmentTime: string | null
   fulfillmentLocation: string | null
@@ -630,7 +642,10 @@ const deliveryTypeLabel = (value: ShopOrder['deliveryType']) => ({
 }[value])
 
 const deliveryAddressLine = (order: ShopOrder) =>
-  [order.deliveryAddress, [order.deliveryPostalCode, order.deliveryCity].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+  [order.deliveryAddress, [order.deliveryPostalCode, order.deliveryCity].filter(Boolean).join(' '), order.deliveryCountry].filter(Boolean).join(', ')
+
+const billingAddressLine = (order: ShopOrder) =>
+  [order.billingAddress, [order.billingPostalCode, order.billingCity].filter(Boolean).join(' '), order.billingCountry].filter(Boolean).join(', ')
 
 const openDetails = async (id: number) => {
   loadingDetails.value = true

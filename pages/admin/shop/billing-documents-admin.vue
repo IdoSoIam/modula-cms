@@ -199,7 +199,7 @@
           </div>
         </div>
 
-        <div v-if="form.kind !== 'INVOICE'" class="mt-6">
+        <div v-if="form.kind === 'ASSURANCE'" class="mt-6">
           <div class="form-control flex flex-col gap-2">
             <span class="label"><span class="label-text">{{ t('admin.billingDocumentsPage.fields.sourcePdfUrl') }}</span></span>
             <DocumentInput v-model="form.sourcePdfUrl" />
@@ -264,6 +264,7 @@
             :label="t('admin.billingDocumentsPage.fields.localizedTitle')"
           />
           <AdminPageBuilderTranslationTabs
+            v-if="form.kind !== 'CONTRACT'"
             v-model="form.contentLocalized"
             :locales="siteLocales"
             :label="form.kind === 'INVOICE'
@@ -370,7 +371,6 @@ const siteLocales = computed(() => dynamicLocales.value.length ? dynamicLocales.
 const selectedId = ref<number | null>(null)
 const saving = ref(false)
 const invoiceColumnKeys: BillingDocumentInvoiceColumnKey[] = [...BILLING_DOCUMENT_INVOICE_COLUMN_ORDER]
-
 const { data: documents, pending, refresh } = await useFetch<BillingDocumentTemplatePayload[]>('/api/admin/billing-documents')
 
 const createEmptyForm = (kind: BillingDocumentKind = 'CONTRACT') => ({

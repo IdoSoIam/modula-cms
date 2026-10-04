@@ -30,6 +30,7 @@ import {
   type ProductOptionSelectionInput,
 } from '#modula/shared/productOptions'
 import { resolveRentalRatePrice } from '#modula/shared/rentalRates'
+import { getRentalPartyCapacity } from '#modula/shared/productCategoryFields'
 
 interface OrderLineInput {
   kind: 'product'
@@ -39,6 +40,7 @@ interface OrderLineInput {
   rentalStartDate?: string | null
   rentalEndDate?: string | null
   rentalPricingMode?: 'HOURLY' | 'DAILY' | null
+  rentalPartySize?: number | null
   insuranceDocumentIds?: number[]
   optionSelections?: ProductOptionSelectionInput[]
 }
@@ -58,6 +60,13 @@ interface OrderBody {
   deliveryAddress?: string | null
   deliveryCity?: string | null
   deliveryPostalCode?: string | null
+  deliveryCountry?: string | null
+  billingAddress?: string | null
+  billingCity?: string | null
+  billingPostalCode?: string | null
+  billingCountry?: string | null
+  saveBillingAddress?: boolean
+  saveShippingAddress?: boolean
   lines?: OrderLineInput[]
 }
 
@@ -83,6 +92,19 @@ export default defineEventHandler(async (event) => {
   }
 
   const normalizedEmail = body.email.trim().toLowerCase()
+  const billingAddress = body.billingAddress?.trim() || ''
+  const billingCity = body.billingCity?.trim() || ''
+  const billingPostalCode = body.billingPostalCode?.trim() || ''
+  const billingCountry = body.billingCountry?.trim() || ''
+
+  if (!billingAddress || !billingCity || !billingPostalCode || !billingCountry) {
+    throw createError({ statusCode: 400, message: 'Adresse de facturation incomplète' })
+  }
+
+  const featureFlags = await getFeatureFlags()
+  if (!featureFlags.shop.enabled) {
+    throw createError({ statusCode: 403, message: 'La boutique est actuellement désactivée' })
+  }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     throw createError({ statusCode: 400, message: 'Email invalide' })
@@ -134,6 +156,7 @@ export default defineEventHandler(async (event) => {
   const directProducts = productIds.length
     ? await db.product.findMany({
         where: { id: { in: productIds }, active: true, deletedAt: null },
+        include: { category: true },
       })
     : []
 
@@ -155,6 +178,11 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
         message: 'Produit introuvable dans le panier',
       })
+    }
+    const rentalPartyCapacity = product.saleType === 'RENTAL' ? getRentalPartyCapacity(product) : null
+    const rentalPartySize = Number(line.rentalPartySize || 0)
+    if (rentalPartyCapacity && (!Number.isSafeInteger(rentalPartySize) || rentalPartySize < 1 || rentalPartySize > rentalPartyCapacity * quantity)) {
+      throw createError({ statusCode: 400, message: `Le nombre de personnes dépasse la capacité de ${product.name}.` })
     }
 
     const rentalWindow = product.saleType === 'RENTAL' ? resolveRentalWindow(line.rentalStartDate, line.rentalEndDate, rentalCalendar.timezone) : null
@@ -221,6 +249,8 @@ export default defineEventHandler(async (event) => {
         saleType: product.saleType,
         unitLabel: product.unitLabel,
         rentalPricingMode,
+        rentalPartySize: rentalPartyCapacity ? rentalPartySize : null,
+        rentalPartyCapacity,
         rentalDurationUnits,
         vatRate: product.vatRate,
         paymentTaxCode: product.paymentTaxCode,
@@ -320,7 +350,6 @@ export default defineEventHandler(async (event) => {
   }
 
   if (rentalLines.length) {
-    const featureFlags = await getFeatureFlags()
     if (!featureFlags.rentalsEnabled) {
       throw createError({
         statusCode: 400,
@@ -486,6 +515,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if (!featureFlags.deliveryEnabled && body.deliveryType !== 'ONSITE') {
+    throw createError({ statusCode: 400, message: 'La livraison est actuellement désactivée' })
+  }
+
   if (body.deliveryType === 'ONSITE') {
     deliveryType = 'ONSITE'
   } else if (body.deliveryType === 'PICKUP') {
@@ -599,6 +632,34 @@ export default defineEventHandler(async (event) => {
   const deliveryAddress = body.deliveryAddress?.trim() || null
   const deliveryCity = body.deliveryCity?.trim() || null
   const deliveryPostalCode = body.deliveryPostalCode?.trim() || null
+  const deliveryCountry = body.deliveryCountry?.trim() || null
+  const profileAddressData: Record<string, string> = {}
+  if (accountProvisioning.createdInvitedAccount || (sessionUser && body.saveBillingAddress === true)) {
+    Object.assign(profileAddressData, {
+      billingStreet: billingAddress,
+      billingCity,
+      billingPostalCode,
+      billingCountry,
+    })
+  }
+  if (
+    deliveryType === 'TOUR' &&
+    deliveryAddress &&
+    deliveryCity &&
+    deliveryPostalCode &&
+    deliveryCountry &&
+    (accountProvisioning.createdInvitedAccount || (sessionUser && body.saveShippingAddress === true))
+  ) {
+    Object.assign(profileAddressData, {
+      street: deliveryAddress,
+      city: deliveryCity,
+      postalCode: deliveryPostalCode,
+      country: deliveryCountry,
+    })
+  }
+  if (Object.keys(profileAddressData).length) {
+    await db.user.update({ where: { id: accountProvisioning.userId }, data: profileAddressData })
+  }
   const firstRentalStart =
     rentalLines
       .map((line) => line.rentalWindow?.startAt ?? null)
@@ -644,6 +705,11 @@ export default defineEventHandler(async (event) => {
     deliveryAddress,
     deliveryCity,
     deliveryPostalCode,
+    deliveryCountry,
+    billingAddress,
+    billingCity,
+    billingPostalCode,
+    billingCountry,
     fulfillmentDate: fulfillment.fulfillmentDate,
     fulfillmentTime: fulfillment.fulfillmentTime,
     fulfillmentLocation: fulfillment.fulfillmentLocation,
@@ -767,7 +833,7 @@ export default defineEventHandler(async (event) => {
     const requestUrl = getRequestURL(event)
     const localePrefix = language === 'fr' ? '' : `/${language}`
     const successUrl = `${requestUrl.origin}${localePrefix}/payment/success?order=${orderId}&session_id={CHECKOUT_SESSION_ID}`
-    const cancelUrl = `${requestUrl.origin}${localePrefix}/panier?checkout=cancel&order=${orderId}&session_id={CHECKOUT_SESSION_ID}`
+    const cancelUrl = `${requestUrl.origin}${localePrefix}/commande/validation?checkout=cancel&order=${orderId}&session_id={CHECKOUT_SESSION_ID}`
     const session = await createStripeCheckoutSession({
       orderId: depositOnline && !useStripe ? getRentalDepositRegistryOrderId(orderId) : String(orderId),
       orderNumber,

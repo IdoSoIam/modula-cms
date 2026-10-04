@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
@@ -87,6 +87,27 @@
             </div>
           </AdminCollapsibleCard>
 
+          <AdminCollapsibleCard v-if="categoryFields.length" :title="t('admin.productEditorPage.categoryFieldsCard')">
+            <p class="mb-4 text-sm opacity-70">{{ t('admin.productEditorPage.categoryFieldsHelp') }}</p>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div v-for="field in categoryFields" :key="field.key" class="form-control flex flex-col gap-2">
+                <label class="label-text font-medium" :for="`category-field-${field.key}`">
+                  {{ field.labelLocalized[locale] || field.label }}<span v-if="field.required"> *</span>
+                </label>
+                <input
+                  :id="`category-field-${field.key}`"
+                  :value="field.type === 'NUMBER' ? categoryFieldNumberValue(field.key) : categoryFieldValue(field.key)"
+                  :type="field.type === 'NUMBER' ? 'number' : 'text'"
+                  :min="field.type === 'NUMBER' ? 1 : undefined"
+                  :step="field.type === 'NUMBER' ? 1 : undefined"
+                  class="input input-bordered"
+                  @input="setCategoryFieldValue(field.key, ($event.target as HTMLInputElement).value)"
+                />
+                <p v-if="field.purpose === 'RENTAL_PARTY_CAPACITY'" class="text-xs opacity-65">{{ t('admin.productEditorPage.categoryCapacityHelp') }}</p>
+              </div>
+            </div>
+          </AdminCollapsibleCard>
+
           <AdminCollapsibleCard :title="t('admin.productEditorPage.mediaCard')">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div class="form-control flex flex-col gap-3 md:col-span-2">
@@ -94,9 +115,6 @@
                   ><span class="label-text">{{ t('admin.productEditorPage.primaryImage') }}</span></label
                 >
                 <ImageInput v-model="editing.imageUrl" />
-              </div>
-              <div v-if="editing.imageUrl" class="md:col-span-2">
-                <AppImage :src="editing.imageUrl" :alt="localizedName || 'product'" class="h-72 w-full rounded-3xl object-cover" sizes="100vw" />
               </div>
               <details class="collapse collapse-arrow rounded-box border border-base-300 bg-base-100 md:col-span-2">
                 <summary class="collapse-title font-medium">
@@ -382,13 +400,32 @@
                   <span class="label-text">{{ t('admin.productsPage.fieldActive') }}</span>
                 </label>
               </div>
-              <div class="form-control flex gap-3">
-                <label class="label cursor-pointer justify-start gap-3">
-                  <input v-model="editing.catalogVisible" type="checkbox" class="checkbox" />
-                  <span class="label-text">{{ t('admin.productOptions.catalogVisible') }}</span>
-                </label>
-                <span class="text-xs opacity-60">{{ t('admin.productOptions.catalogVisibleHelp') }}</span>
-              </div>
+              <fieldset class="form-control gap-3 md:col-span-2">
+                <legend class="label-text font-medium">{{ t('admin.productOptions.availabilityMode') }}</legend>
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <label
+                    class="flex cursor-pointer gap-3 rounded-box border p-4 transition-colors"
+                    :class="editing.catalogVisible ? 'border-primary bg-primary/5' : 'border-base-300'"
+                  >
+                    <input v-model="editing.catalogVisible" type="radio" :value="true" class="radio radio-primary mt-0.5" />
+                    <span>
+                      <span class="block font-medium">{{ t('admin.productOptions.availabilityStandalone') }}</span>
+                      <span class="mt-1 block text-xs opacity-65">{{ t('admin.productOptions.availabilityStandaloneHelp') }}</span>
+                    </span>
+                  </label>
+                  <label
+                    class="flex cursor-pointer gap-3 rounded-box border p-4 transition-colors"
+                    :class="!editing.catalogVisible ? 'border-primary bg-primary/5' : 'border-base-300'"
+                  >
+                    <input v-model="editing.catalogVisible" type="radio" :value="false" class="radio radio-primary mt-0.5" />
+                    <span>
+                      <span class="block font-medium">{{ t('admin.productOptions.availabilityOptionOnly') }}</span>
+                      <span class="mt-1 block text-xs opacity-65">{{ t('admin.productOptions.availabilityOptionOnlyHelp') }}</span>
+                    </span>
+                  </label>
+                </div>
+                <span class="text-xs opacity-60">{{ t('admin.productOptions.availabilityModeHelp') }}</span>
+              </fieldset>
               <div class="form-control flex gap-3 md:col-span-2">
                 <label class="label cursor-pointer justify-start gap-3">
                   <input v-model="editing.allowCustomerCancellation" type="checkbox" class="checkbox" />
@@ -529,7 +566,7 @@
         </div>
 
         <aside class="space-y-6">
-          <AdminCollapsibleCard :title="t('admin.productEditorPage.summaryCard')">
+          <AdminCollapsibleCard :defaultOpen="true" :title="t('admin.productEditorPage.summaryCard')">
             <dl class="space-y-4 text-sm">
               <div class="flex items-start justify-between gap-4">
                 <dt class="font-medium">
@@ -588,6 +625,7 @@ import type { ProductDetailField, ProductDetailSection, ProductOptionSetPayload,
 import type { RentalRate } from '#modula/shared/rentalRates'
 import type { ProductOption, ProductOptionGroup, ProductOptionOverride } from '#modula/shared/productOptions'
 import type { RentalLateFeeMode } from '#modula/shared/rentalLateFees'
+import type { ProductCategoryFieldDefinition } from '#modula/shared/productCategoryFields'
 
 definePageMeta({
   layout: 'admin',
@@ -598,6 +636,7 @@ interface ProductCategory {
   id: number
   name: string
   slug: string
+  fields: ProductCategoryFieldDefinition[]
 }
 
 interface BillingDocumentOption {
@@ -674,6 +713,7 @@ const deleting = ref(false)
 const rentalAvailabilityLimited = ref(false)
 
 const { data: categories } = await useFetch<ProductCategory[]>('/api/admin/product-categories')
+const categoryFields = computed(() => (categories.value || []).find((category) => category.id === editing.categoryId)?.fields || [])
 const { data: settingsData } = await useFetch<{ shopDefaultVatRate: number }>('/api/admin/settings')
 const { data: billingDocumentsData } = await useFetch<BillingDocumentOption[]>('/api/admin/billing-documents')
 const { data: productOptionsData, refresh: refreshProductOptions } = await useFetch<ProductOptionSetPayload[]>('/api/admin/product-option-sets')
@@ -709,6 +749,50 @@ const matchingOptionSets = computed(() =>
 )
 
 const editing = reactive<ProductEditorState>(createEmptyEditorState(defaultVatRate.value, t, editorLocales.value))
+watch([categories, () => editing.categoryId], () => syncCategoryFields(), { immediate: true })
+
+function findCategoryField(key: string) {
+  return editing.detailSections.flatMap((section) => section.items)
+    .find((item) => item.id === key || item.id === `category-field:${key}`)
+}
+
+function categoryFieldValue(key: string) {
+  return findCategoryField(key)?.value || ''
+}
+
+function categoryFieldNumberValue(key: string) {
+  const match = categoryFieldValue(key).match(/^\s*(\d+)/)
+  return match?.[1] || ''
+}
+
+function setCategoryFieldValue(key: string, value: string) {
+  const item = findCategoryField(key)
+  if (!item) return
+  item.value = value
+  item.valueLocalized = Object.fromEntries(editorLocales.value.map((localeCode) => [localeCode, value]))
+}
+
+function syncCategoryFields() {
+  if (!editing?.detailSections || !categories.value) return
+  const definitions = categoryFields.value
+  const autoSection = editing.detailSections.find((section) => section.id === 'category-fields')
+  if (autoSection) autoSection.items = autoSection.items.filter((item) => definitions.some((field) => item.id === `category-field:${field.key}`))
+  for (const definition of definitions) {
+    const existing = findCategoryField(definition.key)
+    if (existing) continue
+    let section = editing.detailSections.find((entry) => entry.id === 'category-fields')
+    if (!section) {
+      section = { id: 'category-fields', title: t('admin.productEditorPage.categoryFieldsCard'),
+        titleLocalized: createFilledLocalizedText(editorLocales.value, t('admin.productEditorPage.categoryFieldsCard')), items: [] }
+      editing.detailSections.push(section)
+    }
+    const field = createDetailField(editorLocales.value)
+    field.id = `category-field:${definition.key}`
+    field.label = definition.label
+    field.labelLocalized = { ...definition.labelLocalized }
+    section.items.push(field)
+  }
+}
 const rentalDurationsInput = computed({
   get: () => editing.rentalDurations.join(', '),
   set: (value: string) => {
@@ -725,7 +809,7 @@ function detailSectionDisplayTitle(section: ProductDetailSection) {
 }
 
 const previewPath = computed(() => {
-  if (!editing.slug.trim()) return null
+  if (!editing.catalogVisible || !editing.slug.trim()) return null
   return localePath(`/products/${editing.slug.trim()}`)
 })
 
@@ -757,6 +841,7 @@ watch(
 async function loadProduct() {
   if (isCreateMode.value) {
     Object.assign(editing, createEmptyEditorState(defaultVatRate.value, t, editorLocales.value))
+    syncCategoryFields()
     return
   }
 
@@ -764,6 +849,7 @@ async function loadProduct() {
   try {
     const product = await $fetch<ProductPayload>(`/api/admin/products/${routeId.value}`)
     Object.assign(editing, mapProductToEditor(product))
+    syncCategoryFields()
     rentalAvailabilityLimited.value = Boolean(product.rentalAvailableFrom || product.rentalAvailableTo)
   } finally {
     loadingProduct.value = false
@@ -812,6 +898,14 @@ async function save() {
   if (!editing.allowOfflinePayment && !editing.allowOnlinePayment) {
     $toast.error(t('admin.productEditorPage.paymentRequired'))
     return
+  }
+  if (categoryFields.value.some((field) => field.required && !categoryFieldValue(field.key).trim())
+    || categoryFields.value.some((field) => field.type === 'NUMBER' && categoryFieldValue(field.key).trim() && (!Number.isSafeInteger(Number(categoryFieldNumberValue(field.key))) || Number(categoryFieldNumberValue(field.key)) < 1))) {
+    $toast.error(t('admin.productEditorPage.categoryFieldsInvalid'))
+    return
+  }
+  for (const field of categoryFields.value.filter((entry) => entry.type === 'NUMBER')) {
+    if (categoryFieldValue(field.key).trim()) setCategoryFieldValue(field.key, categoryFieldNumberValue(field.key))
   }
   if (
     editing.saleType === 'RENTAL' &&

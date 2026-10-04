@@ -14,6 +14,7 @@
     "release:publish:git": "node ./scripts/publish-runtime-release-with-git.mjs",
     "registry:seed:bundled": "node ./scripts/seed-bundled-registry-templates.mjs",
     "catalog:import:artimon": "node ./scripts/import-artimon-catalog.mjs",
+    "catalog:import:artimon:galleries": "node ./scripts/import-artimon-galleries.mjs",
     "content:seed:artimon": "node ./scripts/seed-artimon-accessories-and-pages.mjs",
     "db:generate:internal": "node --experimental-strip-types ./generator/generate-db-artifacts.ts",
     "db:migrate:status": "node --experimental-strip-types ./scripts/db-migrate.mjs sqlite --status",

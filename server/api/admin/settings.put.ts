@@ -28,6 +28,7 @@ interface Body {
     shop?: {
       enabled?: boolean
     }
+    deliveryEnabled?: boolean
     rentalsEnabled?: boolean
     associationRolesEnabled?: boolean
     eventsEnabled?: boolean
@@ -73,6 +74,7 @@ export default defineEventHandler(async (event) => {
     shop: {
       enabled: body.featureFlags?.shop?.enabled ?? false
     },
+    deliveryEnabled: body.featureFlags?.deliveryEnabled ?? body.featureFlags?.shop?.enabled ?? false,
     rentalsEnabled: body.featureFlags?.rentalsEnabled ?? body.featureFlags?.shop?.enabled ?? false,
     associationRolesEnabled: body.featureFlags?.associationRolesEnabled ?? false,
     eventsEnabled: body.featureFlags?.eventsEnabled ?? false,
@@ -125,6 +127,9 @@ export default defineEventHandler(async (event) => {
   }
   if (typeof body.featureFlags?.shop?.enabled === 'boolean') {
     await setSetting(SETTING_KEYS.SHOP_ENABLED, featureFlags.shop.enabled ? 'true' : 'false')
+  }
+  if (typeof body.featureFlags?.deliveryEnabled === 'boolean') {
+    await setSetting(SETTING_KEYS.DELIVERY_ENABLED, featureFlags.deliveryEnabled ? 'true' : 'false')
   }
   if (typeof body.featureFlags?.associationRolesEnabled === 'boolean') {
     await setSetting(SETTING_KEYS.ASSOCIATION_ROLES_ENABLED, featureFlags.associationRolesEnabled ? 'true' : 'false')
